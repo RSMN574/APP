@@ -39,6 +39,8 @@ dependencies:
   file_picker: ^8.0.6
   grouped_list: ^6.0.0
   mysql_client: ^0.0.27
+  fluttertoast: ^8.2.8
+  google_maps_flutter: ^2.9.0
 
 dev_dependencies:
   flutter_test:

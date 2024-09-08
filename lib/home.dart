@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'database/getData.dart';
+
 class home extends StatelessWidget {
 
 
@@ -101,6 +103,7 @@ margin: EdgeInsets.only(top:20),
 
     debugPrint("跳轉頁面");
     Navigator.pushNamed(context, "bus");
+    getApiBus();
 
     },
     child:Container(

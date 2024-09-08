@@ -5,6 +5,7 @@ import 'package:untitled/plane.dart';
 import 'package:untitled/metro.dart';
 import 'package:untitled/train.dart';
 import 'package:untitled/bus.dart';
+import 'package:untitled/map.dart';
 /// Flutter code sample for [NavigationBar].
 
 void main() => runApp(const NavigationBarApp());
@@ -65,6 +66,9 @@ class _NavigationExampleState extends State<NavigationExample> {
           NavigationDestination(
             icon: Icon(Icons.commute),
             label: '交通',
+          ), NavigationDestination(
+            icon: Icon(Icons.commute),
+            label: '地圖',
           ),
           NavigationDestination(
             selectedIcon: Icon(Icons.person),
@@ -86,7 +90,7 @@ class _NavigationExampleState extends State<NavigationExample> {
               ),
             ),
           ),
-        ),
+        ),map(),
         pages()
       ][currentPageIndex],
     );
