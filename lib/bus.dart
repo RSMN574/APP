@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mysql_client/mysql_client.dart';
+import 'package:untitled/widget/tab.dart';
 
 class bus extends StatefulWidget {
   const bus({super.key});
@@ -36,7 +36,7 @@ class _busState extends State<bus> {
                 ),
                 filled: true,
                 fillColor: Colors.grey[200],
-              )),
+              )),tab(items: ["路線","地圖","城市"], icons: [Icons.home,Icons.map,Icons.location_city], )
 
 
         ],) ,

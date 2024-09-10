@@ -36,10 +36,7 @@ try{
 }catch(e){
  print(e);
 }finally{
-  print(result.numOfColumns);
-  print(result.numOfRows);
-  print(result.lastInsertID);
-  print(result.affectedRows);
+
 
   // print query result
   for (final row in result.rows) {
