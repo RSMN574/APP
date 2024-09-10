@@ -9,6 +9,8 @@ class bus extends StatefulWidget {
 }
 
 class _busState extends State<bus> {
+
+  TextEditingController BusId = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,23 +22,30 @@ class _busState extends State<bus> {
          * 如果有leading，这个参数就无效了
          */
           automaticallyImplyLeading : true,
-          title: Text('公車'),
+          title: const Text('公車'),
 
       ),
       body: Container(
 
         child:Column(children: [
           TextField(
+              onChanged:(text){
+                print(text);
+
+
+
+              },
+        controller:BusId,
               decoration: InputDecoration(
                 hintText: 'Search...',
-                prefixIcon: Icon(Icons.search),
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.0),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
                 fillColor: Colors.grey[200],
-              )),tab(items: ["路線","地圖","城市"], icons: [Icons.home,Icons.map,Icons.location_city], )
+              )),tab(items: ["路線","地圖","城市","我的最愛"], icons: [Icons.home,Icons.map,Icons.location_city,Icons.favorite], )
 
 
         ],) ,
@@ -44,5 +53,7 @@ class _busState extends State<bus> {
       )
 
     );
+
   }
+
 }
