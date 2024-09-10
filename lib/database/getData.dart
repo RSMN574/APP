@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 var result;
+String select ="SELECT JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) AS Zh_tw FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '70%'";
 Future<void> getApiBus() async{
   print("Connecting to mysql server...");
 
@@ -30,13 +31,14 @@ try{
 }
 
 try{
- result = await conn.execute("SELECT RouteName FROM BusInfo");
+ result = await conn.execute(select);
+
 
 
 }catch(e){
  print(e);
 }finally{
-
+  print(result);
 
   // print query result
   for (final row in result.rows) {
