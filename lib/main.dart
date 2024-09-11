@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/pages.dart';
 import 'package:untitled/home.dart';
+import 'package:untitled/pages/nearStop.dart';
 import 'package:untitled/plane.dart';
 import 'package:untitled/metro.dart';
 import 'package:untitled/train.dart';
@@ -21,7 +22,7 @@ class NavigationBarApp extends StatelessWidget {
         "plane": (BuildContext context) => plane(),
         "train": (BuildContext context) => train(),
         "metro": (BuildContext context) => metro(),
-        "bus": (BuildContext context) => bus(),
+        "bus": (BuildContext context) => Bus(),
       },
       theme: ThemeData(useMaterial3: true),
       home: const NavigationExample(),
@@ -65,7 +66,11 @@ class _NavigationExampleState extends State<NavigationExample> {
           ),
           NavigationDestination(
             icon: Icon(Icons.commute),
-            label: '交通',
+            label: '我的出行',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.commute),
+            label: '最近站牌',
           ), NavigationDestination(
             icon: Icon(Icons.commute),
             label: '地圖',
@@ -90,7 +95,7 @@ class _NavigationExampleState extends State<NavigationExample> {
               ),
             ),
           ),
-        ),map(),
+        ),near_stop(),map(),
         pages()
       ][currentPageIndex],
     );

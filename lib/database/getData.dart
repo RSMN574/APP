@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:untitled/bus.dart';
 var result;
 var select ;
 var  conn;
@@ -32,21 +34,18 @@ try{
 
 }
 
-  result = await conn.execute("SELECT JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) AS Zh_tw FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '70%'");
 
 
 
 }
 GetApi(data) async {
-  select="SELECT FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '$data%'";
+  select =
+  "SELECT * FROM NewBusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '$data%'";
 
   print(select);
-  try{
+  try {
     result = await conn.execute(select);
-
-
-
-  }catch(e){
+  } catch (e) {
     print(e);
     Fluttertoast.showToast(
         msg: "錯誤",
@@ -56,22 +55,19 @@ GetApi(data) async {
         backgroundColor: Colors.black45,
         textColor: Colors.white,
         fontSize: 16.0);
-
-
-  }finally{
-
+  } finally {
     print(result);
-
+List i=[];
     // print query result
     for (final row in result.rows) {
       // print(row.colAt(0));
       // print(row.colByName("title"));
 
       // print all rows as Map<String, String>
-      print(row.assoc());
+     // print(row.assoc());
+
+i.add(row.assoc());
     }
+    print(i);
   }
 }
-
-
-
