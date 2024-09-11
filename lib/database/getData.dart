@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 var result;
-String select ="SELECT JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) AS Zh_tw FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '70%'";
+var select ;
+var  conn;
+var busid;
 Future<void> getApiBus() async{
   print("Connecting to mysql server...");
 
   // create connection
-  final conn = await MySQLConnection.createConnection(
+ conn = await MySQLConnection.createConnection(
     host: "rsmn574.serveminecraft.net",
     port: 3306,
     userName: "onlyForApiRead",
@@ -30,28 +32,46 @@ try{
 
 }
 
-try{
- result = await conn.execute(select);
+  result = await conn.execute("SELECT JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) AS Zh_tw FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '70%'");
 
 
 
-}catch(e){
- print(e);
-}finally{
-  print(result);
+}
+GetApi(data) async {
+  select="SELECT FROM BusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '$data%'";
 
-  // print query result
-  for (final row in result.rows) {
-    // print(row.colAt(0));
-    // print(row.colByName("title"));
+  print(select);
+  try{
+    result = await conn.execute(select);
 
-    // print all rows as Map<String, String>
-    print(row.assoc());
+
+
+  }catch(e){
+    print(e);
+    Fluttertoast.showToast(
+        msg: "錯誤",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.black45,
+        textColor: Colors.white,
+        fontSize: 16.0);
+
+
+  }finally{
+
+    print(result);
+
+    // print query result
+    for (final row in result.rows) {
+      // print(row.colAt(0));
+      // print(row.colByName("title"));
+
+      // print all rows as Map<String, String>
+      print(row.assoc());
+    }
   }
 }
-
-}
-
 
 
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/widget/tab.dart';
 
+import 'database/getData.dart';
+
 class bus extends StatefulWidget {
   const bus({super.key});
 
@@ -26,11 +28,17 @@ class _busState extends State<bus> {
 
       ),
       body: Container(
+height: 800,
+        child:Column(
 
-        child:Column(children: [
+
+        children: [
           TextField(
               onChanged:(text){
-                print(text);
+if(text !=""){
+  busid=text;
+  GetApi(BusId.text);
+}
 
 
 
