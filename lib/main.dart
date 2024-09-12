@@ -7,9 +7,13 @@ import 'package:untitled/metro.dart';
 import 'package:untitled/train.dart';
 import 'package:untitled/bus.dart';
 import 'package:untitled/map.dart';
+import 'database/getData.dart';
 /// Flutter code sample for [NavigationBar].
 
-void main() => runApp(const NavigationBarApp());
+void main() {
+  runApp(const NavigationBarApp());
+  GetApi();
+}
 
 class NavigationBarApp extends StatelessWidget {
   const NavigationBarApp({super.key});
@@ -47,6 +51,7 @@ class _NavigationExampleState extends State<NavigationExample> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('台灣通BETA'),
+       actions: [IconButton(onPressed:(){ print("notifications");}, icon: Icon(Icons.notifications))],
       ),
       bottomNavigationBar: NavigationBar(
         labelBehavior: labelBehavior,

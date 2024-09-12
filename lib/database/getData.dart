@@ -3,71 +3,100 @@ import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:untitled/bus.dart';
+final GlobalKey<BusState> _key = GlobalKey<BusState>();
 var result;
-var select ;
-var  conn;
+MySQLConnection? conn;
 var busid;
-Future<void> getApiBus() async{
-  print("Connecting to mysql server...");
+List busName=[];
+Future<void> getApiBus() async {
+  print("Connecting to MySQL server...");
 
-  // create connection
- conn = await MySQLConnection.createConnection(
-    host: "rsmn574.serveminecraft.net",
-    port: 3306,
-    userName: "onlyForApiRead",
-    password: "@Nick0319Lucas0221",
-    databaseName: "Bus", // optional
-  );
-try{
+  // 如果連接已存在，則避免重複連接
+  if (conn != null) {
+    print("Already connected to the database.");
+    return;
+  }
 
-  await conn.connect();
-} catch(e){
-  print(e);
-  Fluttertoast.showToast(
-      msg: "錯誤",
+  try {
+    // 建立連接
+    conn = await MySQLConnection.createConnection(
+      host: "rsmn574.serveminecraft.net",
+      port: 3306,
+      userName: "onlyForApiRead",
+      password: "@Nick0319Lucas0221",
+      databaseName: "Bus",
+    ) ;
+    await conn!.connect();
+    print("MySQL connection established.");
+  } catch (e) {
+    print("Connection error: $e");
+    Fluttertoast.showToast(
+      msg: "連接失敗: $e",
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       timeInSecForIosWeb: 1,
       backgroundColor: Colors.black45,
       textColor: Colors.white,
-      fontSize: 16.0);
-
+      fontSize: 16.0,
+    );
+  }
 }
 
-
-
-
-}
-GetApi(data) async {
-  select =
-  "SELECT * FROM NewBusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '$data%'";
-
-  print(select);
+Future<void> GetApi() async {
+  if (conn == null) {
+    await getApiBus(); // 如果未連接，先連接資料庫
+  }
+  var queryResults;
+  // 使用參數化查詢以避免 SQL 注入
+  String query =
+      "SELECT * FROM NewBusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%'";
+  String query2 =
+      "SELECT * FROM NewBusInfo ";
+  busName=[];
   try {
-    result = await conn.execute(select);
-  } catch (e) {
-    print(e);
-    Fluttertoast.showToast(
-        msg: "錯誤",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        timeInSecForIosWeb: 1,
-        backgroundColor: Colors.black45,
-        textColor: Colors.white,
-        fontSize: 16.0);
-  } finally {
-    print(result);
-List i=[];
-    // print query result
+    busName.clear();
+    result =await conn?.execute(query2);
+    // List<Map<String, dynamic>> queryResults = [];
+
+    // 迭代結果並將其儲存到 list 中
     for (final row in result.rows) {
-      // print(row.colAt(0));
-      // print(row.colByName("title"));
+       //print(row.colAt(0));
+       //print(row.colByName("Zh_tw"));
 
       // print all rows as Map<String, String>
-     // print(row.assoc());
+       busName.add(row.assoc());
 
-i.add(row.assoc());
+
+
     }
-    print(i);
+print(busName);
+    // 打印結果，方便調試
+
+
+    // if (queryResults.isEmpty) {
+    //   Fluttertoast.showToast(
+    //     msg: "無匹配的公車路線",
+    //     toastLength: Toast.LENGTH_SHORT,
+    //     gravity: ToastGravity.BOTTOM,
+    //     timeInSecForIosWeb: 1,
+    //     backgroundColor: Colors.black45,
+    //     textColor: Colors.white,
+    //     fontSize: 16.0,
+    //   );
+    // }
+  } catch (e) {
+    print("Query error: $e");
+    Fluttertoast.showToast(
+      msg: "查詢失敗: $e",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 1,
+      backgroundColor: Colors.black45,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  } finally {
+    print("Query completed.");
   }
+  return;
 }
