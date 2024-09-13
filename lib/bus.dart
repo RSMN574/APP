@@ -20,12 +20,12 @@ class BusState extends State<Bus> {
    for(int i=0;i<busName.length;i++){
 
      if(busName[i]["RouteName"].contains(busIdController.text)){
-print("找到"+busName[i]["RouteName"]+busName[i]["DepartureStopNameZh"]+"-"+busName[i]["DestinationStopNameZh"]);
+print("${"找到"+busName[i]["RouteName"]+busName[i]["DepartureStopNameZh"]}-"+busName[i]["DestinationStopNameZh"]);
 suggestions.add(busName[i]);
 
      }
    }
-print(suggestions);
+
 
     // if(busName !=[]){
     //   if(busName[0]["RouteName"]["Zh_tw"]==int.parse(busIdController.text)){
@@ -105,6 +105,9 @@ print(suggestions);
                   color: Colors.grey[700], // 清除按鈕的顏色
                   onPressed: () {
                     busIdController.clear(); // 清空文本框
+                    setState(() {
+                      suggestionsIsHidden=0;
+                    });
                   },
                 ),
               ),
@@ -120,8 +123,9 @@ print(suggestions);
                 icons: [Icons.home, Icons.map, Icons.location_city, Icons.favorite],
               ),
               Container(
-                color: Colors.red,
+                color: Colors.white,
                 height: suggestionsIsHidden,
+                child: Buslist(suggestions: suggestions,),
 
               )
             ],),

@@ -182,9 +182,9 @@ margin: EdgeInsets.only(top:20),
                     children: [
 
                       Icon(
-                        Icons.subway,
+                        Icons.directions_bus,
                       ),
-                      Text("捷運"),
+                      Text("客運"),
                     ]
                 )
             ),
