@@ -1,5 +1,7 @@
-import 'package:flutter/cupertino.dart';
+import'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../database/getData.dart';
 
 class Buslist extends StatefulWidget {
   final List suggestions;
@@ -52,8 +54,12 @@ class _BuslistState extends State<Buslist> {
                 Text('終點: ${route["DestinationStopNameZh"]}'),
               ],
             ),
-            onTap: () {
+            onTap: ()  {
+              GetBusInfo(int.parse(route["RouteID"]));
               // Add navigation or functionality for each route here
+              print(route["RouteID"]);
+
+              Navigator.pushNamed(context, "busTime",    arguments:route["RouteID"]);
             },
           ),
         );

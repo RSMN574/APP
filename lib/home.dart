@@ -1,5 +1,6 @@
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
+import 'package:untitled/widget/transportGrid.dart';
 
 import 'database/getData.dart';
 
@@ -29,7 +30,7 @@ Container(
             fillColor: Colors.grey[200],
           )),
       Container(
-        height: 200,
+        height: 220,
 margin: EdgeInsets.only(top:20),
     decoration: BoxDecoration(
 
@@ -44,153 +45,8 @@ margin: EdgeInsets.only(top:20),
         )
       ],
     ),
-        child:GridView.count(    //卡片
+        child:TransportGrid()
 
-          primary: false,
-          padding: const EdgeInsets.all(20),
-          crossAxisSpacing: 6,
-          mainAxisSpacing: 2,
-          crossAxisCount: 4,
-          children: <Widget>[
-    new GestureDetector(
-    onTap: (){
-    print("Container clicked");
-
-      debugPrint("跳轉頁面");
-      Navigator.pushNamed(context, "plane");
-
-    },
-    child:Container(
-              padding: const EdgeInsets.all(8),
-
-              child: Column(
-                  crossAxisAlignment:CrossAxisAlignment.center,
-                  children: [
-
-                    Icon(
-                      Icons.flight,
-                    ),
-                    Text("飛機")
-                  ]
-              ),
-           )),
-    new GestureDetector(
-    onTap: (){
-    print("Container clicked");
-
-    debugPrint("跳轉頁面");
-    Navigator.pushNamed(context, "train");
-
-    },
-    child:  Container(
-              padding: const EdgeInsets.all(8),
-
-              child: Column(
-                  crossAxisAlignment:CrossAxisAlignment.center,
-                  children: [
-
-                    Icon(
-                      Icons.train,
-                    ),
-                    Text("火車"),
-                  ]
-              )),
-
-            ),
-    new GestureDetector(
-    onTap: (){
-    print("Container clicked");
-
-    debugPrint("跳轉頁面");
-    Navigator.pushNamed(context, "bus");
-    getApiBus();
-
-    },
-    child:Container(
-              padding: const EdgeInsets.all(8),
-
-              child: Column(
-                  crossAxisAlignment:CrossAxisAlignment.center,
-                  children: [
-
-                    Icon(
-                      Icons.directions_bus,
-                    ),
-                    Text("巴士"),
-                  ]
-              ),
-    )),
-            Container(
-              padding: const EdgeInsets.all(8),
-
-              child: Column(
-                  crossAxisAlignment:CrossAxisAlignment.center,
-                  children: [
-
-                    Icon(
-                      Icons.subway,
-                    ),
-                    Text("捷運"),
-                  ]
-              )
-            ),
-            Container(
-                padding: const EdgeInsets.all(10),
-
-                child:Column(
-                    crossAxisAlignment:CrossAxisAlignment.center,
-                    children: [
-
-                      Icon(
-                        Icons.directions_railway,
-                      ),
-                      Text("高鐵"),
-                    ]
-                ) ,),
-
-            Container(
-                padding: const EdgeInsets.all(8),
-
-                child: Column(
-                    crossAxisAlignment:CrossAxisAlignment.center,
-                    children: [
-
-                      Icon(
-                        Icons.directions_bike,
-                      ),
-                      Text("Ubike"),
-                    ]
-                )
-            ),Container(
-                padding: const EdgeInsets.all(8),
-
-                child: Column(
-                    crossAxisAlignment:CrossAxisAlignment.center,
-                    children: [
-
-                      Icon(
-                        Icons.local_taxi,
-                      ),
-                      Text("計程車"),
-                    ]
-                )
-            ),Container(
-                padding: const EdgeInsets.all(8),
-
-                child: Column(
-                    crossAxisAlignment:CrossAxisAlignment.center,
-                    children: [
-
-                      Icon(
-                        Icons.directions_bus,
-                      ),
-                      Text("客運"),
-                    ]
-                )
-            ),
-          ],
-        )
-        ,
       )
 
 

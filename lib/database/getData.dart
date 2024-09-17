@@ -1,3 +1,4 @@
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
@@ -8,7 +9,8 @@ var result;
 MySQLConnection? conn;
 var busid;
 List busName=[];
-Future<void> getApiBus() async {
+
+Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
   // 如果連接已存在，則避免重複連接
@@ -20,7 +22,7 @@ Future<void> getApiBus() async {
   try {
     // 建立連接
     conn = await MySQLConnection.createConnection(
-      host: "rsmn574.serveminecraft.net",
+      host: "hidden.rsmn574.com",
       port: 3306,
       userName: "onlyForApiRead",
       password: "@Nick0319Lucas0221",
@@ -44,7 +46,7 @@ Future<void> getApiBus() async {
 
 Future<void> GetApi() async {
   if (conn == null) {
-    await getApiBus(); // 如果未連接，先連接資料庫
+    await connMysql(); // 如果未連接，先連接資料庫
   }
   var queryResults;
   // 使用參數化查詢以避免 SQL 注入
@@ -99,4 +101,42 @@ print(busName);
     print("Query completed.");
   }
   return;
+}
+GetBusInfo(int routeid) async {
+  if (conn == null) {
+    await connMysql(); // 如果未連接，先連接資料庫
+  }
+  var query ='SELECT Stops FROM Bus.Bus_Taichung where Routeid=$routeid';
+int? sum=0;
+  List jsonData=await mysqlSelect(query);
+  for(var i in jsonData){
+    sum=(sum!+json.decode(i['Stops']).length) as int?;
+    // print(json.decode(i['Stops']).length);
+  }
+
+    print(sum);
+
+
+}
+Future mysqlSelect (String v)async{
+  if (conn == null) {
+    await connMysql(); // 如果未連接，先連接資料庫
+  }
+  List<dynamic> jsonArray=[];
+  jsonArray.clear();
+  result =await conn?.execute(v);
+  for (final row in result.rows) {
+
+    //print(row.colByName("Zh_tw"));
+
+    // print all rows as Map<String, String>
+
+    jsonArray.add(row.assoc());
+
+
+
+  }
+return jsonArray;
+
+
 }

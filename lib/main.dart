@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/pages.dart';
 import 'package:untitled/home.dart';
+import 'package:untitled/pages/bus_time.dart';
 import 'package:untitled/pages/nearStop.dart';
 import 'package:untitled/plane.dart';
 import 'package:untitled/metro.dart';
@@ -27,6 +28,7 @@ class NavigationBarApp extends StatelessWidget {
         "train": (BuildContext context) => train(),
         "metro": (BuildContext context) => metro(),
         "bus": (BuildContext context) => Bus(),
+        "busTime": (BuildContext context) => busTime(),
       },
       theme: ThemeData(useMaterial3: true),
       home: const NavigationExample(),
