@@ -4,8 +4,10 @@ import 'package:http/http.dart' as http;
 
 import 'getData.dart'; // 用于网络请求
 Future<void> fetchBusTime(routeId) async {
-  int routeID=routeId;
-  int top=0;
+
+  var routeID=routeId;
+  int? top=  await getInfo('sum');
+  List BusInfo=await getInfo('routeInfo');
   var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/Taichung/$routeID?%24filter=RouteID%20eq%20%27$routeID%27&%24top=$top&%24format=JSON";
 
   try {

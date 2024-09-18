@@ -9,7 +9,8 @@ var result;
 MySQLConnection? conn;
 var busid;
 List busName=[];
-
+int? sum=0;
+List jsonData=[];
 Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
@@ -103,18 +104,19 @@ print(busName);
   return;
 }
 GetBusInfo(int routeid) async {
+  sum=0;
   if (conn == null) {
     await connMysql(); // 如果未連接，先連接資料庫
   }
   var query ='SELECT Stops FROM Bus.Bus_Taichung where Routeid=$routeid';
-int? sum=0;
-  List jsonData=await mysqlSelect(query);
+
+ jsonData=await mysqlSelect(query);
   for(var i in jsonData){
     sum=(sum!+json.decode(i['Stops']).length) as int?;
     // print(json.decode(i['Stops']).length);
   }
 
-    print(sum);
+    print('sum=$sum');
 
 
 }
@@ -139,4 +141,11 @@ Future mysqlSelect (String v)async{
 return jsonArray;
 
 
+}
+getInfo(data){
+ if(data=='sum'){
+   return sum;
+ }else if(data=='routeInfo'){
+   return jsonData;
+ }
 }

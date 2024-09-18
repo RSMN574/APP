@@ -59,7 +59,7 @@ class _BuslistState extends State<Buslist> {
               // Add navigation or functionality for each route here
               print(route["RouteID"]);
 
-              Navigator.pushNamed(context, "busTime",    arguments:route["RouteID"]);
+              Navigator.pushNamed(context, "busTime",    arguments:[route["RouteID"],route["DepartureStopNameZh"],route["DestinationStopNameZh"]]);
             },
           ),
         );
