@@ -5,80 +5,79 @@ class TransportGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-        padding: const EdgeInsets.all(8.0), // 外层的边距
+    return Container(
+      height: 240, // 高度可以根據需求調整
+      margin: const EdgeInsets.only(top: 20),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(30)),
+        color: Colors.white,
+        border: Border.all(
+          color: Colors.grey[200]!, // 使用淡灰色邊框以保持簡潔
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: GridView.count(
           primary: false,
-          padding: const EdgeInsets.all(10),
-          // 网格的内边距
-          crossAxisSpacing: 10,
-          // 网格横向间距
-          mainAxisSpacing: 10,
-          // 网格纵向间距
+          padding: const EdgeInsets.all(16),
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
           crossAxisCount: 4,
-          // 每行显示三个图标
           children: <Widget>[
-            _buildTransportCard(
-                context, Icons.flight, "飛機", Colors.blue, "plane"),
-            _buildTransportCard(
-                context, Icons.train, "火車", Colors.red, "train"),
-            _buildTransportCard(
-                context, Icons.directions_bus, "巴士", Colors.green, "bus"),
-            _buildTransportCard(
-                context, Icons.subway, "捷運", Colors.purple, "metro"),
-            _buildTransportCard(
-                context, Icons.directions_railway, "高鐵", Colors.orange,
-                "HSR"),
-            _buildTransportCard(
-                context, Icons.directions_bike, "Ubike", Colors.brown, "Ubike"),
-            _buildTransportCard(
-                context, Icons.local_taxi, "計程車", Colors.yellow, "taxi"),
-            _buildTransportCard(
-                context, Icons.directions_bus, "客運", Colors.teal,
-                "Intercity Bus"),
-          ],
-        )
-    );
-  }
-}
-  // 可点击的卡片
-  Widget _buildTransportCard(BuildContext context, IconData icon, String text, Color color, String route) {
-    return GestureDetector(
-      onTap: () {
-        debugPrint("$text 页面跳转");
-        Navigator.pushNamed(context, route);
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1), // 设置背景颜色的透明度
-          borderRadius: BorderRadius.circular(15), // 圆角
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12, // 阴影颜色
-              blurRadius: 8, // 模糊半径
-              offset: Offset(2, 2), // 阴影偏移
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: color,
-              size: 40, // 图标大小
-            ),
-            SizedBox(height: 10), // 图标与文字之间的间距
-            Text(
-              text,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            _buildTransportCard(context, Icons.flight, "飛機", "plane"),
+            _buildTransportCard(context, Icons.train, "火車", "train"),
+            _buildTransportCard(context, Icons.directions_bus, "巴士", "bus"),
+            _buildTransportCard(context, Icons.subway, "捷運", "metro"),
+            _buildTransportCard(context, Icons.directions_railway, "高鐵", "HSR"),
+            _buildTransportCard(context, Icons.directions_bike, "Ubike", "Ubike"),
+            _buildTransportCard(context, Icons.local_taxi, "計程車", "taxi"),
+            _buildTransportCard(context, Icons.directions_bus, "客運", "Intercity Bus"),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildTransportCard(BuildContext context, IconData icon, String text, String route) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          debugPrint("$text 页面跳转");
+          Navigator.pushNamed(context, route);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: Colors.white, // 使用純白背景
+            borderRadius: BorderRadius.circular(16), // 使用較大圓角
+            border: Border.all(
+              color: Colors.grey[300]!, // 淡灰色邊框，避免過於搶眼
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: Colors.black87, // 深灰色圖標，簡單且醒目
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87, // 使用深灰色文字
+                  fontWeight: FontWeight.bold, // 文字加粗，保持清晰
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

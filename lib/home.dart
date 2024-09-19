@@ -29,25 +29,8 @@ Container(
             filled: true,
             fillColor: Colors.grey[200],
           )),
-      Container(
-        height: 220,
-margin: EdgeInsets.only(top:20),
-    decoration: BoxDecoration(
+      TransportGrid()
 
-        borderRadius:BorderRadius.all(Radius.circular(30)),
-      color: Colors.white,
-      boxShadow: [
-        BoxShadow(
-          color: Color(0x35000000),
-          blurRadius: 1,
-          offset: Offset(1, 2),
-          spreadRadius: 0,
-        )
-      ],
-    ),
-        child:TransportGrid()
-
-      )
 
 
 

@@ -49,7 +49,7 @@ suggestions.add(busName[i]);
       ),
 
       body: Container(
-        height: 800,
+        height: 1000,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [

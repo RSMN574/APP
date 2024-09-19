@@ -105,6 +105,7 @@ print(busName);
 }
 GetBusInfo(int routeid) async {
   sum=0;
+  List routeName=[];
   if (conn == null) {
     await connMysql(); // 如果未連接，先連接資料庫
   }
@@ -113,11 +114,12 @@ GetBusInfo(int routeid) async {
  jsonData=await mysqlSelect(query);
   for(var i in jsonData){
     sum=(sum!+json.decode(i['Stops']).length) as int?;
+    routeName.add(i);
     // print(json.decode(i['Stops']).length);
   }
-
+  print('routeName=$routeName');
     print('sum=$sum');
-
+return routeName;
 
 }
 Future mysqlSelect (String v)async{

@@ -28,7 +28,7 @@ class NavigationBarApp extends StatelessWidget {
         "train": (BuildContext context) => train(),
         "metro": (BuildContext context) => metro(),
         "bus": (BuildContext context) => Bus(),
-        "busTime": (BuildContext context) => busTime(),
+        "busTime": (BuildContext context) => BusTime(),
       },
       theme: ThemeData(useMaterial3: true),
       home: const NavigationExample(),
