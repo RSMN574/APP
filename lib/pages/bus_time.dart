@@ -17,21 +17,53 @@ class _BusTimeState extends State<BusTime> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 每次依賴變化時重新加載數據
+    // 每次依赖变化时重新加载数据
     _dataFuture = _loadData();
   }
 
+  // 加载数据，包括站名和 NextBusTime
   Future<Map<String, dynamic>> _loadData() async {
     final routeInfo = ModalRoute.of(context)!.settings.arguments as List;
-    await fetchBusTime(routeInfo[0]);
-    final stopNames1 = await fetchStopNames(0);
-    final stopNames2 = await fetchStopNames(1);
+  final busTimeData=  await fetchBusTime(routeInfo[0], "Taichung");
+    final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
+    final stopNamesWithTime2 = await fetchStopNamesWithTime(0,  busTimeData.where((stop) => stop['Direction'] == 0).toList());
     return {
       'routeInfo': routeInfo,
-      'stopNames1': stopNames1,
-      'stopNames2': stopNames2,
+      'stopNamesWithTime1': stopNamesWithTime1,
+      'stopNamesWithTime2': stopNamesWithTime2,
     };
   }
+
+  // 获取每个站的站名和 NextBusTime
+  Future<List<Map<String, String>>> fetchStopNamesWithTime(int tabIndex,BusTimeData) async {
+    List stops = await getInfo("routeInfo");
+    List<Map<String, String>> stopNamesWithTime = [];
+
+    if (tabIndex < stops.length) {
+      var stopData = json.decode(stops[tabIndex]["Stops"]);
+      for (var stop in stopData) {
+        String stopName = stop["StopName"]["Zh_tw"];
+        String nextBusTime = await getTimeList(stopName,BusTimeData); // 如果没有 NextBusTime，显示“尚無此車”
+
+        stopNamesWithTime.add({
+          "stopName": stopName,
+          "nextBusTime": nextBusTime,
+        });
+      }
+    }
+    return stopNamesWithTime;
+  }
+Future<String> getTimeList(StopName,BusTimeData) async{
+
+List a= await BusTimeData.where((stop) => stop['StopName']["Zh_tw"] == StopName).toList();
+print(a[0]);
+if(a[0]["NextBusTime"] !=null){
+  return a[0]["NextBusTime"];
+}else{
+  return "班次結束";
+}
+return "fff";
+}
 
   @override
   Widget build(BuildContext context) {
@@ -44,16 +76,16 @@ class _BusTimeState extends State<BusTime> {
           );
         }
 
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(child: Text('Error: ${snapshot.error}')),
-          );
-        }
+        // if (snapshot.hasError) {
+        //   return Scaffold(
+        //     body: Center(child: Text('发生错误: ${snapshot.error}')),
+        //   );
+        // }
 
         final data = snapshot.data!;
         final routeInfo = data['routeInfo'] as List;
-        final stopNames1 = data['stopNames1'] as List<String>;
-        final stopNames2 = data['stopNames2'] as List<String>;
+        final stopNamesWithTime1 = data['stopNamesWithTime1'] as List<Map<String, String>>;
+        final stopNamesWithTime2 = data['stopNamesWithTime2'] as List<Map<String, String>>;
 
         return DefaultTabController(
           length: 2,
@@ -69,8 +101,8 @@ class _BusTimeState extends State<BusTime> {
             ),
             body: TabBarView(
               children: [
-                _buildTabContent(stopNames2),
-                _buildTabContent(stopNames1),
+                _buildTabContent(stopNamesWithTime1), // Tab for direction 0
+                _buildTabContent(stopNamesWithTime2), // Tab for direction 1
               ],
             ),
           ),
@@ -79,6 +111,7 @@ class _BusTimeState extends State<BusTime> {
     );
   }
 
+  // 构建 TabBar
   PreferredSize _buildTabBar(List routeInfo) {
     return PreferredSize(
       preferredSize: Size.fromHeight(60),
@@ -101,16 +134,18 @@ class _BusTimeState extends State<BusTime> {
     );
   }
 
-  Widget _buildTabContent(List<String> stopNames) {
+  // 构建每个 Tab 的内容
+  Widget _buildTabContent(List<Map<String, String>> stopNamesWithTime) {
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {
-          _dataFuture = _loadData();
+          _dataFuture = _loadData(); // 刷新时重新加载数据
         });
       },
       child: ListView.builder(
-        itemCount: stopNames.length,
+        itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
+          final stop = stopNamesWithTime[index];
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             child: Card(
@@ -121,8 +156,12 @@ class _BusTimeState extends State<BusTime> {
               child: ListTile(
                 leading: Icon(Icons.directions_bus, color: Colors.blueAccent),
                 title: Text(
-                  stopNames[index],
+                  stop["stopName"]!,
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(
+                  stop["nextBusTime"]!,
+                  style: TextStyle(color: Colors.grey),
                 ),
               ),
             ),
@@ -130,19 +169,5 @@ class _BusTimeState extends State<BusTime> {
         },
       ),
     );
-  }
-
-  Future<List<String>> fetchStopNames(int tabIndex) async {
-    List stops = await getInfo("routeInfo");
-    List<String> stopNames = [];
-
-    if (tabIndex < stops.length) {
-      var stopData = json.decode(stops[tabIndex]["Stops"]);
-      for (var stop in stopData) {
-        stopNames.add(stop["StopName"]["Zh_tw"]);
-      }
-    }
-
-    return stopNames;
   }
 }

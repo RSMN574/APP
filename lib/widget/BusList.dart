@@ -54,8 +54,8 @@ class _BuslistState extends State<Buslist> {
                 Text('終點: ${route["DestinationStopNameZh"]}'),
               ],
             ),
-            onTap: ()  {
-              GetBusInfo(int.parse(route["RouteID"]));
+            onTap: ()  async {
+              await GetBusInfo(int.parse(route["RouteID"]));
               // Add navigation or functionality for each route here
               print(route["RouteID"]);
 
