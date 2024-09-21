@@ -56,13 +56,34 @@ class _BusTimeState extends State<BusTime> {
 Future<String> getTimeList(StopName,BusTimeData) async{
 
 List a= await BusTimeData.where((stop) => stop['StopName']["Zh_tw"] == StopName).toList();
-print(a[0]);
-if(a[0]["NextBusTime"] !=null){
-  return a[0]["NextBusTime"];
+
+
+if(a[0]["EstimateTime"] !=null){
+  if(a[0]["EstimateTime"] ==0) {
+    return "即將到站";
+
+  }else{
+    int result=(a[0]["EstimateTime"] / 60).floor();
+    return("$result分鐘");
+  }
+
+
+}else if(a[0]["NextBusTime"] !=null){
+  Duration difference =DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
+  if(difference.inHours==0){
+    return("${difference.inMinutes.remainder(60)}分鐘");
+  }else {
+    Duration duration = Duration(hours: difference.inHours,minutes:difference.inMinutes.remainder(60) ); // 設定要加上的時間長度
+
+    DateTime NextBusTime = DateTime.now().add(duration);
+
+    return '${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}' ;
+  }
+
 }else{
   return "班次結束";
-}
-return "fff";
+  }
+
 }
 
   @override
@@ -71,7 +92,7 @@ return "fff";
       future: _dataFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
@@ -93,10 +114,10 @@ return "fff";
             appBar: AppBar(
               elevation: 0,
               title: Text(
-                routeInfo[1],
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                routeInfo[0],
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
-              backgroundColor: Colors.blueAccent,
+
               bottom: _buildTabBar(routeInfo),
             ),
             body: TabBarView(
@@ -114,7 +135,7 @@ return "fff";
   // 构建 TabBar
   PreferredSize _buildTabBar(List routeInfo) {
     return PreferredSize(
-      preferredSize: Size.fromHeight(60),
+      preferredSize: const Size.fromHeight(60),
       child: Container(
         color: Colors.white,
         child: TabBar(
@@ -126,8 +147,8 @@ return "fff";
           labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           unselectedLabelStyle: TextStyle(fontSize: 16),
           tabs: [
-            Tab(icon: Icon(Icons.directions_bus), text: routeInfo[1]),
-            Tab(icon: Icon(Icons.swap_horiz), text: routeInfo[2]),
+            Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]),
+            Tab(icon: const Icon(Icons.swap_horiz), text: routeInfo[2]),
           ],
         ),
       ),
@@ -142,32 +163,38 @@ return "fff";
           _dataFuture = _loadData(); // 刷新时重新加载数据
         });
       },
-      child: ListView.builder(
+      child:ListView.builder(
+
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
           final stop = stopNamesWithTime[index];
           return Padding(
+
             padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            child: ListTile(
+              leading: Text(
+                stop["nextBusTime"]!,
+
+                style: const TextStyle(
+                    fontSize: 22,
+                    color: Colors.grey),
               ),
-              child: ListTile(
-                leading: Icon(Icons.directions_bus, color: Colors.blueAccent),
-                title: Text(
-                  stop["stopName"]!,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  stop["nextBusTime"]!,
-                  style: TextStyle(color: Colors.grey),
-                ),
+              title: Text(
+                stop["stopName"]!,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
               ),
+
+
             ),
+
           );
+
         },
       ),
+
+
+
+
     );
   }
 }

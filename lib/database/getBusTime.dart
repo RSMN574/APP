@@ -3,15 +3,15 @@ import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
 
 import 'getData.dart'; // 用于网络请求
-Future<dynamic> fetchBusTime(routeId,city) async {
-
+Future<dynamic> fetchBusTime(routeName,city) async {
+print(routeName);
   final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
 
-
+int id=await getInfo('routeID');
   int? top=  await getInfo('sum');
   //List BusInfo=await getInfo('routeInfo');
-  var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeId?%24filter=RouteID%20eq%20%27$routeId%27&%24top=$top&%24format=JSON";
-
+  var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
+print(url);
   try {
 
     await  connMysql();

@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -11,6 +11,7 @@ var busid;
 List busName=[];
 int? sum=0;
 List jsonData=[];
+int routeID=0;
 Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
@@ -76,17 +77,7 @@ print(busName);
     // 打印結果，方便調試
 
 
-    // if (queryResults.isEmpty) {
-    //   Fluttertoast.showToast(
-    //     msg: "無匹配的公車路線",
-    //     toastLength: Toast.LENGTH_SHORT,
-    //     gravity: ToastGravity.BOTTOM,
-    //     timeInSecForIosWeb: 1,
-    //     backgroundColor: Colors.black45,
-    //     textColor: Colors.white,
-    //     fontSize: 16.0,
-    //   );
-    // }
+
   } catch (e) {
     print("Query error: $e");
     Fluttertoast.showToast(
@@ -104,20 +95,23 @@ print(busName);
   return;
 }
 GetBusInfo(int routeid) async {
+  routeID=routeid;
   sum=0;
   List routeName=[];
   if (conn == null) {
     await connMysql(); // 如果未連接，先連接資料庫
   }
-  var query ='SELECT Stops FROM Bus.Bus_Taichung where Routeid=$routeid';
 
+
+  var query ='SELECT Stops FROM Bus.Bus_Taichung where Routeid=$routeid';
+print("query=$query");
  jsonData=await mysqlSelect(query);
   for(var i in jsonData){
     sum=(sum!+json.decode(i['Stops']).length) as int?;
     routeName.add(i);
     // print(json.decode(i['Stops']).length);
   }
-  print('routeName=$routeName');
+
     print('sum=$sum');
 return routeName;
 
@@ -149,5 +143,7 @@ getInfo(data){
    return sum;
  }else if(data=='routeInfo'){
    return jsonData;
+ }else if(data=='routeID'){
+   return routeID;
  }
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -59,7 +61,7 @@ class _BuslistState extends State<Buslist> {
               // Add navigation or functionality for each route here
               print(route["RouteID"]);
 
-              Navigator.pushNamed(context, "busTime",    arguments:[route["RouteID"],route["DepartureStopNameZh"],route["DestinationStopNameZh"]]);
+              Navigator.pushNamed(context, "busTime",    arguments:[json.decode(route["RouteName"])['Zh_tw'],route["DepartureStopNameZh"],route["DestinationStopNameZh"]]);
 
             },
           ),
