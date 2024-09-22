@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 class TransportGrid extends StatelessWidget {
   const TransportGrid({super.key});
@@ -25,21 +26,21 @@ class TransportGrid extends StatelessWidget {
           mainAxisSpacing: 16,
           crossAxisCount: 4,
           children: <Widget>[
-            _buildTransportCard(context, Icons.flight, "飛機", "plane"),
-            _buildTransportCard(context, Icons.train, "火車", "train"),
-            _buildTransportCard(context, Icons.directions_bus, "巴士", "bus"),
-            _buildTransportCard(context, Icons.subway, "捷運", "metro"),
-            _buildTransportCard(context, Icons.directions_railway, "高鐵", "HSR"),
-            _buildTransportCard(context, Icons.directions_bike, "Ubike", "Ubike"),
-            _buildTransportCard(context, Icons.local_taxi, "計程車", "taxi"),
-            _buildTransportCard(context, Icons.directions_bus, "客運", "Intercity Bus"),
+            _buildTransportCard(context, 'assets/icons/airplane-outline.svg', "飛機", "plane"),
+            _buildTransportCard(context, 'assets/icons/tram.svg', "火車", "train"),
+            _buildTransportCard(context, "assets/icons/bus-outline.svg", "巴士", "bus"),
+            _buildTransportCard(context, "assets/icons/subway-outline.svg", "捷運", "metro"),
+            _buildTransportCard(context, "assets/icons/train-outline.svg", "高鐵", "HSR"),
+            _buildTransportCard(context, "assets/icons/bicycle-outline.svg", "Ubike", "Ubike"),
+            _buildTransportCard(context, "assets/icons/car.svg", "計程車", "taxi"),
+            _buildTransportCard(context, "assets/icons/bus-outline.svg", "客運", "Intercity Bus"),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTransportCard(BuildContext context, IconData icon, String text, String route) {
+  Widget _buildTransportCard(BuildContext context, String icon, String text, String route) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
@@ -60,10 +61,10 @@ class TransportGrid extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              SvgPicture.asset(
                 icon,
-                color: Colors.black87, // 深灰色圖標，簡單且醒目
-                size: 40,
+                width: 30,  // 設置寬度
+                height: 30, // 設置高度
               ),
               const SizedBox(height: 12),
               Text(

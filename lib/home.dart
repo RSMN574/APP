@@ -13,22 +13,12 @@ class home extends StatelessWidget {
 
 Container(
   width: MediaQuery.of(context).size.width,
-  color: const Color(0xFFECEFFE),
+  color: const Color.fromRGBO(245,245,245,1),
   child: Column(
 
 
     children: [
-      TextField(
-          decoration: InputDecoration(
-            hintText: 'Search...',
-            prefixIcon: Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.grey[200],
-          )),
+
       TransportGrid()
 
 

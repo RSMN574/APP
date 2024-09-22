@@ -30,7 +30,7 @@ class NavigationBarApp extends StatelessWidget {
         "bus": (BuildContext context) => Bus(),
         "busTime": (BuildContext context) => BusTime(),
       },
-      theme: ThemeData(useMaterial3: true),
+      theme: ThemeData(useMaterial3: true ,fontFamily: 'MiSans-Normal'),
       home: const NavigationExample(),
     );
   }

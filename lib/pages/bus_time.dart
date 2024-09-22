@@ -168,26 +168,30 @@ if(a[0]["EstimateTime"] !=null){
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
           final stop = stopNamesWithTime[index];
-          return Padding(
-
-            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-            child: ListTile(
-              leading: Text(
-                stop["nextBusTime"]!,
-
-                style: const TextStyle(
-                    fontSize: 22,
-                    color: Colors.grey),
-              ),
-              title: Text(
-                stop["stopName"]!,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
+          return
+            ListTile(
+                leading:Container(
 
 
-            ),
 
-          );
+                  child: Text(
+                    stop["nextBusTime"]!,
+
+                    style: const TextStyle(
+                        fontSize: 18,
+                        color: Color.fromRGBO(90,101,107,1)),
+                  ),
+                ) ,
+                title: Text(
+                  stop["stopName"]!,
+                  style: TextStyle(fontSize: 18, color: Color.fromRGBO(77,77,77,1)),
+                ),
+
+
+              );
+
+
+
 
         },
       ),
