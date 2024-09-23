@@ -7,7 +7,7 @@ class TransportGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 240, // 高度可以根據需求調整
+      height: 240,
       margin: const EdgeInsets.only(top: 20),
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(30)),
@@ -21,7 +21,7 @@ class TransportGrid extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: GridView.count(
           primary: false,
-          padding: const EdgeInsets.all(16),
+
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           crossAxisCount: 4,

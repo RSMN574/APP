@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 
+import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 
@@ -109,6 +110,7 @@ if(a[0]["EstimateTime"] !=null){
         final stopNamesWithTime2 = data['stopNamesWithTime2'] as List<Map<String, String>>;
 
         return DefaultTabController(
+
           length: 2,
           child: Scaffold(
             appBar: AppBar(
@@ -139,8 +141,8 @@ if(a[0]["EstimateTime"] !=null){
       child: Container(
         color: Colors.white,
         child: TabBar(
-          indicatorColor: Colors.blueAccent,
-          labelColor: Colors.blueAccent,
+          indicatorColor: busBlue,
+          labelColor: busBlue,
           unselectedLabelColor: Colors.grey,
           indicatorWeight: 3.0,
           indicatorSize: TabBarIndicatorSize.label,

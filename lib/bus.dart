@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:untitled/widget/BusList.dart';
 import 'package:untitled/widget/tab.dart';
+import 'Const/regularConst.dart';
 import 'database/getData.dart';
 double suggestionsIsHidden=0;
  List suggestions = [];
@@ -36,7 +37,12 @@ suggestions.add(busName[i]);
 
 
     setState(() {
-      suggestionsIsHidden=200.0;
+      // 获取当前视图的高度
+      double screenHeight = MediaQuery.of(context).size.height;
+      // 获取当前视图的插入（注意键盘是作为视图的底部插入）
+      double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+      suggestionsIsHidden=700-bottomInset ;
     });
 
   }
@@ -89,7 +95,7 @@ suggestions.add(busName[i]);
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0), // 聚焦時的圓角
                   borderSide: BorderSide(
-                    color: Colors.blueAccent, // 聚焦時的邊框顏色
+                    color: busBlue, // 聚焦時的邊框顏色
                     width: 2.0, // 邊框寬度
                   ),
                 ),

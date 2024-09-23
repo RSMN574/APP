@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 import '../database/getData.dart';
 
@@ -27,7 +28,7 @@ class _BuslistState extends State<Buslist> {
   @override
   Widget build(BuildContext context) {
     return widget.suggestions.isEmpty
-        ? Center(
+        ? const Center(
       child: Card(
         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         child: Padding(
@@ -47,7 +48,11 @@ class _BuslistState extends State<Buslist> {
         return Card(
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: ListTile(
-            leading: Icon(Icons.directions_bus),
+            leading:  SvgPicture.asset(
+              'assets/icons/bus-outline.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
             title: Text('路線：${extractZhTw(route["RouteName"])}'),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

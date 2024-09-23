@@ -79,7 +79,7 @@ flutter:
     - assets/icons/bicycle-outline.svg
     - assets/icons/bus-outline.svg
     - assets/icons/home-outline.svg
-    - assets/icons/map-outline.svg
+    - assets/icons/map-pin.svg
     - assets/icons/notifications-outline.svg
     - assets/icons/person-circle-outline.svg
     - assets/icons/person-outline.svg
@@ -88,7 +88,7 @@ flutter:
     - assets/icons/tram.svg
     - assets/icons/car.svg
     - assets/icons/airplane-outline.svg
-
+    - assets/icons/bus-stop.svg
 
 
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../Const/regularConst.dart';
+
 
 
 
@@ -70,7 +72,7 @@ class tabState extends State<tab> {
                                       : BorderRadius.circular(7),
                                   border: current == index
                                       ? Border.all(
-                                      color: Colors.deepPurpleAccent,
+                                      color: busBlue,
                                       width: 2.5)
                                       : null,
                                 ),
@@ -100,7 +102,7 @@ class tabState extends State<tab> {
                                 width: 5,
                                 height: 5,
                                 decoration: const BoxDecoration(
-                                    color: Colors.deepPurpleAccent,
+                                    color: busBlue,
                                     shape: BoxShape.circle),
                               ),
                             )

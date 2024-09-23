@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:untitled/pages.dart';
 import 'package:untitled/home.dart';
 import 'package:untitled/pages/bus_time.dart';
@@ -53,7 +54,11 @@ class _NavigationExampleState extends State<NavigationExample> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('台灣通BETA'),
-       actions: [IconButton(onPressed:(){ print("notifications");}, icon: Icon(Icons.notifications))],
+       actions: [IconButton(onPressed:(){ print("notifications");}, icon: SvgPicture.asset(
+         'assets/icons/notifications-outline.svg',
+         width: 20,  // 設置寬度
+         height: 20, // 設置高度
+       ) ) ],
       ),
       bottomNavigationBar: NavigationBar(
         labelBehavior: labelBehavior,
@@ -65,26 +70,46 @@ class _NavigationExampleState extends State<NavigationExample> {
             currentPageIndex = index;
           });
         },
-        destinations: const <Widget>[
+        destinations: <Widget>[
           NavigationDestination(
-            icon: Icon(Icons.home),
-            selectedIcon: Icon(Icons.home),
+            icon:  SvgPicture.asset(
+              'assets/icons/home-outline.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
+            selectedIcon: SvgPicture.asset(
+              'assets/icons/home-outline.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
             label: '首頁',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.commute),
             label: '我的出行',
           ),
           NavigationDestination(
-            icon: Icon(Icons.commute),
+            icon: SvgPicture.asset(
+              'assets/icons/bus-stop.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
             label: '最近站牌',
-          ), NavigationDestination(
-            icon: Icon(Icons.commute),
+          ),  NavigationDestination(
+            icon: SvgPicture.asset(
+              'assets/icons/map-pin.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
             label: '地圖',
           ),
-          NavigationDestination(
-            selectedIcon: Icon(Icons.person),
-            icon: Icon(Icons.person_outline),
+           NavigationDestination(
+
+            icon: SvgPicture.asset(
+              'assets/icons/person-outline.svg',
+              width: 20,  // 設置寬度
+              height: 20, // 設置高度
+            ),
             label: '我的資料',
           ),
         ],
