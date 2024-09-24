@@ -1,6 +1,5 @@
 import 'dart:convert';
-
-import'package:flutter/cupertino.dart';
+import 'package:string_similarity/string_similarity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -18,11 +17,14 @@ class Buslist extends StatefulWidget {
 }
 
 class _BuslistState extends State<Buslist> {
-  RegExp regExp = RegExp(r'"Zh_tw":"(.*?)"');
 
-  String extractZhTw(String jsonString) {
-    Match? match = regExp.firstMatch(jsonString);
-    return match != null ? match.group(1)! : "No match";
+
+  String extractZhTw( jsonString) {
+
+    // Match? match = regExp.firstMatch(jsonString);
+    // return match != null ? match.group(1)! : "No match";
+    print(jsonString);
+    return json.decode(jsonString)["Zh_tw"];
   }
 
   @override

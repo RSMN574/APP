@@ -46,6 +46,7 @@ dependencies:
   google_maps_flutter: ^2.9.0
   http: ^1.2.2
   flutter_svg: ^2.0.10+1
+  string_similarity: ^2.1.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +90,10 @@ flutter:
     - assets/icons/car.svg
     - assets/icons/airplane-outline.svg
     - assets/icons/bus-stop.svg
+    - assets/icons/home.svg
+    - assets/icons/navigate.svg
+    - assets/icons/navigate-outline.svg
+    - assets/icons/person.svg
 
 
 

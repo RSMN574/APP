@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:string_similarity/string_similarity.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/widget/BusList.dart';
 import 'package:untitled/widget/tab.dart';
@@ -17,12 +20,17 @@ class BusState extends State<Bus> {
   TextEditingController busIdController = TextEditingController();
 
   suggestionsIsHiddenController(){
-
+    suggestions = [];
    for(int i=0;i<busName.length;i++){
-
+   print(json.decode(busName[i]["RouteName"])["Zh_tw"]);
      if(busName[i]["RouteName"].contains(busIdController.text)){
-print("${"找到"+busName[i]["RouteName"]+busName[i]["DepartureStopNameZh"]}-"+busName[i]["DestinationStopNameZh"]);
-suggestions.add(busName[i]);
+// print("${"找到"+busName[i]["RouteName"]+busName[i]["DepartureStopNameZh"]}-"+busName[i]["DestinationStopNameZh"]);
+       if(busIdController.text ==json.decode(busName[i]["RouteName"])["Zh_tw"]){
+         suggestions.insert(0, busName[i]);
+       }else{
+         suggestions.add(busName[i]);
+       }
+
 
      }
    }

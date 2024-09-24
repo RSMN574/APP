@@ -53,26 +53,23 @@ class TransportGrid extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white, // 使用純白背景
             borderRadius: BorderRadius.circular(16), // 使用較大圓角
-            border: Border.all(
-              color: Colors.grey[300]!, // 淡灰色邊框，避免過於搶眼
-              width: 1,
-            ),
+
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SvgPicture.asset(
                 icon,
-                width: 30,  // 設置寬度
-                height: 30, // 設置高度
+                width: 27,  // 設置寬度
+                height: 27, // 設置高度
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 9),
               Text(
                 text,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   color: Colors.black87, // 使用深灰色文字
-                  fontWeight: FontWeight.bold, // 文字加粗，保持清晰
+                 // 文字加粗，保持清晰
                 ),
               ),
             ],

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 class pages extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Column(
+
+      children: [
+      Container(
       alignment: Alignment.topCenter,
       child: Container(
         width: 327,
@@ -43,7 +46,7 @@ class pages extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '普通用戶',
+                      '測試BETA人員',
                       style: TextStyle(
                         color: Color(0xFFCAE0FF),
                         fontSize: 14,
@@ -68,6 +71,37 @@ class pages extends StatelessWidget {
           ],
         ),
       ),
+    ),
+        SizedBox(height: 20,),Container(//按鈕
+
+          width: 300,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [ Color.fromARGB(255, 13, 193, 255), Color.fromARGB(255, 27, 141, 255)], // 使用顏色變數
+              begin: Alignment.centerLeft,     // 從左邊開始
+              end: Alignment.centerRight,      // 到右邊結束
+            ),
+            borderRadius: BorderRadius.circular(16), // 圓角邊框
+          ),
+          child: TextButton(
+            onPressed: () {
+              // 按鈕被按下的行為
+              print('按鈕被按下');
+            },
+            child: Text(
+              '開發版',
+              style: TextStyle(
+                color: Colors.white, // 字體顏色
+                fontSize:17,        // 字體大小
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // 按鈕的內邊距
+              backgroundColor: Colors.transparent, // 背景顏色透明，讓漸層顯示
+            ),
+          ),
+        ),
+      ],
     );
   }
 
