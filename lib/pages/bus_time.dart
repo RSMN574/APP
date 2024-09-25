@@ -44,45 +44,49 @@ class _BusTimeState extends State<BusTime> {
       var stopData = json.decode(stops[tabIndex]["Stops"]);
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
-        String nextBusTime = await getTimeList(stopName,BusTimeData); // 如果没有 NextBusTime，显示“尚無此車”
-
+        Map nextBusTime = await getTimeList(stopName,BusTimeData); // 如果没有 NextBusTime，显示“尚無此車”
+        print(nextBusTime["isRed"]);
         stopNamesWithTime.add({
           "stopName": stopName,
-          "nextBusTime": nextBusTime,
+          "nextBusTime": nextBusTime["time"],
+       'isRed':nextBusTime["isRed"]
         });
       }
     }
+
+    print(stopNamesWithTime);
     return stopNamesWithTime;
   }
-Future<String> getTimeList(StopName,BusTimeData) async{
+Future<Map<String, dynamic>> getTimeList(StopName,BusTimeData) async{
 
 List a= await BusTimeData.where((stop) => stop['StopName']["Zh_tw"] == StopName).toList();
 
 
 if(a[0]["EstimateTime"] !=null){
   if(a[0]["EstimateTime"] ==0) {
-    return "即將到站";
+    return {"time": "即將到站", "isRed": 'red'};
 
   }else{
     int result=(a[0]["EstimateTime"] / 60).floor();
-    return("$result分鐘");
+    return {"time": "$result分鐘", "isRed": result < 2 ? "red" : "" };;
   }
 
 
 }else if(a[0]["NextBusTime"] !=null){
   Duration difference =DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
   if(difference.inHours==0){
-    return("${difference.inMinutes.remainder(60)}分鐘");
+    return {"time": "${difference.inMinutes.remainder(60)}分鐘", "isRed": ''};
+
   }else {
     Duration duration = Duration(hours: difference.inHours,minutes:difference.inMinutes.remainder(60) ); // 設定要加上的時間長度
 
     DateTime NextBusTime = DateTime.now().add(duration);
+    return {'time':"${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}", "isRed": ''};
 
-    return '${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}' ;
   }
 
 }else{
-  return "班次結束";
+  return {"time": "班次結束", "isRed": ''};
   }
 
 }
@@ -103,11 +107,15 @@ if(a[0]["EstimateTime"] !=null){
         //     body: Center(child: Text('发生错误: ${snapshot.error}')),
         //   );
         // }
-
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const Scaffold(
+            body: Center(child: Text('無法加載數據')),
+          );
+        }
         final data = snapshot.data!;
         final routeInfo = data['routeInfo'] as List;
-        final stopNamesWithTime1 = data['stopNamesWithTime1'] as List<Map<String, String>>;
-        final stopNamesWithTime2 = data['stopNamesWithTime2'] as List<Map<String, String>>;
+        final stopNamesWithTime1 = data['stopNamesWithTime1'] as List;
+        final stopNamesWithTime2 = data['stopNamesWithTime2'] as List;
 
         return DefaultTabController(
 
@@ -122,12 +130,15 @@ if(a[0]["EstimateTime"] !=null){
 
               bottom: _buildTabBar(routeInfo),
             ),
-            body: TabBarView(
+            body: Container (
+              color: bgColorWhite,
+              child:TabBarView(
+
               children: [
                 _buildTabContent(stopNamesWithTime1), // Tab for direction 0
                 _buildTabContent(stopNamesWithTime2), // Tab for direction 1
               ],
-            ),
+            ),)
           ),
         );
       },
@@ -158,7 +169,7 @@ if(a[0]["EstimateTime"] !=null){
   }
 
   // 构建每个 Tab 的内容
-  Widget _buildTabContent(List<Map<String, String>> stopNamesWithTime) {
+  Widget _buildTabContent(List stopNamesWithTime) {
     return RefreshIndicator(
       onRefresh: () async {
         setState(() {
@@ -170,18 +181,23 @@ if(a[0]["EstimateTime"] !=null){
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
           final stop = stopNamesWithTime[index];
+          print(stop["isRed"]);
+         final  isRed = stop["isRed"]=="red" ?  Color.fromRGBO(235,15,41,0.85) :  Colors.white;
           return
             ListTile(
                 leading:Container(
+padding: const EdgeInsets.all(9),
 
-
-
+          decoration: BoxDecoration(
+      color:isRed,
+            border: Border.all(width: 1.0, color: stop["isRed"]=="red" ?  Color.fromRGBO(235,15,41,0.89)  :  busBlue),
+          borderRadius: BorderRadius.circular(16),),
                   child: Text(
                     stop["nextBusTime"]!,
 
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 18,
-                        color: Color.fromRGBO(90,101,107,1)),
+                        color: stop["isRed"]=="red" ?  Colors.white :  Color.fromRGBO(90,101,107,1)),
                   ),
                 ) ,
                 title: Text(

@@ -137,7 +137,7 @@ class BusState extends State<Bus> {
                 icons: [Icons.home, Icons.map, Icons.location_city, Icons.favorite],
               ),
               Container(
-                color: Colors.white,
+                color: bgColor,
                 height: suggestionsIsHidden,
                 child: Buslist(suggestions: suggestions,),
 

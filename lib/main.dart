@@ -72,7 +72,7 @@ class _NavigationExampleState extends State<NavigationExample> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('台灣通BETA'),
+        title: const Text('台灣通 交通聯合'),
         actions: [
           IconButton(
             onPressed: () {

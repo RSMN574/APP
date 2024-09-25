@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:string_similarity/string_similarity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:untitled/Const/regularConst.dart';
 
 import '../database/getData.dart';
 
@@ -48,6 +49,7 @@ class _BuslistState extends State<Buslist> {
         final route = widget.suggestions[index];
 
         return Card(
+          color: bgColorWhite,
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: ListTile(
             leading:  SvgPicture.asset(
@@ -55,7 +57,11 @@ class _BuslistState extends State<Buslist> {
               width: 20,  // 設置寬度
               height: 20, // 設置高度
             ),
-            title: Text('路線：${extractZhTw(route["RouteName"])}'),
+            title: Text('${extractZhTw(route["RouteName"])}' ,
+              style: const TextStyle(
+                fontFamily: 'MiSans-Demibold',
+fontSize: 15,
+                color: busBlue, ),),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

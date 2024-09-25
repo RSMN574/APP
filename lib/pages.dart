@@ -89,7 +89,7 @@ class pages extends StatelessWidget {
               print('按鈕被按下');
             },
             child: Text(
-              '開發版',
+              '封測版',
               style: TextStyle(
                 color: Colors.white, // 字體顏色
                 fontSize:17,        // 字體大小
