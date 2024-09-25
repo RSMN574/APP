@@ -5,6 +5,7 @@ import 'package:untitled/pages.dart';
 import 'package:untitled/home.dart';
 import 'package:untitled/pages/bus_time.dart';
 import 'package:untitled/pages/nearStop.dart';
+import 'package:untitled/pages/notification.dart';
 import 'package:untitled/plane.dart';
 import 'package:untitled/metro.dart';
 import 'package:untitled/train.dart';
@@ -43,6 +44,7 @@ class NavigationBarApp extends StatelessWidget {
         "metro": (BuildContext context) => metro(),
         "bus": (BuildContext context) => Bus(),
         "busTime": (BuildContext context) => BusTime(),
+        'notification':(BuildContext context) => notification(),
       },
       theme: ThemeData(useMaterial3: true, fontFamily: 'MiSans-Normal'),
       home: const NavigationExample(),
@@ -76,7 +78,7 @@ class _NavigationExampleState extends State<NavigationExample> {
         actions: [
           IconButton(
             onPressed: () {
-              print("notifications");
+              Navigator.pushNamed(context, "notification");
             },
             icon: SvgPicture.asset(
               SvgAssets.notifications,

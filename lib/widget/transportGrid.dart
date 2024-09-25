@@ -7,7 +7,7 @@ class TransportGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 240,
+      height: 200,
       margin: const EdgeInsets.only(top: 20),
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(30)),
@@ -22,8 +22,8 @@ class TransportGrid extends StatelessWidget {
         child: GridView.count(
           primary: false,
 
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
+          crossAxisSpacing: 45,
+          mainAxisSpacing: 1,
           crossAxisCount: 4,
           children: <Widget>[
             _buildTransportCard(context, 'assets/icons/airplane-outline.svg', "飛機", "plane"),
@@ -63,7 +63,7 @@ class TransportGrid extends StatelessWidget {
                 width: 27,  // 設置寬度
                 height: 27, // 設置高度
               ),
-              const SizedBox(height: 9),
+              const SizedBox(height: 7),
               Text(
                 text,
                 style: TextStyle(

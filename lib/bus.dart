@@ -64,11 +64,15 @@ class BusState extends State<Bus> {
 
       body: Container(
         height: 1000,
-        padding: const EdgeInsets.all(16.0),
+    
         child: Column(
           children: [
 
-            TextField(
+          Container(
+margin: const EdgeInsets.all(14),
+
+          child: TextField(
+              
               onChanged: (text) async {
                 if (text.isNotEmpty) {
                   //await GetApi();
@@ -129,7 +133,7 @@ class BusState extends State<Bus> {
                 color: Colors.black87, // 輸入文本的顏色
                 fontSize: 16, // 字體大小
               ),
-            ),
+            )),
             const SizedBox(height: 16.0),
             Stack(children: [
               tab(

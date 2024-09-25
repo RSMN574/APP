@@ -64,11 +64,11 @@ List a= await BusTimeData.where((stop) => stop['StopName']["Zh_tw"] == StopName)
 
 if(a[0]["EstimateTime"] !=null){
   if(a[0]["EstimateTime"] ==0) {
-    return {"time": "即將到站", "isRed": 'red'};
+    return {"time": "即將到站", "isRed": '0'};
 
   }else{
     int result=(a[0]["EstimateTime"] / 60).floor();
-    return {"time": "$result分鐘", "isRed": result < 2 ? "red" : "" };;
+    return {"time": "$result分鐘", "isRed": result < 2 ? "2" : "" };;
   }
 
 
@@ -182,7 +182,7 @@ if(a[0]["EstimateTime"] !=null){
         itemBuilder: (context, index) {
           final stop = stopNamesWithTime[index];
           print(stop["isRed"]);
-         final  isRed = stop["isRed"]=="red" ?  Color.fromRGBO(235,15,41,0.85) :  Colors.white;
+         final  isRed = stop["isRed"]== 1 ? Color.fromRGBO(235,15,41,0.85) : (result == 2 ? Color.fromRGBO(235,15,41,0.77) : Colors.white);
           return
             ListTile(
                 leading:Container(
