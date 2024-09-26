@@ -5,6 +5,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:untitled/Const/regularConst.dart';
 
 import '../database/getData.dart';
+import '../pages/bus_time.dart';
 
 class Buslist extends StatefulWidget {
   final List suggestions;
@@ -69,13 +70,22 @@ fontSize: 15,
                 Text('終點: ${route["DestinationStopNameZh"]}'),
               ],
             ),
-            onTap: ()  async {
+            onTap: () async {
               await GetBusInfo(int.parse(route["RouteID"]));
-              // Add navigation or functionality for each route here
+              // 打印路由 ID
               print(route["RouteID"]);
 
-              Navigator.pushNamed(context, "busTime",    arguments:[json.decode(route["RouteName"])['Zh_tw'],route["DepartureStopNameZh"],route["DestinationStopNameZh"]]);
-
+              // 使用 Navigator.push 创建新的页面
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BusTime(
+                    routeName: json.decode(route["RouteName"])['Zh_tw'],
+                    departureStopName: route["DepartureStopNameZh"],
+                    destinationStopName: route["DestinationStopNameZh"],
+                  ),
+                ),
+              );
             },
           ),
         );

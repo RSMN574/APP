@@ -1,155 +1,128 @@
 import 'dart:convert';
-
-import 'package:string_similarity/string_similarity.dart';
 import 'package:flutter/material.dart';
 import 'package:untitled/widget/BusList.dart';
 import 'package:untitled/widget/tab.dart';
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
-double suggestionsIsHidden=0;
- List suggestions = [];
-class Bus extends StatefulWidget {
 
+class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
+
   @override
   State<Bus> createState() => BusState();
 }
 
 class BusState extends State<Bus> {
-  double suggestionsIsHidden=0;
+  double suggestionsIsHidden = 0;
   TextEditingController busIdController = TextEditingController();
+  List suggestions = [];
 
-  suggestionsIsHiddenController(){
-    suggestions = [];
-   for(int i=0;i<busName.length;i++){
-   print(json.decode(busName[i]["RouteName"])["Zh_tw"]);
-     if(busName[i]["RouteName"].contains(busIdController.text)){
-// print("${"找到"+busName[i]["RouteName"]+busName[i]["DepartureStopNameZh"]}-"+busName[i]["DestinationStopNameZh"]);
-       if(busIdController.text ==json.decode(busName[i]["RouteName"])["Zh_tw"]){
-         suggestions.insert(0, busName[i]);
-       }else{
-         suggestions.add(busName[i]);
-       }
-
-
-     }
-   }
-
-
-    // if(busName !=[]){
-    //   if(busName[0]["RouteName"]["Zh_tw"]==int.parse(busIdController.text)){
-    //        suggestionsIsHidden=200;
-    //      }
-    //
-    // }
-
+  void _updateSuggestions() {
+    suggestions.clear();
+    for (var route in busName) {
+      String routeName = json.decode(route["RouteName"])["Zh_tw"];
+      if (routeName.contains(busIdController.text)) {
+        if (busIdController.text == routeName) {
+          suggestions.insert(0, route);
+        } else {
+          suggestions.add(route);
+        }
+      }
+    }
 
     setState(() {
-      // 获取当前视图的高度
       double screenHeight = MediaQuery.of(context).size.height;
-      // 获取当前视图的插入（注意键盘是作为视图的底部插入）
       double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+      double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
 
-      suggestionsIsHidden=700-bottomInset ;
+      // 更新建议列表的高度
+      suggestionsIsHidden = screenHeight - bottomInset - appBarHeight - 14 - 70; // 更新为 70
     });
-
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: true,
-        title: const Text('公車'),
+        backgroundColor: busBlue,
+        elevation: 0,
+        title: Text(
+          "公車",
+          style: const TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
-
-      body: Container(
-        height: 1000,
-    
-        child: Column(
-          children: [
-
+      body: Column(
+        children: [
           Container(
-margin: const EdgeInsets.all(14),
-
-          child: TextField(
-              
+            margin: const EdgeInsets.all(14),
+            height: 70,
+            child: TextField(
               onChanged: (text) async {
                 if (text.isNotEmpty) {
-                  //await GetApi();
-                  suggestions.clear();
-                  suggestionsIsHiddenController();
-                }else{
+                  _updateSuggestions();
+                } else {
                   setState(() {
-                    suggestionsIsHidden=0;
+                    suggestionsIsHidden = 0;
                   });
-
                 }
               },
               controller: busIdController,
               decoration: InputDecoration(
                 hintText: 'Search for a bus route...',
-                hintStyle: TextStyle(
-                  color: Colors.grey[500], // 提示文本顏色
-                  fontSize: 16, // 提示文本大小
-                ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.grey[700], // 搜索圖標顏色
-                  size: 24, // 圖標大小
-                ),
+                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
+                prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 24),
                 contentPadding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0), // 圓角邊框
-                  borderSide: BorderSide.none, // 無邊框
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: Colors.grey[200], // 背景顏色
+                fillColor: Colors.grey[200],
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0), // 聚焦時的圓角
-                  borderSide: BorderSide(
-                    color: busBlue, // 聚焦時的邊框顏色
-                    width: 2.0, // 邊框寬度
-                  ),
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(color: busBlue, width: 2.0),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0), // 正常狀態的圓角
-                  borderSide: BorderSide(
-                    color: Colors.grey[300]!, // 默認的邊框顏色
-                    width: 2.0,
-                  ),
+                  borderRadius: BorderRadius.circular(30.0),
+                  borderSide: BorderSide(color: Colors.grey[300]!, width: 2.0),
                 ),
                 suffixIcon: IconButton(
                   icon: Icon(Icons.clear),
-                  color: Colors.grey[700], // 清除按鈕的顏色
+                  color: Colors.grey[700],
                   onPressed: () {
-                    busIdController.clear(); // 清空文本框
+                    busIdController.clear();
                     setState(() {
-                      suggestionsIsHidden=0;
+                      suggestionsIsHidden = 0;
                     });
                   },
                 ),
               ),
-              style: TextStyle(
-                color: Colors.black87, // 輸入文本的顏色
-                fontSize: 16, // 字體大小
-              ),
-            )),
-            const SizedBox(height: 16.0),
-            Stack(children: [
-              tab(
-                items: ["路線", "地圖", "城市", "我的最愛"],
-                icons: [Icons.home, Icons.map, Icons.location_city, Icons.favorite],
-              ),
-              Container(
-                color: bgColor,
-                height: suggestionsIsHidden,
-                child: Buslist(suggestions: suggestions,),
-
-              )
-            ],),
-
-          ],
-        ),
+              style: TextStyle(color: Colors.black87, fontSize: 16),
+            ),
+          ),
+          Expanded( // 使用 Expanded 来填充剩余空间
+            child: Stack(
+              children: [
+                tab(
+                  items: ["路線", "地圖", "城市", "我的最愛"],
+                  icons: [Icons.home, Icons.map, Icons.location_city, Icons.favorite],
+                ),
+                // 这里我们保持建议列表的高度不被挡住
+                Container(
+                  color: bgColor,
+                  height: suggestionsIsHidden,
+                  child: suggestions.isNotEmpty
+                      ? Buslist(suggestions: suggestions)
+                      : Center(child: Text("没有找到匹配的结果", style: TextStyle(color: Colors.grey))),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
