@@ -1,18 +1,38 @@
-# 臺灣通 封測版
+# 臺灣通 BETA (封測版)
 
-此應用程式可以方便地查詢公車、火車、高鐵和飛機等交通工具的資訊。
+**臺灣通** 是一款專為方便查詢各種交通工具資訊的應用程式，支援公車、火車、高鐵和飛機等多種運輸方式。此應用分為四個不同版本，以適應各階段的需求：
 
-分為四個版本，封測版、開發版、公測版、穩定版
+- **封測版**（Beta）：僅供內部測試使用，包含尚未穩定的功能，測試者可回報問題以協助改進。
+- **開發版**（Dev）：持續開發中，包含最新功能，但可能存在較多錯誤。
+- **公測版**（Public Test）：向更大範圍的測試者開放，用於更廣泛的反饋收集。
+- **穩定版**（Stable）：正式發布，供所有用戶使用。
+
+## 封測版安全性注意事項
+
+請注意，此 **封測版** 僅供內部測試，部分功能仍在開發階段，並禁止公開發佈。本版本可能包含敏感資訊或測試資料，請務必確保任何應用程式相關的資料不外流，以免造成潛在的安全風險。
+
+## 功能介紹
+
+此應用程式包含以下主要功能：
+
+- **公車查詢**：查詢各路線的即時公車到站資訊和時刻表。
+- **火車查詢**：瀏覽各大城際火車的運行時間和路線資訊。
+- **高鐵查詢**：獲取最新的高鐵班次和票價。
+- **飛機航班資訊**：提供機場航班動態和票價查詢功能。
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
+如果這是您第一次使用 Flutter 進行開發，可以參考以下資源：
 
 - [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
 - [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+更多 Flutter 開發相關的幫助，您可以查閱 [Flutter 線上文件](https://docs.flutter.dev/)，其中包含教學、範例、移動開發指南及完整的 API 參考。
+
+## 測試與反饋
+
+如您在使用本應用程式時遇到問題，歡迎通過封測專案的官方通道提交回饋和建議。您的意見對於我們改進應用的穩定性和用戶體驗至關重要。
+
+---
+
+**警告**：封測版禁止公開使用，請勿分享此應用程式及其資料給未經授權的第三方。
