@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:untitled/bus.dart';
 
 class TransportGrid extends StatelessWidget {
   const TransportGrid({super.key});
@@ -99,7 +100,18 @@ class TransportGrid extends StatelessWidget {
       child: GestureDetector(
         onTap: () {
           debugPrint("$text 页面跳转");
-          Navigator.pushNamed(context, route);
+          if(route=="bus"){
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Bus(
+                 ),
+              ),
+            );
+          }else{
+            Navigator.pushNamed(context, route);
+          }
+
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),

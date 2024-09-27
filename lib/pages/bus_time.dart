@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-
+import 'package:quickalert/quickalert.dart';
 import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
+import '../database/shared_perferences.dart';
 import '../widget/bubble.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 class BusTime extends StatefulWidget {
+
   final routeName;
   final departureStopName;
   final destinationStopName;
@@ -18,6 +20,7 @@ class BusTime extends StatefulWidget {
 }
 
 class _BusTimeState extends State<BusTime> {
+
   Timer? _timer;
   late Future<Map<String, dynamic>> _dataFuture;
   @override
@@ -26,31 +29,27 @@ class _BusTimeState extends State<BusTime> {
  _dataFuture = _loadData();
 
     // _startAutoReload();
+
+    // _startAutoReload();
   }
+// 定義自動更新數據的方法
+//   void _startAutoReload() {
+//     _timer = Timer.periodic(Duration(seconds: 30), (timer) {
+//       setState(() {
+//         _dataFuture = _loadData(); // 每次更新時重新加載數據
+//       });
+//     });
+//   }
 
-  // @override
-  // void dispose() {
-  //   _timer?.cancel();  // 銷毀時取消定時器
-  //   super.dispose();
+  // 停止自動更新
+  // void _stopAutoReload() {
+  //   _timer?.cancel();
   // }
-
-  // 啟動定時器，每 1 分鐘觸發一次
-  // void _startAutoReload() {
-  //   _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
-  //     print(60);
-  //     setState(() {
-  //       _dataFuture = _loadData(); // 重新加载数据
-  //     });
-  //   });
-  // }
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   // _startAutoReload();
-  //   // 每次依赖变化时重新加载数据
-  //   _dataFuture = _loadData();
-  // }
-
+  @override
+  void dispose() {
+    // _stopAutoReload();  // 停止定時器，避免內存洩漏
+    super.dispose();
+  }
   // 加载数据，包括站名和 NextBusTime
   Future<Map<String, dynamic>> _loadData() async {
     final routeInfo = [widget.routeName,widget.departureStopName,widget.destinationStopName];
@@ -354,11 +353,11 @@ Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName) {
               const SizedBox(height: 20), // 添加间距
               Column(
                 children: [
-
-                  _buildDialogOption(context, Icons.schedule, "發車時刻表"),
-                  _buildDialogOption(context, Icons.notifications, "到站通知"),
-                  _buildDialogOption(context, Icons.favorite, "加入收藏"),
-                  _buildDialogOption(context, Icons.route, "路線規劃"),
+                  _buildDialogOption(context, Icons.info, "資訊","info",{}),
+                  _buildDialogOption(context, Icons.schedule, "發車時刻表","time",{}),
+                  _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
+                  _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
+                  _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
                 ],
               ),
               const SizedBox(height: 20), // 添加间距
@@ -385,11 +384,37 @@ Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName) {
     },
   );
 }
-Widget _buildDialogOption(BuildContext context, IconData icon, String title) {
+Widget _buildDialogOption (BuildContext context, IconData icon, String title, String id,Map other) {
   return InkWell(
-    onTap: () {
+    onTap: () async {
+      var output;
       // 在这里可以添加对应的功能
       print('$title 被点击了');
+      if(id=="favorite"){
+        output=await  saveList('favoritesBusStop',other["id"] );
+        // 顯示相應的 QuickAlert
+        if (output.contains('已儲存項目')) {
+          QuickAlert.show(
+            context: context,
+            type: QuickAlertType.success,
+            text: output,
+          );
+        } else if (output.contains('已存在於列表中，不會重複添加')) {
+          QuickAlert.show(
+            context: context,
+            type: QuickAlertType.warning,
+            text: output,
+          );
+        } else if (output.contains('儲存項目時發生錯誤')) {
+          QuickAlert.show(
+            context: context,
+            type: QuickAlertType.error,
+            title: 'Oops...',
+            text: output,
+          );
+        }
+      }
+
     },
     child: Padding(
       padding: const EdgeInsets.symmetric(vertical: 10), // 添加上下间距
@@ -406,3 +431,4 @@ Widget _buildDialogOption(BuildContext context, IconData icon, String title) {
     ),
   );
 }
+

@@ -108,8 +108,9 @@ class BusState extends State<Bus> {
             child: Stack(
               children: [
                 tab(
-                  items: ["路線", "地圖", "城市", "我的最愛"],
-                  icons: [Icons.home, Icons.map, Icons.location_city, Icons.favorite],
+                  id: ["route","stop","home","map","city",],
+                  items: ["收藏路線", "收藏站牌","路線", "地圖", "城市",],
+                  icons: [Icons.favorite,Icons.favorite,Icons.home, Icons.map, Icons.location_city, ],
                 ),
                 // 这里我们保持建议列表的高度不被挡住
                 Container(
@@ -127,3 +128,4 @@ class BusState extends State<Bus> {
     );
   }
 }
+

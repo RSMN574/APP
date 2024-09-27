@@ -69,7 +69,12 @@ fontSize: 15,
                 Text('起點: ${route["DepartureStopNameZh"]}'),
                 Text('終點: ${route["DestinationStopNameZh"]}'),
               ],
-            ),
+            ), trailing: IconButton(
+            icon: const Icon(Icons.favorite_outline,),
+            onPressed: () {
+
+            },
+          ),
             onTap: () async {
               await GetBusInfo(int.parse(route["RouteID"]));
               // 打印路由 ID
