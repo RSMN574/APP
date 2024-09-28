@@ -94,7 +94,7 @@ print(busName);
   }
   return;
 }
-GetBusInfo(int routeid) async {
+GetBusInfo(int routeid,String city) async {
   routeID=routeid;
   sum=0;
   List routeName=[];
@@ -103,7 +103,7 @@ GetBusInfo(int routeid) async {
   }
 
 
-  var query ='SELECT Stops FROM Bus.Bus_Taichung where Routeid=$routeid';
+  var query ='SELECT Stops FROM Bus.Bus_$city where Routeid=$routeid';
 print("query=$query");
  jsonData=await mysqlSelect(query);
   for(var i in jsonData){
@@ -117,12 +117,21 @@ return routeName;
 
 }
 Future mysqlSelect (String v)async{
+
   if (conn == null) {
     await connMysql(); // 如果未連接，先連接資料庫
   }
   List<dynamic> jsonArray=[];
   jsonArray.clear();
-  result =await conn?.execute(v);
+ try{
+   result =await conn?.execute(v);
+ }catch(e){
+   if(e.toString().contains("connection closed")){
+     await connMysql();
+   }else{
+     print(e);
+   }
+ }
   for (final row in result.rows) {
 
     //print(row.colByName("Zh_tw"));
@@ -146,4 +155,24 @@ getInfo(data){
  }else if(data=='routeID'){
    return routeID;
  }
+}
+
+GetBusStopInfo(String stopName ,String city) async {
+
+
+  if (conn == null) {
+    await connMysql(); // 如果未連接，先連接資料庫
+  }
+
+
+  var query =  "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
+  List stopInfo=[];
+
+  jsonData=await mysqlSelect(query);
+  for(var i in jsonData){
+    stopInfo.add(i);
+  }
+
+
+  return stopInfo ;
 }

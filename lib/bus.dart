@@ -4,7 +4,7 @@ import 'package:untitled/widget/BusList.dart';
 import 'package:untitled/widget/tab.dart';
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
-
+import 'package:animated_custom_dropdown/custom_dropdown.dart';
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
 
@@ -13,6 +13,11 @@ class Bus extends StatefulWidget {
 }
 
 class BusState extends State<Bus> {
+   final List<String> _list = [
+    '全部',
+    '臺中',
+
+  ];
   double suggestionsIsHidden = 0;
   TextEditingController busIdController = TextEditingController();
   List suggestions = [];
@@ -57,60 +62,72 @@ class BusState extends State<Bus> {
       ),
       body: Column(
         children: [
-          Container(
-            margin: const EdgeInsets.all(14),
-            height: 70,
-            child: TextField(
-              onChanged: (text) async {
-                if (text.isNotEmpty) {
-                  _updateSuggestions();
-                } else {
-                  setState(() {
-                    suggestionsIsHidden = 0;
-                  });
-                }
-              },
-              controller: busIdController,
-              decoration: InputDecoration(
-                hintText: 'Search for a bus route...',
-                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 24),
-                contentPadding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide(color: busBlue, width: 2.0),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 2.0),
-                ),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.clear),
-                  color: Colors.grey[700],
-                  onPressed: () {
-                    busIdController.clear();
+      CustomDropdown<String>(
+      hintText: 'Select job role',
+        items: _list,
+        initialItem: _list[0],
+        onChanged: (value) {
+
+        },
+      ),
+
+
+
+            Container(
+              margin: const EdgeInsets.all(14),
+              height: 70,
+              child: TextField(
+                onChanged: (text) async {
+                  if (text.isNotEmpty) {
+                    _updateSuggestions();
+                  } else {
                     setState(() {
                       suggestionsIsHidden = 0;
                     });
-                  },
+                  }
+                },
+                controller: busIdController,
+                decoration: InputDecoration(
+                  hintText: 'Search for a bus route...',
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 24),
+                  contentPadding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[200],
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(color: busBlue, width: 2.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide(color: Colors.grey[300]!, width: 2.0),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.clear),
+                    color: Colors.grey[700],
+                    onPressed: () {
+                      busIdController.clear();
+                      setState(() {
+                        suggestionsIsHidden = 0;
+                      });
+                    },
+                  ),
                 ),
+                style: TextStyle(color: Colors.black87, fontSize: 16),
               ),
-              style: TextStyle(color: Colors.black87, fontSize: 16),
             ),
-          ),
+
           Expanded( // 使用 Expanded 来填充剩余空间
             child: Stack(
               children: [
                 tab(
-                  id: ["route","stop","home","map","city",],
-                  items: ["收藏路線", "收藏站牌","路線", "地圖", "城市",],
-                  icons: [Icons.favorite,Icons.favorite,Icons.home, Icons.map, Icons.location_city, ],
+                  id: const ["route","stop","home","map","city",],
+                  items: const ["收藏路線", "收藏站牌","路線", "地圖", "城市",],
+                  icons: const [Icons.favorite,Icons.favorite,Icons.home, Icons.map, Icons.location_city, ],
                 ),
                 // 这里我们保持建议列表的高度不被挡住
                 Container(
@@ -118,7 +135,7 @@ class BusState extends State<Bus> {
                   height: suggestionsIsHidden,
                   child: suggestions.isNotEmpty
                       ? Buslist(suggestions: suggestions)
-                      : Center(child: Text("没有找到匹配的结果", style: TextStyle(color: Colors.grey))),
+                      : const Center(child: Text("没有找到匹配的结果", style: TextStyle(color: Colors.grey))),
                 ),
               ],
             ),

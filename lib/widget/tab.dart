@@ -4,6 +4,8 @@ import '../Const/regularConst.dart';
 import '../database/shared_perferences.dart';
 import 'package:quickalert/quickalert.dart';
 
+import '../pages/busStopInfo.dart';
+
 class tab extends StatefulWidget {
   final List<IconData> icons;
   final List<String> items;
@@ -179,7 +181,16 @@ class _TabPageState extends State<tab> {
       ),
       onLongPress: () {
         _dialogBuilder(context);
-      },
+      },onTap: (){
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BusStopInfo(
+              stop
+          ),
+        ),
+      );
+    },
     );
   }
 

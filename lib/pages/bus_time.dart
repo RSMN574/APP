@@ -388,10 +388,12 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
   return InkWell(
     onTap: () async {
       var output;
+      // var stationComparison;
       // 在这里可以添加对应的功能
       print('$title 被点击了');
       if(id=="favorite"){
         output=await  saveList('favoritesBusStop',other["id"] );
+        // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
         // 顯示相應的 QuickAlert
         if (output.contains('已儲存項目')) {
           QuickAlert.show(

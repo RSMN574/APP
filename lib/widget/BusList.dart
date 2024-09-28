@@ -76,7 +76,7 @@ fontSize: 15,
             },
           ),
             onTap: () async {
-              await GetBusInfo(int.parse(route["RouteID"]));
+              await GetBusInfo(int.parse(route["RouteID"]),"Taichung");
               // 打印路由 ID
               print(route["RouteID"]);
 
