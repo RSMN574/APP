@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:untitled/bus.dart';
+import 'package:com.rsmn574.app/bus.dart';
 final GlobalKey<BusState> _key = GlobalKey<BusState>();
 var result;
 MySQLConnection? conn;
@@ -55,7 +55,7 @@ Future<void> GetApi() async {
   String query =
       "SELECT * FROM NewBusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%'";
   String query2 =
-      "SELECT * FROM NewBusInfo ";
+      "SELECT * FROM Bus.Bus_Taichung_Route ";
   busName=[];
   try {
     busName.clear();
@@ -143,6 +143,7 @@ Future mysqlSelect (String v)async{
 
 
   }
+  // print(jsonArray);
 return jsonArray;
 
 

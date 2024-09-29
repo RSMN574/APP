@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
@@ -81,10 +81,33 @@ class _BusStopInfoState extends State<BusStopInfo> {
     }
   }
 
-  // 构建每个 Tab 的内容
-  Widget _buildTabContent(int direction, List<Map<String, dynamic>> stopEstimatedTime) {
+  Future<Widget> _buildTabContent(int direction, List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
-print(directionList);
+
+    for (var i in directionList) {
+      // 根据方向查找去程或回程的目的地信息
+      if (direction == 1) {
+        var result = await mysqlSelect("SELECT DepartureStopNameZh FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+      } else if (direction == 0) {
+        var result = await mysqlSelect("SELECT DestinationStopNameZh FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+      }
+    }
+
+    // 对 stop["time"] 按照时间升序排序
+    directionList.sort((a, b) {
+      if (a["time"] == "即將到站") return -1;
+      if (b["time"] == "即將到站") return 1;
+      if (a["time"] == "班次結束") return 1;
+      if (b["time"] == "班次結束") return -1;
+
+      int aTimeInMinutes = _parseTimeToMinutes(a["time"]);
+      int bTimeInMinutes = _parseTimeToMinutes(b["time"]);
+
+      return aTimeInMinutes.compareTo(bTimeInMinutes);
+    });
+
     return RefreshIndicator(
       onRefresh: () async {
         await fetchBusStopInfo();
@@ -130,7 +153,14 @@ print(directionList);
               style: const TextStyle(
                 fontFamily: 'MiSans-Demibold',
                 fontSize: 18,
-                color: const Color.fromRGBO(77, 77, 77, 1),
+                color: Color.fromRGBO(77, 77, 77, 1),
+              ),
+            ),
+            subtitle: Text(
+              stop["to"] ?? "未知目的地",
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
               ),
             ),
           );
@@ -139,8 +169,42 @@ print(directionList);
     );
   }
 
+
+  // 解析时间格式，转换成相对于当前时间的分钟数
+  int _parseTimeToMinutes(String? time) {
+    if (time == null || time.isEmpty) return -1;
+
+    // 处理 "X 分鐘" 格式
+    if (time.contains("分鐘")) {
+      return int.tryParse(time.split(" ").first) ?? -1;
+    }
+
+    // 处理 "XX:XX" 格式
+    if (time.contains(":")) {
+      final parts = time.split(":");
+      if (parts.length == 2) {
+        int hour = int.tryParse(parts[0]) ?? 0;
+        int minute = int.tryParse(parts[1]) ?? 0;
+
+        // 获取当前时间
+        DateTime now = DateTime.now();
+        DateTime parsedTime = DateTime(now.year, now.month, now.day, hour, minute);
+
+        // 如果时间已经过去了，则认为是第二天的时间
+        if (parsedTime.isBefore(now)) {
+          parsedTime = parsedTime.add(const Duration(days: 1));
+        }
+
+        return parsedTime.difference(now).inMinutes;
+      }
+    }
+
+    return -1;
+  }
+
   // 获取公交站信息的异步方法
-  Future <List<Map<String, dynamic>>> fetchBusStopInfo() async {
+  Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
+
     var info = await GetBusStopInfo(widget.stop, "Taichung");
     List<Map<String, dynamic>> tempData = [];
 
@@ -155,53 +219,51 @@ print(directionList);
         tempData.addAll(stationInfo);
       }
     }
-    //
-    // setState(() {
-    //   data = tempData;
-    // });
-print(tempData);
+
     return tempData;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder <List<Map<String, dynamic>>>(
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchBusStopInfo(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text("发生错误: ${snapshot.error}"));
-          } else if (snapshot.data ==[]) {
+            return const Center(child: Text("加載數據時出錯"));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text("没有找到相关信息"));
           } else {
             return DefaultTabController(
               length: 2,
               child: Scaffold(
                 appBar: AppBar(
-                  backgroundColor: busBlue,
-                  elevation: 0,
-                  leading: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                  title: const Text(
-                    "站點資訊",
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  title: Text(widget.stop),
                   bottom: _buildTabBar(),
                 ),
-                body: Container(
-                  color: bgColorWhite,
-                  child: TabBarView(
-                    children: [
-                      _buildTabContent(0, snapshot.data!),
-                      _buildTabContent(1, snapshot.data!),
-                    ],
-                  ),
+                body: TabBarView(
+                  children: [
+                    FutureBuilder(
+                      future: _buildTabContent(0, snapshot.data!),
+                      builder: (context, contentSnapshot) {
+                        if (contentSnapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        return contentSnapshot.data as Widget;
+                      },
+                    ),
+                    FutureBuilder(
+                      future: _buildTabContent(1, snapshot.data!),
+                      builder: (context, contentSnapshot) {
+                        if (contentSnapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        return contentSnapshot.data as Widget;
+                      },
+                    ),
+                  ],
                 ),
               ),
             );

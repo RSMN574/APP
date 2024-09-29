@@ -1,23 +1,39 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:untitled/Const/regularConst.dart';
-import 'package:untitled/pages.dart';
-import 'package:untitled/home.dart';
-import 'package:untitled/pages/bus_time.dart';
-import 'package:untitled/pages/nearStop.dart';
-import 'package:untitled/pages/notification.dart';
-import 'package:untitled/plane.dart';
-import 'package:untitled/metro.dart';
-import 'package:untitled/train.dart';
-import 'package:untitled/bus.dart';
-import 'package:untitled/map.dart';
+import 'package:com.rsmn574.app/Const/regularConst.dart';
+import 'package:com.rsmn574.app/pages.dart';
+import 'package:com.rsmn574.app/home.dart';
+import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/nearStop.dart';
+import 'package:com.rsmn574.app/pages/notification.dart';
+import 'package:com.rsmn574.app/plane.dart';
+import 'package:com.rsmn574.app/metro.dart';
+import 'package:com.rsmn574.app/train.dart';
+import 'package:com.rsmn574.app/bus.dart';
+import 'package:com.rsmn574.app/map.dart';
 import 'database/getData.dart';
-
+import 'firebase/FCM.dart';
+import 'firebase_options.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 /// Flutter 範例 [NavigationBar]。
+final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+Future<void> main() async {
 
-void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await GetApi();
+    await requestPermission();
+    setupForegroundMessageHandler();
+    await setupFirebaseMessaging();
+  } catch (e) {
+    print('Firebase 初始化失败: $e');
+    // 可以在这里使用一个简单的弹窗或 Snackbar 来提示用户
+  }
   runApp(const NavigationBarApp());
-  GetApi();
 }
 
 // 定義 SVG 資源路徑的常量類別
@@ -46,7 +62,9 @@ class NavigationBarApp extends StatelessWidget {
         "busTime": (BuildContext context) => BusTime(),
         'notification':(BuildContext context) => notification(),
       },
-      theme: ThemeData(useMaterial3: true, fontFamily: 'MiSans-Normal'),
+      theme: appTheme,
+      themeMode: ThemeMode.system,
+
       home: const NavigationExample(),
     );
   }
@@ -185,4 +203,5 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
     ];
   }
+
 }

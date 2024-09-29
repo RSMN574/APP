@@ -10,3 +10,9 @@ final Color startColor = Color.fromARGB(255, 13, 193, 255); // (13,193,255)
 final Color endColor = Color.fromARGB(255, 27, 141, 255);   // (27,141,255)
 final Color bgColor =Color.fromRGBO(245,245,245,1);
 final Color bgColorWhite =Colors.white;
+final ThemeData appTheme = ThemeData(
+  useMaterial3: true,
+    fontFamily: 'MiSans-Normal', colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue).copyWith(surface: Colors.white),
+    // 应用字体
+    scaffoldBackgroundColor:Colors.white
+);

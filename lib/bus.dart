@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:untitled/widget/BusList.dart';
-import 'package:untitled/widget/tab.dart';
+import 'package:com.rsmn574.app/widget/BusList.dart';
+import 'package:com.rsmn574.app/widget/tab.dart';
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';

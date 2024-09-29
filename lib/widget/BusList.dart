@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:string_similarity/string_similarity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:untitled/Const/regularConst.dart';
+import 'package:com.rsmn574.app/Const/regularConst.dart';
 
 import '../database/getData.dart';
 import '../pages/bus_time.dart';

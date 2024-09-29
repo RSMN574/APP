@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:untitled/bus.dart';
+import 'package:com.rsmn574.app/bus.dart';
 
 class TransportGrid extends StatelessWidget {
   const TransportGrid({super.key});

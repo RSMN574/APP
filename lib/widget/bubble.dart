@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled/Const/regularConst.dart';
+import 'package:com.rsmn574.app/Const/regularConst.dart';
 class bubble extends StatelessWidget {
 
   final String plateNum;
