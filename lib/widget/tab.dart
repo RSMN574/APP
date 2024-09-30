@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Const/regularConst.dart';
 import '../database/shared_perferences.dart';
 import 'package:quickalert/quickalert.dart';
-
 import '../pages/busStopInfo.dart';
 
 class tab extends StatefulWidget {
@@ -11,11 +10,12 @@ class tab extends StatefulWidget {
   final List<String> items;
   final List<String> id;
 
-  tab({
+  const tab({
+    Key? key,
     required this.items,
     required this.icons,
     required this.id,
-  });
+  }) : super(key: key);
 
   @override
   State<tab> createState() => _TabPageState();
@@ -23,8 +23,9 @@ class tab extends StatefulWidget {
 
 class _TabPageState extends State<tab> {
   int current = 0;
-  PageController pageController = PageController();
+  final PageController pageController = PageController();
   List<String>? favoriteStops;
+  List<String>? favoriteRoutes;
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _TabPageState extends State<tab> {
 
   Future<void> _loadFavorites() async {
     favoriteStops = await loadList('favoritesBusStop');
+    favoriteRoutes = await loadList('favoritesBusRoute');
     setState(() {}); // 更新 UI
   }
 
@@ -44,9 +46,7 @@ class _TabPageState extends State<tab> {
       child: Column(
         children: [
           _buildTabBar(), // 构建标签栏
-          Expanded( // 使用 Expanded 包裹 PageView
-            child: _buildPageView(), // 构建 PageView
-          ),
+          Expanded(child: _buildPageView()), // 使用 Expanded 包裹 PageView
         ],
       ),
     );
@@ -60,9 +60,7 @@ class _TabPageState extends State<tab> {
         physics: const BouncingScrollPhysics(),
         itemCount: widget.items.length,
         scrollDirection: Axis.horizontal,
-        itemBuilder: (ctx, index) {
-          return _buildTabItem(index);
-        },
+        itemBuilder: (ctx, index) => _buildTabItem(index),
       ),
     );
   }
@@ -124,15 +122,15 @@ class _TabPageState extends State<tab> {
       margin: const EdgeInsets.only(top: 30),
       width: double.infinity,
       child: PageView.builder(
-        itemCount: widget.icons.length,
+        itemCount: widget.id.length,
         controller: pageController,
         physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (context, index) {
           switch (widget.id[index]) {
             case "route":
-              return const Center(child: Text("Route Page"));
+              return _buildList('favoritesBusRoute', _buildRouteListItem);
             case "stop":
-              return _buildStopList(); // 使用 FutureBuilder 加载停靠站列表
+              return _buildList('favoritesBusStop', _buildStopListItem);
             case "home":
               return const Center(child: Text("Home Page"));
             case "map":
@@ -147,50 +145,51 @@ class _TabPageState extends State<tab> {
     );
   }
 
-  Widget _buildStopList() {
+  Widget _buildList(String key, Widget Function(String) itemBuilder) {
     return FutureBuilder<List<String>?>(
-      future: loadList('favoritesBusStop'), // 从 SharedPreferences 加载
+      future: loadList(key), // 从 SharedPreferences 加载
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
         } else if (snapshot.hasData) {
-          favoriteStops = snapshot.data; // 更新收藏的停靠站
+          final List<String>? items = snapshot.data;
           return ListView.builder(
-            itemCount: favoriteStops?.length ?? 0,
+            itemCount: items?.length ?? 0,
             itemBuilder: (context, index) {
-              return _buildStopListItem(favoriteStops![index]);
+              return itemBuilder(items![index]);
             },
           );
         } else {
-          return const Center(child: Text('No favorite stops found.'));
+          return const Center(child: Text('No items found.'));
         }
       },
     );
   }
 
   Widget _buildStopListItem(String stop) {
-    return ListTile(
-      title: Text(stop),
-      trailing: IconButton(
-        icon: const Icon(Icons.favorite, color: Colors.red),
-        onPressed: () {
-          _showConfirmDialog(context, stop); // 显示确认对话框
-        },
-      ),
-      onLongPress: () {
-        _dialogBuilder(context);
-      },onTap: (){
+    return _buildListItem(stop, () => _showConfirmDialog(context, stop,"favoritesBusStop"), () {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => BusStopInfo(
-              stop
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => BusStopInfo(stop)),
       );
-    },
+    });
+  }
+
+  Widget _buildRouteListItem(String route) {
+    return _buildListItem(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"));
+  }
+
+  Widget _buildListItem(String title, VoidCallback onConfirm, [VoidCallback? onTap]) {
+    return ListTile(
+      title: Text(title),
+      trailing: IconButton(
+        icon: const Icon(Icons.favorite, color: Colors.red),
+        onPressed: onConfirm,
+      ),
+      onLongPress: () => _dialogBuilder(context),
+      onTap: onTap,
     );
   }
 
@@ -205,17 +204,15 @@ class _TabPageState extends State<tab> {
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 20), // 添加间距
+                const SizedBox(height: 20),
                 _buildDialogOptions(),
-                const SizedBox(height: 20), // 添加间距
+                const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // 关闭对话框
-                  },
+                  onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: busBlue, // 设置按钮背景色
+                    backgroundColor: busBlue,
                   ),
                   child: const Text(
                     '關閉',
@@ -245,22 +242,19 @@ class _TabPageState extends State<tab> {
         // 处理对话框选项点击事件
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10), // 添加上下间距
+        padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            Icon(icon, color: busBlue), // 设置图标颜色
-            const SizedBox(width: 10), // 添加间距
-            Text(
-              title,
-              style: TextStyle(fontSize: 18),
-            ),
+            Icon(icon, color: busBlue),
+            const SizedBox(width: 10),
+            Text(title, style: const TextStyle(fontSize: 18)),
           ],
         ),
       ),
     );
   }
 
-  void _showConfirmDialog(BuildContext context, String stop) {
+  void _showConfirmDialog(BuildContext context, String item,String SharedPreferencesList) {
     QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
@@ -268,22 +262,20 @@ class _TabPageState extends State<tab> {
       confirmBtnText: '確認',
       cancelBtnText: '取消',
       confirmBtnColor: Colors.green,
-      onCancelBtnTap: () {
-        Navigator.pop(context);
-      },
+      onCancelBtnTap: () => Navigator.pop(context),
       onConfirmBtnTap: () {
-        _removeFavorite(context, stop); // 传递上下文以便在完成时重新加载
+        _removeFavorite(context, item,SharedPreferencesList);
         Navigator.pop(context);
       },
     );
   }
 
-  Future<void> _removeFavorite(BuildContext context, String stop) async {
-    List<String>? currentFavorites = await loadList('favoritesBusStop');
-    currentFavorites?.remove(stop); // 移除指定的项
+  Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
+    List<String>? currentFavorites = await loadList(SharedPreferencesList);
+    currentFavorites?.remove(item); // 移除指定的项
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('favoritesBusStop', currentFavorites ?? []); // 保存更新后的列表
+    await prefs.setStringList(SharedPreferencesList, currentFavorites ?? []);
     await _loadFavorites(); // 重新加载收藏列表
   }
 }

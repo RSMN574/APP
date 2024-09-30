@@ -57,3 +57,11 @@ Future<void> removeList(String name) async {
     print("移除項目時發生錯誤: $e");
   }
 }
+Future<void> _removeFavorite( String stop) async {
+  List<String>? currentFavorites = await loadList('favoritesBusStop');
+  currentFavorites?.remove(stop); // 移除指定的项
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setStringList('favoritesBusStop', currentFavorites ?? []); // 保存更新后的列表
+
+}

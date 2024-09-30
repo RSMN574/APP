@@ -16,6 +16,7 @@ import 'database/getData.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 /// Flutter 範例 [NavigationBar]。
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 Future<void> main() async {
@@ -25,10 +26,12 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
     await GetApi();
     await requestPermission();
     setupForegroundMessageHandler();
     await setupFirebaseMessaging();
+    await firebaseMessagingBackgroundHandler;
   } catch (e) {
     print('Firebase 初始化失败: $e');
     // 可以在这里使用一个简单的弹窗或 Snackbar 来提示用户

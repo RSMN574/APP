@@ -6,58 +6,55 @@ import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/shared_perferences.dart';
-import '../widget/bubble.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-class BusTime extends StatefulWidget {
 
+
+class BusTime extends StatefulWidget {
   final routeName;
   final departureStopName;
   final destinationStopName;
-  const BusTime({Key? key,this.routeName ,this.departureStopName, this.destinationStopName}) : super(key: key);
+
+  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName})
+      : super(key: key);
 
   @override
   State<BusTime> createState() => _BusTimeState();
 }
 
 class _BusTimeState extends State<BusTime> {
-
   Timer? _timer;
   late Future<Map<String, dynamic>> _dataFuture;
+  final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
+
   @override
   void initState() {
     super.initState();
- _dataFuture = _loadData();
-
-    // _startAutoReload();
-
-    // _startAutoReload();
+    _loadData(); // 初始加载数据
+    _startAutoReload(); // 开始定时器
   }
-// 定義自動更新數據的方法
-//   void _startAutoReload() {
-//     _timer = Timer.periodic(Duration(seconds: 30), (timer) {
-//       setState(() {
-//         _dataFuture = _loadData(); // 每次更新時重新加載數據
-//       });
-//     });
-//   }
 
-  // 停止自動更新
-  // void _stopAutoReload() {
-  //   _timer?.cancel();
-  // }
+  // 定义自动更新数据的方法
+  void _startAutoReload() {
+    _timer = Timer.periodic(Duration(seconds: 20), (timer) {
+      _loadData(); // 每20秒更新数据
+    });
+  }
+
   @override
   void dispose() {
-    // _stopAutoReload();  // 停止定時器，避免內存洩漏
+    _timer?.cancel(); // 停止定时器，避免内存泄漏
     super.dispose();
   }
+
   // 加载数据，包括站名和 NextBusTime
-  Future<Map<String, dynamic>> _loadData() async {
-    final routeInfo = [widget.routeName,widget.departureStopName,widget.destinationStopName];
-  final busTimeData=  await fetchBusTime(widget.routeName.toString(), "Taichung");
-  print(busTimeData);
+  Future<void> _loadData() async {
+    final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
+    final busTimeData = await fetchBusTime(widget.routeName.toString(), "Taichung");
+    print(busTimeData);
     final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
-    final stopNamesWithTime2 = await fetchStopNamesWithTime(0,  busTimeData.where((stop) => stop['Direction'] == 0).toList());
-    return {
+    final stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
+
+    // 更新数据时只更新 ValueNotifier
+    _dataNotifier.value = {
       'routeInfo': routeInfo,
       'stopNamesWithTime1': stopNamesWithTime1,
       'stopNamesWithTime2': stopNamesWithTime2,
@@ -65,7 +62,7 @@ class _BusTimeState extends State<BusTime> {
   }
 
   // 获取每个站的站名和 NextBusTime
-  Future<List<Map<String, String>>> fetchStopNamesWithTime(int tabIndex,BusTimeData) async {
+  Future<List<Map<String, String>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData) async {
     List stops = await getInfo("routeInfo");
     List<Map<String, String>> stopNamesWithTime = [];
 
@@ -73,150 +70,112 @@ class _BusTimeState extends State<BusTime> {
       var stopData = json.decode(stops[tabIndex]["Stops"]);
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
-        Map nextBusTime = await getTimeList(stopName,BusTimeData); // 如果没有 NextBusTime，显示“尚無此車”
+        Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
 
         stopNamesWithTime.add({
           "stopName": stopName,
           "nextBusTime": nextBusTime["time"],
-       'isRed':nextBusTime["isRed"],
-        "PlateNumb": nextBusTime["PlateNumb"]
+          'isRed': nextBusTime["isRed"],
+          "PlateNumb": nextBusTime["PlateNumb"],
         });
-
       }
     }
 
-
     return stopNamesWithTime;
   }
-Future<Map<String, dynamic>> getTimeList(StopName,BusTimeData) async{
 
-List a= await BusTimeData.where((stop) => stop['StopName']["Zh_tw"] == StopName).toList();
+  Future<Map<String, dynamic>> getTimeList(String stopName, List<dynamic> busTimeData) async {
+    List<dynamic> a = busTimeData.where((stop) => stop['StopName']["Zh_tw"] == stopName).toList();
 
+    if (a.isNotEmpty) {
+      if (a[0]["EstimateTime"] != null) {
+        if (a[0]["EstimateTime"] == 0) {
+          List plateNumb = a[0]['Estimates'].map((estimate) => estimate["PlateNumb"]).toList();
+          return {"time": "即將到站", "isRed": '0', "PlateNumb": plateNumb.join(", ")};
+        } else {
+          int result = (a[0]["EstimateTime"] / 60).floor();
+          List plateNumb = a[0]['Estimates'].map((estimate) => estimate["PlateNumb"]).toList();
+          return {
+            "time": result < 1 ? "即將到站" : "$result 分鐘",
+            "isRed": result < 3 ? "2" : "",
+            "PlateNumb": ""
+          };
+        }
+      } else if (a[0]["NextBusTime"] != null) {
+        Duration difference = DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
 
-
-if(a[0]["EstimateTime"] !=null ){
-  if(a[0]["EstimateTime"] ==0) {
-    List PlateNumb = [];
-
-      for (var estimate in a[0]['Estimates']) {
-
-        PlateNumb.add(estimate["PlateNumb"]); // 将每个 estimate 转换为字符串，并拼接到 PlateNumb 中
-
-
+        if (difference.inHours == 0) {
+          return {
+            "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
+            "isRed": '',
+            "PlateNumb": ""
+          };
+        } else {
+          DateTime nextBusTime = DateTime.now().add(difference);
+          return {
+            'time': "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
+            "isRed": '',
+            "PlateNumb": ""
+          };
+        }
+      } else {
+        return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
+      }
     }
-
-    return {"time": "即將到站", "isRed": '0' ,"PlateNumb": PlateNumb.toString() };
-
-  }else{
-    int result=(a[0]["EstimateTime"] / 60).floor();
-
-    List PlateNumb = [];
-    for (var estimate in a[0]['Estimates']) {
-
-      PlateNumb.add(estimate["PlateNumb"]); // 将每个 estimate 转换为字符串，并拼接到 PlateNumb 中
-    }
-
-
-    return {
-      "time": result < 1 ? "即將到站" : "$result 分鐘",
-      "isRed": result < 3 ? "2" : "",
-      "PlateNumb": result < 20 ? PlateNumb.toString() : ""
-    };
+    return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
   }
-
-
-}else if(a[0]["NextBusTime"] !=null ){
-  Duration difference =DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
-
-  if(difference.inHours==0){
-    return {
-      "time": difference.inMinutes.remainder(60) <= 0
-          ?  "班次結束"
-          : "${difference.inMinutes.remainder(60)} 分鐘",
-      "isRed": '',
-      "PlateNumb": ""
-    };
-
-  }else {
-    Duration duration = Duration(hours: difference.inHours,minutes:difference.inMinutes.remainder(60) ); // 設定要加上的時間長度
-
-    DateTime NextBusTime = DateTime.now().add(duration);
-    return {'time':"${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}", "isRed": '',"PlateNumb":""};
-
-  }
-
-}else{
-  return {"time": "班次結束", "isRed": '',"PlateNumb":""};
-  }
-
-}
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _dataFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return ValueListenableBuilder<Map<String, dynamic>?>(
+      valueListenable: _dataNotifier,
+      builder: (context, data, child) {
+        if (data == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // if (snapshot.hasError) {
-        //   return Scaffold(
-        //     body: Center(child: Text('发生错误: ${snapshot.error}')),
-        //   );
-        // }
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const Scaffold(
-            body: Center(child: Text('無法加載數據')),
-          );
-        }
-        final data = snapshot.data!;
         final routeInfo = data['routeInfo'] as List;
         final stopNamesWithTime1 = data['stopNamesWithTime1'] as List;
         final stopNamesWithTime2 = data['stopNamesWithTime2'] as List;
 
         return DefaultTabController(
-
           length: 2,
           child: Scaffold(
             appBar: AppBar(
               backgroundColor: busBlue,
               elevation: 0,
               leading: IconButton(
-                icon: Icon(Icons.arrow_back,color: Colors.white,), // 返回图标
+                icon: const Icon(Icons.arrow_back, color: Colors.white), // 返回图标
                 onPressed: () {
                   Navigator.pop(context); // 返回上一个页面
                 },
               ),
               title: Text(
                 routeInfo[0],
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold,
-                  color: Colors.white
-                ),
-              ),actions: [
-              IconButton(
-                icon: Icon(Icons.more_vert,color: Colors.white,),
-                onPressed: () {
-                  // 添加更多选项功能
-                  print('更多按钮被点击');
-                },
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-                
-            ],
-
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onPressed: () {
+                    // 添加更多选项功能
+                    print('更多按钮被点击');
+                  },
+                ),
+              ],
               bottom: _buildTabBar(routeInfo),
             ),
-            body: Container (
+            body: Container(
               color: bgColorWhite,
-              child:TabBarView(
-
-              children: [
-                _buildTabContent(stopNamesWithTime1), // Tab for direction 0
-                _buildTabContent(stopNamesWithTime2), // Tab for direction 1
-              ],
-            ),)
+              child: TabBarView(
+                children: [
+                  _buildTabContent(stopNamesWithTime1), // Tab for direction 0
+                  _buildTabContent(stopNamesWithTime2), // Tab for direction 1
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -235,8 +194,8 @@ if(a[0]["EstimateTime"] !=null ){
           unselectedLabelColor: Colors.grey,
           indicatorWeight: 3.0,
           indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: TextStyle(fontSize: 16),
+          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 16),
           tabs: [
             Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]),
             Tab(icon: const Icon(Icons.swap_horiz), text: routeInfo[2]),
@@ -250,139 +209,123 @@ if(a[0]["EstimateTime"] !=null ){
   Widget _buildTabContent(List stopNamesWithTime) {
     return RefreshIndicator(
       onRefresh: () async {
-        setState(() {
-          _dataFuture = _loadData(); // 刷新时重新加载数据
-        });
+        await _loadData(); // 刷新时重新加载数据
       },
-      child:ListView.builder(
-
+      child: ListView.separated(
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
           final stop = stopNamesWithTime[index];
-           final PlateNumb=stop["PlateNumb"];
-           // final hasPlateNumb=PlateNumb.isNotEmpty;
-         final  isRed = stop["isRed"]== '0' ? Color.fromRGBO(235,15,41,0.85) : ( stop["isRed"] == '2' ? Color.fromRGBO(235,15,41,0.3) : Colors.white);
+          final PlateNumb = stop["PlateNumb"];
+          final isRed = stop["isRed"] == '0'
+              ? Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
 
-              return ListTile(
-                onTap: () {
-                  _dialogBuilder(context,PlateNumb,    stop["stopName"]);
-                },
-                leading: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: BoxDecoration(
-                    color: isRed,
-                    border: Border.all(
-                      width: 1.0,
-                      color: stop["isRed"] == '0'
-                          ? Color.fromRGBO(235, 15, 41, 0.85)
-                          : (stop["isRed"] == '2'
-                          ? Color.fromRGBO(235, 15, 41, 0.35)
-                          : busBlue),
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    stop["nextBusTime"]!,
-                    style: TextStyle(
-                      fontFamily: 'MiSans-Semibold',
-                      fontSize: 18,
-                      color: stop["isRed"] == '0'
-                          ? Colors.white
-                          : (stop["isRed"] == '2' ? Color.fromRGBO(235,15,41,0.7) : Color.fromRGBO(90, 107, 107, 1)),
-                    ),
-                  ),
+          return ListTile(
+            onTap: () {
+              _dialogBuilder(context,PlateNumb,    stop["stopName"]);
+
+            },
+            leading: Container(
+              padding: const EdgeInsets.all(9),
+              decoration: BoxDecoration(
+                color: isRed,
+                border: Border.all(
+                  width: 1.0,
+                  color: stop["isRed"] == '0'
+                      ? Color.fromRGBO(235, 15, 41, 0.85)
+                      : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.35) : busBlue),
                 ),
-                title: Text(
-                  stop["stopName"]!,
-                  style: TextStyle(
-                    fontFamily: 'MiSans-Demibold',
-                    fontSize: 18,
-                    color: Color.fromRGBO(77, 77, 77, 1),
-                  ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                stop["nextBusTime"]!,
+                style: TextStyle(
+                  fontFamily: 'MiSans-Semibold',
+                  fontSize: 18,
+                  color: stop["isRed"] == '0'
+                      ? Colors.white
+                      : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.7) : Color.fromRGBO(90, 107, 107, 1)),
                 ),
-                // 添加 trailing，这里可以放 Bubble 小组件
-                //   trailing: stop["isRed"] == '0'
-                //       ? (hasPlateNumb ? bubble(plateNum: PlateNumb) : Container())
-                //       : (stop["isRed"] == '2' && hasPlateNumb ? bubble(plateNum: PlateNumb) : Container()),
-
-
-              )
-              ;
-
-
-
-
-
-
-
-
-
-
-
-
+              ),
+            ),
+            title: Text(
+              stop["stopName"]!,
+              style: TextStyle(
+                fontFamily: 'MiSans-Demibold',
+                fontSize: 18,
+                color: Color.fromRGBO(77, 77, 77, 1),
+              ),
+            ),
+            trailing: Text(PlateNumb),
+          );
+        },
+        separatorBuilder: (BuildContext context, int index) {
+          return const Divider(
+            color: Colors.grey, // 分割线颜色
+            thickness: 0.8, // 分割线厚度
+            indent: 94.0, // 根据 `leading` 的宽度 + padding 调整
+            endIndent: 10.0, // 右侧缩进
+          );
         },
       ),
-
-
-
-
     );
   }
-}
-Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName) {
-  return showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-            children: [
-              Text(
-                stopName,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20), // 添加间距
-              Column(
-                children: [
-                  _buildDialogOption(context, Icons.info, "資訊","info",{}),
-                  _buildDialogOption(context, Icons.schedule, "發車時刻表","time",{}),
-                  _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
-                  _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
-                  _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
-                ],
-              ),
-              const SizedBox(height: 20), // 添加间距
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // 关闭对话框
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: busBlue, // 设置按钮背景色
-                ),
-                child: const Text('關閉',
 
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15
-
-
-                ),),
-              ),
-            ],
+  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName) {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
           ),
-        ),
-      );
-    },
-  );
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+              children: [
+                Text(
+                  stopName,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20), // 添加间距
+                Column(
+                  children: [
+                    _buildDialogOption(context, Icons.info, "資訊","info",{}),
+                    _buildDialogOption(context, Icons.schedule, "發車時刻表","time",{}),
+                    _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
+                    _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
+                    _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
+                  ],
+                ),
+                const SizedBox(height: 20), // 添加间距
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // 关闭对话框
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: busBlue, // 设置按钮背景色
+                  ),
+                  child: const Text('關閉',
+
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15
+
+
+                    ),),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 Widget _buildDialogOption (BuildContext context, IconData icon, String title, String id,Map other) {
   return InkWell(
@@ -433,4 +376,3 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
     ),
   );
 }
-
