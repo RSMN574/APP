@@ -158,10 +158,34 @@ class _BusTimeState extends State<BusTime> {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
-                  onPressed: () {
-                    // 添加更多选项功能
-                    print('更多按钮被点击');
+                  icon: const Icon(Icons.favorite_outline, color: Colors.white),
+                  onPressed: () async {
+                   var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+
+                    // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+                    // 顯示相應的 QuickAlert
+                    if (output.contains('已儲存項目')) {
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.success,
+                        text: '${routeInfo[0]}已儲存項目',
+                      );
+                    } else if (output.contains('已存在於列表中，不會重複添加')) {
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.warning,
+                        text: '${routeInfo[0]}已存在於列表中，不會重複添加',
+                      );
+                    } else if (output.contains('儲存項目時發生錯誤')) {
+                      QuickAlert.show(
+                        context: context,
+                        type: QuickAlertType.error,
+                        title: 'Oops...',
+                        text: '儲存項目時發生錯誤',
+                      );
+                    }
+
+
                   },
                 ),
               ],

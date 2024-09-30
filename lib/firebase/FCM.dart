@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // 处理后台消息
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message: ${message.messageId}');
+
 }
 
 // 请求通知权限

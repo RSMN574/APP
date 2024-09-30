@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Const/regularConst.dart';
@@ -153,6 +155,14 @@ class _TabPageState extends State<tab> {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
+        }  else if (key=='favoritesBusRoute') {
+          final List<String>? items = snapshot.data;
+          return ListView.builder(
+            itemCount: items?.length ?? 0,
+            itemBuilder: (context, index) {
+              return itemBuilder(items![index]);
+            },
+          );
         } else if (snapshot.hasData) {
           final List<String>? items = snapshot.data;
           return ListView.builder(
@@ -178,7 +188,7 @@ class _TabPageState extends State<tab> {
   }
 
   Widget _buildRouteListItem(String route) {
-    return _buildListItem(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"));
+    return _buildListItemRoute(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"));
   }
 
   Widget _buildListItem(String title, VoidCallback onConfirm, [VoidCallback? onTap]) {
@@ -192,7 +202,18 @@ class _TabPageState extends State<tab> {
       onTap: onTap,
     );
   }
-
+  Widget _buildListItemRoute(String jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
+    return ListTile(
+      title: Text(json.decode(jsonData)["route"]),
+      subtitle: Text('起點 ${json.decode(jsonData)["DepartureStopNameZh"]}\n  終點 ${json.decode(jsonData)["DestinationStopNameZh"]} '),
+      trailing: IconButton(
+        icon: const Icon(Icons.favorite, color: Colors.red),
+        onPressed: onConfirm,
+      ),
+      onLongPress: () => _dialogBuilder(context),
+      onTap: onTap,
+    );
+  }
   Future<void> _dialogBuilder(BuildContext context) {
     return showDialog(
       context: context,
