@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Const/regularConst.dart';
+import '../database/getData.dart';
 import '../database/shared_perferences.dart';
 import 'package:quickalert/quickalert.dart';
 import '../pages/busStopInfo.dart';
@@ -188,7 +190,18 @@ class _TabPageState extends State<tab> {
   }
 
   Widget _buildRouteListItem(String route) {
-    return _buildListItemRoute(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"));
+    return _buildListItemRoute(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"),() async {
+      await GetBusInfo(int.parse(json.decode(route)["route"]), "Taichung");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context,) => BusTime(
+          routeName:json.decode(route)["route"],
+            departureStopName:json.decode(route)["DepartureStopNameZh"],
+            destinationStopName:json.decode(route)["DestinationStopNameZh"]
+
+        )),
+      );
+    });
   }
 
   Widget _buildListItem(String title, VoidCallback onConfirm, [VoidCallback? onTap]) {

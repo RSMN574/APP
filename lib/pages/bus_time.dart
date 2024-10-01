@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/quickalert.dart';
 import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
@@ -124,15 +125,34 @@ class _BusTimeState extends State<BusTime> {
     }
     return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
   }
+// 返回每个隐藏的菜单项
+  SelectView(IconData icon, String text, String id) {
+    return new PopupMenuItem<String>(
+        value: id,
+        child: new Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            new Icon(icon, color: busBlue),
+            new Text(text),
+          ],
+        )
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
+
     return ValueListenableBuilder<Map<String, dynamic>?>(
       valueListenable: _dataNotifier,
       builder: (context, data, child) {
         if (data == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return  Scaffold(
+            body: Center(child: LoadingAnimationWidget.flickr(
+            
+              size: 40, leftDotColor: Color.fromRGBO(0,87,215,1),
+              rightDotColor: Color.fromRGBO(254,0,0,1),
+            ),),
           );
         }
 
@@ -157,35 +177,48 @@ class _BusTimeState extends State<BusTime> {
                 style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
               ),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.favorite_outline, color: Colors.white),
-                  onPressed: () async {
-                   var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+               new PopupMenuButton<String>(
+            iconColor:   Colors.white,
+                  itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                    this.SelectView(Icons.info, '公車資訊', 'A'),
+                    this.SelectView(Icons.add, '加入收藏', 'B'),
+                    this.SelectView(Icons.schedule, '發車時刻表', 'C'),
+                  ],
+                  onSelected: (String action) async {
+                    // 点击选项的时候
+                    switch (action) {
+                      case 'A': break;
+                      case 'B':
 
-                    // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-                    // 顯示相應的 QuickAlert
-                    if (output.contains('已儲存項目')) {
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.success,
-                        text: '${routeInfo[0]}已儲存項目',
-                      );
-                    } else if (output.contains('已存在於列表中，不會重複添加')) {
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.warning,
-                        text: '${routeInfo[0]}已存在於列表中，不會重複添加',
-                      );
-                    } else if (output.contains('儲存項目時發生錯誤')) {
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.error,
-                        title: 'Oops...',
-                        text: '儲存項目時發生錯誤',
-                      );
+                        var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+
+                        // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+                        // 顯示相應的 QuickAlert
+                        if (output.contains('已儲存項目')) {
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.success,
+                            text: '${routeInfo[0]}已儲存項目',
+                          );
+                        } else if (output.contains('已存在於列表中，不會重複添加')) {
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.warning,
+                            text: '${routeInfo[0]}已存在於列表中，不會重複添加',
+                          );
+                        } else if (output.contains('儲存項目時發生錯誤')) {
+                          QuickAlert.show(
+                            context: context,
+                            type: QuickAlertType.error,
+                            title: 'Oops...',
+                            text: '儲存項目時發生錯誤',
+                          );
+                        }
+
+
+                        break;
+                      case 'C': break;
                     }
-
-
                   },
                 ),
               ],

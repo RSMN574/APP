@@ -125,9 +125,9 @@ class BusState extends State<Bus> {
             child: Stack(
               children: [
                 tab(
-                  id: const ["route","stop","home","map","city",],
-                  items: const ["收藏路線", "收藏站牌","路線", "地圖", "城市",],
-                  icons: const [Icons.favorite,Icons.favorite,Icons.home, Icons.map, Icons.location_city, ],
+                  id: const ["route","stop","map","routeplan"],
+                  items: const ["收藏路線", "收藏站牌", "地圖","規劃"],
+                  icons: const [Icons.favorite,Icons.favorite, Icons.map,Icons.route ],
                 ),
                 // 这里我们保持建议列表的高度不被挡住
                 Container(
