@@ -1,6 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-
+String? FCMtoken;
 // 处理后台消息
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message: ${message.messageId}');
@@ -40,8 +40,8 @@ Future<void> setupFirebaseMessaging() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
   // 获取设备令牌
-  String? token = await messaging.getToken();
-  print("FCM Token: $token");
+  FCMtoken = await messaging.getToken();
+  print("FCM Token: $FCMtoken");
 
   // 处理点击通知
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {

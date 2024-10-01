@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
+
+import 'firebase/FCM.dart';
 
 class pages extends StatelessWidget {
   @override
@@ -84,9 +88,14 @@ class pages extends StatelessWidget {
             borderRadius: BorderRadius.circular(16), // 圓角邊框
           ),
           child: TextButton(
-            onPressed: () {
+            onPressed: () async {
               // 按鈕被按下的行為
-              print('按鈕被按下');
+
+              QuickAlert.show(
+                context: context,
+                type: QuickAlertType.info,
+                text: FCMtoken,
+              );
             },
             child: Text(
               '封測版',
