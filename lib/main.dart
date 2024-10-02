@@ -169,7 +169,7 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
       const NavigationDestination(
         icon: Icon(Icons.commute_outlined),
-        selectedIcon:Icon(Icons.commute),
+
         label: '我的出行',
       ),
       NavigationDestination(

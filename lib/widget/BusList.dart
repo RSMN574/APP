@@ -92,17 +92,19 @@ class _BuslistState extends State<Buslist> {
 
             onTap: () async {
               await GetBusInfo(int.parse(route["RouteID"]), "Taichung");
-              // 打印路由 ID
-              print(route["RouteID"]);
+
 
               // 使用 Navigator.push 创建新的页面
               Navigator.push(
+
                 context,
                 MaterialPageRoute(
                   builder: (context) => BusTime(
                     routeName: extractZhTw(route["RouteName"]),
                     departureStopName: route["DepartureStopNameZh"],
                     destinationStopName: route["DestinationStopNameZh"],
+                      operators:route["Operators"],
+                      routeMapImageUrl:route["RouteMapImageUrl"]
                   ),
                 ),
               );

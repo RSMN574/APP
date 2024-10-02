@@ -191,13 +191,19 @@ class _TabPageState extends State<tab> {
 
   Widget _buildRouteListItem(String route) {
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"),() async {
-      await GetBusInfo(int.parse(json.decode(route)["route"]), "Taichung");
+     List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${json.decode(route)["route"]}'");
+
+
+
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context,) => BusTime(
           routeName:json.decode(route)["route"],
             departureStopName:json.decode(route)["DepartureStopNameZh"],
-            destinationStopName:json.decode(route)["DestinationStopNameZh"]
+            destinationStopName:json.decode(route)["DestinationStopNameZh"],
+            operators: "",
+          routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
+
 
         )),
       );

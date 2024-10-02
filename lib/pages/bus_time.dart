@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
@@ -13,8 +15,9 @@ class BusTime extends StatefulWidget {
   final routeName;
   final departureStopName;
   final destinationStopName;
-
-  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName})
+  final operators;
+  final routeMapImageUrl;
+  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl})
       : super(key: key);
 
   @override
@@ -47,7 +50,7 @@ class _BusTimeState extends State<BusTime> {
   }
 
   // 加载数据，包括站名和 NextBusTime
-  Future<void> _loadData() async {
+  Future<void> _loadData() async { //stop data
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
     final busTimeData = await fetchBusTime(widget.routeName.toString(), "Taichung");
     print(busTimeData);
@@ -187,7 +190,32 @@ class _BusTimeState extends State<BusTime> {
                   onSelected: (String action) async {
                     // 点击选项的时候
                     switch (action) {
-                      case 'A': break;
+                      case 'A':
+                    showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                    return Dialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+                              children: [
+                                Text(
+                                  "開發中",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );});
+                        break;
                       case 'B':
 
                         var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
@@ -217,7 +245,41 @@ class _BusTimeState extends State<BusTime> {
 
 
                         break;
-                      case 'C': break;
+                      case 'C':
+                        print(widget.routeMapImageUrl);
+
+
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return Dialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+                                  children: [
+                                    Text(
+                                      "路線圖",
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),Linkify(
+                                      onOpen: (link) async {
+                                        if (!await launchUrl(Uri.parse(link.url))) {
+                                          throw Exception('Could not launch ${link.url}');
+                                        }
+                                      },
+                                text: widget.routeMapImageUrl,
+                              )
+                                  ],
+                                ),
+                              ),
+                            );});break;
                     }
                   },
                 ),
