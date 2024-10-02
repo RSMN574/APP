@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:com.rsmn574.app/Const/regularConst.dart';
@@ -16,22 +17,30 @@ import 'database/getData.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 /// Flutter 範例 [NavigationBar]。
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 Future<void> main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
   try {
+    // 初始化 Firebase
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    // 获取 API 数据
     await GetApi();
+
+    // 请求通知权限
     await requestPermission();
+
+    // 初始化通知和消息处理
+    await initializeNotifications();
     setupForegroundMessageHandler();
     await setupFirebaseMessaging();
-    await firebaseMessagingBackgroundHandler;
+
+    // 设置后台消息处理
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
     print('Firebase 初始化失败: $e');
     // 可以在这里使用一个简单的弹窗或 Snackbar 来提示用户
