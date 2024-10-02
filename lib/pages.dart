@@ -94,11 +94,12 @@ class pages extends StatelessWidget {
               QuickAlert.show(
                 context: context,
                 type: QuickAlertType.info,
-                text: FCMtoken,
+                text: "版本號:0.1.7 封測版&&開發版 共用版\n"
+                    "token:$FCMtoken",
               );
             },
             child: Text(
-              '封測版',
+              '封測版&&開發版',
               style: TextStyle(
                 color: Colors.white, // 字體顏色
                 fontSize:17,        // 字體大小

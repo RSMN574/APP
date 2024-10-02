@@ -60,7 +60,11 @@ class BusState extends State<Bus> {
           ),
         ),
       ),
-      body: Column(
+      body:  GestureDetector(
+    onTap: () {
+    hideKeyboard(context);
+    },
+    child:Column(
         children: [
       CustomDropdown<String>(
       hintText: 'Select job role',
@@ -141,8 +145,13 @@ class BusState extends State<Bus> {
             ),
           ),
         ],
-      ),
+      )),
     );
-  }
+  }  void hideKeyboard(BuildContext context) {
+     FocusScopeNode currentFocus = FocusScope.of(context);
+     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+       FocusManager.instance.primaryFocus?.unfocus();
+     }
+   }
 }
 

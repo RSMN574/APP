@@ -119,7 +119,12 @@ class _NavigationExampleState extends State<NavigationExample> {
         ],
       ),
       bottomNavigationBar: _buildNavigationBar(),
-      body: _pages[currentPageIndex],
+      body:GestureDetector(
+        onTap: () {
+          hideKeyboard(context);
+        },
+        child: _pages[currentPageIndex],
+      ),
     );
   }
 
@@ -215,5 +220,10 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
     ];
   }
-
+  void hideKeyboard(BuildContext context) {
+    FocusScopeNode currentFocus = FocusScope.of(context);
+    if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
 }
