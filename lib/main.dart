@@ -1,3 +1,4 @@
+import 'package:com.rsmn574.app/widget/geolocator.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +14,10 @@ import 'package:com.rsmn574.app/metro.dart';
 import 'package:com.rsmn574.app/train.dart';
 import 'package:com.rsmn574.app/bus.dart';
 import 'package:com.rsmn574.app/map.dart';
+import 'package:provider/provider.dart';
+import 'Const/regularClass.dart';
 import 'database/getData.dart';
+import 'database/getWeather.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -39,13 +43,24 @@ Future<void> main() async {
     setupForegroundMessageHandler();
     await setupFirebaseMessaging();
 
+
+
+
+
+
     // 设置后台消息处理
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
     print('Firebase 初始化失败: $e');
     // 可以在这里使用一个简单的弹窗或 Snackbar 来提示用户
   }
-  runApp(const NavigationBarApp());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (context) => CityProvider()),
+    ],
+    child: const NavigationBarApp(),
+  ));
+  // runApp(const NavigationBarApp());
 }
 
 // 定義 SVG 資源路徑的常量類別
@@ -65,11 +80,12 @@ class NavigationBarApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       routes: {
         "plane": (BuildContext context) => plane(),
         "train": (BuildContext context) => train(),
-        "metro": (BuildContext context) => metro(),
+        "metro": (BuildContext context) => Metro(),
         "bus": (BuildContext context) => Bus(),
         "busTime": (BuildContext context) => BusTime(),
         'notification':(BuildContext context) => notification(),
@@ -99,7 +115,14 @@ class _NavigationExampleState extends State<NavigationExample> {
     map(),
     pages(),
   ];
-
+  @override
+  void initState() {
+    super.initState();
+    // 在应用启动时获取定位信息
+    getLocation(context);
+    //天氣
+    getWeatherInfo(context);
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

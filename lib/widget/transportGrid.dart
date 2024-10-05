@@ -16,7 +16,7 @@ class TransportGrid extends StatelessWidget {
     double mainAxisSpacing = 10; // 调整为10，缩小上下两排的间距
 
     return Container(
-      margin: const EdgeInsets.only(top: 20),
+      margin: const EdgeInsets.all(13),
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.all(Radius.circular(30)),
         color: Colors.white,
@@ -69,7 +69,7 @@ class TransportGrid extends StatelessWidget {
     switch (index) {
       case 0: return "飛機";
       case 1: return "火車";
-      case 2: return "巴士";
+      case 2: return "公車";
       case 3: return "捷運";
       case 4: return "高鐵";
       case 5: return "Ubike";

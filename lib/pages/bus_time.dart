@@ -331,8 +331,10 @@ class _BusTimeState extends State<BusTime> {
         await _loadData(); // 刷新时重新加载数据
       },
       child: ListView.separated(
+
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
+
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
           final isRed = stop["isRed"] == '0'
@@ -340,16 +342,18 @@ class _BusTimeState extends State<BusTime> {
               : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
 
           return ListTile(
+
             onTap: () {
               _dialogBuilder(context,PlateNumb,    stop["stopName"]);
 
             },
             leading: Container(
-              padding: const EdgeInsets.all(9),
+
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: isRed,
                 border: Border.all(
-                  width: 1.0,
+                  width: 0.9,
                   color: stop["isRed"] == '0'
                       ? Color.fromRGBO(235, 15, 41, 0.85)
                       : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.35) : busBlue),
@@ -360,7 +364,7 @@ class _BusTimeState extends State<BusTime> {
                 stop["nextBusTime"]!,
                 style: TextStyle(
                   fontFamily: 'MiSans-Semibold',
-                  fontSize: 18,
+                  fontSize: 16,
                   color: stop["isRed"] == '0'
                       ? Colors.white
                       : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.7) : Color.fromRGBO(90, 107, 107, 1)),
@@ -371,7 +375,7 @@ class _BusTimeState extends State<BusTime> {
               stop["stopName"]!,
               style: TextStyle(
                 fontFamily: 'MiSans-Demibold',
-                fontSize: 18,
+                fontSize: 17,
                 color: Color.fromRGBO(77, 77, 77, 1),
               ),
             ),
@@ -382,8 +386,9 @@ class _BusTimeState extends State<BusTime> {
           return const Divider(
             color: Colors.grey, // 分割线颜色
             thickness: 0.8, // 分割线厚度
-            indent: 94.0, // 根据 `leading` 的宽度 + padding 调整
+            indent: 92.0, // 根据 `leading` 的宽度 + padding 调整
             endIndent: 10.0, // 右侧缩进
+              height:5
           );
         },
       ),

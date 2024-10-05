@@ -181,6 +181,7 @@ class _TabPageState extends State<tab> {
   }
 
   Widget _buildStopListItem(String stop) {
+    print(stop);
     return _buildListItem(stop, () => _showConfirmDialog(context, stop,"favoritesBusStop"), () {
       Navigator.push(
         context,
