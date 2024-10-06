@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../Const/regularClass.dart';
 import '../database/getWeather.dart';
 import 'package:provider/provider.dart';
@@ -28,7 +29,10 @@ class _WeatherWidgetState extends State<WeatherWidget> {
         // 检查请求状态
         if (snapshot.connectionState == ConnectionState.waiting) {
           // 显示加载指示器
-          return Center(child: CircularProgressIndicator());
+          return Center(child: LoadingAnimationWidget.stretchedDots(
+            color: Colors.black,
+            size: 40,
+          ),);
         } else if (snapshot.hasError) {
           // 显示错误信息
           return Container(
@@ -89,7 +93,11 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                       items: cityList.map<DropdownMenuItem<String>>((String city) {
                         return DropdownMenuItem<String>(
                           value: city,
-                          child: Text(city),
+                          child: Text(city,
+                              style: TextStyle(
+
+                          fontSize: 16,
+                        ),),
                         );
                       }).toList(),
                     ),

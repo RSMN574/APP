@@ -1,6 +1,18 @@
 import 'package:flutter/cupertino.dart';
 
+class LocationProvider with ChangeNotifier {
+  double _latitude = 0.0;
+  double _longitude = 0.0;
 
+  double get latitude => _latitude;
+  double get longitude => _longitude;
+
+  void setLocation(double latitude, double longitude) {
+    _latitude = latitude;
+    _longitude = longitude;
+    notifyListeners();
+  }
+}
 class CityProvider with ChangeNotifier {
   String _city = '臺北市';  // 默认城市
 

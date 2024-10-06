@@ -33,7 +33,7 @@ Future<String?> getLocation(BuildContext context) async {
   // 获取当前位置
   Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high);
-
+Provider.of<LocationProvider>(context, listen: false).setLocation(position.latitude, position.longitude);
   // 通过经纬度获取地址信息
   List<Placemark> placemarks = await placemarkFromCoordinates(
       position.latitude, position.longitude);
@@ -59,8 +59,8 @@ Future<String?> getLocation(BuildContext context) async {
 
       return administrativeArea;
     } else {
-      print('非台湾地区');
-      return '非台湾地区';
+      print('非台湾地區');
+      return '非台湾地區';
     }
   } else {
     print('无法获取城市');

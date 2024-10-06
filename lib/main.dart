@@ -1,4 +1,5 @@
 import 'package:com.rsmn574.app/widget/geolocator.dart';
+import 'package:com.rsmn574.app/widget/googlemap.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -57,6 +58,7 @@ Future<void> main() async {
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (context) => CityProvider()),
+      ChangeNotifierProvider(create: (context) => LocationProvider()),
     ],
     child: const NavigationBarApp(),
   ));
@@ -112,7 +114,7 @@ class _NavigationExampleState extends State<NavigationExample> {
     home(),
     const Center(child: Text('commute page')),
     near_stop(),
-    map(),
+    MapWidget(),
     pages(),
   ];
   @override
@@ -160,14 +162,18 @@ class _NavigationExampleState extends State<NavigationExample> {
               (Set<WidgetState> states) {
             if (states.contains(WidgetState.selected)) {
               return const TextStyle(
+
                   color: primary, fontWeight: FontWeight.bold);
             }
-            return const TextStyle(color: Colors.grey);
+            return const TextStyle(
+                fontSize: 12,
+                color: Colors.grey);
           },
         ),
         backgroundColor: Colors.white,
       ),
       child: NavigationBar(
+
         selectedIndex: currentPageIndex,
         onDestinationSelected: (int index) {
           setState(() {
@@ -182,8 +188,11 @@ class _NavigationExampleState extends State<NavigationExample> {
   List<NavigationDestination> _buildNavigationDestinations() {
     return [
       NavigationDestination(
+
         icon: SvgPicture.asset(
+
           SvgAssets.homeOutline,
+
           width: 20,
           height: 20,
         ),
@@ -194,6 +203,7 @@ class _NavigationExampleState extends State<NavigationExample> {
           height: 20,
         ),
         label: '首頁',
+
       ),
       const NavigationDestination(
         icon: Icon(Icons.commute_outlined),

@@ -151,10 +151,9 @@ class _BusTimeState extends State<BusTime> {
       builder: (context, data, child) {
         if (data == null) {
           return  Scaffold(
-            body: Center(child: LoadingAnimationWidget.flickr(
-            
-              size: 40, leftDotColor: Color.fromRGBO(0,87,215,1),
-              rightDotColor: Color.fromRGBO(254,0,0,1),
+            body: Center(child: LoadingAnimationWidget.stretchedDots(
+              color: Colors.black,
+              size: 40,
             ),),
           );
         }
@@ -376,7 +375,7 @@ class _BusTimeState extends State<BusTime> {
               style: TextStyle(
                 fontFamily: 'MiSans-Demibold',
                 fontSize: 17,
-                color: Color.fromRGBO(77, 77, 77, 1),
+
               ),
             ),
             trailing: Text(PlateNumb),
@@ -388,7 +387,7 @@ class _BusTimeState extends State<BusTime> {
             thickness: 0.8, // 分割线厚度
             indent: 92.0, // 根据 `leading` 的宽度 + padding 调整
             endIndent: 10.0, // 右侧缩进
-              height:5
+              height:3
           );
         },
       ),

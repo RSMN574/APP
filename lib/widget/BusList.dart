@@ -67,7 +67,7 @@ class _BuslistState extends State<Buslist> {
 
         return Card(
           color: bgColorWhite,
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: ListTile(
             leading: SvgPicture.asset(
               'assets/icons/bus-outline.svg',

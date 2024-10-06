@@ -157,7 +157,7 @@ class _TabPageState extends State<tab> {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        }  else if (key=='favoritesBusRoute') {
+        }  else if (key=='favoritesBusRoute' && snapshot.hasData) {
           final List<String>? items = snapshot.data;
           return ListView.builder(
             itemCount: items?.length ?? 0,
@@ -174,7 +174,7 @@ class _TabPageState extends State<tab> {
             },
           );
         } else {
-          return const Center(child: Text('No items found.'));
+          return const Center(child: Text('沒有任何收藏'));
         }
       },
     );
