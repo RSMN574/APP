@@ -111,7 +111,7 @@ class _NavigationExampleState extends State<NavigationExample> {
   int currentPageIndex = 0;
 
   final List<Widget> _pages = [
-    home(),
+    Home(),
     const Center(child: Text('commute page')),
     near_stop(),
     MapWidget(),

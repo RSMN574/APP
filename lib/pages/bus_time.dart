@@ -197,8 +197,8 @@ class _BusTimeState extends State<BusTime> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20.0),
+                          child: const Padding(
+                            padding: EdgeInsets.all(20.0),
                             child: Column(
                               mainAxisSize: MainAxisSize.min, // 自适应内容的高度
                               children: [
@@ -260,7 +260,7 @@ class _BusTimeState extends State<BusTime> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min, // 自适应内容的高度
                                   children: [
-                                    Text(
+                                    const Text(
                                       "路線圖",
                                       style: TextStyle(
                                         fontSize: 24,
@@ -329,7 +329,7 @@ class _BusTimeState extends State<BusTime> {
       onRefresh: () async {
         await _loadData(); // 刷新时重新加载数据
       },
-      child: ListView.separated(
+      child: ListView.builder(
 
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
@@ -337,10 +337,12 @@ class _BusTimeState extends State<BusTime> {
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
           final isRed = stop["isRed"] == '0'
-              ? Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
+              ? const Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
 
-          return ListTile(
+          return Container(
+              height: 53.0, // 設置每個項目的固定高度
+              child:ListTile(
 
             onTap: () {
               _dialogBuilder(context,PlateNumb,    stop["stopName"]);
@@ -352,44 +354,36 @@ class _BusTimeState extends State<BusTime> {
               decoration: BoxDecoration(
                 color: isRed,
                 border: Border.all(
-                  width: 0.9,
+                  width: 1.4,
                   color: stop["isRed"] == '0'
-                      ? Color.fromRGBO(235, 15, 41, 0.85)
-                      : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.35) : busBlue),
+                      ? const Color.fromRGBO(235, 15, 41, 0.85)
+                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.35) : busBlue),
                 ),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 stop["nextBusTime"]!,
                 style: TextStyle(
-                  fontFamily: 'MiSans-Semibold',
-                  fontSize: 16,
+                  fontFamily: 'MiSans-normal',
+                  fontSize: 17,
                   color: stop["isRed"] == '0'
                       ? Colors.white
-                      : (stop["isRed"] == '2' ? Color.fromRGBO(235, 15, 41, 0.7) : Color.fromRGBO(90, 107, 107, 1)),
+                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.7) : const Color.fromRGBO(90, 107, 107, 1)),
                 ),
               ),
             ),
             title: Text(
               stop["stopName"]!,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'MiSans-Demibold',
                 fontSize: 17,
 
               ),
             ),
             trailing: Text(PlateNumb),
-          );
+          ));
         },
-        separatorBuilder: (BuildContext context, int index) {
-          return const Divider(
-            color: Colors.grey, // 分割线颜色
-            thickness: 0.8, // 分割线厚度
-            indent: 92.0, // 根据 `leading` 的宽度 + padding 调整
-            endIndent: 10.0, // 右侧缩进
-              height:3
-          );
-        },
+
       ),
     );
   }
@@ -409,7 +403,7 @@ class _BusTimeState extends State<BusTime> {
               children: [
                 Text(
                   stopName,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
