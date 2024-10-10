@@ -159,11 +159,21 @@ class _TabPageState extends State<tab> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }  else if (key=='favoritesBusRoute' && snapshot.hasData) {
           final List<String>? items = snapshot.data;
-          return ListView.builder(
+          return ListView.separated(
             itemCount: items?.length ?? 0,
             itemBuilder: (context, index) {
               return itemBuilder(items![index]);
-            },
+            }, separatorBuilder: (BuildContext context, int index) {
+              return Divider(
+                color: const Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
+                height: 9, // 分隔線與上下元素的間距
+                thickness: 1, // 分隔線的粗細
+                indent: 20, // 分隔線距離左側的間距
+                endIndent: 20, // 分隔線距離右側的間距
+
+              );
+
+          },
           );
         } else if (snapshot.hasData) {
           final List<String>? items = snapshot.data;
@@ -217,7 +227,7 @@ class _TabPageState extends State<tab> {
     return ListTile(
       title: Text(title),
       trailing: IconButton(
-        icon: const Icon(Icons.favorite, color: Colors.red),
+        icon: const Icon(Icons.favorite, color: Color.fromRGBO(51, 51, 51, 1)),
         onPressed: onConfirm,
       ),
       onLongPress: () => _dialogBuilder(context),
@@ -225,11 +235,34 @@ class _TabPageState extends State<tab> {
     );
   }
   Widget _buildListItemRoute(String jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
-    return ListTile(
-      title: Text(json.decode(jsonData)["route"]),
-      subtitle: Text('起點 ${json.decode(jsonData)["DepartureStopNameZh"]}\n  終點 ${json.decode(jsonData)["DestinationStopNameZh"]} '),
+    return
+
+
+
+
+
+
+
+
+      ListTile(
+      title: Text(json.decode(jsonData)["route"]
+      ,style:
+        TextStyle(
+fontFamily: "MiSans-Demibold",
+            fontSize: 21
+
+        ),
+      ),
+      subtitle: Text('${json.decode(jsonData)["DepartureStopNameZh"]}-${json.decode(jsonData)["DestinationStopNameZh"]} '
+        ,style:
+        TextStyle(
+            fontSize: 15,
+        color: Color.fromRGBO(136, 136, 136, 1)
+
+        ),
+      ),
       trailing: IconButton(
-        icon: const Icon(Icons.favorite, color: Colors.red),
+        icon: const Icon(Icons.favorite, color: Color.fromRGBO(51, 51, 51, 1)),
         onPressed: onConfirm,
       ),
       onLongPress: () => _dialogBuilder(context),

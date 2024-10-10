@@ -10,25 +10,30 @@ class bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(plateNum);
-    return Container(
+ if(plateNum !=""){
+   return Container(
 
-padding: EdgeInsets.all(10),
-    decoration: BoxDecoration(
+     padding: EdgeInsets.all(6.5),
+     decoration: BoxDecoration(
+borderRadius:  BorderRadius.circular(10),
+       color: Color.fromRGBO(84, 87, 165, 0.9),
 
-    color: busBlue,
+     ),
 
-    ),
-
-    child: Text(plateNum,
-    style: TextStyle(
-    color: Colors.white
-    )
-    ),
-
+     child: Text(plateNum,
+         style: TextStyle(
+             color: Colors.white,
+           fontSize: 14
+         )
+     ),
 
 
-    );
+
+   );
+ }else{
+   return SizedBox();
+ }
+
      
   }
 }

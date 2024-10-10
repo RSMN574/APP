@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:com.rsmn574.app/widget/bubble.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -69,19 +70,47 @@ class _BusTimeState extends State<BusTime> {
   Future<List<Map<String, String>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData) async {
     List stops = await getInfo("routeInfo");
     List<Map<String, String>> stopNamesWithTime = [];
-
+    String hasPlateNum="";
     if (tabIndex < stops.length) {
       var stopData = json.decode(stops[tabIndex]["Stops"]);
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
+
         Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
 
-        stopNamesWithTime.add({
-          "stopName": stopName,
-          "nextBusTime": nextBusTime["time"],
-          'isRed': nextBusTime["isRed"],
-          "PlateNumb": nextBusTime["PlateNumb"],
-        });
+
+         if(nextBusTime["PlateNumb"]!=''){
+
+           if(hasPlateNum!=nextBusTime["PlateNumb"]){
+             hasPlateNum=nextBusTime["PlateNumb"];
+             stopNamesWithTime.add({
+               "stopName": stopName,
+               "nextBusTime": nextBusTime["time"],
+               'color': nextBusTime["color"],
+               "PlateNumb": nextBusTime["PlateNumb"],
+               "Estimates":nextBusTime["Estimates"].toString()
+             });
+           }else{
+             stopNamesWithTime.add({
+               "stopName": stopName,
+               "nextBusTime": nextBusTime["time"],
+               'color': nextBusTime["color"],
+               "PlateNumb": '',
+               "Estimates":nextBusTime["Estimates"].toString()
+             });
+           }
+
+       }else{
+           print(nextBusTime["Estimates"]);
+           stopNamesWithTime.add({
+             "stopName": stopName,
+             "nextBusTime": nextBusTime["time"],
+             'color': nextBusTime["color"],
+             "PlateNumb": '',
+             "Estimates":nextBusTime["Estimates"].toString()
+           });
+             }
+
       }
     }
 
@@ -94,39 +123,67 @@ class _BusTimeState extends State<BusTime> {
     if (a.isNotEmpty) {
       if (a[0]["EstimateTime"] != null) {
         if (a[0]["EstimateTime"] == 0) {
-          List plateNumb = a[0]['Estimates'].map((estimate) => estimate["PlateNumb"]).toList();
-          return {"time": "即將到站", "isRed": '0', "PlateNumb": plateNumb.join(", ")};
+          String plateNumb = a[0]["PlateNumb"];
+
+          return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"]};
         } else {
           int result = (a[0]["EstimateTime"] / 60).floor();
-          List plateNumb = a[0]['Estimates'].map((estimate) => estimate["PlateNumb"]).toList();
-          return {
-            "time": result < 1 ? "即將到站" : "$result 分鐘",
-            "isRed": result < 3 ? "2" : "",
-            "PlateNumb": ""
-          };
+
+
+
+            return {
+              "time": result < 1 ? "即將到站" : "$result 分鐘",
+              "color": result < 3 ? "2" : "min",
+              "PlateNumb": result < 3 ?  a[0]["PlateNumb"] : "",
+              "Estimates": a[0]["Estimates"]
+            };
+
+
         }
       } else if (a[0]["NextBusTime"] != null) {
         Duration difference = DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
 
         if (difference.inHours == 0) {
-          return {
-            "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
-            "isRed": '',
-            "PlateNumb": ""
-          };
+          if(difference.inMinutes.remainder(60)<3 && difference.inMinutes.remainder(60)>0){
+
+
+
+              return {
+
+
+                "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
+                "color": '2',
+                "PlateNumb": a[0]["PlateNumb"],
+                "Estimates": a[0]["Estimates"]
+              };
+
+
+          }else{
+
+            return {
+
+
+              "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
+              "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
+            "PlateNumb": "",
+              "Estimates": a[0]["Estimates"]
+            };
+          }
+
         } else {
           DateTime nextBusTime = DateTime.now().add(difference);
           return {
-            'time': "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
-            "isRed": '',
-            "PlateNumb": ""
+            "time": "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
+            "color": '',
+            "PlateNumb": "",
+            "Estimates": a[0]["Estimates"]
           };
         }
       } else {
-        return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
+        return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"]};
       }
     }
-    return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
+    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"]};
   }
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
@@ -329,66 +386,85 @@ class _BusTimeState extends State<BusTime> {
       onRefresh: () async {
         await _loadData(); // 刷新时重新加载数据
       },
-      child: ListView.builder(
+      child: ListView.separated(
 
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
 
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
-          final isRed = stop["isRed"] == '0'
+          print(stop["Estimates"]);
+          final color = stop["color"] == '0'
               ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
+              : (stop["color"] == '2'
+              ? const Color.fromRGBO(225, 85, 104, 0.1)
+              : (stop["color"] == "班次結束"
+              ? const Color.fromRGBO(69, 69, 69, 0.1)
+              :(stop["color"] == "min"
+              ? const Color.fromRGBO(13, 168, 255, 0.1)
+              : const Color.fromRGBO(68, 68, 68, 0.1))));
 
           return Container(
               height: 53.0, // 設置每個項目的固定高度
               child:ListTile(
 
             onTap: () {
-              _dialogBuilder(context,PlateNumb,    stop["stopName"]);
+              _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"]);
 
             },
             leading: Container(
 
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
               decoration: BoxDecoration(
-                color: isRed,
-                border: Border.all(
-                  width: 1.4,
-                  color: stop["isRed"] == '0'
-                      ? const Color.fromRGBO(235, 15, 41, 0.85)
-                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.35) : busBlue),
-                ),
-                borderRadius: BorderRadius.circular(16),
+                color: color,
+
+                borderRadius: BorderRadius.circular(15),
               ),
               child: Text(
                 stop["nextBusTime"]!,
                 style: TextStyle(
                   fontFamily: 'MiSans-normal',
                   fontSize: 17,
-                  color: stop["isRed"] == '0'
+                  color: stop["color"] == '0'
                       ? Colors.white
-                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.7) : const Color.fromRGBO(90, 107, 107, 1)),
+                      : (stop["color"] == '2'
+                      ? const Color.fromRGBO(255, 85, 104, 1)
+                      : (stop["color"] == "班次結束"
+                      ? const Color.fromRGBO(149, 149, 149, 1.0)
+                      :(stop["color"] == "min"
+                      ? const Color.fromRGBO(13, 168, 255, 1)
+                      : const Color.fromRGBO(68, 68, 68, 1))))
                 ),
               ),
             ),
             title: Text(
               stop["stopName"]!,
-              style: const TextStyle(
-                fontFamily: 'MiSans-Demibold',
+              style: TextStyle(
+                fontFamily: stop["color"]=="0"?'MiSans-Semibold':'MiSans-normal',
                 fontSize: 17,
-
+                color: stop["color"]=="班次結束"? const Color.fromRGBO(136, 136, 136, 1):Colors.black
               ),
             ),
-            trailing: Text(PlateNumb),
+            trailing: bubble(plateNum: PlateNumb),
           ));
-        },
+        }, separatorBuilder: (BuildContext context, int index) {
+        return const Divider(
+          color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
+          height: 9, // 分隔線與上下元素的間距
+          thickness: 1, // 分隔線的粗細
+          indent: 20, // 分隔線距離左側的間距
+          endIndent: 20, // 分隔線距離右側的間距
+        );
+
+
+      },
 
       ),
     );
   }
 
-  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName) {
+  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates,) {
+
     return showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -412,7 +488,7 @@ class _BusTimeState extends State<BusTime> {
                 const SizedBox(height: 20), // 添加间距
                 Column(
                   children: [
-                    _buildDialogOption(context, Icons.info, "資訊","info",{}),
+                    _buildDialogOption(context, Icons.info, "資訊","info",{'estimates':estimates}),
                     _buildDialogOption(context, Icons.schedule, "發車時刻表","time",{}),
                     _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
                     _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
@@ -450,7 +526,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
       var output;
       // var stationComparison;
       // 在这里可以添加对应的功能
-      print('$title 被点击了');
+
       if(id=="favorite"){
         output=await  saveList('favoritesBusStop',other["id"] );
         // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
@@ -475,6 +551,68 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
             text: output,
           );
         }
+      }else if(id=='info'){
+        List<Map<String, dynamic>> estimates=[];
+
+
+// 使用 jsonDecode 将 JSON 字符串转换为 Dart 对象
+        if (other["estimates"] != 'null') {
+          try {
+            // 自动修正 JSON 字符串
+            String correctedJsonString = other["estimates"]
+                .replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":') // 为键添加双引号
+                .replaceAllMapped(RegExp(r'(\d+)(?=,|\})'), (match) => '${match[0]}') // 保留数字
+                .replaceAllMapped(RegExp(r'(\w+-\w+)'), (match) => '"${match[0]}"') // 为带连字符的值添加双引号
+                .replaceAllMapped(RegExp(r'\"(?!\d)') , (match) => '"') // 移除不必要的连字符
+
+                .replaceAllMapped(RegExp(r'\"(?!\w+-\w+)') , (match) => '"'); // 处理字符串带连字符的情况
+
+            // 解析为 List<Map<String, dynamic>>
+            estimates= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
+
+            print("other" +other["estimates"]);
+          } catch (e) {
+            print("Error decoding JSON: $e");
+          }
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Scaffold(
+              appBar: AppBar(
+                backgroundColor: busBlue,
+                elevation: 0,
+                title: const Text(
+                  "資訊",
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              body: estimates.isNotEmpty // 使用 .isNotEmpty 判断列表是否为空
+                  ? ListView.builder(
+                itemCount: estimates.length, // 项目数
+                itemBuilder: (context, index) {
+                  final bus = estimates[index]; // 获取当前项目数据
+                  return ListTile(
+                    leading: Icon(Icons.directions_bus),
+                    title: Text('Bus ${bus["PlateNumb"] ?? "Unknown"}'),
+                    subtitle: Text('Estimate Time: ${bus["EstimateTime"] ?? "N/A"} seconds'),
+                    trailing: (bus["IsLastBus"] ?? false)
+                        ? Icon(Icons.warning, color: Colors.red) // 最后一班车的标记
+                        : null,
+                  );
+                },
+              )
+                  : const Center(
+                child: Text("No bus estimates available."),
+              ),
+            ),
+          ),
+        );
       }
 
     },
