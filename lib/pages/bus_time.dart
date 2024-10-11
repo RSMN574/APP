@@ -600,7 +600,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
                   return ListTile(
                     leading: Icon(Icons.directions_bus),
                     title: Text('Bus ${bus["PlateNumb"] ?? "Unknown"}'),
-                    subtitle: Text('Estimate Time: ${bus["EstimateTime"] ?? "N/A"} seconds'),
+                    subtitle: Text('Estimate Time: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘'),
                     trailing: (bus["IsLastBus"] ?? false)
                         ? Icon(Icons.warning, color: Colors.red) // 最后一班车的标记
                         : null,

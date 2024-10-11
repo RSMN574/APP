@@ -157,15 +157,16 @@ class _TabPageState extends State<tab> {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        }  else if (key=='favoritesBusRoute' && snapshot.hasData) {
+        }  else if (key=='favoritesBusRoute' && snapshot.data!.isNotEmpty) {
+          print(snapshot.data );
           final List<String>? items = snapshot.data;
           return ListView.separated(
             itemCount: items?.length ?? 0,
             itemBuilder: (context, index) {
               return itemBuilder(items![index]);
             }, separatorBuilder: (BuildContext context, int index) {
-              return Divider(
-                color: const Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
+              return const Divider(
+                color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
                 height: 9, // 分隔線與上下元素的間距
                 thickness: 1, // 分隔線的粗細
                 indent: 20, // 分隔線距離左側的間距
@@ -175,7 +176,7 @@ class _TabPageState extends State<tab> {
 
           },
           );
-        } else if (snapshot.hasData) {
+        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
           final List<String>? items = snapshot.data;
           return ListView.builder(
             itemCount: items?.length ?? 0,
@@ -184,14 +185,49 @@ class _TabPageState extends State<tab> {
             },
           );
         } else {
-          return const Center(child: Text('沒有任何收藏'));
+          return  Center(child:_NoFavoritesWidget());
         }
       },
     );
   }
-
+  Widget _NoFavoritesWidget() {
+    return Container(
+      color: Colors.white, // 白色底
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 插入提示圖片，可以替換為你需要的圖片
+            Icon(
+              Icons.favorite_border,
+              size: 80,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 20),
+            // 顯示「沒有任何收藏的」提示文字
+            Text(
+              '沒有任何收藏的',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '快去添加一些喜歡的吧！',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   Widget _buildStopListItem(String stop) {
-    print(stop);
+
     return _buildListItem(stop, () => _showConfirmDialog(context, stop,"favoritesBusStop"), () {
       Navigator.push(
         context,

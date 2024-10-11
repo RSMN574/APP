@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
+import '../widget/error.dart';
 class BusStopInfo extends StatefulWidget {
   final String stop;
 
@@ -230,11 +232,14 @@ class _BusStopInfoState extends State<BusStopInfo> {
         future: fetchBusStopInfo(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return  Center(child: LoadingAnimationWidget.stretchedDots(
+              color: Colors.black,
+              size: 40,
+            ));
           } else if (snapshot.hasError) {
-            return const Center(child: Text("加載數據時出錯"));
+            return ErrorPage();
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("没有找到相关信息"));
+            return ErrorPage();
           } else {
             return DefaultTabController(
               length: 2,
@@ -249,7 +254,10 @@ class _BusStopInfoState extends State<BusStopInfo> {
                       future: _buildTabContent(0, snapshot.data!),
                       builder: (context, contentSnapshot) {
                         if (contentSnapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                          return  Center(child: LoadingAnimationWidget.stretchedDots(
+                            color: Colors.black,
+                            size: 40,
+                          ));
                         }
                         return contentSnapshot.data as Widget;
                       },
