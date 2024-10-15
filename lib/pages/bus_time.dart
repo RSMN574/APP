@@ -39,7 +39,7 @@ class _BusTimeState extends State<BusTime> {
 
   // 定义自动更新数据的方法
   void _startAutoReload() {
-    _timer = Timer.periodic(Duration(seconds: 20), (timer) {
+    _timer = Timer.periodic(Duration(seconds: 40), (timer) {
       _loadData(); // 每20秒更新数据
     });
   }
