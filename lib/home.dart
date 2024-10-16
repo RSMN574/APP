@@ -1,11 +1,11 @@
-import 'package:com.rsmn574.app/widget/WeatherCard.dart';
-import 'package:com.rsmn574.app/widget/transportGrid.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
+
 import 'Const/regularClass.dart';
 import 'firebase/placeAPI.dart';
-import 'firebase/routeAPI.dart';
+import 'widget/WeatherCard.dart';
+import 'widget/transportGrid.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -13,19 +13,19 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  double _bottomSheetHeightMin = 0.2;
   final TextEditingController _routeController = TextEditingController();
+  List<dynamic> _placePredictions = [];
+  var _placePrediction;
+  double _bottomSheetHeightMin = 0.2;
+  int _index = 0;
   GoogleMapController? _mapController;
 
-  // 保存自动填充的预测结果
-  List<dynamic> _placePredictions = [];
+  static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
 
-  // 初始地图位置
-  static const LatLng _initialPosition = LatLng(25.0330, 121.5654); // 台北市经纬度
-
-  @override
-  void initState() {
-    super.initState();
+  void setIndex(int num) {
+    setState(() {
+      _index = num;
+    });
   }
 
   @override
@@ -35,12 +35,11 @@ class _HomeState extends State<Home> {
     final bottomNavBarHeight = kBottomNavigationBarHeight;
     final mapHeight = screenHeight - (screenHeight * _bottomSheetHeightMin) - appBarHeight - bottomNavBarHeight;
 
-    return GestureDetector(
-      child: Stack(
+    return Scaffold(
+      body: Stack(
         children: [
-          // Google Map 只会在第一次加载时显示，保持在后台
           Positioned.fill(
-            child: Container(
+            child: SizedBox(
               height: mapHeight,
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
@@ -55,136 +54,199 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-          // Bottom Sheet
-          DraggableScrollableSheet(
-            initialChildSize: 0.3,
-            minChildSize: _bottomSheetHeightMin,
-            maxChildSize: 1.0,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    height: 800,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      child: Column(
-                        children: [
-                          SizedBox(height: 40),
-                          WeatherWidget(),
-                          const TransportGrid(),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: searchBar(),
-                  ),
-                ],
-              );
-            },
+          IndexedStack(
+            index: _index,
+            children: <Widget>[
+              _buildMainContent(context),
+              _buildSearchContent(context),
+              _buildPlaceDetails(_placePrediction),
+            ],
           ),
-          // 自动填充建议列表，显示在BottomSheet和其他元素之上
-          if (_placePredictions.isNotEmpty)
-            Positioned(
-              top: appBarHeight + 10,
-              left: 16,
-              right: 16,
-              child: Material(
-                elevation: 5,
-                borderRadius: BorderRadius.circular(8.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _placePredictions.length,
-                    itemBuilder: (context, index) {
-                      // 使用中文主标题显示
-                      final mainText = _placePredictions[index]['structured_formatting']['main_text'];
-                      final secondaryText = _placePredictions[index]['structured_formatting']['secondary_text'];
+        ],
+      ),
+    );
+  }
 
-                      return ListTile(
-                        leading: const Icon(Icons.location_on),
-                        title: Text(mainText), // 主标题使用中文
-                        subtitle: Text(secondaryText), // 显示次级地址
-                        onTap: () async {
-                          final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-                          print( _placePredictions[index]["place_id"]);
-                         String origin=locationProvider.latitude.toString()+","+locationProvider.longitude.toString();
-                          var i=await getDirections(  origin,"place_id:${_placePredictions[index]['place_id']}");
-                          print(i);
-
-                          // 点击建议后更新搜索框并隐藏建议列表
-                          // _routeController.text = _placePredictions[index]['description'];
-                          setState(() {
-                            _placePredictions.clear();
-                          });
-                        },
-                      );
-                    },
-                  ),
+  Widget _buildMainContent(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.3,
+      minChildSize: _bottomSheetHeightMin,
+      maxChildSize: 1.0,
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  children: [
+                    SizedBox(height: 40),
+                    WeatherWidget(),
+                    const TransportGrid(),
+                  ],
                 ),
               ),
             ),
-        ],
-      ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildSearchBar(),
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget searchBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.0),
-      decoration: const BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x19000000),
-            blurRadius: 25,
-            offset: Offset(0, 0),
-            spreadRadius: 0,
-          )
-        ],
-        borderRadius: BorderRadius.all(Radius.circular(30.0)),
-      ),
-      child: TextField(
-        controller: _routeController,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.white,
-          hintText: '搜尋',
-          prefixIcon: Icon(Icons.search, color: Colors.grey[700]),
-          contentPadding: EdgeInsets.symmetric(vertical: 10.0),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30.0),
-            borderSide: BorderSide.none,
+  Widget _buildSearchBar() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _index = 1;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.0),
+        decoration: const BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x19000000),
+              blurRadius: 25,
+              offset: Offset(0, 0),
+              spreadRadius: 0,
+            )
+          ],
+          borderRadius: BorderRadius.all(Radius.circular(30.0)),
+        ),
+        child: TextField(
+          enabled: false,
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            hintText: '搜尋',
+            prefixIcon: Icon(Icons.search, color: Colors.grey[700]),
+            contentPadding: EdgeInsets.symmetric(vertical: 10.0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30.0),
+              borderSide: BorderSide.none,
+            ),
           ),
         ),
-        // 当用户按下搜索按钮时触发建议列表
-        onSubmitted: (value) async {
-          if (value.isNotEmpty) {
-            _loadPredictions();
-          }
-        },
-        // 当用户输入时隐藏建议列表
-        onChanged: (value) {
-          setState(() {
-            _placePredictions.clear();
-          });
-        },
       ),
     );
   }
 
-  // 搜索按钮点击后调用的函数
+  Widget _buildSearchContent(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 1.0,
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: TextField(
+                    controller: _routeController,
+                    decoration: InputDecoration(
+                      hintText: '搜尋',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.search, color: Colors.blue),
+                        onPressed: _loadPredictions,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _placePredictions.clear();
+                      });
+                    },
+                    onSubmitted: (value) {
+                      _loadPredictions();
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16.0),
+                if (_placePredictions.isNotEmpty)
+                  Container(
+                    height: 200,
+                    child: ListView.builder(
+                      itemCount: _placePredictions.length,
+                      itemBuilder: (context, index) {
+                        final mainText = _placePredictions[index]['structured_formatting']['main_text'];
+                        final secondaryText = _placePredictions[index]['structured_formatting']['secondary_text'];
+
+                        return ListTile(
+                          leading: const Icon(Icons.location_on, color: Colors.blue),
+                          title: Text(mainText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(secondaryText, style: const TextStyle(color: Colors.grey)),
+                          onTap: () {
+                            final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+                            String origin = '${locationProvider.latitude},${locationProvider.longitude}';
+                            print(_placePredictions[index]);
+
+                            setState(() {
+                              _placePrediction = _placePredictions[index];
+                              _index = 2;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceDetails(dynamic place) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.4,
+      minChildSize: _bottomSheetHeightMin,
+      maxChildSize: 1.0,
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              children: [
+                const SizedBox(height: 20),
+                if (place != null) ...[
+                  Text("地點: ${place['structured_formatting']['main_text']}"),
+                  Text("副地點: ${place['structured_formatting']['secondary_text']}"),
+                ] else ...[
+                  Text("未選擇地點"),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _loadPredictions() async {
     PlacesService placesService = PlacesService();
     try {

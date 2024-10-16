@@ -86,6 +86,8 @@ class NavigationBarApp extends StatelessWidget {
         "bus": (BuildContext context) => Bus(),
         "busTime": (BuildContext context) => BusTime(),
         'notification': (BuildContext context) => notification(),
+        "home":(BuildContext context) => Home(),
+
       },
       theme: appTheme,
       themeMode: ThemeMode.system,
