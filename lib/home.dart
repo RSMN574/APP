@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
 import 'firebase/placeAPI.dart';
+import 'firebase/routeAPI.dart';
 import 'widget/WeatherCard.dart';
 import 'widget/transportGrid.dart';
 
@@ -12,8 +13,12 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
+  @override
+  bool get wantKeepAlive => true; // 返回 true，以保持状态
   final TextEditingController _routeController = TextEditingController();
+  final TextEditingController _originController = TextEditingController();
+  final TextEditingController _destinationController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   List<dynamic> _placePredictions = [];
   var _placePrediction;
@@ -60,7 +65,7 @@ class _HomeState extends State<Home> {
               child: SizedBox(
                 height: mapHeight,
                 child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
+                  initialCameraPosition: const CameraPosition(
                     target: _initialPosition,
                     zoom: 12,
                   ),
@@ -88,7 +93,7 @@ class _HomeState extends State<Home> {
 
   Widget _buildMainContent(BuildContext context) {
     return DraggableScrollableSheet(
-      initialChildSize: 0.3,
+      initialChildSize: 0.43,
       minChildSize: _bottomSheetHeightMin,
       maxChildSize: 1.0,
       builder: (BuildContext context, ScrollController scrollController) {
@@ -96,7 +101,9 @@ class _HomeState extends State<Home> {
           clipBehavior: Clip.none,
           children: [
             Container(
+              margin: const EdgeInsets.only(top:60),
               height: 800,
+
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -105,8 +112,8 @@ class _HomeState extends State<Home> {
                 controller: scrollController,
                 child: Column(
                   children: [
-                    SizedBox(height: 40),
-                    WeatherWidget(),
+
+                    // WeatherWidget(),
                     const TransportGrid(),
                   ],
                 ),
@@ -134,7 +141,7 @@ class _HomeState extends State<Home> {
         FocusScope.of(context).requestFocus(_searchFocusNode);
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
         decoration: const BoxDecoration(
           boxShadow: [
             BoxShadow(
@@ -215,7 +222,7 @@ class _HomeState extends State<Home> {
                     ),
                     const SizedBox(height: 16.0),
                     if (_placePredictions.isNotEmpty)
-                      Container(
+                      SizedBox(
                         height: 200,
                         child: ListView.builder(
                           itemCount: _placePredictions.length,
@@ -267,6 +274,14 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildPlaceDetails(dynamic place) {
+    final locationProvider = Provider.of<LocationProvider>(context);
+
+      if(place != null){
+        _destinationController.text=place['structured_formatting']['main_text'];
+        _originController.text="現在位置";
+      }
+
+
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
@@ -311,8 +326,114 @@ class _HomeState extends State<Home> {
                       ),
                     ),
                   if (place != null) ...[
-                    Text("地點: ${place['structured_formatting']['main_text']}"),
-                    Text("副地點: ${place['structured_formatting']['secondary_text']}"),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            '起點', // 起点标签
+                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 10.0),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                              child: TextField(
+                                controller: _originController,
+                                decoration: InputDecoration(
+                                  hintText: '選擇起點',
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.search, color: Colors.blue),
+                                    onPressed: () {
+                                      _loadPredictions();
+                                      // 隐藏键盘
+                                      FocusScope.of(context).unfocus();
+                                    },
+                                  ),
+                                ),
+                                onChanged: (value) {
+
+                                },
+                                onSubmitted: (value) {
+                                  _loadPredictions();
+                                  // 隐藏键盘
+                                  FocusScope.of(context).unfocus();
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 15.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      child: Row(
+                        children: [
+                          Text(
+                            '終點', // 终点标签
+                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 10.0),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(30.0),
+                              ),
+                              child: TextField(
+                                controller: _destinationController,
+                                decoration: InputDecoration(
+                                  hintText: '選擇終點',
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.search, color: Colors.blue),
+                                    onPressed: () {
+                                      _loadPredictions();
+                                      // 隐藏键盘
+                                      FocusScope.of(context).unfocus();
+                                    },
+                                  ),
+                                ),
+                                onChanged: (value) {
+
+                                },
+                                onSubmitted: (value) {
+                                  _loadPredictions();
+                                  // 隐藏键盘
+                                  FocusScope.of(context).unfocus();
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30.0),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // 触发导航或出发逻辑
+                          getDirections("${locationProvider.latitude},${locationProvider.longitude}","place_id:${place["place_id"]}");
+                          // 实现出发按钮逻辑
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                        ),
+                        child: const Text('出發', style: TextStyle(fontSize: 18.0)),
+                      ),
+                    ),
                   ] else ...[
                     Text("未選擇地點"),
                   ],

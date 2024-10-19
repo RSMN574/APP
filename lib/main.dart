@@ -1,29 +1,30 @@
-import 'package:com.rsmn574.app/widget/geolocator.dart';
-import 'package:com.rsmn574.app/widget/googlemap.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:com.rsmn574.app/Const/regularConst.dart';
-import 'package:com.rsmn574.app/pages.dart';
-import 'package:com.rsmn574.app/home.dart';
-import 'package:com.rsmn574.app/pages/bus_time.dart';
-import 'package:com.rsmn574.app/pages/nearStop.dart';
-import 'package:com.rsmn574.app/pages/notification.dart';
-import 'package:com.rsmn574.app/plane.dart';
-import 'package:com.rsmn574.app/metro.dart';
-import 'package:com.rsmn574.app/train.dart';
-import 'package:com.rsmn574.app/bus.dart';
-import 'package:com.rsmn574.app/map.dart';
-import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'Const/regularClass.dart';
+import 'Const/regularConst.dart';
 import 'database/getData.dart';
 import 'database/getWeather.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
+import 'widget/geolocator.dart';
+import 'widget/googlemap.dart';
+import 'pages.dart';
+import 'home.dart';
+import 'pages/bus_time.dart';
+import 'pages/nearStop.dart';
+import 'pages/notification.dart';
+import 'plane.dart';
+import 'metro.dart';
+import 'train.dart';
+import 'bus.dart';
+import 'map.dart';
 
-/// Flutter 範例 [NavigationBar]。
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 Future<void> main() async {
@@ -33,9 +34,6 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-
-    // 获取 API 数据
-    await GetApi();
 
     // 请求通知权限
     await requestPermission();
@@ -49,7 +47,6 @@ Future<void> main() async {
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   } catch (e) {
     print('Firebase 初始化失败: $e');
-    // 可以在这里使用一个简单的弹窗或 Snackbar 来提示用户
   }
 
   runApp(MultiProvider(
@@ -61,7 +58,7 @@ Future<void> main() async {
   ));
 }
 
-// 定義 SVG 資源路徑的常量類別
+// 定义 SVG 资源路径的常量类
 class SvgAssets {
   static const String notifications = 'assets/icons/notifications-outline.svg';
   static const String homeOutline = 'assets/icons/home-outline.svg';
@@ -81,13 +78,12 @@ class NavigationBarApp extends StatelessWidget {
     return MaterialApp(
       routes: {
         "plane": (BuildContext context) => plane(),
-        "train": (BuildContext context) => train(),
+        "train": (BuildContext context) => Train(),
         "metro": (BuildContext context) => Metro(),
         "bus": (BuildContext context) => Bus(),
         "busTime": (BuildContext context) => BusTime(),
-        'notification': (BuildContext context) => notification(),
-        "home":(BuildContext context) => Home(),
-
+        'notification': (BuildContext context) => NotificationPage(),
+        "home": (BuildContext context) => Home(),
       },
       theme: appTheme,
       themeMode: ThemeMode.system,
@@ -105,6 +101,13 @@ class NavigationExample extends StatefulWidget {
 
 class _NavigationExampleState extends State<NavigationExample> {
   int currentPageIndex = 0;
+  String? selectedRegion;
+
+  final List<String> regions = [
+    '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣', '臺北市',
+    '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹縣',
+    '新竹市', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '嘉義市', '屏東縣',
+  ];
 
   // 初始化页面列表
   final List<Widget> _pages = [];
@@ -116,22 +119,46 @@ class _NavigationExampleState extends State<NavigationExample> {
       Home(),
       const Center(child: Text('commute page')),
       near_stop(),
-      MapWidget(), // MapWidget 将会在 IndexedStack 中持久化
+
       pages(),
     ]);
 
     // 在应用启动时获取定位信息
     getLocation(context);
     // 获取天气信息
-    getWeatherInfo(context);
+    // getWeatherInfo(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
     return Scaffold(
       appBar: AppBar(
         title: const Text('台灣通 交通聯合'),
         actions: [
+          // 下拉菜单
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: DropdownButton<String>(
+              value: cityProvider.city,
+              hint: const Text('選擇地區'),
+              icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+              dropdownColor: Colors.white,
+              style: const TextStyle(color: Colors.black),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+
+                  cityProvider.setCity(newValue); // 更新所选城市
+                }
+              },
+              items: regions.map<DropdownMenuItem<String>>((String region) {
+                return DropdownMenuItem<String>(
+                  value: region,
+                  child: Text(region),
+                );
+              }).toList(),
+            ),
+          ),
           IconButton(
             onPressed: () {
               Navigator.pushNamed(context, "notification");
@@ -149,7 +176,6 @@ class _NavigationExampleState extends State<NavigationExample> {
         onTap: () {
           hideKeyboard(context);
         },
-        // 使用 IndexedStack 来保留页面状态
         child: IndexedStack(
           index: currentPageIndex,
           children: _pages,
@@ -200,11 +226,7 @@ class _NavigationExampleState extends State<NavigationExample> {
         selectedIcon: SvgPicture.asset(SvgAssets.busStop, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),
         label: '最近站牌',
       ),
-      NavigationDestination(
-        icon: SvgPicture.asset(SvgAssets.navigateOutline, width: 20, height: 20),
-        selectedIcon: SvgPicture.asset(SvgAssets.navigate, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),
-        label: '地圖',
-      ),
+
       NavigationDestination(
         icon: SvgPicture.asset(SvgAssets.personOutline, width: 20, height: 20),
         selectedIcon: SvgPicture.asset(SvgAssets.person, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),

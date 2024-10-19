@@ -1,109 +1,63 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
+import 'package:mysql_client/mysql_client.dart';
 import '../Const/regularClass.dart';
-import '../widget/geolocator.dart';
 
-Future<Map<String, dynamic>> getWeatherInfo(context) async {
-  String currentCity = Provider
-      .of<CityProvider>(context, listen: false)
-      .city;
-  print(currentCity);
+MySQLConnection? _conn;
 
-  // API URL
-  final url = Uri.parse(
-      'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=CWA-5150C3FB-47F0-4156-8441-02FDEFC90A22&locationName=$currentCity&sort=time');
+Future<Map<String, dynamic>> getWeatherInfo( context) async {
+  String currentCity = Provider.of<CityProvider>(context, listen: false).city;
+  String? recentWeatherStatus;
+  String? recentMinTemp;
+  String? recentMaxTemp;
+  String unit = "°C"; // 假设温度单位为摄氏度
 
-  // 发起 GET 请求
-  final response = await http.get(url, headers: {'accept': 'application/json'});
+  try {
+    // 建立 MySQL 连接
+    _conn = await MySQLConnection.createConnection(
+      host: "hidden.rsmn574.com",
+      port: 3306,
+      userName: "onlyForApiRead",
+      password: "@Nick0319Lucas0221",
+      databaseName: "Weather",
+    );
+    await _conn!.connect();
+    print("MySQL connection established.");
 
-  // 检查响应状态
-  if (response.statusCode == 200) {
-    // 解析 JSON 数据
-    Map<String, dynamic> weatherData = json.decode(response.body);
+    // 获取当前时间
+    final now = DateTime.now();
+    final currentTimeString = now.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
 
+    // 查询 startTime 和 endTime 在当前时间范围内的所有天气数据
+    final results = await _conn?.execute(
+      'SELECT * FROM weather ',
 
-    // 获取最近的天气状态和温度
-    var locations = weatherData['records']['location'];
-    if (locations.isNotEmpty) {
-      var weatherElement = locations[0]['weatherElement'];
-
-      print(
-          weatherData["records"]["location"][0]["weatherElement"][0]["time"][0]["parameter"]["parameterName"]);
-      // 创建变量来存储最近的天气状态和温度
-      String? recentWeatherStatus=  weatherData["records"]["location"][0]["weatherElement"][0]["time"][0]["parameter"]["parameterName"];
-      String? recentMinTemp=  weatherData["records"]["location"][0]["weatherElement"][2]["time"][0]["parameter"]["parameterName"];
-      String? recentMaxTemp=  weatherData["records"]["location"][0]["weatherElement"][4]["time"][0]["parameter"]["parameterName"];
-   String? unit=weatherData["records"]["location"][0]["weatherElement"][4]["time"][0]["parameter"]["parameterUnit"]=="C"? '\u00B0C' :'\u00B0F';
-      // 获取当前时间
-      DateTime now = DateTime.now();
-      DateTime? closestStartTime;
-      DateTime? closestEndTime;
-      bool foundCurrentPeriod = false;
-
-
-      // 提取天气状态和温度信息
-      // for (var element in weatherElement) {
-      //   for (var time in element['time']) {
-      //     DateTime startTime = DateTime.parse(time['startTime']);
-      //     DateTime endTime = DateTime.parse(time['endTime']);
-      //
-      //     // 打印每个时间段以调试
-      //     print('时间段: ${time['startTime']} 到 ${time['endTime']}');
-
-      // 检查是否在当前时间范围内
-      // if (now.isAfter(startTime) && now.isBefore(endTime)) {
-      //   foundCurrentPeriod = true; // 标记找到当前时间段
-      //   if (element['elementName'] == "Wx") {
-      //     recentWeatherStatus = time['parameter']['parameterName'];
-      //   } else if (element['elementName'] == "MinT") {
-      //     recentMinTemp = '${time['parameter']['parameterName']} ${time['parameter']['parameterUnit']}';
-      //   } else if (element['elementName'] == "MaxT") {
-      //     recentMaxTemp = '${time['parameter']['parameterName']} ${time['parameter']['parameterUnit']}';
-      //   }
-      // } else {
-      //   print(element);
-      //   // 如果没有找到当前时间段的信息，记录最近的时间段
-      //   if (closestStartTime == null || startTime.isAfter(closestStartTime)) {
-      //     closestStartTime = startTime;
-      //     closestEndTime = endTime;
-      //     if (element['elementName'] == "Wx") {
-      //
-      //       recentWeatherStatus = time['parameter']['parameterName'];
-      //     } else if (element['elementName'] == "MinT") {
-      //       recentMinTemp = '${time['parameter']['parameterName']} ${time['parameter']['parameterUnit']}';
-      //     } else if (element['elementName'] == "MaxT") {
-      //       recentMaxTemp = '${time['parameter']['parameterName']} ${time['parameter']['parameterUnit']}';
-      //       print(recentMaxTemp);
-      //     }
-      //
-      //   }
-      // }
-
-      return {
-        "city": currentCity,
-        "recentWeatherStatus": recentWeatherStatus ?? "N/A",
-        "recentMinTemp": recentMinTemp!+unit ?? "N/A",
-        "recentMaxTemp": recentMaxTemp!+unit ?? "N/A"
-      };
+    );
+    // 处理结果
+    if (results != null) {
+      for (var row in results) {
+        print(row);
+        // recentWeatherStatus = row[4]; // 假设天气状态在第5列
+        // recentMinTemp = row[5]; // 假设最小温度在第6列
+        // recentMaxTemp = row[6]; // 假设最大温度在第7列
+        // print('Resource ID: ${row[0]}, Location: ${row[1]}, Start Time: ${row[2]}, End Time: ${row[3]}');
+      }
+    } else {
+      print("No weather data found for the current time.");
     }
-
-  }else{
-    return{
-      "city": currentCity,
-      "recentWeatherStatus":  "N/A",
-      "recentMinTemp":  "N/A",
-      "recentMaxTemp":  "N/A"
-
-    };
+  } catch (e) {
+    print("Error: $e");
+  } finally {
+    // 关闭连接
+    await _conn?.close();
   }
-  return{
+
+  return {
     "city": currentCity,
-    "recentWeatherStatus":  "N/A",
-    "recentMinTemp":  "N/A",
-    "recentMaxTemp":  "N/A"
-
+    "recentWeatherStatus": recentWeatherStatus ?? "N/A",
+    "recentMinTemp": recentMinTemp != null ? '$recentMinTemp$unit' : "N/A",
+    "recentMaxTemp": recentMaxTemp != null ? '$recentMaxTemp$unit' : "N/A",
   };
-
 }

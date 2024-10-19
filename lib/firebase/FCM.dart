@@ -1,9 +1,12 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import '../database/sqlite.dart';
+
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 String? FCMtoken;
-// 处理后台消息
+
 // 初始化本地通知插件
 Future<void> initializeNotifications() async {
   const AndroidInitializationSettings initializationSettingsAndroid =
@@ -59,9 +62,20 @@ Future<void> requestPermission() async {
 void setupForegroundMessageHandler() {
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     if (message.notification != null) {
+      final notification = {
+        'title': message.notification!.title ?? '无标题',
+        'description': message.notification!.body ?? '无内容',
+        'time': DateTime.now().toString(),
+      };
+
+      // 保存到数据库
+      DatabaseHelper().insertNotification(notification); // 确保使用实例访问
+
       print('Message Title: ${message.notification!.title}');
       print('Message Body: ${message.notification!.body}');
-      showFlutterNotification(message); // 手动显示通知
+
+      // 手动显示通知
+      showFlutterNotification(message);
     }
   });
 }
@@ -92,6 +106,7 @@ Future<void> setupFirebaseMessaging() async {
     print('A message was opened: ${message.notification?.title}');
   });
 }
+
 // 处理后台消息的顶级函数
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message: ${message.messageId}');

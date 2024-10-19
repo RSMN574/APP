@@ -24,17 +24,16 @@ class _WeatherWidgetState extends State<WeatherWidget> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
-      future: getWeatherInfo(context), // 这里需要确保传入 context
+      future: getWeatherInfo(context), // 确保返回的是一个Future
       builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>> snapshot) {
-        // 检查请求状态
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // 显示加载指示器
-          return Center(child: LoadingAnimationWidget.stretchedDots(
-            color: Colors.black,
-            size: 40,
-          ),);
+          return Center(
+            child: LoadingAnimationWidget.stretchedDots(
+              color: Colors.black,
+              size: 40,
+            ),
+          );
         } else if (snapshot.hasError) {
-          // 显示错误信息
           return Container(
             margin: EdgeInsets.all(12),
             child: Text(
@@ -57,16 +56,14 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                 BoxShadow(
                   color: Colors.black26,
                   blurRadius: 8,
-                  offset: Offset(0, 4), // 阴影位置
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // 城市名称选择下拉框
                 Column(
-
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -83,21 +80,17 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                       ),
                       onChanged: (String? newValue) {
                         setState(() {
+                          selectedCity = newValue!;
                           // 更新 CityProvider 的城市状态
-                          Provider.of<CityProvider>(context, listen: false).setCity(newValue!);
-                          selectedCity = newValue;
-                          // 更新天气信息
+                          Provider.of<CityProvider>(context, listen: false).setCity(selectedCity);
+                          // 重新获取天气信息
                           getWeatherInfo(context); // 重新获取天气信息
                         });
                       },
                       items: cityList.map<DropdownMenuItem<String>>((String city) {
                         return DropdownMenuItem<String>(
                           value: city,
-                          child: Text(city,
-                              style: TextStyle(
-
-                          fontSize: 16,
-                        ),),
+                          child: Text(city, style: TextStyle(fontSize: 16)),
                         );
                       }).toList(),
                     ),
@@ -106,48 +99,32 @@ class _WeatherWidgetState extends State<WeatherWidget> {
                       children: [
                         Text(
                           info["recentMinTemp"],
-                          style: TextStyle(
-                            color: Color(0xFF545B70),
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(color: Color(0xFF545B70), fontSize: 16),
                         ),
                         SizedBox(width: 4),
-                        Text(
-                          '/',
-                          style: TextStyle(
-                            color: Color(0xFF545B70),
-                            fontSize: 16,
-                          ),
-                        ),
+                        Text('/', style: TextStyle(color: Color(0xFF545B70), fontSize: 16)),
                         SizedBox(width: 4),
                         Text(
                           info["recentMaxTemp"],
-                          style: TextStyle(
-                            color: Color(0xFF545B70),
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(color: Color(0xFF545B70), fontSize: 16),
                         ),
                       ],
                     ),
                   ],
                 ),
-                // 天气状态和图标
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // 这里可以替换为天气图标
+                    // 根据天气状态动态选择图标
                     Icon(
-                      Icons.wb_sunny, // 示例图标，实际应用中可根据天气状态动态选择图标
+                      _getWeatherIcon(info["recentWeatherStatus"]),
                       size: 32,
                       color: Color(0xFF545B70),
                     ),
                     SizedBox(height: 4),
                     Text(
                       info["recentWeatherStatus"],
-                      style: TextStyle(
-                        color: Color(0xFF545B70),
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Color(0xFF545B70), fontSize: 14),
                     ),
                   ],
                 ),
@@ -156,15 +133,24 @@ class _WeatherWidgetState extends State<WeatherWidget> {
           );
         }
 
-        // 如果没有数据，显示默认内容
         return Container(
           margin: EdgeInsets.only(top: 12),
-          child: Text(
-            '天气信息不可用',
-            style: TextStyle(color: Colors.grey),
-          ),
+          child: Text('天气信息不可用', style: TextStyle(color: Colors.grey)),
         );
       },
     );
+  }
+
+  // 根据天气状态返回相应的图标
+  IconData _getWeatherIcon(String weatherStatus) {
+    if (weatherStatus.contains('晴')) {
+      return Icons.wb_sunny; // 晴天图标
+    } else if (weatherStatus.contains == '阴天') {
+      return Icons.cloud; // 阴天图标
+    } else if (weatherStatus == '下雨') {
+      return Icons.beach_access; // 下雨图标
+    } else {
+      return Icons.wb_sunny; // 默认图标
+    }
   }
 }

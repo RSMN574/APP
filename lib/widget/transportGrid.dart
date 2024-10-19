@@ -7,13 +7,22 @@ class TransportGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 获取屏幕宽度
-    double screenWidth = MediaQuery.of(context).size.width;
+    // 定义交通方式选项
+    final List<Map<String, String>> transportOptions = [
+      {'icon': 'assets/icons/airplane-outline.svg', 'text': '飛機', 'route': 'plane'},
+      {'icon': 'assets/icons/tram.svg', 'text': '火車', 'route': 'train'},
+      {'icon': 'assets/icons/bus-outline.svg', 'text': '公車', 'route': 'bus'},
+      {'icon': 'assets/icons/subway-outline.svg', 'text': '捷運', 'route': 'metro'},
+      {'icon': 'assets/icons/train-outline.svg', 'text': '高鐵', 'route': 'HSR'},
+      {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'Ubike'},
+      {'icon': 'assets/icons/car.svg', 'text': '計程車', 'route': 'taxi'},
+      {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'Intercity Bus'},
+    ];
 
-    // 图标和间距大小根据屏幕宽度进行微调
-    double iconSize = screenWidth > 600 ? 32 : 27; // 根据屏幕宽度调整图标大小
-    double crossAxisSpacing = screenWidth > 600 ? 45 : 20; // 交叉轴间距
-    double mainAxisSpacing = 10; // 调整为10，缩小上下两排的间距
+    double screenWidth = MediaQuery.of(context).size.width;
+    double iconSize = screenWidth > 600 ? 32 : 27;
+    double crossAxisSpacing = screenWidth > 600 ? 45 : 20;
+    double mainAxisSpacing = 10;
 
     return Container(
       margin: const EdgeInsets.all(13),
@@ -27,92 +36,42 @@ class TransportGrid extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          shrinkWrap: true, // 使网格自适应内容高度
-          itemCount: 8, // 8个交通方式
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4, // 强制为4列
-            crossAxisSpacing: crossAxisSpacing, // 设置交叉轴间距
-            mainAxisSpacing: mainAxisSpacing, // 设置主轴间距为10，缩小上下排的距离
-          ),
-          itemBuilder: (context, index) {
-            return _buildTransportCard(
-                context,
-                _getIconPath(index),
-                _getTransportText(index),
-                _getRoute(index),
-                iconSize
-            );
-          },
+        child: Column(
+          children: [
+            // 使用 SizedBox 限制高度，确保 GridView 有大小
+            SizedBox(
+              height: 200, // 设置一个具体的高度，根据需要调整
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(), // 禁止内部滚动
+                itemCount: transportOptions.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 4,
+                  crossAxisSpacing: crossAxisSpacing,
+                  mainAxisSpacing: mainAxisSpacing,
+                ),
+                itemBuilder: (context, index) {
+                  final option = transportOptions[index];
+                  return _buildTransportCard(
+                    context,
+                    option['icon']!,
+                    option['text']!,
+                    option['route']!,
+                    iconSize,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  // 获取每个图标的路径
-  String _getIconPath(int index) {
-    switch (index) {
-      case 0: return 'assets/icons/airplane-outline.svg';
-      case 1: return 'assets/icons/tram.svg';
-      case 2: return 'assets/icons/bus-outline.svg';
-      case 3: return 'assets/icons/subway-outline.svg';
-      case 4: return 'assets/icons/train-outline.svg';
-      case 5: return 'assets/icons/bicycle-outline.svg';
-      case 6: return 'assets/icons/car.svg';
-      case 7: return 'assets/icons/bus-outline.svg';
-      default: return '';
-    }
-  }
-
-  // 获取每个交通方式的文本
-  String _getTransportText(int index) {
-    switch (index) {
-      case 0: return "飛機";
-      case 1: return "火車";
-      case 2: return "公車";
-      case 3: return "捷運";
-      case 4: return "高鐵";
-      case 5: return "Ubike";
-      case 6: return "計程車";
-      case 7: return "客運";
-      default: return '';
-    }
-  }
-
-  // 获取每个交通方式的页面路由
-  String _getRoute(int index) {
-    switch (index) {
-      case 0: return "plane";
-      case 1: return "train";
-      case 2: return "bus";
-      case 3: return "metro";
-      case 4: return "HSR";
-      case 5: return "Ubike";
-      case 6: return "taxi";
-      case 7: return "Intercity Bus";
-      default: return '';
-    }
   }
 
   Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {
-          debugPrint("$text 页面跳转");
-          if(route=="bus"){
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Bus(
-                 ),
-              ),
-            );
-          }else{
-            Navigator.pushNamed(context, route);
-          }
-
-        },
+        onTap: () => _onTransportTap(context, route, text),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
@@ -140,5 +99,19 @@ class TransportGrid extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _onTransportTap(BuildContext context, String route, String text) {
+    debugPrint("$text 页面跳转");
+    if (route == "bus") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const Bus(),
+        ),
+      );
+    } else {
+      Navigator.pushNamed(context, route);
+    }
   }
 }

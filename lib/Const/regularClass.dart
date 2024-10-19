@@ -15,6 +15,16 @@ class LocationProvider with ChangeNotifier {
 }
 class CityProvider with ChangeNotifier {
   String _city = '臺北市';  // 默认城市
+  String get city => _city;
+
+  void setCity(String newCity) {
+    _city = newCity;
+    notifyListeners(); // 通知监听者状态已更新
+  }
+
+}
+class WeatherProvider with ChangeNotifier {
+  String _city = '臺北市';  // 默认
 
   String get city => _city;
 
@@ -23,7 +33,6 @@ class CityProvider with ChangeNotifier {
     notifyListeners(); // 通知监听者状态已更新
   }
 }
-
 Map<String, String> cityMap = {
   '宜蘭': '宜蘭縣',
   '花蓮': '花蓮縣',
