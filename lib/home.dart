@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -27,22 +28,55 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   GoogleMapController? _mapController;
 
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
+  LatLng _currentPosition = _initialPosition;
 
-  void setIndex(int num) {
-    setState(() {
-      _index = num;
-    });
-  }
+
+  // 获取当前位置
+  void _getCurrentLocation() async {
+
+      try {
+        // 使用高精度设置
+        LocationSettings locationSettings = const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        );
+
+        // 获取当前位置
+        Position position = await Geolocator.getCurrentPosition(
+          locationSettings: locationSettings,
+        );
+
+        setState(() {
+          _currentPosition = LatLng(position.latitude, position.longitude);
+          print('获取到的当前位置: $_currentPosition');
+        });
+
+        // 更新地图的摄像机位置到当前定位
+        _mapController?.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: _currentPosition,
+            zoom: 15.0, // 设置合适的缩放级别
+          ),
+        ));
+      } catch (e) {
+        print('无法获取当前位置: $e');
+      }
+    }
+
+
+
 
   @override
   void initState() {
     super.initState();
     // 初始时，确保焦点在搜索框外
     _searchFocusNode.unfocus();
+// 地图创建时调用获取当前定位
+    _getCurrentLocation();
   }
-
   @override
   Widget build(BuildContext context) {
+
+    super.build(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     final bottomNavBarHeight = kBottomNavigationBarHeight;
@@ -65,12 +99,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
               child: SizedBox(
                 height: mapHeight,
                 child: GoogleMap(
-                  initialCameraPosition: const CameraPosition(
-                    target: _initialPosition,
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition,
                     zoom: 12,
                   ),
                   onMapCreated: (controller) {
+
                     _mapController = controller;
+                    _getCurrentLocation();
                   },
                   myLocationEnabled: true,
                   myLocationButtonEnabled: true,

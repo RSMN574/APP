@@ -71,8 +71,8 @@ void setupForegroundMessageHandler() {
       // 保存到数据库
       DatabaseHelper().insertNotification(notification); // 确保使用实例访问
 
-      print('Message Title: ${message.notification!.title}');
-      print('Message Body: ${message.notification!.body}');
+      // print('Message Title: ${message.notification!.title}');
+      // print('Message Body: ${message.notification!.body}');
 
       // 手动显示通知
       showFlutterNotification(message);

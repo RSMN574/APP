@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
@@ -94,8 +95,19 @@ class pages extends StatelessWidget {
               QuickAlert.show(
                 context: context,
                 type: QuickAlertType.info,
-                text: "版本號:0.1.7 封測版 \n"
-                    "token:$FCMtoken",
+                text: "版本號: 0.1.7 封測版 \n"
+                    "token: $FCMtoken",
+                confirmBtnText: "複製 token",
+                onConfirmBtnTap: () {
+                  // 复制 token 到剪贴板
+                  Clipboard.setData(ClipboardData(text:FCMtoken ?? "無效的 token")).then((_) {
+                    // 可以在这里显示一个 SnackBar 或其他提示用户已复制
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Token 複製到剪貼簿')),
+                    );
+                  });
+                  Navigator.of(context).pop(); // 关闭对话框
+                },
               );
             },
             child: Text(
