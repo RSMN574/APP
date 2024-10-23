@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -5,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
+import 'database/getData.dart';
 
 class Metro extends StatefulWidget {
   const Metro({super.key});
@@ -13,7 +16,9 @@ class Metro extends StatefulWidget {
   State<Metro> createState() => _MetroState();
 }
 
-class _MetroState extends State<Metro> {
+class _MetroState extends State<Metro>with TickerProviderStateMixin {
+  late TabController _tabController;
+
   final List<String> items = [
     "車站",
     "路線圖",
@@ -43,7 +48,7 @@ class _MetroState extends State<Metro> {
     super.initState();
     _mrtGreenLinePainter = MRTGreenLinePainter(); // 实例化
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
-
+     _tabController = TabController(length: 2, vsync: this ); // 现在有两个标签页
     // 检查 currentCity 是否在 _list 中
     if (_list.contains(currentCity)) {
       _selectedCity = currentCity; // 正确赋值
@@ -169,7 +174,12 @@ class _MetroState extends State<Metro> {
                       showModalBottomSheet(
                         context: context,
                         builder: (context) {
-                          return Padding(
+                          return Container(
+
+                              width: MediaQuery.of(context).size.width, // 适应屏幕宽度
+
+                              child:
+                          Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -180,8 +190,32 @@ class _MetroState extends State<Metro> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(_mrtGreenLinePainter.stationInfos[stationIndex].englishName),
+                                SizedBox(height: 8),
+                            TabBar(
+                              controller: _tabController,
+                              labelColor: Colors.black,
+                              unselectedLabelColor: Colors.grey,
+                              indicatorColor: Colors.blue,
+                              tabs: const [
+                                Tab(text: "車站資訊"),
+                                Tab(text: "轉乘資訊"),
                               ],
-                             ),
+                            ),
+                            SizedBox(
+                              height: 300, // 固定高度
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  _buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name),  // 车站资讯内容
+                                  _buildTransferInfo(), // 转乘资讯内容
+                                ],
+                              )),
+                              ],
+                            ),
+                          )
+
+
+
                           );
                         }
                       );
@@ -251,6 +285,79 @@ class _MetroState extends State<Metro> {
     final image = Image.network(url);
     await precacheImage(image.image, context); // 预加载图像
     return image;
+  }
+// 車站資訊頁面
+  Widget _buildStationInfo(String station) {
+    return FutureBuilder(
+      future: _getStationInfo(station), // 异步获取车站信息
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator(); // 显示加载进度条
+        } else if (snapshot.hasError) {
+          return const Text("出错了，无法加载车站信息"); // 显示错误信息
+        } else if (snapshot.hasData) {
+          var stationInfo = snapshot.data;
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView.builder(
+              itemCount: stationInfo?.length, // 列表项数量
+              itemBuilder: (context, index) {
+                final station = stationInfo?[index]; // 获取当前车站的信息
+                return ListTile(
+                  title: Text(json.decode(station["ExitName"])["Zh_tw"]), // 显示车站名称
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min, // 确保图标不会占用过多空间
+                    children: [
+                      if (int.parse(station["Stair"]) == 1)
+                        const Icon(Icons.stairs, color: Colors.blue), // 楼梯图标
+                      if (int.parse(station["Elevator"]) == 1)
+                        const Icon(Icons.elevator, color: Colors.green), // 电梯图标
+                      if (int.parse(station["Escalator"]) == 1)
+                        const Icon(Icons.arrow_upward, color: Colors.orange), // 手扶梯图标
+                    ],
+                  ),
+
+                  onTap: () {
+                    // 点击车站时执行的操作
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('点击了 ${station.exitNameZh}')),
+                    );
+                  },
+                );
+              },
+            ),
+          );
+
+        } else {
+          return const Text("未找到任何车站信息");
+        }
+      },
+    );
+  }
+
+// 异步获取车站信息
+  Future<List> _getStationInfo(String station) async {
+    // 这里需要添加数据库查询的实际代码
+    var result = await mysqlSelect(
+        "SELECT * FROM MRT.MRT_taichung_stationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'"
+    );
+print(result is List);
+ 
+      // 假设你想展示 stationname_zh_tw 和一些其他信息
+
+      return result;
+
+  }
+
+  // 轉乘資訊頁面
+  Widget _buildTransferInfo() {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Text(
+        "這裡顯示車站的轉乘資訊，包括可以轉乘的其他交通工具或路線。",
+        style: TextStyle(fontSize: 16),
+      ),
+    );
   }
 }
 
