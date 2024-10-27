@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LocationProvider with ChangeNotifier {
   double _latitude = 0.0;
@@ -32,6 +33,17 @@ class WeatherProvider with ChangeNotifier {
     _city = newCity;
     notifyListeners(); // 通知监听者状态已更新
   }
+}
+class MarkerProvider with ChangeNotifier {
+   Set<Marker> _markers = {};
+  Set<Marker> get markers => _markers;
+
+   void setMarker(Set<Marker> newMarkers) {
+     if (_markers != newMarkers) {
+       _markers = newMarkers;
+       notifyListeners();
+     }
+   }
 }
 Map<String, String> cityMap = {
   '宜蘭': '宜蘭縣',

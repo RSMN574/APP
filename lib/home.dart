@@ -1,13 +1,19 @@
+import 'dart:convert';
+
+import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
+import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
 import 'firebase/routeAPI.dart';
-import 'widget/WeatherCard.dart';
+
 import 'widget/transportGrid.dart';
+ Set<Marker> _bikeMarkers = {};
+ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 
 class Home extends StatefulWidget {
   @override
@@ -26,7 +32,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   double _bottomSheetHeightMin = 0.2;
   int _index = 0;
   GoogleMapController? _mapController;
-
+  PersistentBottomSheetController? _bottomSheetController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
 
@@ -79,7 +85,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
     super.build(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
-    final bottomNavBarHeight = kBottomNavigationBarHeight;
+    const bottomNavBarHeight = kBottomNavigationBarHeight;
     final mapHeight = screenHeight - (screenHeight * _bottomSheetHeightMin) - appBarHeight - bottomNavBarHeight;
 
     return WillPopScope(
@@ -98,35 +104,87 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
             Positioned.fill(
               child: SizedBox(
                 height: mapHeight,
-                child: GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: _currentPosition,
-                    zoom: 12,
-                  ),
-                  onMapCreated: (controller) {
-
-                    _mapController = controller;
-                    _getCurrentLocation();
-                  },
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                ),
+                child: map()
               ),
             ),
-            IndexedStack(
+
+              IndexedStack(
               index: _index,
               children: <Widget>[
                 _buildMainContent(context),
                 _buildSearchContent(context),
                 _buildPlaceDetails(_placePrediction),
+
               ],
             ),
+
+
           ],
         ),
       ),
     );
   }
+  Future<void> _fetchData() async {
 
+    print( youBikeStations.value);
+               youBikeStations.value = await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
+               print( youBikeStations.value);
+
+
+
+
+  } Future<void> _loadMarkers() async {
+    BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
+      ImageConfiguration(size: Size(8, 8)), // 調整大小
+      'assets/img/ubike_icon.png',
+    );
+    Set<Marker> cache = {};
+    for (var station in youBikeStations.value) {
+      final marker = Marker(
+        markerId: MarkerId(station["StationUID"]),
+        icon: customIcon,
+        position: LatLng(
+          json.decode(station["StationPosition"])["PositionLat"],
+          json.decode(station["StationPosition"])["PositionLon"],
+        ),
+        infoWindow: InfoWindow(
+          title:  json.decode(station["StationName"])["Zh_tw"],
+          snippet: "Capacity: ${station["BikesCapacity"]}",
+        ),
+      );
+   cache.add(marker);
+
+
+    }
+    // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+    Provider.of<MarkerProvider>(context, listen: false).setMarker(cache);
+  }
+  Future<void> _handleClick(String type )  async {
+if(type=="bike") {
+  _fetchData();
+  _loadMarkers();
+  // 显示第二个 BottomSheet
+  _bottomSheetController =    showBottomSheet(
+    context: context,
+    builder: (context) {
+      return  SizedBox(
+          height: 300, // 设置您想要的高度
+          width: double.infinity, // 宽度填满
+          child: _buildBikeContent(context)
+      );
+    },
+  );
+
+  // 监听 BottomSheet 是否关闭
+  _bottomSheetController!.closed.then((_) {
+    // 这里可以处理 BottomSheet 关闭后的逻辑
+    // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+    Provider.of<MarkerProvider>(context, listen: false).setMarker({});
+
+  });
+
+}
+  }
   Widget _buildMainContent(BuildContext context) {
     return DraggableScrollableSheet(
       initialChildSize: 0.43,
@@ -150,7 +208,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
                   children: [
 
                     // WeatherWidget(),
-                    const TransportGrid(),
+                    TransportGrid(onClick:_handleClick),
                   ],
                 ),
               ),
@@ -493,4 +551,41 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
       print('Error: $e');
     }
   }
+
+  Widget _buildBikeContent(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.33, // 初始大小
+      minChildSize: _bottomSheetHeightMin, // 最小大小
+      maxChildSize: 0.6, // 最大大小
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              children: [
+                // 这里是您想要展示的内容，例如：
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    "Bike Stations",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                // 添加更多内容或组件
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
 }
+

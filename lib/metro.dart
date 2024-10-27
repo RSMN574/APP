@@ -313,7 +313,7 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
                       if (int.parse(station["Elevator"]) == 1)
                         const Icon(Icons.elevator, color: Colors.green), // 电梯图标
                       if (int.parse(station["Escalator"]) == 1)
-                        const Icon(Icons.arrow_upward, color: Colors.orange), // 手扶梯图标
+                        const Icon(Icons.escalator, color: Colors.orange), // 手扶梯图标
                     ],
                   ),
 

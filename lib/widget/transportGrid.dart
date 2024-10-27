@@ -1,9 +1,15 @@
+import 'package:com.rsmn574.app/Bike.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:com.rsmn574.app/bus.dart';
 
+import '../database/getData.dart';
+import '../home.dart';
+
 class TransportGrid extends StatelessWidget {
-  const TransportGrid({super.key});
+  final Function(String) onClick; // 声明接收字符串消息的回调
+
+  const TransportGrid({super.key,required this.onClick});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +20,7 @@ class TransportGrid extends StatelessWidget {
       {'icon': 'assets/icons/bus-outline.svg', 'text': '公車', 'route': 'bus'},
       {'icon': 'assets/icons/subway-outline.svg', 'text': '捷運', 'route': 'metro'},
       {'icon': 'assets/icons/train-outline.svg', 'text': '高鐵', 'route': 'HSR'},
-      {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'Ubike'},
+      {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'bike'},
       {'icon': 'assets/icons/car.svg', 'text': '計程車', 'route': 'taxi'},
       {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'Intercity Bus'},
     ];
@@ -104,12 +110,17 @@ class TransportGrid extends StatelessWidget {
   void _onTransportTap(BuildContext context, String route, String text) {
     debugPrint("$text 页面跳转");
     if (route == "bus") {
+
+
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => const Bus(),
         ),
       );
+    } else if(route == "bike"){
+      onClick("bike");
+
     } else {
       Navigator.pushNamed(context, route);
     }

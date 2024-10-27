@@ -6,6 +6,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
@@ -23,7 +24,7 @@ import 'plane.dart';
 import 'metro.dart';
 import 'train.dart';
 import 'bus.dart';
-import 'map.dart';
+import 'widget/map.dart';
 
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
@@ -53,6 +54,7 @@ Future<void> main() async {
     providers: [
       ChangeNotifierProvider(create: (context) => CityProvider()),
       ChangeNotifierProvider(create: (context) => LocationProvider()),
+      ChangeNotifierProvider(create: (context) => MarkerProvider()),
     ],
     child: const NavigationBarApp(),
   ));
@@ -84,6 +86,7 @@ class NavigationBarApp extends StatelessWidget {
         "busTime": (BuildContext context) => BusTime(),
         'notification': (BuildContext context) => NotificationPage(),
         "home": (BuildContext context) => Home(),
+        "bike": (BuildContext context) => Bike(),
       },
       theme: appTheme,
       themeMode: ThemeMode.system,
