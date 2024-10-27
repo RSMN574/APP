@@ -126,11 +126,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   }
   Future<void> _fetchData() async {
 
-    print( youBikeStations.value);
                youBikeStations.value = await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
                print( youBikeStations.value);
 
-
+    _loadMarkers(); // 更新標記
 
 
   } Future<void> _loadMarkers() async {
@@ -162,7 +161,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   Future<void> _handleClick(String type )  async {
 if(type=="bike") {
   _fetchData();
-  _loadMarkers();
+
   // 显示第二个 BottomSheet
   _bottomSheetController =    showBottomSheet(
     context: context,
