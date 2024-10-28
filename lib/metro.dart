@@ -53,8 +53,12 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
     if (_list.contains(currentCity)) {
       _selectedCity = currentCity; // 正确赋值
     }
-  }
 
+  }
+fetchData() async {
+  var i=await mysqlSelect("SELECT * FROM MRT.MRT_taichung_S2STravelTime;");
+  print(i);
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,7 +81,7 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
           Expanded(
             child: Column(
               children: [
-                _buildTabBar(),
+                // _buildTabBar(),
                 Expanded(child: _buildPageView()),
               ],
             ),
@@ -161,9 +165,10 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
         controller: pageController,
         physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (context, index) {
-          switch (id[index]) {
-            case "station":
+
+
               if (_selectedCity == "臺中市") {
+                fetchData();
                 return SingleChildScrollView(
                     child:GestureDetector(
                   onTapDown: (details) {
@@ -227,14 +232,11 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
                   ),
                 ));
               } else {
-                return Text("車站");
+                return _buildCityText(_selectedCity);
               }
-            case "map":
-              return _buildCityText(_selectedCity);
-            default:
-              return const Center(child: Text("Unknown"));
+
           }
-        },
+
       ),
     );
   }
@@ -421,19 +423,40 @@ class MRTGreenLinePainter extends CustomPainter {
     // 绘制站点圆角矩形
     for (int i = 0; i < stationOffsets.length; i++) {
       Offset station = stationOffsets[i];
-      // 绘制外层圆角矩形
+      // 外部和内部的 RRect 正方形
       RRect outerRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: station, width: 60, height: 30),
+        Rect.fromCenter(center: station, width: 25, height: 25),
         Radius.circular(8),
       );
       canvas.drawRRect(outerRect, stationBorderPaint);
 
-      // 绘制内层圆角矩形
       RRect innerRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: station, width: 56, height: 26),
+        Rect.fromCenter(center: station, width: 21, height: 21),
         Radius.circular(6),
       );
       canvas.drawRRect(innerRect, stationInnerPaint);
+
+// 要显示的数字
+      String text = '0'; // 将 '5' 替换为要显示的数字
+
+// 创建文本样式
+      TextSpan span = TextSpan(
+        style: TextStyle(color: Colors.black, fontSize: 12), // 设置字体颜色和大小
+        text: text,
+      );
+      TextPainter textPainter1 = TextPainter(
+        text: span,
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter1.layout();
+
+// 计算文本的偏移量，使其居中显示在正方形内
+      Offset textOffset = Offset(
+        station.dx - textPainter1.width / 2,
+        station.dy - textPainter1.height / 2,
+      );
+      textPainter1.paint(canvas, textOffset);
 
       // 绘制站点名称
       TextPainter textPainter = TextPainter(

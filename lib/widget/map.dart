@@ -56,7 +56,6 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
     return Consumer<MarkerProvider>(
 
       builder: (context, markerProvider, child) {
-        print("更新");
         return GoogleMap(
           initialCameraPosition: CameraPosition(
             target: _currentPosition,
@@ -66,7 +65,7 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
             _mapController = controller;
             await _mapController!.setMapStyle(_mapStyle); // 设置地图样式
             _getCurrentLocation(); // 获取当前位置
-            setState(() {}); // 触发重绘以显示标记
+
           },
           markers: Set<Marker>.of(markerProvider.markers), // 从 MarkerProvider 获取标记
           myLocationEnabled: true,
