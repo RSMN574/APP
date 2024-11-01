@@ -157,8 +157,8 @@ class _TabPageState extends State<tab> {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        }  else if (key=='favoritesBusRoute' && snapshot.data!.isNotEmpty) {
-          print(snapshot.data );
+        }  else if (key=='favoritesBusRoute' && snapshot.data != null && snapshot.data!.isNotEmpty  ) {
+
           final List<String>? items = snapshot.data;
           return ListView.separated(
             itemCount: items?.length ?? 0,

@@ -6,7 +6,6 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
-import 'Const/regularConst.dart';
 import 'database/getData.dart';
 
 class Metro extends StatefulWidget {
@@ -18,7 +17,8 @@ class Metro extends StatefulWidget {
 
 class _MetroState extends State<Metro>with TickerProviderStateMixin {
   late TabController _tabController;
-
+  var data;
+  ValueNotifier<List<dynamic>> facilitiesNotifier = ValueNotifier([]);
   final List<String> items = [
     "車站",
     "路線圖",
@@ -56,13 +56,39 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
 
   }
 fetchData() async {
-  var i=await mysqlSelect("SELECT * FROM MRT.MRT_taichung_S2STravelTime;");
-  print(i);
+  data=await mysqlSelect("SELECT * FROM MRT.MRT_taichung_S2STravelTime;");
+return ;
 }
+// 返回每个隐藏的菜单项
+  SelectView(IconData icon, String text, String id) {
+    return  PopupMenuItem<String>(
+        value: id,
+        child:  Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+             Icon(icon),
+             Text(text),
+          ],
+        )
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("捷運")),
+      appBar: AppBar(title: const Text("捷運"),actions: [
+
+        PopupMenuButton<String>(
+      iconColor:   Colors.black,
+          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+            this.SelectView(Icons.info, '捷運資訊', 'A'),
+            this.SelectView(Icons.airplane_ticket, '車票', 'B'),
+            this.SelectView(Icons.schedule, '發車時刻表', 'C'),
+          ],
+          onSelected: (String action) async {
+
+
+          }
+      )],),
       body: Column(
         children: [
           CustomDropdown<String>(
@@ -91,70 +117,8 @@ fetchData() async {
     );
   }
 
-  Widget _buildTabBar() {
-    return SizedBox(
-      width: double.infinity,
-      height: 80,
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        itemCount: items.length,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (ctx, index) => _buildTabItem(index),
-      ),
-    );
-  }
 
-  Widget _buildTabItem(int index) {
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              current = index;
-            });
-            pageController.animateToPage(
-              current,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.ease,
-            );
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.all(5),
-            width: 100,
-            height: 55,
-            decoration: BoxDecoration(
-              color: current == index ? Colors.white70 : Colors.white54,
-              borderRadius: BorderRadius.circular(current == index ? 12 : 7),
-              border: current == index ? Border.all(color: busBlue, width: 2.5) : null,
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icons[index],
-                    size: current == index ? 23 : 20,
-                    color: current == index ? Colors.black : Colors.grey.shade400,
-                  ),
-                  Text(items[index]),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (current == index)
-          Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-              color: busBlue,
-              shape: BoxShape.circle,
-            ),
-          ),
-      ],
-    );
-  }
+
 
   Widget _buildPageView() {
     return Container(
@@ -168,69 +132,92 @@ fetchData() async {
 
 
               if (_selectedCity == "臺中市") {
-                fetchData();
+                  fetchData();
+
                 return SingleChildScrollView(
+
                     child:GestureDetector(
-                  onTapDown: (details) {
-                    Offset localPosition = details.localPosition;
-                    int stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
 
-                    if (stationIndex != -1) {
-                      showModalBottomSheet(
-                        context: context,
-                        builder: (context) {
-                          return Container(
+                                      onTapDown: (details) {
+                                        Offset localPosition = details.localPosition;
+                                        int stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
 
-                              width: MediaQuery.of(context).size.width, // 适应屏幕宽度
-
-                              child:
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  _mrtGreenLinePainter.stationInfos[stationIndex].name,
-                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                        if (stationIndex != -1) {
+                    showBottomSheet(
+                      context: context,
+                      builder: (context) {
+                        return DraggableScrollableSheet(
+                          initialChildSize: 0.4, // 初始高度比例
+                          minChildSize: 0.1, // 最小高度比例
+                          maxChildSize: 0.8, // 最大高度比例
+                          expand: false, // 防止内容展开
+                          builder: (BuildContext context, ScrollController scrollController) {
+                            return SingleChildScrollView(
+                              controller: scrollController, // 使用 ScrollController 使内容可以滚动
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  children: [
+                                    // 拖动提示线
+                                    Container(
+                                      height: 4, // 提示线高度
+                                      width: 40, // 提示线宽度
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey, // 提示线颜色
+                                        borderRadius: BorderRadius.circular(2), // 圆角
+                                      ),
+                                      margin: EdgeInsets.only(bottom: 8), // 提示线与内容之间的间距
+                                    ),
+                                    Text(
+                                      _mrtGreenLinePainter.stationInfos[stationIndex].name,
+                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(_mrtGreenLinePainter.stationInfos[stationIndex].englishName),
+                                    SizedBox(height: 8),
+                                    TabBar(
+                                      controller: _tabController,
+                                      labelColor: Colors.black,
+                                      unselectedLabelColor: Colors.grey,
+                                      indicatorColor: Colors.blue,
+                                      tabs: const [
+                                        Tab(text: "車站資訊"),
+                                        Tab(text: "轉乘資訊"),
+                                      ],
+                                    ),
+                                    SizedBox(
+                                      height: 500, // 限制 TabBarView 的高度
+                                      child: TabBarView(
+                                        controller: _tabController,
+                                        children: [
+                                          _buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name), // 车站资讯内容
+                                          _buildTransferInfo(), // 转乘资讯内容
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(height: 8),
-                                Text(_mrtGreenLinePainter.stationInfos[stationIndex].englishName),
-                                SizedBox(height: 8),
-                            TabBar(
-                              controller: _tabController,
-                              labelColor: Colors.black,
-                              unselectedLabelColor: Colors.grey,
-                              indicatorColor: Colors.blue,
-                              tabs: const [
-                                Tab(text: "車站資訊"),
-                                Tab(text: "轉乘資訊"),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 300, // 固定高度
-                              child: TabBarView(
-                                controller: _tabController,
-                                children: [
-                                  _buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name),  // 车站资讯内容
-                                  _buildTransferInfo(), // 转乘资讯内容
-                                ],
-                              )),
-                              ],
-                            ),
-                          )
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
 
 
 
-                          );
-                        }
-                      );
-                    }
-                  },
-                  child: CustomPaint(
-                    size: Size(300, 1500),
-                    painter: _mrtGreenLinePainter,
-                  ),
-                ));
+
+
+                                        }
+                                      },
+
+                                        child: CustomPaint(
+
+                    size: const Size(300, 2000), // 自定义画布大小
+                    painter: MRTGreenLinePainter(),
+                                        ),
+                                      )
+                );
               } else {
                 return _buildCityText(_selectedCity);
               }
@@ -290,45 +277,115 @@ fetchData() async {
   }
 // 車站資訊頁面
   Widget _buildStationInfo(String station) {
+    IconData getIcon(String iconName) {
+      switch (iconName) {
+        case 'Inquiry Desk Icon':
+          return Icons.info;
+        case 'ATM Icon':
+          return Icons.atm;
+        case 'Water Fountain Icon':
+          return Icons.water;
+        case 'Restroom Icon':
+          return Icons.wc;
+        case 'AEDA Icon':
+          return Icons.favorite; // 可替换为更适合的图标
+        case 'Accessible Elevator Icon':
+          return Icons.elevator;
+        default:
+          return Icons.help; // 默认图标
+      }
+    }
     return FutureBuilder(
       future: _getStationInfo(station), // 异步获取车站信息
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator(); // 显示加载进度条
+          return Center(
+            child: LoadingAnimationWidget.stretchedDots(
+              color: Colors.black,
+              size: 40,
+            ),
+          ); // 显示加载进度条
         } else if (snapshot.hasError) {
-          return const Text("出错了，无法加载车站信息"); // 显示错误信息
+          return const Text("出错了，無法載入車站信息"); // 显示错误信息
         } else if (snapshot.hasData) {
-          var stationInfo = snapshot.data;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ListView.builder(
-              itemCount: stationInfo?.length, // 列表项数量
-              itemBuilder: (context, index) {
-                final station = stationInfo?[index]; // 获取当前车站的信息
-                return ListTile(
-                  title: Text(json.decode(station["ExitName"])["Zh_tw"]), // 显示车站名称
-                  leading: Row(
-                    mainAxisSize: MainAxisSize.min, // 确保图标不会占用过多空间
-                    children: [
-                      if (int.parse(station["Stair"]) == 1)
-                        const Icon(Icons.stairs, color: Colors.blue), // 楼梯图标
-                      if (int.parse(station["Elevator"]) == 1)
-                        const Icon(Icons.elevator, color: Colors.green), // 电梯图标
-                      if (int.parse(station["Escalator"]) == 1)
-                        const Icon(Icons.escalator, color: Colors.orange), // 手扶梯图标
-                    ],
-                  ),
+          var stationI = snapshot.data;
+          return SingleChildScrollView(
 
-                  onTap: () {
-                    // 点击车站时执行的操作
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('点击了 ${station.exitNameZh}')),
+            child: Column(
+              children: [
+                // 使用 Expanded 包裹 ListView 以便滚动
+                ListView.builder(
+                  itemCount: stationI?.length, // 列表项数量
+                  physics: const NeverScrollableScrollPhysics(), // 禁用 ListView 的滚动
+                  shrinkWrap: true, // 让 ListView 根据内容的高度收缩
+                  itemBuilder: (context, index) {
+                    final station = stationI?[index]; // 获取当前车站的信息
+                    return ListTile(
+                      title: Text(
+                        json.decode(station["ExitName"])["Zh_tw"], // 显示车站名称
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      leading: Row(
+                        mainAxisSize: MainAxisSize.min, // 确保图标不会占用过多空间
+                        children: [
+                          if (int.parse(station["Stair"]) == 1)
+                            const Icon(Icons.stairs, color: Colors.blue), // 楼梯图标
+                          if (int.parse(station["Elevator"]) == 1)
+                            const Icon(Icons.elevator, color: Colors.green), // 电梯图标
+                          if (int.parse(station["Escalator"]) == 1)
+                            const Icon(Icons.escalator, color: Colors.orange), // 手扶梯图标
+                        ],
+                      ),
+                      onTap: () {
+                        // 点击车站时执行的操作
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('点击了 ${json.decode(station["ExitName"])["Zh_tw"]}'),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+
+                const SizedBox(height: 20), // 增加间距使布局更清晰
+
+                // 车站设施表格
+                const Text(
+                  "車站設施",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10), // 表格标题与表格之间的间距
+
+                DataTable(
+                  columnSpacing: 30,
+                  headingTextStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
+                  ),
+                  dataRowHeight: 60,
+                  columns: const [
+                    DataColumn(label: Text('Icon')),
+                    DataColumn(label: Text('Facility')),
+                    DataColumn(label: Text('Location')),
+                  ],
+                  rows: facilitiesNotifier.value.map((facility) {
+                    return DataRow(cells: [
+                      DataCell(Icon(
+                        getIcon(facility['icon']),
+                        color: Colors.black54,
+                        size: 24,
+                      )),
+                      DataCell(Text(facility['facility'])),
+                      DataCell(Text(facility['location'])),
+                    ]);
+                  }).toList(),
+                ),
+              ],
             ),
           );
+
+
 
         } else {
           return const Text("未找到任何车站信息");
@@ -340,14 +397,23 @@ fetchData() async {
 // 异步获取车站信息
   Future<List> _getStationInfo(String station) async {
     // 这里需要添加数据库查询的实际代码
-    var result = await mysqlSelect(
+    var stationExit = await mysqlSelect(
         "SELECT * FROM MRT.MRT_taichung_stationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'"
     );
-print(result is List);
- 
+
+     var  i = (await mysqlSelect(
+        "SELECT info FROM MRT.MRT_Taichung_station WHERE StationNameZh_tw ='$station'"));
+    print(json.decode(i[0]["info"]) is List);
+ try{
+   facilitiesNotifier.value= json.decode(i[0]["info"]);
+ }catch(e){
+   print(e);
+ }
+
+
       // 假设你想展示 stationname_zh_tw 和一些其他信息
 
-      return result;
+      return stationExit;
 
   }
 
@@ -365,25 +431,26 @@ print(result is List);
 
 
 class MRTGreenLinePainter extends CustomPainter {
+
   final List<StationInfo> stationInfos = [
-    StationInfo('北屯總站', 'Beitun Main Station'),
-    StationInfo('舊社', 'Jiushe'),
-    StationInfo('松竹', 'Songzhu'),
-    StationInfo('四維國小', 'Sihwei Elementary School\n(Erfenpu)'),
-    StationInfo('文心崇德', 'Wenxin Chongde'),
-    StationInfo('文心中清', 'Wenxin Zhongqing\n(Tianjin Shopping District)'),
-    StationInfo('文華高中', 'Wenhua Senior High School'),
-    StationInfo('文心櫻花', 'Wenxin Yinghua'),
-    StationInfo('市政府', 'Taichung City Hall'),
-    StationInfo('水安宮', 'Shui-an Temple'),
-    StationInfo('文心森林公園', 'Wenxin Forest Park'),
-    StationInfo('南屯', 'Nantun (Wenxin Wuquan W.)'),
-    StationInfo('豐樂公園', 'Feng-le Park'),
-    StationInfo('大慶', 'Daqing\n(Chungshan Medical University)'),
-    StationInfo('九張犁', 'Jiuzhangli'),
-    StationInfo('九德', 'Jiude'),
-    StationInfo('烏日', 'Wuri'),
-    StationInfo('高鐵台中站', 'HSR Taichung Station'),
+    StationInfo('北屯總站', 'Beitun Main Station',3),
+    StationInfo('舊社', 'Jiushe',2),
+    StationInfo('松竹', 'Songzhu',110),
+    StationInfo('四維國小', 'Sihwei Elementary School\n(Erfenpu)',1),
+    StationInfo('文心崇德', 'Wenxin Chongde',1),
+    StationInfo('文心中清', 'Wenxin Zhongqing\n(Tianjin Shopping District)',1),
+    StationInfo('文華高中', 'Wenhua Senior High School',1),
+    StationInfo('文心櫻花', 'Wenxin Yinghua',1),
+    StationInfo('市政府', 'Taichung City Hall',1),
+    StationInfo('水安宮', 'Shui-an Temple',1),
+    StationInfo('文心森林公園', 'Wenxin Forest Park',1),
+    StationInfo('南屯', 'Nantun (Wenxin Wuquan W.)',1),
+    StationInfo('豐樂公園', 'Feng-le Park',1),
+    StationInfo('大慶', 'Daqing\n(Chungshan Medical University)',1),
+    StationInfo('九張犁', 'Jiuzhangli',1),
+    StationInfo('九德', 'Jiude',1),
+    StationInfo('烏日', 'Wuri',1),
+    StationInfo('高鐵臺中站', 'HSR Taichung Station',1),
   ];
 
   final List<Offset> stationOffsets = [];
@@ -426,23 +493,23 @@ class MRTGreenLinePainter extends CustomPainter {
       // 外部和内部的 RRect 正方形
       RRect outerRect = RRect.fromRectAndRadius(
         Rect.fromCenter(center: station, width: 25, height: 25),
-        Radius.circular(8),
+        const Radius.circular(8),
       );
       canvas.drawRRect(outerRect, stationBorderPaint);
 
       RRect innerRect = RRect.fromRectAndRadius(
         Rect.fromCenter(center: station, width: 21, height: 21),
-        Radius.circular(6),
+        const Radius.circular(6),
       );
       canvas.drawRRect(innerRect, stationInnerPaint);
 
-// 要显示的数字
-      String text = '0'; // 将 '5' 替换为要显示的数字
+
+
 
 // 创建文本样式
       TextSpan span = TextSpan(
         style: TextStyle(color: Colors.black, fontSize: 12), // 设置字体颜色和大小
-        text: text,
+        text: stationInfos[i].travelTimesRuntime.toString(),// 要显示的数字
       );
       TextPainter textPainter1 = TextPainter(
         text: span,
@@ -506,6 +573,6 @@ class MRTGreenLinePainter extends CustomPainter {
 class StationInfo {
   final String name; // 车站中文名称
   final String englishName; // 车站英文名称
-
-  StationInfo(this.name, this.englishName);
+  final int travelTimesRuntime;
+  StationInfo(this.name, this.englishName,this.travelTimesRuntime);
 }

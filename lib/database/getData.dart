@@ -50,12 +50,10 @@ Future<void> GetApi() async {
   if (conn == null) {
     await connMysql(); // 如果未連接，先連接資料庫
   }
-  var queryResults;
+
   // 使用參數化查詢以避免 SQL 注入
-  String query =
-      "SELECT * FROM NewBusInfo WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%'";
   String query2 =
-      "SELECT * FROM Bus.Bus_Taichung_Route ";
+      "SELECT * FROM Bus.Bus_Taichung_Route";
   busName=[];
   try {
     busName.clear();
@@ -73,10 +71,10 @@ Future<void> GetApi() async {
 
 
     }
-print(busName);
+
     // 打印結果，方便調試
 
-
+// print( busName);
 
   } catch (e) {
     print("Query error: $e");

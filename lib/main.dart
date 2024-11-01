@@ -128,6 +128,7 @@ class _NavigationExampleState extends State<NavigationExample> {
 
     // 在应用启动时获取定位信息
     getLocation(context);
+    GetApi();
     // 获取天气信息
     // getWeatherInfo(context);
   }
