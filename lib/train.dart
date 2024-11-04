@@ -11,7 +11,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // 更新 Tab 數量為 3
   }
 
   @override
@@ -27,9 +27,10 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         title: Text('火車查詢系統'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
+          tabs: const [
             Tab(text: '按車次查詢'),
             Tab(text: '按出發地和目的地查詢'),
+            Tab(text: '按車站查詢'), // 新增 Tab
           ],
         ),
       ),
@@ -38,6 +39,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         children: [
           TripNumberSearchPage(),
           RouteSearchPage(),
+          StationSearchPage(), // 新增對應的頁面
         ],
       ),
     );
@@ -142,6 +144,66 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
             TextField(
               decoration: InputDecoration(
                 labelText: '目的地',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 16),
+            TextButton(
+              onPressed: () => _selectDate(context),
+              child: Text(
+                selectedDate == null
+                    ? '選擇日期'
+                    : '選擇日期: ${selectedDate!.toLocal()}'.split(' ')[0],
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                // 進行查詢的邏輯
+              },
+              child: Text('查詢'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 新增的按車站查詢頁面
+class StationSearchPage extends StatefulWidget {
+  @override
+  _StationSearchPageState createState() => _StationSearchPageState();
+}
+
+class _StationSearchPageState extends State<StationSearchPage> {
+  DateTime? selectedDate;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != selectedDate)
+      setState(() {
+        selectedDate = picked;
+      });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              decoration: InputDecoration(
+                labelText: '輸入車站名稱',
                 border: OutlineInputBorder(),
               ),
             ),

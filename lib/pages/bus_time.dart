@@ -29,18 +29,19 @@ class _BusTimeState extends State<BusTime> {
   Timer? _timer;
   late Future<Map<String, dynamic>> _dataFuture;
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
-
+  ValueNotifier<bool> isTimerOn = ValueNotifier(false);
   @override
   void initState() {
     super.initState();
     _loadData(); // 初始加载数据
-    _startAutoReload(); // 开始定时器
+    // _startAutoReload(); // 开始定时器
   }
 
   // 定义自动更新数据的方法
   void _startAutoReload() {
-    _timer = Timer.periodic(Duration(seconds: 40), (timer) {
-      _loadData(); // 每20秒更新数据
+    _timer = Timer.periodic(const Duration(seconds: 40), (timer) {
+      _loadData();
+      print("更新中");// 每20秒更新数据
     });
   }
 
@@ -57,7 +58,12 @@ class _BusTimeState extends State<BusTime> {
     print(busTimeData);
     final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
     final stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
-
+   if(isTimerOn.value){
+     _startAutoReload();
+     print("定時更新啟動");
+   }else{
+     print("定時更新不啟動");
+   }
     // 更新数据时只更新 ValueNotifier
     _dataNotifier.value = {
       'routeInfo': routeInfo,
@@ -124,13 +130,13 @@ class _BusTimeState extends State<BusTime> {
       if (a[0]["EstimateTime"] != null) {
         if (a[0]["EstimateTime"] == 0) {
           String plateNumb = a[0]["PlateNumb"];
-
+          isTimerOn.value=true;
           return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"]};
         } else {
           int result = (a[0]["EstimateTime"] / 60).floor();
 
 
-
+          isTimerOn.value=true;
             return {
               "time": result < 1 ? "即將到站" : "$result 分鐘",
               "color": result < 3 ? "2" : "min",
@@ -146,7 +152,11 @@ class _BusTimeState extends State<BusTime> {
         if (difference.inHours == 0) {
           if(difference.inMinutes.remainder(60)<3 && difference.inMinutes.remainder(60)>0){
 
+         if(difference.inMinutes.remainder(60) <= 0){
 
+         }else{
+           isTimerOn.value=true;
+         }
 
               return {
 
@@ -159,6 +169,11 @@ class _BusTimeState extends State<BusTime> {
 
 
           }else{
+            if(difference.inMinutes.remainder(60) <= 0){
+
+            }else{
+              isTimerOn.value=true;
+            }
 
             return {
 
@@ -242,6 +257,7 @@ class _BusTimeState extends State<BusTime> {
                     this.SelectView(Icons.info, '公車資訊', 'A'),
                     this.SelectView(Icons.add, '加入收藏', 'B'),
                     this.SelectView(Icons.schedule, '發車時刻表', 'C'),
+                    this.SelectView(Icons.schedule, '歷史公車時間', 'D'),
                   ],
                   onSelected: (String action) async {
                     // 点击选项的时候

@@ -134,6 +134,7 @@ return ;
               if (_selectedCity == "臺中市") {
                   fetchData();
 
+
                 return SingleChildScrollView(
 
                     child:GestureDetector(
@@ -144,7 +145,9 @@ return ;
 
                                         if (stationIndex != -1) {
                     showBottomSheet(
+
                       context: context,
+
                       builder: (context) {
                         return DraggableScrollableSheet(
                           initialChildSize: 0.4, // 初始高度比例
@@ -152,29 +155,30 @@ return ;
                           maxChildSize: 0.8, // 最大高度比例
                           expand: false, // 防止内容展开
                           builder: (BuildContext context, ScrollController scrollController) {
-                            return SingleChildScrollView(
-                              controller: scrollController, // 使用 ScrollController 使内容可以滚动
-                              child: Padding(
+                            return Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Column(
                                   children: [
                                     // 拖动提示线
-                                    Container(
+                                  SingleChildScrollView(
+                                  controller: scrollController, // 使用 ScrollController 使内容可以滚动
+                                  child:  Column(
+                                children: [ Container(
                                       height: 4, // 提示线高度
                                       width: 40, // 提示线宽度
                                       decoration: BoxDecoration(
                                         color: Colors.grey, // 提示线颜色
                                         borderRadius: BorderRadius.circular(2), // 圆角
                                       ),
-                                      margin: EdgeInsets.only(bottom: 8), // 提示线与内容之间的间距
+                                      margin: const EdgeInsets.only(bottom: 8), // 提示线与内容之间的间距
                                     ),
                                     Text(
                                       _mrtGreenLinePainter.stationInfos[stationIndex].name,
-                                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                                     ),
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     Text(_mrtGreenLinePainter.stationInfos[stationIndex].englishName),
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     TabBar(
                                       controller: _tabController,
                                       labelColor: Colors.black,
@@ -184,20 +188,26 @@ return ;
                                         Tab(text: "車站資訊"),
                                         Tab(text: "轉乘資訊"),
                                       ],
-                                    ),
-                                    SizedBox(
-                                      height: 500, // 限制 TabBarView 的高度
+                                    ),],),),
+                                    Expanded(
                                       child: TabBarView(
                                         controller: _tabController,
                                         children: [
-                                          _buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name), // 车站资讯内容
-                                          _buildTransferInfo(), // 转乘资讯内容
+                                          // 将车站信息和转乘信息作为子项传入
+                                          SingleChildScrollView(
+                                            controller: scrollController,
+                                            child: _buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name),
+                                          ),
+                                          SingleChildScrollView(
+                                            controller: scrollController,
+                                            child: _buildTransferInfo(),
+                                          ),
                                         ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
+
                             );
                           },
                         );

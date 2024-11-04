@@ -102,7 +102,7 @@ GetBusInfo(int routeid,String city) async {
 
 
   var query ='SELECT Stops FROM Bus.Bus_$city where Routeid=$routeid';
-print("query=$query");
+
  jsonData=await mysqlSelect(query);
   for(var i in jsonData){
     sum=(sum!+json.decode(i['Stops']).length) as int?;
@@ -110,7 +110,7 @@ print("query=$query");
     // print(json.decode(i['Stops']).length);
   }
 
-    print('sum=$sum');
+
 return routeName;
 
 }
@@ -124,6 +124,7 @@ Future mysqlSelect (String v)async{
  try{
    result =await conn?.execute(v);
  }catch(e){
+   await connMysql(); // 如果未連接，先連接資料庫
    if(e.toString().contains("connection closed")){
      await connMysql();
    }else{
