@@ -4,7 +4,7 @@ import '../Const/regularConst.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-
+import '../pages/bus_time.dart';
 import '../widget/error.dart';
 class BusStopInfo extends StatefulWidget {
   final String stop;
@@ -24,17 +24,17 @@ class _BusStopInfoState extends State<BusStopInfo> {
       preferredSize: const Size.fromHeight(60),
       child: Container(
         color: Colors.white,
-        child: TabBar(
+        child: const TabBar(
           indicatorColor: busBlue,
           labelColor: busBlue,
           unselectedLabelColor: Colors.grey,
           indicatorWeight: 3.0,
           indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontSize: 16),
-          tabs: const [
-            Tab(icon: Icon(Icons.directions_bus), text: "去程"),
-            Tab(icon: Icon(Icons.directions_bus), text: "回程"),
+          labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: TextStyle(fontSize: 16),
+          tabs: [
+            Tab(icon: Icon(Icons.directions_bus), text: "A"),
+            Tab(icon: Icon(Icons.directions_bus), text: "B"),
           ],
         ),
       ),
@@ -89,11 +89,16 @@ class _BusStopInfoState extends State<BusStopInfo> {
     for (var i in directionList) {
       // 根据方向查找去程或回程的目的地信息
       if (direction == 1) {
-        var result = await mysqlSelect("SELECT DepartureStopNameZh FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        print(result);
+        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
       } else if (direction == 0) {
-        var result = await mysqlSelect("SELECT DestinationStopNameZh FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+        i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
       }
     }
 
@@ -124,7 +129,24 @@ class _BusStopInfoState extends State<BusStopInfo> {
               : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
 
           return ListTile(
-            onTap: () {},
+            onTap: () async {
+              // 使用 Navigator.push 创建新的页面
+              await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BusTime(
+                    routeName:  stop["RouteName"]["Zh_tw"],
+                    departureStopName:  stop["from"],
+                    destinationStopName:  stop["to"],
+                    operators: "",
+                    routeMapImageUrl: "",
+
+                  ),
+                ),
+              );
+
+            },
             leading: Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(

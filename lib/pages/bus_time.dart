@@ -553,6 +553,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
             type: QuickAlertType.success,
             text: output,
           );
+
         } else if (output.contains('已存在於列表中，不會重複添加')) {
           QuickAlert.show(
             context: context,

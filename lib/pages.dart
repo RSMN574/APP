@@ -95,7 +95,7 @@ class pages extends StatelessWidget {
               QuickAlert.show(
                 context: context,
                 type: QuickAlertType.info,
-                text: "版本號: 0.1.7 封測版 \n"
+                text: "版本號: 0.1.9 封測版 \n"
                     "token: $FCMtoken",
                 confirmBtnText: "複製 token",
                 onConfirmBtnTap: () {

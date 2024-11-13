@@ -1,4 +1,8 @@
+import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import 'database/getTrain.dart';
 
 class Train extends StatefulWidget {
   @override
@@ -8,15 +12,24 @@ class Train extends StatefulWidget {
 class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  final TextEditingController _trainNoController = TextEditingController();
+  final TextEditingController _departureController = TextEditingController();
+  final TextEditingController _destinationController = TextEditingController();
+  final TextEditingController _stationController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this); // 更新 Tab 數量為 3
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _trainNoController.dispose();
+    _departureController.dispose();
+    _destinationController.dispose();
+    _stationController.dispose();
     super.dispose();
   }
 
@@ -30,16 +43,19 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
           tabs: const [
             Tab(text: '按車次查詢'),
             Tab(text: '按出發地和目的地查詢'),
-            Tab(text: '按車站查詢'), // 新增 Tab
+            Tab(text: '按車站查詢'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          TripNumberSearchPage(),
-          RouteSearchPage(),
-          StationSearchPage(), // 新增對應的頁面
+          TripNumberSearchPage(controller: _trainNoController),
+          RouteSearchPage(
+            departureController: _departureController,
+            destinationController: _destinationController,
+          ),
+          StationSearchPage(controller: _stationController),
         ],
       ),
     );
@@ -47,12 +63,17 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
 }
 
 class TripNumberSearchPage extends StatefulWidget {
+  final TextEditingController controller;
+
+  const TripNumberSearchPage({Key? key, required this.controller}) : super(key: key);
+
   @override
   _TripNumberSearchPageState createState() => _TripNumberSearchPageState();
 }
 
 class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   DateTime? selectedDate;
+  final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -61,10 +82,11 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != selectedDate)
+    if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
       });
+    }
   }
 
   @override
@@ -76,7 +98,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              decoration: InputDecoration(
+              controller: widget.controller,
+              decoration: const InputDecoration(
                 labelText: '輸入車次',
                 border: OutlineInputBorder(),
               ),
@@ -87,16 +110,22 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
               child: Text(
                 selectedDate == null
                     ? '選擇日期'
-                    : '選擇日期: ${selectedDate!.toLocal()}'.split(' ')[0],
-                style: TextStyle(fontSize: 16),
+                    : '選擇日期: ${dateFormat.format(selectedDate!)}',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () {
-                // 進行查詢的邏輯
+              onPressed: () async {
+                // 查詢邏輯
+               var trainData=await fetchTrain(int.parse(widget.controller.text),selectedDate!);
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TrainSchedulePage( trainData: trainData, type: 'trainNo',)),
+                );
               },
-              child: Text('查詢'),
+              child: const Text('查詢'),
             ),
           ],
         ),
@@ -106,12 +135,32 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
 }
 
 class RouteSearchPage extends StatefulWidget {
+  final TextEditingController departureController;
+  final TextEditingController destinationController;
+
+  const RouteSearchPage({
+    Key? key,
+    required this.departureController,
+    required this.destinationController,
+  }) : super(key: key);
+
   @override
   _RouteSearchPageState createState() => _RouteSearchPageState();
 }
 
 class _RouteSearchPageState extends State<RouteSearchPage> {
+  // 定義縣市和站名選擇
+  String? selectedCity;
+  String? selectedStation;
+
+  // 縣市和對應站名資料
+  final Map<String, List<String>> stationData = {
+    '台北市': ['台北車站', '松山車站', '板橋車站'],
+    '新北市': ['中和車站', '新莊車站', '蘆洲車站'],
+    '高雄市': ['高雄車站', '鳳山車站', '新左營車站'],
+  };
   DateTime? selectedDate;
+  final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -120,14 +169,16 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != selectedDate)
+    if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
       });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -135,6 +186,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
+              controller: widget.departureController,
               decoration: InputDecoration(
                 labelText: '出發地',
                 border: OutlineInputBorder(),
@@ -142,6 +194,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
             ),
             SizedBox(height: 16),
             TextField(
+              controller: widget.destinationController,
               decoration: InputDecoration(
                 labelText: '目的地',
                 border: OutlineInputBorder(),
@@ -153,32 +206,39 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               child: Text(
                 selectedDate == null
                     ? '選擇日期'
-                    : '選擇日期: ${selectedDate!.toLocal()}'.split(' ')[0],
-                style: TextStyle(fontSize: 16),
+                    : '選擇日期: ${dateFormat.format(selectedDate!)}',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
             SizedBox(height: 16),
+
+
             ElevatedButton(
               onPressed: () {
-                // 進行查詢的邏輯
+                // 查詢邏輯
               },
-              child: Text('查詢'),
+              child: const Text('查詢'),
             ),
           ],
         ),
       ),
     );
   }
+ 
 }
 
-// 新增的按車站查詢頁面
 class StationSearchPage extends StatefulWidget {
+  final TextEditingController controller;
+
+  const StationSearchPage({Key? key, required this.controller}) : super(key: key);
+
   @override
   _StationSearchPageState createState() => _StationSearchPageState();
 }
 
 class _StationSearchPageState extends State<StationSearchPage> {
   DateTime? selectedDate;
+  final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -187,10 +247,11 @@ class _StationSearchPageState extends State<StationSearchPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != selectedDate)
+    if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
       });
+    }
   }
 
   @override
@@ -202,31 +263,35 @@ class _StationSearchPageState extends State<StationSearchPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
-              decoration: InputDecoration(
+              controller: widget.controller,
+              decoration: const InputDecoration(
                 labelText: '輸入車站名稱',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextButton(
               onPressed: () => _selectDate(context),
               child: Text(
                 selectedDate == null
                     ? '選擇日期'
-                    : '選擇日期: ${selectedDate!.toLocal()}'.split(' ')[0],
-                style: TextStyle(fontSize: 16),
+                    : '選擇日期: ${dateFormat.format(selectedDate!)}',
+                style: const TextStyle(fontSize: 16),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: () {
-                // 進行查詢的邏輯
+                // 查詢邏輯
               },
-              child: Text('查詢'),
+              child: const Text('查詢'),
             ),
           ],
         ),
       ),
     );
+
   }
+
 }
+

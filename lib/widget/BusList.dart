@@ -38,7 +38,7 @@ class _BuslistState extends State<Buslist> {
   }
 
   String extractZhTw(jsonString) {
-    print(jsonString);
+
     return json.decode(jsonString)["Zh_tw"];
   }
 

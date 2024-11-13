@@ -116,9 +116,9 @@ return routeName;
 }
 Future mysqlSelect (String v)async{
 
-  if (conn == null) {
-    await connMysql(); // 如果未連接，先連接資料庫
-  }
+
+    await connMysql(); //先連接資料庫
+
   List<dynamic> jsonArray=[];
   jsonArray.clear();
  try{

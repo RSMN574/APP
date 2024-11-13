@@ -87,6 +87,7 @@ class NavigationBarApp extends StatelessWidget {
         'notification': (BuildContext context) => NotificationPage(),
         "home": (BuildContext context) => Home(),
         "bike": (BuildContext context) => Bike(),
+
       },
       theme: appTheme,
       themeMode: ThemeMode.system,

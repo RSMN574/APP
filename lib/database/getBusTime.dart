@@ -11,7 +11,7 @@ int id=await getInfo('routeID');
   int? top=  await getInfo('sum');
   //List BusInfo=await getInfo('routeInfo');
   var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
-print(url);
+
   try {
 
     await  connMysql();
