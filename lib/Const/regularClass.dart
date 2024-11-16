@@ -24,16 +24,16 @@ class CityProvider with ChangeNotifier {
   }
 
 }
-class WeatherProvider with ChangeNotifier {
-  String _city = '臺北市';  // 默认
-
-  String get city => _city;
-
-  void setCity(String newCity) {
-    _city = newCity;
-    notifyListeners(); // 通知监听者状态已更新
-  }
-}
+// class WeatherProvider with ChangeNotifier {
+//   String _city = '臺北市';  // 默认
+//
+//   String get city => _city;
+//
+//   void setCity(String newCity) {
+//     _city = newCity;
+//     notifyListeners(); // 通知监听者状态已更新
+//   }
+// }
 class MarkerProvider with ChangeNotifier {
    Set<Marker> _markers = {};
   Set<Marker> get markers => _markers;

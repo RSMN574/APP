@@ -14,7 +14,13 @@ class map extends StatefulWidget {
 }
 
 class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
-  final String _mapStyle = '''[{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.business", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}]''';
+  final String _mapStyle = '''
+  [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, 
+  {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
+  {"featureType": "poi.business", "stylers": [{"visibility": "off"}]}, 
+  {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
+  {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}]
+  ''';
 
   @override
   bool get wantKeepAlive => true;
@@ -22,6 +28,12 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
   GoogleMapController? _mapController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
+
+  // 台湾的地理边界
+  static LatLngBounds _taiwanBounds = LatLngBounds(
+    southwest: LatLng(20.0, 116.0), // 台湾西南边界
+    northeast: LatLng(26.0, 123.0), // 台湾东北边界
+  );
 
   Future<void> _getCurrentLocation() async {
     try {
@@ -54,7 +66,6 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
     super.build(context);
 
     return Consumer<MarkerProvider>(
-
       builder: (context, markerProvider, child) {
         return GoogleMap(
           initialCameraPosition: CameraPosition(
@@ -65,7 +76,30 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
             _mapController = controller;
             await _mapController!.setMapStyle(_mapStyle); // 设置地图样式
             _getCurrentLocation(); // 获取当前位置
+          },
+          onCameraMove: (CameraPosition position) {
+            // 限制地图的边界范围
+            if (!_taiwanBounds.contains(position.target)) {
+              LatLng target = position.target;
+              double lat = target.latitude;
+              double lng = target.longitude;
 
+              if (lat < _taiwanBounds.southwest.latitude) {
+                lat = _taiwanBounds.southwest.latitude;
+              } else if (lat > _taiwanBounds.northeast.latitude) {
+                lat = _taiwanBounds.northeast.latitude;
+              }
+
+              if (lng < _taiwanBounds.southwest.longitude) {
+                lng = _taiwanBounds.southwest.longitude;
+              } else if (lng > _taiwanBounds.northeast.longitude) {
+                lng = _taiwanBounds.northeast.longitude;
+              }
+
+              _mapController?.moveCamera(
+                CameraUpdate.newLatLng(LatLng(lat, lng)),
+              );
+            }
           },
           markers: Set<Marker>.of(markerProvider.markers), // 从 MarkerProvider 获取标记
           myLocationEnabled: true,

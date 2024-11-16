@@ -12,7 +12,6 @@ Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
   var _date=dateFormat.format(date) ;
   var url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/TrainNo/$_trainNo/TrainDate/$_date?%24format=JSON";
   try {
-print(url);
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);
     final token=tokenResponse.body;

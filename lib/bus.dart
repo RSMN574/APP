@@ -76,12 +76,25 @@ class BusState extends State<Bus> {
       suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
     });
   }
-
+// 返回每个隐藏的菜单项
+  SelectView(IconData icon, String text, String id) {
+    return PopupMenuItem<String>(
+        value: id,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            Icon(icon, color: busBlue),
+            Text(text),
+          ],
+        )
+    );
+  }
   @override
   Widget build(BuildContext context) {
 
     return Scaffold(
       appBar: AppBar(
+
         backgroundColor: busBlue,
         elevation: 0,
         title: const Text(
@@ -91,7 +104,224 @@ class BusState extends State<Bus> {
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
+
         ),
+        actions: [
+          PopupMenuButton<String>(
+            iconColor:   Colors.black,
+            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+              this.SelectView(Icons.confirmation_number, '票價說明', 'A'),
+              this.SelectView(Icons.warning, '通阻消息', 'B'),
+
+            ],
+            onSelected: (String action) async {
+              // 点击选项的时候
+              switch (action) {
+                case 'A':
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Scaffold(
+                        appBar: AppBar(
+                          backgroundColor: busBlue,
+                          elevation: 0,
+                          title: const Text(
+                            "票價說明",
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        body: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Dropdown
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 16.0),
+                                child: CustomDropdown<String>(
+                                  hintText: '選擇城市',
+                                  items: _list,
+                                  initialItem: _list[1],
+                                  onChanged: (value) {
+                                    // Handle selection change
+                                  },
+                                ),
+                              ),
+                              // Title
+                              const Text(
+                                "票價細則",
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              // Description with better styling
+                              Container(
+                                padding: const EdgeInsets.all(12.0),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      spreadRadius: 2,
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "1. 臺中市民、市民的新住民配偶及臺中就學的外縣市學生，"
+                                          "使用綁定市民限定乘車優惠的電子票證可享「10公里免費＋超過10公里車資上限10元」的雙十優惠。",
+                                      style: TextStyle(fontSize: 16, height: 1.5),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "2. 非市民搭乘依里程計費，投現上車應付車資全票20元、半票11元，"
+                                          "超過基本里程再依實際搭乘距離計算下車應付車資；另使用電子票證，"
+                                          "刷卡上車應付車資全票僅扣15元(享有5元的優惠)、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資。",
+                                      style: TextStyle(fontSize: 16, height: 1.5),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "3. 臺中市委託發行敬老愛心卡先享有雙十乘車優惠，即搭乘距離在10公里內不會扣點，"
+                                          "搭乘超過10公里最多扣10點。",
+                                      style: TextStyle(fontSize: 16, height: 1.5),
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。",
+                                      style: TextStyle(fontSize: 16, height: 1.5),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+
+                    ),
+                  );
+
+
+                  break;
+                case "B":
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => Scaffold(
+                          appBar: AppBar(
+                            backgroundColor: busBlue,
+                            elevation: 0,
+                            title: const Text(
+                              "通阻消息",
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          body: FutureBuilder<dynamic>(
+                            future: fetchByUrl(
+                              "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON",
+                            ),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(child: CircularProgressIndicator());
+                              } else if (snapshot.hasError) {
+                                return Center(child: Text('Error: ${snapshot.error}'));
+                              } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+                                return const Center(child: Text('No data available.'));
+                              } else {
+                                final data = snapshot.data as List;
+
+                                return  Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Custom Dropdown
+                                      CustomDropdown<String>(
+                                        hintText: '選擇城市',
+                                        items: _list,
+                                        initialItem: _list[1],
+                                        onChanged: (value) {
+                                          // Handle selection change
+                                        },
+                                      ),
+                                      // Expanded ListView to avoid RenderBox issues
+                                      Expanded(
+                                        child: ListView.builder(
+                                          itemCount: data.length,
+                                          itemBuilder: (context, index) {
+                                            final alert = data[index];
+                                            return Card(
+                                              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                              color: Colors.white, // Set card color for a clean look
+                                              elevation: 5, // Slight shadow for the cards
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(12), // Rounded corners
+                                              ),
+                                              child: ListTile(
+                                                contentPadding: const EdgeInsets.all(16.0),
+                                                title: Text(
+                                                  alert['Title'] ?? '無標題',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18, // Larger font size for titles
+                                                  ),
+                                                ),
+                                                subtitle: Text(
+                                                  alert['Description'] ?? '無描述',
+                                                  style: const TextStyle(
+                                                    fontSize: 14, // Slightly smaller font for descriptions
+                                                    color: Colors.grey, // Grey color for description
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                              }
+                            },
+                          ),
+                        )
+
+                    ),
+                  );
+
+
+
+
+
+
+
+                  break;
+
+
+
+              }
+            },
+          ),
+        ],
       ),
       body: GestureDetector(
         onTap: () {
@@ -104,7 +334,7 @@ class BusState extends State<Bus> {
               child: CustomDropdown<String>(
                 hintText: 'Select City',
                 items: _list,
-                initialItem: _list[0],
+                initialItem: _list[1],
                 onChanged: (value) {},
               ),
             ),

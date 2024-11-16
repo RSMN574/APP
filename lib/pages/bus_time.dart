@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:com.rsmn574.app/widget/bubble.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -10,6 +11,8 @@ import '../Const/regularConst.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/shared_perferences.dart';
+import '../widget/map.dart';
+import 'busStopInfo.dart';
 
 
 class BusTime extends StatefulWidget {
@@ -18,6 +21,7 @@ class BusTime extends StatefulWidget {
   final destinationStopName;
   final operators;
   final routeMapImageUrl;
+
   const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl})
       : super(key: key);
 
@@ -25,7 +29,10 @@ class BusTime extends StatefulWidget {
   State<BusTime> createState() => _BusTimeState();
 }
 
-class _BusTimeState extends State<BusTime> {
+class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
+  late final stopNamesWithTime1;
+  late final stopNamesWithTime2;
+  late final  TabController _tabController;
   Timer? _timer;
   late Future<Map<String, dynamic>> _dataFuture;
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
@@ -34,6 +41,7 @@ class _BusTimeState extends State<BusTime> {
   void initState() {
     super.initState();
     _loadData(); // 初始加载数据
+    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
     // _startAutoReload(); // 开始定时器
   }
 
@@ -48,6 +56,8 @@ class _BusTimeState extends State<BusTime> {
   @override
   void dispose() {
     _timer?.cancel(); // 停止定时器，避免内存泄漏
+    // 避免內存泄漏，釋放 TabController
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -55,14 +65,30 @@ class _BusTimeState extends State<BusTime> {
   Future<void> _loadData() async { //stop data
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
     final busTimeData = await fetchBusTime(widget.routeName.toString(), "Taichung");
-    print(busTimeData);
-    final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
-    final stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
+
+    try {
+       stopNamesWithTime1  = await fetchStopNamesWithTime(
+        1,
+        busTimeData.where((stop) => stop['Direction'] == 1).toList(),
+      );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching stop names with time for direction 1: $e');
+      }
+      stopNamesWithTime1=await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
+      // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
+    }
+    // final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
+     stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
    if(isTimerOn.value){
      _startAutoReload();
-     print("定時更新啟動");
+     if (kDebugMode) {
+       print("定時更新啟動");
+     }
    }else{
-     print("定時更新不啟動");
+     if (kDebugMode) {
+       print("定時更新不啟動");
+     }
    }
     // 更新数据时只更新 ValueNotifier
     _dataNotifier.value = {
@@ -107,7 +133,7 @@ class _BusTimeState extends State<BusTime> {
            }
 
        }else{
-           print(nextBusTime["Estimates"]);
+
            stopNamesWithTime.add({
              "stopName": stopName,
              "nextBusTime": nextBusTime["time"],
@@ -202,13 +228,13 @@ class _BusTimeState extends State<BusTime> {
   }
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
-    return new PopupMenuItem<String>(
+    return PopupMenuItem<String>(
         value: id,
-        child: new Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            new Icon(icon, color: busBlue),
-            new Text(text),
+            Icon(icon, color: busBlue),
+            Text(text),
           ],
         )
     );
@@ -234,141 +260,172 @@ class _BusTimeState extends State<BusTime> {
         final stopNamesWithTime1 = data['stopNamesWithTime1'] as List;
         final stopNamesWithTime2 = data['stopNamesWithTime2'] as List;
 
-        return DefaultTabController(
-          length: 2,
-          child: Scaffold(
-            appBar: AppBar(
-              backgroundColor: busBlue,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white), // 返回图标
-                onPressed: () {
-                  Navigator.pop(context); // 返回上一个页面
-                },
-              ),
-              title: Text(
-                routeInfo[0],
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              actions: [
-               new PopupMenuButton<String>(
-            iconColor:   Colors.white,
-                  itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                    this.SelectView(Icons.info, '公車資訊', 'A'),
-                    this.SelectView(Icons.add, '加入收藏', 'B'),
-                    this.SelectView(Icons.schedule, '發車時刻表', 'C'),
-                    this.SelectView(Icons.schedule, '歷史公車時間', 'D'),
-                  ],
-                  onSelected: (String action) async {
-                    // 点击选项的时候
-                    switch (action) {
-                      case 'A':
-                    showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                    return Dialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-                              children: [
-                                Text(
-                                  "開發中",
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );});
-                        break;
-                      case 'B':
 
-                        var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+        return
+        Stack(
+          children: [
 
-                        // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-                        // 顯示相應的 QuickAlert
-                        if (output.contains('已儲存項目')) {
-                          QuickAlert.show(
-                            context: context,
-                            type: QuickAlertType.success,
-                            text: '${routeInfo[0]}已儲存項目',
-                          );
-                        } else if (output.contains('已存在於列表中，不會重複添加')) {
-                          QuickAlert.show(
-                            context: context,
-                            type: QuickAlertType.warning,
-                            text: '${routeInfo[0]}已存在於列表中，不會重複添加',
-                          );
-                        } else if (output.contains('儲存項目時發生錯誤')) {
-                          QuickAlert.show(
-                            context: context,
-                            type: QuickAlertType.error,
-                            title: 'Oops...',
-                            text: '儲存項目時發生錯誤',
-                          );
-                        }
+        const Positioned.fill(
+        child: SizedBox(
+
+            child: map()
+        ),
+        ),
+
+            DraggableScrollableSheet(
+            initialChildSize: 1,
+            minChildSize: 0.2,
+            maxChildSize: 1.0,
+            builder: (BuildContext context, ScrollController scrollController) {
+              return
+
+                SingleChildScrollView(
+                  controller: scrollController, // 使用 ScrollController 使内容可以滚动
+                  child:
+                      SizedBox(
+                        height:MediaQuery.of(context).size.height,
+                  child:
+                  DefaultTabController(
+                  length: 2,
+                  child: Scaffold(
+
+                    appBar: AppBar(
+                      backgroundColor: busBlue,
+                      elevation: 0,
+                      leading: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white), // 返回图标
+                        onPressed: () {
+                          Navigator.pop(context); // 返回上一个页面
+                        },
+                      ),
+                      title: Text(
+                        routeInfo[0],
+                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      actions: [
+                        PopupMenuButton<String>(
+                          iconColor:   Colors.white,
+                          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                            this.SelectView(Icons.info, '公車資訊', 'A'),
+                            this.SelectView(Icons.favorite, '加入收藏', 'B'),
+                            this.SelectView(Icons.location_on, '路線圖', 'C'),
+                            this.SelectView(Icons.schedule, '歷史公車時間', 'D'),
+                          ],
+                          onSelected: (String action) async {
+                            // 点击选项的时候
+                            switch (action) {
+                              case 'A':
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: const Padding(
+                                          padding: EdgeInsets.all(20.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+                                            children: [
+                                              Text(
+                                                "開發中",
+                                                style: TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );});
+                                break;
+                              case 'B':
+
+                                var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+
+                                // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+                                // 顯示相應的 QuickAlert
+                                if (output.contains('已儲存項目')) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.success,
+                                    text: '${routeInfo[0]}已儲存項目',
+                                  );
+                                } else if (output.contains('已存在於列表中，不會重複添加')) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.warning,
+                                    text: '${routeInfo[0]}已存在於列表中，不會重複添加',
+                                  );
+                                } else if (output.contains('儲存項目時發生錯誤')) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Oops...',
+                                    text: '儲存項目時發生錯誤',
+                                  );
+                                }
 
 
-                        break;
-                      case 'C':
-                        print(widget.routeMapImageUrl);
+                                break;
+                              case 'C':
 
 
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return Dialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-                                  children: [
-                                    const Text(
-                                      "路線圖",
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),Linkify(
-                                      onOpen: (link) async {
-                                        if (!await launchUrl(Uri.parse(link.url))) {
-                                          throw Exception('Could not launch ${link.url}');
-                                        }
-                                      },
-                                text: widget.routeMapImageUrl,
-                              )
-                                  ],
-                                ),
-                              ),
-                            );});break;
-                    }
-                  },
-                ),
-              ],
-              bottom: _buildTabBar(routeInfo),
-            ),
-            body: Container(
-              color: bgColorWhite,
-              child: TabBarView(
-                children: [
-                  _buildTabContent(stopNamesWithTime1), // Tab for direction 0
-                  _buildTabContent(stopNamesWithTime2), // Tab for direction 1
-                ],
-              ),
-            ),
-          ),
+
+                                showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(15),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(20.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min, // 自适应内容的高度
+                                            children: [
+                                              const Text(
+                                                "路線圖",
+                                                style: TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),Linkify(
+                                                onOpen: (link) async {
+                                                  if (!await launchUrl(Uri.parse(link.url))) {
+                                                    throw Exception('Could not launch ${link.url}');
+                                                  }
+                                                },
+                                                text: widget.routeMapImageUrl,
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      );});break;
+                            }
+                          },
+                        ),
+                      ],
+                      bottom: _buildTabBar(routeInfo),
+                    ),
+                    body: Container(
+                      color: bgColorWhite,
+                      child: TabBarView(
+                        children: [
+                          _buildTabContent(stopNamesWithTime1), // Tab for direction 0
+                          _buildTabContent(stopNamesWithTime2), // Tab for direction 1
+                        ],
+                      ),
+                    ),
+                  ),
+                )));})
+
+          ],
+
         );
+
       },
     );
   }
@@ -380,6 +437,7 @@ class _BusTimeState extends State<BusTime> {
       child: Container(
         color: Colors.white,
         child: TabBar(
+          controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,
           unselectedLabelColor: Colors.grey,
@@ -505,7 +563,7 @@ class _BusTimeState extends State<BusTime> {
                 Column(
                   children: [
                     _buildDialogOption(context, Icons.info, "資訊","info",{'estimates':estimates}),
-                    _buildDialogOption(context, Icons.schedule, "發車時刻表","time",{}),
+                    _buildDialogOption(context, Icons.schedule, "站牌查詢","stop",{"stop":stopName}),
                     _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
                     _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
                     _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
@@ -587,7 +645,9 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
             // 解析为 List<Map<String, dynamic>>
             estimates= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
 
-            print("other" +other["estimates"]);
+            if (kDebugMode) {
+              print("other" +other["estimates"]);
+            }
           } catch (e) {
             print("Error decoding JSON: $e");
           }
@@ -615,11 +675,11 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
                 itemBuilder: (context, index) {
                   final bus = estimates[index]; // 获取当前项目数据
                   return ListTile(
-                    leading: Icon(Icons.directions_bus),
+                    leading: const Icon(Icons.directions_bus),
                     title: Text('Bus ${bus["PlateNumb"] ?? "Unknown"}'),
                     subtitle: Text('Estimate Time: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘'),
                     trailing: (bus["IsLastBus"] ?? false)
-                        ? Icon(Icons.warning, color: Colors.red) // 最后一班车的标记
+                        ? const Icon(Icons.warning, color: Colors.red) // 最后一班车的标记
                         : null,
                   );
                 },
@@ -630,6 +690,16 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
             ),
           ),
         );
+      }else if(id=="stop"){
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BusStopInfo(other["stop"]))
+        );
+      }else if(id=="map"){
+
+
+
       }
 
     },
@@ -641,7 +711,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
           const SizedBox(width: 10), // 添加间距
           Text(
             title,
-            style: TextStyle(fontSize: 18),
+            style: const TextStyle(fontSize: 18),
           ),
         ],
       ),

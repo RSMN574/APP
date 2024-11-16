@@ -1,9 +1,12 @@
 
 import 'package:flutter/material.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import '../database/shared_perferences.dart';
 import '../pages/bus_time.dart';
 import '../widget/error.dart';
 class BusStopInfo extends StatefulWidget {
@@ -246,7 +249,19 @@ class _BusStopInfoState extends State<BusStopInfo> {
 
     return tempData;
   }
-
+// 返回每个隐藏的菜单项
+  SelectView(IconData icon, String text, String id) {
+    return PopupMenuItem<String>(
+        value: id,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: <Widget>[
+            Icon(icon, color: busBlue),
+            Text(text),
+          ],
+        )
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -268,6 +283,50 @@ class _BusStopInfoState extends State<BusStopInfo> {
               child: Scaffold(
                 appBar: AppBar(
                   title: Text(widget.stop),
+                  actions: [
+                    PopupMenuButton<String>(
+                      iconColor:   Colors.black,
+                      itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                        this.SelectView(Icons.info, '站牌資訊', 'A'),
+                        this.SelectView(Icons.add, '加入收藏', 'B'),
+
+                      ],
+                      onSelected: (String action) async {
+                        // 点击选项的时候
+                        switch (action) {
+                          case 'B':
+                            var output=await  saveList('favoritesBusStop',widget.stop );
+                            // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+                            // 顯示相應的 QuickAlert
+                            if (output.contains('已儲存項目')) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.success,
+                                text: '${output}已儲存項目',
+                              );
+                            } else if (output.contains('已存在於列表中，不會重複添加')) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.warning,
+                                text: '${output}已存在於列表中，不會重複添加',
+                              );
+                            } else if (output.contains('儲存項目時發生錯誤')) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.error,
+                                title: 'Oops...',
+                                text: '儲存項目時發生錯誤',
+                              );
+                            }
+
+
+                            break;
+
+
+                        }
+                      },
+                    ),
+                  ],
                   bottom: _buildTabBar(),
                 ),
                 body: TabBarView(

@@ -21,7 +21,7 @@ borderRadius:  BorderRadius.circular(10),
      ),
 
      child: Text(plateNum,
-         style: TextStyle(
+         style: const TextStyle(
              color: Colors.white,
            fontSize: 14
          )
@@ -31,7 +31,7 @@ borderRadius:  BorderRadius.circular(10),
 
    );
  }else{
-   return SizedBox();
+   return const SizedBox();
  }
 
      
