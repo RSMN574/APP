@@ -8,6 +8,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Const/regularConst.dart';
+import '../database/favorite_feature.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/shared_perferences.dart';
@@ -22,7 +23,9 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
 
-  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl})
+
+
+  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl, })
       : super(key: key);
 
   @override
@@ -42,7 +45,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     super.initState();
     _loadData(); // 初始加载数据
     _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
-    // _startAutoReload(); // 开始定时器
+
   }
 
   // 定义自动更新数据的方法
@@ -341,24 +344,27 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                                       );});
                                 break;
                               case 'B':
+                                favorite_feature dbHelper = favorite_feature(); // 创建实例
 
-                                var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
+                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",table: "FavoritesRoute");
+
+                                      // var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
 
                                 // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
                                 // 顯示相應的 QuickAlert
-                                if (output.contains('已儲存項目')) {
+                                if (result==100) {
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.success,
                                     text: '${routeInfo[0]}已儲存項目',
                                   );
-                                } else if (output.contains('已存在於列表中，不會重複添加')) {
+                                } else if (result==-1) {
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.warning,
                                     text: '${routeInfo[0]}已存在於列表中，不會重複添加',
                                   );
-                                } else if (output.contains('儲存項目時發生錯誤')) {
+                                } else if (result==200) {
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.error,
@@ -437,7 +443,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       child: Container(
         color: Colors.white,
         child: TabBar(
-          controller:  _tabController ,
+          // controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,
           unselectedLabelColor: Colors.grey,
@@ -602,23 +608,27 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
       // 在这里可以添加对应的功能
 
       if(id=="favorite"){
-        output=await  saveList('favoritesBusStop',other["id"] );
+        favorite_feature dbHelper = favorite_feature(); // 创建实例
+
+        final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop');
+        print(result);
+        // output=await  saveList('favoritesBusStop',other["id"] );
         // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
         // 顯示相應的 QuickAlert
-        if (output.contains('已儲存項目')) {
+        if (result==100) {
           QuickAlert.show(
             context: context,
             type: QuickAlertType.success,
             text: output,
           );
 
-        } else if (output.contains('已存在於列表中，不會重複添加')) {
+        } else if (result==-1) {
           QuickAlert.show(
             context: context,
             type: QuickAlertType.warning,
             text: output,
           );
-        } else if (output.contains('儲存項目時發生錯誤')) {
+        } else if (result==200) {
           QuickAlert.show(
             context: context,
             type: QuickAlertType.error,

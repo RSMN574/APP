@@ -30,9 +30,9 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
   LatLng _currentPosition = _initialPosition;
 
   // 台湾的地理边界
-  static LatLngBounds _taiwanBounds = LatLngBounds(
-    southwest: LatLng(20.0, 116.0), // 台湾西南边界
-    northeast: LatLng(26.0, 123.0), // 台湾东北边界
+  static final LatLngBounds _taiwanBounds = LatLngBounds(
+    southwest: const LatLng(20.0, 116.0), // 台湾西南边界
+    northeast: const LatLng(26.0, 123.0), // 台湾东北边界
   );
 
   Future<void> _getCurrentLocation() async {

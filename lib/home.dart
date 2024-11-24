@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
+import 'database/getBusTime.dart';
 import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
 import 'firebase/routeAPI.dart';
@@ -127,7 +128,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   Future<void> _fetchData() async {
 
                youBikeStations.value = await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
-               print( youBikeStations.value);
+
 
     _loadMarkers(); // 更新標記
 
@@ -368,11 +369,11 @@ if(type=="bike") {
 
   Widget _buildPlaceDetails(dynamic place) {
     final locationProvider = Provider.of<LocationProvider>(context);
-
-      if(place != null){
-        _destinationController.text=place['structured_formatting']['main_text'];
-        _originController.text="現在位置";
-      }
+    //
+    //   if(place != null){
+    //     _destinationController.text=place['structured_formatting']['main_text'];
+    //     _originController.text="現在位置";
+    //   }
 
 
     return GestureDetector(
@@ -391,7 +392,7 @@ if(type=="bike") {
         maxChildSize: 1.0,
         builder: (BuildContext context, ScrollController scrollController) {
           return Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
             ),
@@ -423,9 +424,9 @@ if(type=="bike") {
                       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
-                          Text(
+                          const Text(
                             '起點', // 起点标签
-                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
@@ -438,7 +439,7 @@ if(type=="bike") {
                               child: TextField(
                                 controller: _originController,
                                 decoration: InputDecoration(
-                                  hintText: '選擇起點',
+                                  hintText: '選擇起點(現在位置)',
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                                   suffixIcon: IconButton(
@@ -469,9 +470,9 @@ if(type=="bike") {
                       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
-                          Text(
+                          const Text(
                             '終點', // 终点标签
-                            style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
@@ -513,10 +514,12 @@ if(type=="bike") {
                     const SizedBox(height: 30.0),
                     Center(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
+                          PlacesService placesService = PlacesService();
+                          LatLng? destination= await placesService.getLatLngFromPlaceId(place["place_id"]);
                           // 触发导航或出发逻辑
-                          getDirections("${locationProvider.latitude},${locationProvider.longitude}","place_id:${place["place_id"]}");
-                          // 实现出发按钮逻辑
+                           getDirections("${locationProvider.latitude}%2C${locationProvider.longitude}","${destination?.latitude}%2C${destination?.longitude}");
+                          // // 实现出发按钮逻辑
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),

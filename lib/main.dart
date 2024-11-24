@@ -1,30 +1,27 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
-import 'database/getData.dart';
-import 'database/getWeather.dart';
+import 'commute.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
 import 'widget/geolocator.dart';
-import 'widget/googlemap.dart';
 import 'pages.dart';
 import 'home.dart';
-import 'pages/bus_time.dart';
 import 'pages/nearStop.dart';
 import 'pages/notification.dart';
 import 'plane.dart';
 import 'metro.dart';
 import 'train.dart';
 import 'bus.dart';
-import 'widget/map.dart';
 
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
@@ -75,15 +72,18 @@ class SvgAssets {
 class NavigationBarApp extends StatelessWidget {
   const NavigationBarApp({super.key});
 
+
   @override
   Widget build(BuildContext context) {
+
+
     return MaterialApp(
       routes: {
         "plane": (BuildContext context) => plane(),
         "train": (BuildContext context) => Train(),
         "metro": (BuildContext context) => Metro(),
         "bus": (BuildContext context) => Bus(),
-        "busTime": (BuildContext context) => BusTime(),
+        // "busTime": (BuildContext context) => BusTime(city: '',),
         'notification': (BuildContext context) => NotificationPage(),
         "home": (BuildContext context) => Home(),
         "bike": (BuildContext context) => Bike(),
@@ -121,15 +121,15 @@ class _NavigationExampleState extends State<NavigationExample> {
     super.initState();
     _pages.addAll([
       Home(),
-      const Center(child: Text('commute page')),
-      near_stop(),
+      Commute(),
+      NearbyStationsPage(),
 
       pages(),
     ]);
 
     // 在应用启动时获取定位信息
     getLocation(context);
-    GetApi();
+
     // 获取天气信息
     // getWeatherInfo(context);
   }

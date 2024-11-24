@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 
 class PlacesService {
@@ -32,4 +33,28 @@ class PlacesService {
       throw Exception('Failed to fetch place autocomplete');
     }
   }
+  Future<LatLng?> getLatLngFromPlaceId(String placeId) async {
+    final String url =
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$apiKey';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'OK') {
+          final location = data['result']['geometry']['location'];
+          return LatLng(location['lat'], location['lng']);
+        } else {
+          print('Error: ${data['status']}');
+        }
+      } else {
+        print('Failed to fetch place details');
+      }
+    } catch (e) {
+      print('Error fetching place details: $e');
+    }
+    return null;
+  }
+
 }

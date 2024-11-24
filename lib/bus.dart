@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'package:com.rsmn574.app/pages/busStopInfo.dart';
 import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/routePlanning.dart';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/widget/BusList.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 import 'Const/regularConst.dart';
+import 'database/favorite_feature.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'database/shared_perferences.dart';
@@ -29,21 +32,56 @@ class BusState extends State<Bus> {
   @override
   void initState() {
     super.initState();
-    _loadFavorites(); // 初始化时加载收藏列表
+    _initializeFavorites(); // 调用异步初始化函数
   }
 
-  final List<String> _list = ['全部', '臺中市'];
+  // 异步初始化函数
+  Future<void> _initializeFavorites() async {
+    // await _loadFavorites(); // 初始化时加载收藏列表
+    try {
+      favorite_feature dbHelper = favorite_feature(); // 创建实例
+      await dbHelper.initDatabase(); // 正确通过实例调用数据库初始化
+    } catch (e) {
+      print('Error initializing database: $e');
+    }
+
+  }
+  List<Map<String, dynamic>> _favorites =[];
+  final List<String> _list = ['全部', '臺中市','臺北市'];
+  final List<String> _listID = ['', 'Taichung','Taipei'];
+   String currentCity="Taichung";
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   List suggestions = [];
-  Future<void> _loadFavorites() async {
-    favoriteStops = await loadList('favoritesBusStop');
-    favoriteRoutes = await loadList('favoritesBusRoute');
-    setState(() {}); // 更新 UI
+  // Future<void> _loadFavorites() async {
+  //   favoriteStops = await loadList('favoritesBusStop');
+  //   favoriteRoutes = await loadList('favoritesBusRoute');
+  //   setState(() {}); // 更新 UI
+  // }
+  Future<List<Map<String, dynamic>>> _loadFavorites(String key) async {
+    favorite_feature db=favorite_feature();
+    final favorites = await db.getFavorites(key, 'Taichung');
+// setState(() {
+//   _favorites=favorites;
+// });
+    return favorites;
   }
 
   Future<void> _updateSuggestions(id) async {
+
+    // 查找 currentCity 在 _list 中的索引
+    int index = _list.indexOf(currentCity);
+
+    if (index != -1) {
+      // 获取 _listID 中对应的值
+      String correspondingID = _listID[index];
+      busCurrentCity=correspondingID;
+      GetBus(correspondingID);
+    } else {
+      print('City not found in the list');
+    }
+
     suggestions.clear();
 
     if (id == "route") {
@@ -335,7 +373,14 @@ class BusState extends State<Bus> {
                 hintText: 'Select City',
                 items: _list,
                 initialItem: _list[1],
-                onChanged: (value) {},
+                onChanged: (value) {
+                  setState(() {
+                    _loadFavorites("FavoritesRoute");
+                    currentCity=value!;
+                    _updateSuggestions("route");
+                  });
+
+                },
               ),
             ),
             Padding(
@@ -484,7 +529,7 @@ class BusState extends State<Bus> {
                             : _dropdownValueNotifier.value == "站牌"
                             ? BusStopList(suggestions)
                             : const Center(child: Text("请选择一个有效的选项"))
-                            : const Center(child: Text("没有找到匹配的结果", style: TextStyle(color: Colors.grey))),
+                            : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
                       );
                     },
                   ),
@@ -596,16 +641,12 @@ class BusState extends State<Bus> {
         itemBuilder: (context, index) {
           switch (id[index]) {
             case "route":
-              return _buildList('favoritesBusRoute', _buildRouteListItem);
+              return _buildList('FavoritesRoute', _buildRouteListItem);
             case "stop":
-              return _buildList('favoritesBusStop', _buildStopListItem);
-            case "home":
-              return const Center(child: Text("Home Page"));
-            case "map":
-              return Center(child: Text(items[index]));
-            case "city":
-              return const Center(child: Text("City Page"));
-            default:
+              return _buildList('FavoritesStop', _buildStopListItem);
+            case "routeplan":
+              return RoutePlanner();
+          default:
               return const Center(child: Text("Unknown"));
           }
         },
@@ -613,9 +654,10 @@ class BusState extends State<Bus> {
     );
   }
 
-  Widget _buildList(String key, Widget Function(String) itemBuilder) {
-    return FutureBuilder<List<String>?>(
-      future: loadList(key), // 从 SharedPreferences 加载
+  Widget _buildList(String key, Widget Function(dynamic) itemBuilder) {
+
+    return FutureBuilder<dynamic>(
+      future:_loadFavorites(key),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -623,7 +665,7 @@ class BusState extends State<Bus> {
           return Center(child: Text('Error: ${snapshot.error}'));
         }  else if (key=='favoritesBusRoute' && snapshot.data != null && snapshot.data!.isNotEmpty  ) {
 
-          final List<String>? items = snapshot.data;
+          final List<dynamic>? items = snapshot.data;
           return ListView.separated(
             itemCount: items?.length ?? 0,
             itemBuilder: (context, index) {
@@ -641,7 +683,8 @@ class BusState extends State<Bus> {
           },
           );
         } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          final List<String>? items = snapshot.data;
+          final List<dynamic>? items = snapshot.data;
+
           return ListView.builder(
             itemCount: items?.length ?? 0,
             itemBuilder: (context, index) {
@@ -690,32 +733,33 @@ class BusState extends State<Bus> {
       ),
     );
   }
-  Widget _buildStopListItem(String stop) {
+  Widget _buildStopListItem( stop) {
 
-    return _buildListItem(stop, () => _showConfirmDialog(context, stop,"favoritesBusStop"), () {
+    return _buildListItem(stop["stopName"], () => _showConfirmDialog(context, stop["stopName"],"FavoritesStop"), () {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusStopInfo(stop)),
+        MaterialPageRoute(builder: (context) => BusStopInfo(stop["stopName"])),
       );
     });
   }
 
-  Widget _buildRouteListItem(String route) {
+  Widget _buildRouteListItem( route) {
 
-    return _buildListItemRoute(route, () => _showConfirmDialog(context, route,"favoritesBusRoute"),() async {
-      await GetBusInfo(int.parse(json.decode(route)["route"]), "Taichung");
-      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${json.decode(route)["route"]}'");
+    return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
+      await GetBusInfo(int.parse(route["routeName"]),"Taichung");
+      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
 
 
 
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context,) => BusTime(
-          routeName:json.decode(route)["route"],
-          departureStopName:json.decode(route)["DepartureStopNameZh"],
-          destinationStopName:json.decode(route)["DestinationStopNameZh"],
+          routeName:(route)["routeName"],
+          departureStopName:(route)["DepartureStopNameZh"],
+          destinationStopName:(route)["DestinationStopNameZh"],
           operators: "",
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
+
 
 
         )),
@@ -734,7 +778,7 @@ class BusState extends State<Bus> {
       onTap: onTap,
     );
   }
-  Widget _buildListItemRoute(String jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
+  Widget _buildListItemRoute( jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
     return
 
 
@@ -745,7 +789,7 @@ class BusState extends State<Bus> {
 
 
       ListTile(
-        title: Text(json.decode(jsonData)["route"]
+        title: Text((jsonData["routeName"]).toString()
           ,style:
           const TextStyle(
               fontFamily: "MiSans-Demibold",
@@ -753,7 +797,7 @@ class BusState extends State<Bus> {
 
           ),
         ),
-        subtitle: Text('${json.decode(jsonData)["DepartureStopNameZh"]}-${json.decode(jsonData)["DestinationStopNameZh"]} '
+        subtitle: Text('${jsonData["DepartureStopNameZh"].toString()}-${jsonData["DestinationStopNameZh"].toString()} '
           ,style:
           const TextStyle(
               fontSize: 15,
@@ -847,12 +891,19 @@ class BusState extends State<Bus> {
   }
 
   Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
-    List<String>? currentFavorites = await loadList(SharedPreferencesList);
-    currentFavorites?.remove(item); // 移除指定的项
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(SharedPreferencesList, currentFavorites ?? []);
-    await _loadFavorites(); // 重新加载收藏列表
+
+
+    favorite_feature db=favorite_feature();
+    if(SharedPreferencesList=="FavoritesRoute"){
+      var i= await db.removeFavorite(routeName: item, city: 'Taichung', table: SharedPreferencesList,);
+      print(i);
+    }else if(SharedPreferencesList=="FavoritesStop"){
+      var i= await db.removeFavorite(stopName: item, city: 'Taichung', table: SharedPreferencesList,);
+      print(i);
+    }
+
+    // await _loadFavorites(); // 重新加载收藏列表
   }
 }
 

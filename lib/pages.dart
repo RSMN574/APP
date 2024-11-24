@@ -1,3 +1,4 @@
+import 'package:com.rsmn574.app/pages/city.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quickalert/models/quickalert_type.dart';
@@ -68,9 +69,9 @@ class pages extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildIconText(Icons.schedule, '歷史行程'),
-                _buildIconText(Icons.apartment, '城市'),
-                _buildIconText(Icons.public, '里程'),
+                _buildIconText(context,Icons.schedule, '歷史行程',"history"),
+                _buildIconText(context,Icons.apartment, '城市',"city"),
+                _buildIconText(context,Icons.public, '里程',"mile"),
               ],
             ),
           ],
@@ -127,20 +128,30 @@ class pages extends StatelessWidget {
     );
   }
 
-  Widget _buildIconText(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.white, size: 20),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w400,
+  Widget _buildIconText(context,IconData icon, String text,String id) {
+    return GestureDetector(
+      onTap: () {
+        if (id == 'city') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => City()),
+          );
+        }
+      },
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

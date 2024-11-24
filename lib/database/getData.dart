@@ -13,6 +13,7 @@ List busName=[];
 int? sum=0;
 List jsonData=[];
 int routeID=0;
+String busCurrentCity='Taichung';
 Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
@@ -47,14 +48,14 @@ Future<void> connMysql() async {
   }
 }
 
-Future<void> GetApi() async {
-  if (conn == null) {
-    await connMysql(); // 如果未連接，先連接資料庫
-  }
+Future<void> GetBus(String city) async {
+
+    await connMysql(); // 連接資料庫
+
 
   // 使用參數化查詢以避免 SQL 注入
   String query2 =
-      "SELECT * FROM Bus.Bus_Taichung_Route";
+      "SELECT * FROM Bus.Bus_${city}_Route";
   busName=[];
   try {
     busName.clear();
@@ -90,6 +91,7 @@ Future<void> GetApi() async {
     );
   } finally {
     print("Query completed.");
+
   }
   return;
 }
@@ -97,10 +99,8 @@ GetBusInfo(int routeid,String city) async {
   routeID=routeid;
   sum=0;
   List routeName=[];
-  if (conn == null) {
-    await connMysql(); // 如果未連接，先連接資料庫
-  }
-  await connMysql();
+
+  await connMysql(); // 連接資料庫
 
   var query ='SELECT Stops FROM Bus.Bus_$city where Routeid=$routeid';
 
@@ -118,7 +118,7 @@ return routeName;
 Future mysqlSelect (String v)async{
 
 
-    await connMysql(); //先連接資料庫
+  await connMysql(); // 連接資料庫
 
   List<dynamic> jsonArray=[];
   jsonArray.clear();
@@ -160,10 +160,7 @@ getInfo(data){
 
 GetBusStopInfo(String stopName ,String city) async {
 
-
-  if (conn == null) {
-    await connMysql(); // 如果未連接，先連接資料庫
-  }
+  await connMysql(); // 連接資料庫
 
 
   var query =  "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
@@ -184,7 +181,7 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
   final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
   // var url="https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON";
   try {
-    await  connMysql();
+    await connMysql(); // 連接資料庫
     final tokenResponse = await http.get(tokenUri);
     final token=tokenResponse.body;
     // 发起 GET 请求

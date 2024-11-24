@@ -145,6 +145,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                     operators: "",
                     routeMapImageUrl: "",
 
+
                   ),
                 ),
               );
@@ -287,7 +288,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                     PopupMenuButton<String>(
                       iconColor:   Colors.black,
                       itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                        this.SelectView(Icons.info, '站牌資訊', 'A'),
+                        SelectView(Icons.info, '站牌資訊', 'A'),
                         this.SelectView(Icons.add, '加入收藏', 'B'),
 
                       ],

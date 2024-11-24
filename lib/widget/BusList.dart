@@ -128,6 +128,7 @@ class _BuslistState extends State<Buslist> {
                       destinationStopName: route["DestinationStopNameZh"],
                       operators: route["Operators"],
                       routeMapImageUrl: route["RouteMapImageUrl"],
+
                     ),
                   ),
                 );
