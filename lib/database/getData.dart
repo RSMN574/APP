@@ -48,7 +48,7 @@ Future<void> connMysql() async {
   }
 }
 
-Future<void> GetBus(String city) async {
+Future<List> GetBus(String city) async {
 
     await connMysql(); // 連接資料庫
 
@@ -56,9 +56,9 @@ Future<void> GetBus(String city) async {
   // 使用參數化查詢以避免 SQL 注入
   String query2 =
       "SELECT * FROM Bus.Bus_${city}_Route";
-  busName=[];
+  List data=[];
   try {
-    busName.clear();
+    data.clear();
     result =await conn?.execute(query2);
     // List<Map<String, dynamic>> queryResults = [];
 
@@ -68,7 +68,7 @@ Future<void> GetBus(String city) async {
        //print(row.colByName("Zh_tw"));
 
       // print all rows as Map<String, String>
-       busName.add(row.assoc());
+      data.add(row.assoc());
 
 
 
@@ -90,10 +90,11 @@ Future<void> GetBus(String city) async {
       fontSize: 16.0,
     );
   } finally {
-    print("Query completed.");
+    print("Query completed. ${data}");
+    return data;
 
   }
-  return;
+
 }
 GetBusInfo(int routeid,String city) async {
   routeID=routeid;

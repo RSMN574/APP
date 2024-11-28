@@ -32,7 +32,8 @@ class BusState extends State<Bus> {
   @override
   void initState() {
     super.initState();
-    _initializeFavorites(); // 调用异步初始化函数
+    _initializeFavorites();
+
   }
 
   // 异步初始化函数
@@ -46,14 +47,16 @@ class BusState extends State<Bus> {
     }
 
   }
+  List busData=[];
   List<Map<String, dynamic>> _favorites =[];
   final List<String> _list = ['全部', '臺中市','臺北市'];
   final List<String> _listID = ['', 'Taichung','Taipei'];
-   String currentCity="Taichung";
+   String currentCity="臺中市";
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
-  List suggestions = [];
+  final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
+  // List suggestions = [];
   // Future<void> _loadFavorites() async {
   //   favoriteStops = await loadList('favoritesBusStop');
   //   favoriteRoutes = await loadList('favoritesBusRoute');
@@ -68,51 +71,72 @@ class BusState extends State<Bus> {
     return favorites;
   }
 
-  Future<void> _updateSuggestions(id) async {
-
+  Future<List> _updateSuggestions(id) async {
     // 查找 currentCity 在 _list 中的索引
     int index = _list.indexOf(currentCity);
-
-    if (index != -1) {
+print(currentCity);
+    if (index != -1 ) {
       // 获取 _listID 中对应的值
       String correspondingID = _listID[index];
       busCurrentCity=correspondingID;
-      GetBus(correspondingID);
+       busData= await  GetBus(correspondingID);
     } else {
       print('City not found in the list');
-    }
+      return []; // 返回一个空列表，避免 Future 没有返回值的问题
+    }// 调用异步初始化函数
 
-    suggestions.clear();
+
+     suggestions.value.clear();
 
     if (id == "route") {
-      for (var route in busName) {
+      List suggestionsForRoute=[];
+      suggestions.value.clear();
+      for (var route in busData) {
         String routeName = json.decode(route["RouteName"])["Zh_tw"];
         if (routeName.contains(busIdController.text)) {
           if (busIdController.text == routeName) {
-            suggestions.insert(0, route);
+            suggestions.value.insert(0, route);
+            suggestionsForRoute.insert(0, route);
           } else {
-            suggestions.add(route);
+            suggestions.value.add(route);
+            suggestionsForRoute.add(route);
           }
         }
       }
+      // setState(() {
+      //   double screenHeight = MediaQuery.of(context).size.height;
+      //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+      //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+      //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
+      // });
+      return        suggestionsForRoute;
     } else if (id == "stop") {
+      suggestions.value.clear();
       var i = await mysqlSelect("SELECT StationName FROM Bus.Bus_Taichung_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%${busIdController.text}%'");
       for (var a in i) {
         if (busIdController.text == json.decode(a["StationName"])["Zh_tw"]) {
-          suggestions.insert(0, json.decode(a["StationName"])["Zh_tw"]);
+          suggestions.value.insert(0, json.decode(a["StationName"])["Zh_tw"]);
         } else {
-          suggestions.add(json.decode(a["StationName"])["Zh_tw"]);
+          suggestions.value.add(json.decode(a["StationName"])["Zh_tw"]);
         }
       }
-      suggestions = (suggestions.toSet().toList());
+      suggestions.value = (suggestions.value.toSet().toList());
+      // setState(() {
+      //   double screenHeight = MediaQuery.of(context).size.height;
+      //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+      //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+      //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
+      // });
+      return             suggestions.value;
     }
 
-    setState(() {
-      double screenHeight = MediaQuery.of(context).size.height;
-      double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-      suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-    });
+    // setState(() {
+    //   double screenHeight = MediaQuery.of(context).size.height;
+    //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+    //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
+    // });
+    return             suggestions.value;
   }
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
@@ -377,7 +401,7 @@ class BusState extends State<Bus> {
                   setState(() {
                     _loadFavorites("FavoritesRoute");
                     currentCity=value!;
-                    _updateSuggestions("route");
+                    // _updateSuggestions("route");
                   });
 
                 },
@@ -464,13 +488,27 @@ class BusState extends State<Bus> {
                           onChanged: (text) async {
                             if (text.isNotEmpty) {
                               if (_dropdownValueNotifier.value == "路線") {
-                                await _updateSuggestions('route');
+                                 await _updateSuggestions('route');
+                                 setState(() {
+                                   double screenHeight = MediaQuery.of(context).size.height;
+                                   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                                   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+                                   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
+                                 });
                               } else if (_dropdownValueNotifier.value == "站牌") {
                                 await _updateSuggestions('stop');
+                                setState(() {
+                                  double screenHeight = MediaQuery.of(context).size.height;
+                                  double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                                  double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+                                  suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
+                                });
                               }
                             } else {
-                              suggestions.clear();
+
+                              suggestions.value.clear();
                               suggestionsHeightNotifier.value = 0;
+
                             }
                           },
                           controller: busIdController,
@@ -499,7 +537,7 @@ class BusState extends State<Bus> {
                               onPressed: () {
                                 busIdController.clear();
                                 _dropdownValueNotifier.value = '路線';
-                                suggestions.clear();
+                                suggestions.value.clear();
                                 suggestionsHeightNotifier.value = 0;
                               },
                             ),
@@ -523,11 +561,31 @@ class BusState extends State<Bus> {
                       return Container(
                         color: bgColor,
                         height: height,
-                        child: suggestions.isNotEmpty
+                        child: suggestions.value.isNotEmpty
                             ? _dropdownValueNotifier.value == "路線"
-                            ? Buslist(suggestions: suggestions)
+                            ?
+                        // Buslist(suggestions:suggestions.value )
+                        FutureBuilder(
+                          future: _updateSuggestions('route'), // 等待 _updateSuggestions() 完成
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(
+                                child: CircularProgressIndicator(), // 显示加载指示器
+                              );
+                            } else if (snapshot.hasError) {
+                              return Center(
+                                child: Text("加载失败: ${snapshot.error}"), // 显示错误信息
+                              );
+                            } else {
+                              // 数据加载完成后，显示 Buslist
+                              return Buslist(suggestions: snapshot.data ?? []);
+
+
+                            }
+                          },
+                        )
                             : _dropdownValueNotifier.value == "站牌"
-                            ? BusStopList(suggestions)
+                            ? BusStopList(suggestions.value)
                             : const Center(child: Text("请选择一个有效的选项"))
                             : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
                       );
@@ -907,7 +965,7 @@ class BusState extends State<Bus> {
   }
 }
 
-Widget BusStopList(suggestions) {
+Widget BusStopList(List suggestions) {
   return ListView.builder(
     itemCount: suggestions.length,
     itemBuilder: (context, index) {
