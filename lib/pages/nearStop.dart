@@ -20,16 +20,22 @@ class NearbyStationsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }else if (snapshot.hasError) {
+            return const Center(
+              child: Text("找不到附近的站牌"), // 显示错误信息
+            );
+          }else{
+            final stations = snapshot.data!;
+            return ListView.builder(
+              itemCount: stations.length,
+              itemBuilder: (context, index) {
+                final station = stations[index];
+                return StationCard(station: station);
+              },
+            );
           }
 
-          final stations = snapshot.data!;
-          return ListView.builder(
-            itemCount: stations.length,
-            itemBuilder: (context, index) {
-              final station = stations[index];
-              return StationCard(station: station);
-            },
-          );
+
         },
       );
 

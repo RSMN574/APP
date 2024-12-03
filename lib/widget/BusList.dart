@@ -86,7 +86,7 @@ class _BuslistState extends State<Buslist> {
                 ),
               ),
               title: Text(
-                '${extractZhTw(route["RouteName"])}',
+                extractZhTw(route["RouteName"]),
                 style: const TextStyle(
                   fontFamily: 'MiSans-Demibold',
                   fontSize: 16,

@@ -18,10 +18,10 @@ Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
   // 如果連接已存在，則避免重複連接
-  if (conn != null) {
-    print("Already connected to the database.");
-    return;
-  }
+  // if (conn != null) {
+  //   print("Already connected to the database.");
+  //   return;
+  // }
 
   try {
     // 建立連接

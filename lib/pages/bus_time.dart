@@ -4,6 +4,7 @@ import 'package:com.rsmn574.app/widget/bubble.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,7 +12,6 @@ import '../Const/regularConst.dart';
 import '../database/favorite_feature.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
-import '../database/shared_perferences.dart';
 import '../widget/map.dart';
 import 'busStopInfo.dart';
 
@@ -48,19 +48,26 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   }
 
-  // 定义自动更新数据的方法
+  ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
+
   void _startAutoReload() {
-    _timer = Timer.periodic(const Duration(seconds: 40), (timer) {
-      _loadData();
-      print("更新中");// 每20秒更新数据
+    remainingSecondsNotifier.value = 40; // 初始40秒
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (remainingSecondsNotifier.value > 1) {
+        remainingSecondsNotifier.value -= 1;
+      } else {
+        remainingSecondsNotifier.value = 40; // 重置倒计时
+        _loadData(); // 加载数据
+        print("更新中");
+      }
     });
   }
 
   @override
   void dispose() {
-    _timer?.cancel(); // 停止定时器，避免内存泄漏
-    // 避免內存泄漏，釋放 TabController
-    _tabController.dispose();
+    _timer?.cancel(); // 停止定时器
+    remainingSecondsNotifier.dispose(); // 释放 ValueNotifier
+    _tabController.dispose(); // 释放 TabController
     super.dispose();
   }
 
@@ -416,14 +423,66 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                       ],
                       bottom: _buildTabBar(routeInfo),
                     ),
-                    body: Container(
-                      color: bgColorWhite,
-                      child: TabBarView(
-                        children: [
-                          _buildTabContent(stopNamesWithTime1), // Tab for direction 0
-                          _buildTabContent(stopNamesWithTime2), // Tab for direction 1
-                        ],
-                      ),
+                    body:
+
+                    Stack(
+                      children: [
+                        Container(
+                          color: bgColorWhite,
+                          child: TabBarView(
+                            children: [
+                              _buildTabContent(stopNamesWithTime1), // Tab for direction 0
+                              _buildTabContent(stopNamesWithTime2), // Tab for direction 1
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 更小的内边距，确保高度为 15px
+                              decoration: BoxDecoration(
+                                color: busBlue, // 使用 busBlue 作为背景色，填满底部
+                                borderRadius: BorderRadius.circular(10), // 圆角更小
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 4, // 轻微的模糊
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                                border: Border.all(color: busBlue, width: 1.5),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+                                children: [
+                                  const Icon(Icons.refresh, color: Colors.white, size: 14), // 缩小图标大小并更改颜色为白色
+                                  const SizedBox(width: 6), // 缩小间距
+                                  ValueListenableBuilder<int>(
+                                    valueListenable: remainingSecondsNotifier, // 一个 ValueNotifier 用于存储剩余秒数
+                                    builder: (context, remainingSeconds, child) {
+                                      return Text(
+                                        "更新還剩 $remainingSeconds 秒",
+                                        style: const TextStyle(
+                                          fontSize: 12, // 更小的字体
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white, // 文本颜色设为白色
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+
+
+
+                      ],
                     ),
                   ),
                 )));})
@@ -462,7 +521,10 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
-    return RefreshIndicator(
+    return Container(
+      margin: EdgeInsets.only(bottom: 25),
+      child: RefreshIndicator(
+
       onRefresh: () async {
         await _loadData(); // 刷新时重新加载数据
       },
@@ -473,7 +535,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
-          print(stop["Estimates"]);
+
           final color = stop["color"] == '0'
               ? const Color.fromRGBO(235, 15, 41, 0.85)
               : (stop["color"] == '2'
@@ -485,48 +547,74 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
               : const Color.fromRGBO(68, 68, 68, 0.1))));
 
           return Container(
+
               height: 53.0, // 設置每個項目的固定高度
               child:ListTile(
 
-            onTap: () {
-              _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"]);
+                onTap: () {
+                  _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"]);
 
-            },
-            leading: Container(
+                },
+                leading: Container(
 
-              padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
-              decoration: BoxDecoration(
-                color: color,
+                  padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
+                  decoration: BoxDecoration(
+                    color: color,
 
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Text(
-                stop["nextBusTime"]!,
-                style: TextStyle(
-                  fontFamily: 'MiSans-normal',
-                  fontSize: 17,
-                  color: stop["color"] == '0'
-                      ? Colors.white
-                      : (stop["color"] == '2'
-                      ? const Color.fromRGBO(255, 85, 104, 1)
-                      : (stop["color"] == "班次結束"
-                      ? const Color.fromRGBO(149, 149, 149, 1.0)
-                      :(stop["color"] == "min"
-                      ? const Color.fromRGBO(13, 168, 255, 1)
-                      : const Color.fromRGBO(68, 68, 68, 1))))
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    stop["nextBusTime"]!,
+                    style: TextStyle(
+                        fontFamily: 'MiSans-normal',
+                        fontSize: 17,
+                        color: stop["color"] == '0'
+                            ? Colors.white
+                            : (stop["color"] == '2'
+                            ? const Color.fromRGBO(255, 85, 104, 1)
+                            : (stop["color"] == "班次結束"
+                            ? const Color.fromRGBO(149, 149, 149, 1.0)
+                            :(stop["color"] == "min"
+                            ? const Color.fromRGBO(13, 168, 255, 1)
+                            : const Color.fromRGBO(68, 68, 68, 1))))
+                    ),
+                  ),
                 ),
-              ),
+                title: Row(
+                  children: [
+                    Text(
+                      stop["stopName"]!,
+                      style: TextStyle(
+                        fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
+                        fontSize: 17,
+                        color: stop["color"] == "班次結束"
+                            ? const Color.fromRGBO(136, 136, 136, 1)
+                            : Colors.black,
+                      ),
+                    ),
+                  if (stop["stopName"]!.contains("車站"))
+          Padding(
+            padding: const EdgeInsets.only(left: 6), // 添加左侧间距
+            child: SvgPicture.asset(
+              'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
+              width: 18, // 设置SVG图标的宽度
+              height: 18, // 设置SVG图标的高度
             ),
-            title: Text(
-              stop["stopName"]!,
-              style: TextStyle(
-                fontFamily: stop["color"]=="0"?'MiSans-Semibold':'MiSans-normal',
-                fontSize: 17,
-                color: stop["color"]=="班次結束"? const Color.fromRGBO(136, 136, 136, 1):Colors.black
-              ),
-            ),
-            trailing: bubble(plateNum: PlateNumb),
-          ));
+          )
+          else if (stop["stopName"]!.contains("捷運"))
+          Padding(
+          padding: const EdgeInsets.only(left: 6), // 添加左侧间距
+          child: SvgPicture.asset(
+          'assets/icons/tc_MRT.svg', // 自定义SVG路径
+          width: 18, // 设置SVG图标的宽度
+          height: 18, // 设置SVG图标的高度
+          ),
+          ),// 如果 stopName 包含 "火車站"，添加火车图标
+                  ],
+                ),
+
+                  trailing: bubble(plateNum: PlateNumb),
+              ));
         }, separatorBuilder: (BuildContext context, int index) {
         return const Divider(
           color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
@@ -540,7 +628,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       },
 
       ),
-    );
+    ),);
   }
 
   Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates,) {

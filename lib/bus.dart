@@ -80,6 +80,8 @@ print(currentCity);
       String correspondingID = _listID[index];
       busCurrentCity=correspondingID;
        busData= await  GetBus(correspondingID);
+
+       print(busData);
     } else {
       print('City not found in the list');
       return []; // 返回一个空列表，避免 Future 没有返回值的问题
