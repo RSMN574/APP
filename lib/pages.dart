@@ -1,98 +1,110 @@
-import 'package:com.rsmn574.app/pages/city.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 import 'firebase/FCM.dart';
+import 'pages/city.dart';
+import 'pages/other/settings.dart'; // 設定頁面
 
-class pages extends StatelessWidget {
+class InfoPages extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-
       children: [
-      Container(
-      alignment: Alignment.topCenter,
-      child: Container(
-        width: 327,
-        height: 138,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF475363),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundImage: NetworkImage("https://via.placeholder.com/58x73"),
+        // 用戶資料容器
+        Container(
+          alignment: Alignment.topCenter,
+          child: Container(
+            width: 327,
+            height: 138,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF475363),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
                 ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Nick',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundImage: NetworkImage("https://via.placeholder.com/58x73"),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '測試BETA人員',
-                      style: TextStyle(
-                        color: Color(0xFFCAE0FF),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nick',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '測試BETA人員',
+                          style: TextStyle(
+                            color: Color(0xFFCAE0FF),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Spacer(),
+                    // 設定按鈕
+                    IconButton(
+                      icon: Icon(Icons.settings, color: Colors.white),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => SettingsPage()), // 跳轉到設定頁
+                        );
+                      },
                     ),
                   ],
                 ),
-                Spacer(),
-                Icon(Icons.more_vert, color: Colors.white),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildIconText(context, Icons.schedule, '歷史行程', "history"),
+                    _buildIconText(context, Icons.apartment, '城市', "city"),
+                    _buildIconText(context, Icons.public, '里程', "mile"),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildIconText(context,Icons.schedule, '歷史行程',"history"),
-                _buildIconText(context,Icons.apartment, '城市',"city"),
-                _buildIconText(context,Icons.public, '里程',"mile"),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
-    ),
-        SizedBox(height: 20,),Container(//按鈕
-
+        const SizedBox(height: 20),
+        // 封測版按鈕
+        Container(
           width: 300,
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [ Color.fromARGB(255, 13, 193, 255), Color.fromARGB(255, 27, 141, 255)], // 使用顏色變數
-              begin: Alignment.centerLeft,     // 從左邊開始
-              end: Alignment.centerRight,      // 到右邊結束
+              colors: [
+                Color.fromARGB(255, 13, 193, 255),
+                Color.fromARGB(255, 27, 141, 255)
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-            borderRadius: BorderRadius.circular(16), // 圓角邊框
+            borderRadius: BorderRadius.circular(16),
           ),
           child: TextButton(
             onPressed: () async {
-              // 按鈕被按下的行為
-
               QuickAlert.show(
                 context: context,
                 type: QuickAlertType.info,
@@ -100,27 +112,26 @@ class pages extends StatelessWidget {
                     "token: $FCMtoken",
                 confirmBtnText: "複製 token",
                 onConfirmBtnTap: () {
-                  // 复制 token 到剪贴板
-                  Clipboard.setData(ClipboardData(text:FCMtoken ?? "無效的 token")).then((_) {
-                    // 可以在这里显示一个 SnackBar 或其他提示用户已复制
+                  Clipboard.setData(ClipboardData(text: FCMtoken ?? "無效的 token"))
+                      .then((_) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Token 複製到剪貼簿')),
                     );
                   });
-                  Navigator.of(context).pop(); // 关闭对话框
+                  Navigator.of(context).pop();
                 },
               );
             },
             child: Text(
               '封測版',
               style: TextStyle(
-                color: Colors.white, // 字體顏色
-                fontSize:17,        // 字體大小
+                color: Colors.white,
+                fontSize: 17,
               ),
             ),
             style: TextButton.styleFrom(
-              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), // 按鈕的內邊距
-              backgroundColor: Colors.transparent, // 背景顏色透明，讓漸層顯示
+              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              backgroundColor: Colors.transparent,
             ),
           ),
         ),
@@ -128,7 +139,7 @@ class pages extends StatelessWidget {
     );
   }
 
-  Widget _buildIconText(context,IconData icon, String text,String id) {
+  Widget _buildIconText(context, IconData icon, String text, String id) {
     return GestureDetector(
       onTap: () {
         if (id == 'city') {

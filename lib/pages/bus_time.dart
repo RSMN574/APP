@@ -436,49 +436,44 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                             ],
                           ),
                         ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 更小的内边距，确保高度为 15px
-                              decoration: BoxDecoration(
-                                color: busBlue, // 使用 busBlue 作为背景色，填满底部
-                                borderRadius: BorderRadius.circular(10), // 圆角更小
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4, // 轻微的模糊
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                                border: Border.all(color: busBlue, width: 1.5),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-                                children: [
-                                  const Icon(Icons.refresh, color: Colors.white, size: 14), // 缩小图标大小并更改颜色为白色
-                                  const SizedBox(width: 6), // 缩小间距
-                                  ValueListenableBuilder<int>(
-                                    valueListenable: remainingSecondsNotifier, // 一个 ValueNotifier 用于存储剩余秒数
-                                    builder: (context, remainingSeconds, child) {
-                                      return Text(
-                                        "更新還剩 $remainingSeconds 秒",
-                                        style: const TextStyle(
-                                          fontSize: 12, // 更小的字体
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white, // 文本颜色设为白色
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
+                        if (isTimerOn.value == false)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
+                                decoration: BoxDecoration(
+                                  color: busBlue, // 使用 busBlue 作為背景色
+                                  borderRadius: BorderRadius.circular(10), // 圓角設置
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 4, // 輕微的模糊效果
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                  border: Border.all(color: busBlue, width: 1.5),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+                                  children: [
+                                    const Icon(Icons.pause_circle_filled, color: Colors.white, size: 14), // 使用暂停图标，颜色为白色
+                                    const SizedBox(width: 6), // 图标与文本间距
+                                    const Text(
+                                      "已停止自動更新",
+                                      style: TextStyle(
+                                        fontSize: 12, // 字體較小
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white, // 字體顏色為白色
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-
 
 
 
@@ -656,7 +651,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                 const SizedBox(height: 20), // 添加间距
                 Column(
                   children: [
-                    _buildDialogOption(context, Icons.info, "資訊","info",{'estimates':estimates}),
+                    _buildDialogOption(context, Icons.info, "下班車資訊","info",{'estimates':estimates}),
                     _buildDialogOption(context, Icons.schedule, "站牌查詢","stop",{"stop":stopName}),
                     _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
                     _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
@@ -759,7 +754,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
                 backgroundColor: busBlue,
                 elevation: 0,
                 title: const Text(
-                  "資訊",
+                  "下班車資訊",
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -767,24 +762,42 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
                   ),
                 ),
               ),
-              body: estimates.isNotEmpty // 使用 .isNotEmpty 判断列表是否为空
+              body: estimates.isNotEmpty
                   ? ListView.builder(
-                itemCount: estimates.length, // 项目数
+                itemCount: estimates.length, // 項目數
                 itemBuilder: (context, index) {
-                  final bus = estimates[index]; // 获取当前项目数据
-                  return ListTile(
-                    leading: const Icon(Icons.directions_bus),
-                    title: Text('Bus ${bus["PlateNumb"] ?? "Unknown"}'),
-                    subtitle: Text('Estimate Time: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘'),
-                    trailing: (bus["IsLastBus"] ?? false)
-                        ? const Icon(Icons.warning, color: Colors.red) // 最后一班车的标记
-                        : null,
+                  final bus = estimates[index]; // 獲取當前項目資料
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: const Icon(Icons.directions_bus, color: Colors.blue),
+                      title: Text(
+                        '公車 ${bus["PlateNumb"] ?? "未知"}',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      subtitle: Text(
+                        '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      trailing: (bus["IsLastBus"] ?? false)
+                          ? const Icon(Icons.warning, color: Colors.red)
+                          : null,
+                    ),
                   );
                 },
               )
                   : const Center(
-                child: Text("No bus estimates available."),
+                child: Text(
+                  "目前沒有公車預估時間",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
               ),
+
             ),
           ),
         );

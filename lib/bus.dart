@@ -6,8 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/widget/BusList.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 import 'Const/regularConst.dart';
 import 'database/favorite_feature.dart';
 import 'database/getData.dart';

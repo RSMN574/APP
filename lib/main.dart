@@ -124,7 +124,7 @@ class _NavigationExampleState extends State<NavigationExample> {
       Commute(),
       NearbyStationsPage(),
 
-      pages(),
+      InfoPages(),
     ]);
 
     // 在应用启动时获取定位信息
