@@ -72,7 +72,7 @@ class BusState extends State<Bus> {
   Future<List> _updateSuggestions(id) async {
     // 查找 currentCity 在 _list 中的索引
     int index = _list.indexOf(currentCity);
-print(currentCity);
+
     if (index != -1 ) {
       // 获取 _listID 中对应的值
       String correspondingID = _listID[index];
@@ -89,8 +89,12 @@ print(currentCity);
      suggestions.value.clear();
 
     if (id == "route") {
+     //  String correspondingID = _listID[index];
+     // var i=await  GetBus(correspondingID,busIdController.text);
+     // print(i);
       List suggestionsForRoute=[];
       suggestions.value.clear();
+      // suggestionsForRoute.add(GetBus(correspondingID,busIdController.text));
       for (var route in busData) {
         String routeName = json.decode(route["RouteName"])["Zh_tw"];
         if (routeName.contains(busIdController.text)) {

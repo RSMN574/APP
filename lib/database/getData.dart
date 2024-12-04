@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -6,6 +7,8 @@ import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:com.rsmn574.app/bus.dart';
 final GlobalKey<BusState> _key = GlobalKey<BusState>();
+Timer? _idleTimer;
+const int idleTimeout = 30; // 30秒無操作超時
 var result;
 MySQLConnection? conn;
 var busid;
@@ -18,10 +21,10 @@ Future<void> connMysql() async {
   print("Connecting to MySQL server...");
 
   // 如果連接已存在，則避免重複連接
-  // if (conn != null) {
-  //   print("Already connected to the database.");
-  //   return;
-  // }
+  if (conn != null) {
+    print("Already connected to the database.");
+    return;
+  }
 
   try {
     // 建立連接
@@ -34,6 +37,8 @@ Future<void> connMysql() async {
     ) ;
     await conn!.connect();
     print("MySQL connection established.");
+    // 启动閒置計時器
+    _startIdleTimer();
   } catch (e) {
     print("Connection error: $e");
     Fluttertoast.showToast(
@@ -48,10 +53,14 @@ Future<void> connMysql() async {
   }
 }
 
-Future<List> GetBus(String city) async {
+Future<List> GetBus(String city, [RouteName]) async {
 
     await connMysql(); // 連接資料庫
-
+String query='''
+SELECT * 
+FROM Bus.Bus_${city}_Route 
+WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%${RouteName}%'
+''';
 
   // 使用參數化查詢以避免 SQL 注入
   String query2 =
@@ -90,7 +99,9 @@ Future<List> GetBus(String city) async {
       fontSize: 16.0,
     );
   } finally {
-    print("Query completed. ${data}");
+    // print("Query completed. ${data}");
+    // 重置閒置計時器
+    _startIdleTimer();
     return data;
 
   }
@@ -113,6 +124,9 @@ GetBusInfo(int routeid,String city) async {
   }
 
 
+  // 重置閒置計時器
+  _startIdleTimer();
+
 return routeName;
 
 }
@@ -132,6 +146,9 @@ Future mysqlSelect (String v)async{
    }else{
      print(e);
    }
+ }finally{
+   // 重置閒置計時器
+   _startIdleTimer();
  }
   for (final row in result.rows) {
 
@@ -172,6 +189,9 @@ GetBusStopInfo(String stopName ,String city) async {
     stopInfo.add(i);
   }
 
+  // 重置閒置計時器
+  _startIdleTimer();
+
 
   return stopInfo ;
 }
@@ -209,5 +229,27 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
     return jsonData;
   } catch (e) {
     print('Error occurred: $e');
+  }finally{
+
+    // 重置閒置計時器
+    _startIdleTimer();
   }
+}
+/// 關閉連接
+Future<void> disconnect() async {
+
+  if (conn != null) {
+    await conn!.close();
+    conn = null;
+    print('MySQL 連接已關閉');
+  }
+}// 啟動閒置計時器
+void _startIdleTimer() {
+  // 如果已有計時器，則取消
+  _idleTimer?.cancel();
+
+  // 設置計時器，每30秒沒有操作時斷開連接
+  _idleTimer = Timer(Duration(seconds: idleTimeout), () {
+    disconnect();
+  });
 }

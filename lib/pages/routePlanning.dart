@@ -275,14 +275,14 @@ class _RoutePlannerState extends State<RoutePlanner> {
                 ElevatedButton(
                   onPressed: () {
                     // 确认按钮逻辑，执行所需的操作
-                    // confirmRouteSelection();
+                   confirmRouteSelection(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation,);
                   },
-                  child: const Text('確認'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
+                  child: const Text('確認'),
                 ),
               ],
             ],
@@ -571,7 +571,12 @@ if(type=="arrival"){
       });
     }
   }
-
+  void confirmRouteSelection(String selectedCity, String? selectedRoute, String? selectedDepartureStation, String? selectedArrivalStation){
+    print(selectedCity);
+    print(selectedRoute);
+    print(selectedDepartureStation);
+    print(selectedArrivalStation);
+  }
 
 
 }
