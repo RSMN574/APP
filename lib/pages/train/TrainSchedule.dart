@@ -3,67 +3,89 @@ import 'package:flutter/material.dart';
 class TrainSchedulePage extends StatelessWidget {
   final Map<String, dynamic> trainData;
   final String type;
-  const TrainSchedulePage({super.key, required this.trainData,required this.type});  // 添加构造函数参数
+
+  const TrainSchedulePage({
+    Key? key,
+    required this.trainData,
+    required this.type,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('列車時刻表', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blueAccent,
+        title: const Text(
+          '列車時刻表',
+          style: TextStyle(color: Colors.black87),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black87),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTrainInfoCard(),
-            SizedBox(height: 20),
-            Text(
-              'Stops',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            const SizedBox(height: 24),
+            const Text(
+              '停靠站',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-            Divider(),
+            const SizedBox(height: 10),
             _buildStopTimesList(),
           ],
         ),
       ),
+      backgroundColor: Colors.white,
     );
   }
 
   Widget _buildTrainInfoCard() {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.blue[50],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 3,
+      shadowColor: Colors.grey.withOpacity(0.3),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Train No: ${trainData['DailyTrainInfo']['TrainNo']}',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              '列車編號: ${trainData['DailyTrainInfo']['TrainNo']}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
             _buildStationInfoRow(
-              icon: Icons.place,
-              label: 'From',
+              icon: Icons.place_outlined,
+              label: '起站',
               stationName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
             ),
+            const SizedBox(height: 8),
             _buildStationInfoRow(
-              icon: Icons.flag,
-              label: 'To',
+              icon: Icons.flag_outlined,
+              label: '終站',
               stationName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(
-              'Type: ${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}',
-              style: TextStyle(fontSize: 16),
+              '列車種類: ${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}',
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
             ),
+            const SizedBox(height: 8),
             Text(
-              'Note: ${trainData['DailyTrainInfo']['Note']['Zh_tw']}',
-              style: TextStyle(fontSize: 16),
+              '備註: ${trainData['DailyTrainInfo']['Note']['Zh_tw']}',
+              style: const TextStyle(fontSize: 16, color: Colors.black54),
             ),
           ],
         ),
@@ -71,40 +93,66 @@ class TrainSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStationInfoRow({required IconData icon, required String label, required String stationName}) {
+  Widget _buildStationInfoRow({
+    required IconData icon,
+    required String label,
+    required String stationName,
+  }) {
     return Row(
       children: [
-        Icon(icon, color: Colors.blueAccent),
-        SizedBox(width: 8),
+        Icon(icon, color: Colors.blueAccent, size: 20),
+        const SizedBox(width: 8),
         Text(
           '$label: $stationName',
-          style: TextStyle(fontSize: 16),
+          style: const TextStyle(fontSize: 16, color: Colors.black87),
         ),
       ],
     );
   }
 
   Widget _buildStopTimesList() {
+    final stopTimes = trainData['StopTimes'] as List<dynamic>;
+
     return ListView.separated(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      itemCount: trainData['StopTimes'].length,
-      separatorBuilder: (context, index) => Divider(),
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: stopTimes.length,
+      separatorBuilder: (context, index) => Divider(color: Colors.grey[300], height: 1),
       itemBuilder: (context, index) {
-        var stop = trainData['StopTimes'][index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Colors.blueAccent,
-            child: Text(
-              '${stop['StopSequence']}',
-              style: TextStyle(color: Colors.white),
-            ),
+        final stop = stopTimes[index];
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          title: Text(stop['StationName']['Zh_tw']),
-          subtitle: Text('Arrival: ${stop['ArrivalTime']} - Departure: ${stop['DepartureTime']}'),
-          trailing: stop['SuspendedFlag'] == 1
-              ? Icon(Icons.block, color: Colors.redAccent)
-              : Icon(Icons.check_circle, color: Colors.green),
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.blueAccent,
+              child: Text(
+                '${stop['StopSequence']}',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+            title: Text(
+              stop['StationName']['Zh_tw'],
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            subtitle: Text(
+              '到站: ${stop['ArrivalTime']} - 離站: ${stop['DepartureTime']}',
+              style: const TextStyle(fontSize: 14, color: Colors.black54),
+            ),
+            trailing: stop['SuspendedFlag'] == 1
+                ? const Icon(Icons.block, color: Colors.redAccent)
+                : const Icon(Icons.check_circle, color: Colors.green),
+          ),
         );
       },
     );

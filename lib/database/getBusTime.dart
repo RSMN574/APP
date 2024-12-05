@@ -82,9 +82,9 @@ print(url);
 Future <List<Station>> getNearStation(
     String location) async {
 
-
-
   final String url =
+    'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24select=StationName%2CStationID%2CStationPosition%2CStops%2CStationUID&%24spatialFilter=nearby%28$location%2C%20200%29&%24format=JSON';
+  final String url2 =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24top=30&%24spatialFilter=nearby%28$location%2C%201000%29&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
@@ -101,26 +101,38 @@ Future <List<Station>> getNearStation(
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
+  final List rawData = json.decode(response.body) ;
 
-final List rawData = json.decode(response.body) ;
-
-late final List<Station> stations;
-try {
-  stations = rawData.map((e) => Station.fromJson(e))
-      .toList();
-}catch (e) {
-  print('JSON 解析错误: $e');
-}
-print(stations is List<Station>); // 应该返回 true
-if (stations is List) {
-  // 检查 List 的所有元素是否都是 Station 类型
-  bool allStations = jsonData.every((element) => element is Station);
-  print("jsonData is List<Station>: $allStations");
-} else {
-  print("jsonData is not a List.");
-}
+  late final List<Station> stations;
+  try {
+    stations = rawData.map((e) => Station.fromJson(e))
+        .toList();
+    // 使用 Set 去重
 
 
-  print('JSON fetched successfully: $jsonData');
-  return stations;
+  }catch (e) {
+    print('JSON 解析错误: $e');
+  }
+  print(stations is List<Station>); // 应该返回 true
+  if (stations is List) {
+    // 检查 List 的所有元素是否都是 Station 类型
+    bool allStations = jsonData.every((element) => element is Station);
+    print("jsonData is List<Station>: $allStations");
+  } else {
+    print("jsonData is not a List.");
+  }
+  final seenNames = <String>{};
+  final uniqueStations = stations.where((station) {
+    final name = station.stationNameZh;
+    if (seenNames.contains(name)) {
+      return false;
+    } else {
+      seenNames.add(name);
+      return true;
+    }
+  }).toList();
+
+
+  print('JSON fetched successfully: $stations');
+  return uniqueStations;
 }
