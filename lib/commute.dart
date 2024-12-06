@@ -7,128 +7,145 @@ class Commute extends StatefulWidget {
 }
 
 class _CommuteState extends State<Commute> {
-  List<String> tabs = [
-    "上班通勤",
-    "旅行",
-    "其他",
+  int _currentIndex = 0;
+  final PageController _pageController = PageController();
 
+  final List<Widget> _pages = [
+    Center(child: Text('上班通勤頁面', style: TextStyle(fontSize: 24))),
+    Center(child: Text('旅行頁面', style: TextStyle(fontSize: 24))),
   ];
-  int current = 0;
 
-  double changePositionedOfLine() {
-    switch (current) {
-      case 0:
-        return 0;
-      case 1:
-        return 78;
-      case 2:
-        return 192;
-      case 3:
-        return 263;
-      default:
-        return 0;
-    }
-  }
-
-  double changeContainerWidth() {
-    switch (current) {
-      case 0:
-        return 50;
-      case 1:
-        return 80;
-      case 2:
-        return 50;
-      case 3:
-        return 50;
-      default:
-        return 0;
-    }
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    var size = MediaQuery.of(context).size;
-    return SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Column(
+    return  Column(
+      children: [
+        // 模擬 AppBar
+        CustomBottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: _onTabTapped,
+        ),
+        // PageView
+        Expanded(
+          child: PageView(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            children: _pages,
+          ),
+        ),
+        // CustomBottomNavigationBar
+
+      ],
+    );
+
+}}
+
+class CustomBottomNavigationBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const CustomBottomNavigationBar({
+    Key? key,
+    required this.currentIndex,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color:Colors.white ,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 15),
-              width: size.width,
-              height: size.height * 0.05,
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: SizedBox(
-                      width: size.width,
-                      height: size.height * 0.04,
-                      child: ListView.builder(
-                        physics: const BouncingScrollPhysics(),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: tabs.length,
-                        itemBuilder: (context, index) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              left: index == 0 ? 10 : 23,
-                              top: 7,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  current = index;
-                                });
-                              },
-                              child: Text(
-                                tabs[index],
-                                style: TextStyle(
-                                  color: current == index
-                                      ? Colors.deepPurpleAccent
-                                      : Colors.black,
-                                  fontWeight: current == index
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  AnimatedPositioned(
-                    curve: Curves.fastLinearToSlowEaseIn,
-                    bottom: 0,
-                    left: changePositionedOfLine(),
-                    duration: const Duration(milliseconds: 500),
-                    child: AnimatedContainer(
-                      margin: const EdgeInsets.only(left: 10),
-                      width: changeContainerWidth(),
-                      height: size.height * 0.008,
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurpleAccent,
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                      duration: const Duration(milliseconds: 1000),
-                      curve: Curves.fastLinearToSlowEaseIn,
-                    ),
-                  )
-                ],
-              ),
+            _buildTabItem(
+              index: 0,
+              icon: Icons.directions_bus,
+              label: '上班通勤',
             ),
-            Padding(
-              padding: EdgeInsets.only(top: size.height * 0.3),
-              child: Text(
-                "${tabs[current]} Tab Content",
-                style: const TextStyle(fontSize: 18),
-              ),
+            _buildTabItem(
+              index: 1,
+              icon: Icons.airplanemode_active,
+              label: '旅行',
             ),
           ],
         ),
-      );
+      ),
+    );
+  }
 
+  Widget _buildTabItem({
+    required int index,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = index == currentIndex;
+    return GestureDetector(
+      onTap: () => onTap(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.grey[800] : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.3),
+              blurRadius: 6,
+              offset: Offset(0, 3),
+            ),
+          ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey[600],
+            ),
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
+
