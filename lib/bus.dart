@@ -50,6 +50,7 @@ class BusState extends State<Bus> {
   final List<String> _list = ['全部', '臺中市','臺北市'];
   final List<String> _listID = ['', 'Taichung','Taipei'];
    String currentCity="臺中市";
+  String correspondingID="Taichung";
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
@@ -62,7 +63,7 @@ class BusState extends State<Bus> {
   // }
   Future<List<Map<String, dynamic>>> _loadFavorites(String key) async {
     favorite_feature db=favorite_feature();
-    final favorites = await db.getFavorites(key, 'Taichung');
+    final favorites = await db.getFavorites(key, correspondingID);
 // setState(() {
 //   _favorites=favorites;
 // });
@@ -75,7 +76,7 @@ class BusState extends State<Bus> {
 
     if (index != -1 ) {
       // 获取 _listID 中对应的值
-      String correspondingID = _listID[index];
+       correspondingID = _listID[index];
       busCurrentCity=correspondingID;
        busData= await  GetBus(correspondingID);
 
@@ -202,6 +203,7 @@ class BusState extends State<Bus> {
                           ),
                         ),
                         body: SingleChildScrollView(
+
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,9 +214,13 @@ class BusState extends State<Bus> {
                                 child: CustomDropdown<String>(
                                   hintText: '選擇城市',
                                   items: _list,
-                                  initialItem: _list[1],
+                                  initialItem: currentCity,
+
                                   onChanged: (value) {
                                     // Handle selection change
+                                    setState(() {
+                                      currentCity = value!;
+                                    });
                                   },
                                 ),
                               ),
@@ -243,7 +249,8 @@ class BusState extends State<Bus> {
                                     ),
                                   ],
                                 ),
-                                child: const Column(
+                                child:
+                                  const Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
@@ -323,7 +330,7 @@ class BusState extends State<Bus> {
                                       CustomDropdown<String>(
                                         hintText: '選擇城市',
                                         items: _list,
-                                        initialItem: _list[1],
+                                        initialItem: currentCity,
                                         onChanged: (value) {
                                           // Handle selection change
                                         },
@@ -400,7 +407,7 @@ class BusState extends State<Bus> {
               child: CustomDropdown<String>(
                 hintText: 'Select City',
                 items: _list,
-                initialItem: _list[1],
+                initialItem: currentCity,
                 onChanged: (value) {
                   setState(() {
                     _loadFavorites("FavoritesRoute");
@@ -582,7 +589,7 @@ class BusState extends State<Bus> {
                               );
                             } else {
                               // 数据加载完成后，显示 Buslist
-                              return Buslist(suggestions: snapshot.data ?? []);
+                              return Buslist(suggestions: snapshot.data ?? [], city: correspondingID,);
 
 
                             }
@@ -808,8 +815,8 @@ class BusState extends State<Bus> {
   Widget _buildRouteListItem( route) {
 
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
-      await GetBusInfo(int.parse(route["routeName"]),"Taichung");
-      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+      await GetBusInfo(int.parse(route["routeName"]),correspondingID);
+      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${correspondingID}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
 
 
 
@@ -821,6 +828,7 @@ class BusState extends State<Bus> {
           destinationStopName:(route)["DestinationStopNameZh"],
           operators: "",
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
+          city: correspondingID,
 
 
 

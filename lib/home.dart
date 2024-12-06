@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -209,6 +210,7 @@ if(type=="bike") {
 
                     // WeatherWidget(),
                     TransportGrid(onClick:_handleClick),
+                    const ImgSwiper()
                   ],
                 ),
               ),

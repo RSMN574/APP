@@ -35,7 +35,7 @@ class InfoPages extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       radius: 24,
                       backgroundImage: NetworkImage("https://via.placeholder.com/58x73"),
                     ),
@@ -115,7 +115,7 @@ class InfoPages extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: FCMtoken ?? "無效的 token"))
                       .then((_) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Token 複製到剪貼簿')),
+                      const SnackBar(content: Text('Token 複製到剪貼簿')),
                     );
                   });
                   Navigator.of(context).pop();

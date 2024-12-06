@@ -22,10 +22,11 @@ class BusTime extends StatefulWidget {
   final destinationStopName;
   final operators;
   final routeMapImageUrl;
+  final city;
 
 
 
-  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl, })
+  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city })
       : super(key: key);
 
   @override
@@ -74,7 +75,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   // 加载数据，包括站名和 NextBusTime
   Future<void> _loadData() async { //stop data
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
-    final busTimeData = await fetchBusTime(widget.routeName.toString(), "Taichung");
+    final busTimeData = await fetchBusTime(widget.routeName.toString(), widget.city);
 
     try {
        stopNamesWithTime1  = await fetchStopNamesWithTime(
