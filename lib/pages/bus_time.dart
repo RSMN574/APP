@@ -437,48 +437,92 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                             ],
                           ),
                         ),
-                        if (isTimerOn.value == false)
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
-                                decoration: BoxDecoration(
-                                  color: busBlue, // 使用 busBlue 作為背景色
-                                  borderRadius: BorderRadius.circular(10), // 圓角設置
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 4, // 輕微的模糊效果
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                  border: Border.all(color: busBlue, width: 1.5),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-                                  children: [
-                                    const Icon(Icons.pause_circle_filled, color: Colors.white, size: 14), // 使用暂停图标，颜色为白色
-                                    const SizedBox(width: 6), // 图标与文本间距
-                                    const Text(
-                                      "已停止自動更新",
-                                      style: TextStyle(
-                                        fontSize: 12, // 字體較小
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white, // 字體顏色為白色
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                      if (isTimerOn.value == false)
+                    Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
+                        decoration: BoxDecoration(
+                          color: busBlue, // 使用 busBlue 作為背景色
+                          borderRadius: BorderRadius.circular(10), // 圓角設置
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4, // 輕微的模糊效果
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                          border: Border.all(color: busBlue, width: 1.5),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+                          children: [
+                            Icon(Icons.pause_circle_filled, color: Colors.white, size: 14), // 使用暂停图标，颜色为白色
+                            SizedBox(width: 6), // 图标与文本间距
+                            Text(
+                              "已停止自動更新",
+                              style: TextStyle(
+                                fontSize: 12, // 字體較小
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white, // 字體顏色為白色
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                          else if (isTimerOn.value == true)
+                  Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: remainingSecondsNotifier, // 监听 remainingSecondsNotifier
+                      builder: (context, remainingTime, child) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
+                          decoration: BoxDecoration(
+                            color: busBlue, // 使用 busBlue 作為背景色
+                            borderRadius: BorderRadius.circular(10), // 圓角設置
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4, // 輕微的模糊效果
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            border: Border.all(color: busBlue, width: 1.5),
                           ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+                            children: [
+                              Icon(Icons.refresh, color: Colors.white, size: 14), // 使用更新图标，颜色为白色
+                              SizedBox(width: 6), // 图标与文本间距
+                              Text(
+                                "剩餘時間: $remainingTime 秒", // 显示剩余时间
+                                style: const TextStyle(
+                                  fontSize: 12, // 字體較小
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white, // 字體顏色為白色
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                )
 
 
 
-                      ],
+
+              ],
                     ),
                   ),
                 )));})

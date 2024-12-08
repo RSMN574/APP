@@ -118,7 +118,7 @@ class _SearchPageState extends State<SearchPage> {
   void _loadPredictions() async {
     PlacesService placesService = PlacesService();
     try {
-      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text);
+      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text,context);
       setState(() {
         _placePredictions = predictions;
       });

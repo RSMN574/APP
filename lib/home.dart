@@ -116,6 +116,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
                 _buildMainContent(context),
                 _buildSearchContent(context),
                 _buildPlaceDetails(_placePrediction),
+                _buildPlaceWays(_placePrediction),
 
               ],
             ),
@@ -336,6 +337,7 @@ if(type=="bike") {
                                 print(_placePredictions[index]);
 
                                 setState(() {
+                                  _destinationController.text=_placePredictions[index]["description"];
                                   _placePrediction = _placePredictions[index];
                                   _index = 2; // 切换到地点详细信息
                                 });
@@ -517,13 +519,14 @@ if(type=="bike") {
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
-                          PlacesService placesService = PlacesService();
-                          LatLng? destination= await placesService.getLatLngFromPlaceId(place["place_id"]);
-                          // 触发导航或出发逻辑
-                           getDirections("${locationProvider.latitude}%2C${locationProvider.longitude}","${destination?.latitude}%2C${destination?.longitude}");
-                          // // 实现出发按钮逻辑
+
+                          setState(() {
+
+                            _index = 3; // 切换到地点详细信息
+                          });
                         },
                         style: ElevatedButton.styleFrom(
+
                           padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30.0),
@@ -533,7 +536,7 @@ if(type=="bike") {
                       ),
                     ),
                   ] else ...[
-                    Text("未選擇地點"),
+                    const Text("未選擇地點"),
                   ],
                 ],
               ),
@@ -547,7 +550,7 @@ if(type=="bike") {
   void _loadPredictions() async {
     PlacesService placesService = PlacesService();
     try {
-      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text);
+      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text,context);
       setState(() {
         _placePredictions = predictions;
       });
@@ -591,5 +594,163 @@ if(type=="bike") {
 
 
 
+  Widget _buildPlaceWays(dynamic place) {
+    // 获取交通方式的图标
+    IconData _getIconForMode(String mode) {
+      switch (mode) {
+        case "MRT":
+          return Icons.train;
+        case "Bus":
+          return Icons.directions_bus;
+        case "pedestrian":
+          return Icons.directions_walk;
+        default:
+          return Icons.help_outline;
+      }
+    }
+
+    // 格式化时间
+    String _formatDuration(int seconds) {
+      final minutes = seconds ~/ 60;
+      final remainingSeconds = seconds % 60;
+      return "$minutes 分 $remainingSeconds 秒";
+    }
+
+    // 获取路线数据
+    Future<Map<String, dynamic>> _getDirections() async {
+      PlacesService placesService = PlacesService();
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
+      return await getDirections(
+        "${locationProvider.latitude}%2C${locationProvider.longitude}",
+        "${destination?.latitude}%2C${destination?.longitude}",
+      );
+    }
+
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
+          setState(() {
+            if (_index > 0) {
+              _index--; // 返回上一页
+            }
+          });
+        }
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.4,
+        minChildSize: _bottomSheetHeightMin,
+        maxChildSize: 1.0,
+        builder: (BuildContext context, ScrollController scrollController) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  offset: Offset(0, -2),
+                  blurRadius: 5,
+                ),
+              ], // 微弱阴影效果
+            ),
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: _getDirections(), // 调用异步方法
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator()); // 加载中的占位组件
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
+                } else if (!snapshot.hasData || snapshot.data == null) {
+                  return const Center(child: Text('沒有資料')); // 无数据占位
+                }
+
+                // 使用数据生成 UI
+                final data = snapshot.data!;
+                final routes = data['data']['routes'] as List<dynamic>;
+
+                return ListView.builder(
+                  controller: scrollController,
+                  itemCount: routes.length,
+                  itemBuilder: (context, index) {
+                    final route = routes[index];
+                    final sections = route['sections'] as List<dynamic>;
+                    final totalTime = route['travel_time'];
+                    final totalPrice = route['total_price'];
+
+                    return Card(
+                      margin: const EdgeInsets.all(8.0),
+                      elevation: 4.0, // 微弱阴影效果
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ExpansionTile(
+                        title: Text(
+                          '路線 ${index + 1} - 時間: ${_formatDuration(totalTime)}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '費用: \$${totalPrice}',
+                          style: const TextStyle(color: Colors.black45),
+                        ),
+                        children: sections.map<Widget>((section) {
+                          return _buildSectionItem(section);
+                        }).toList(),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+// 构建每段行程的组件
+  Widget _buildSectionItem(Map<String, dynamic> section) {
+    final departure = section['departure']['place']['name'] ?? '起點';
+    final arrival = section['arrival']['place']['name'] ?? '終點';
+    final mode = section['transport']['mode'] ?? '步行';
+    final duration = section['travelSummary']['duration'];
+
+    return ListTile(
+      leading: Icon(
+        _getIconForMode(mode),
+        color: Colors.black87,
+      ),
+      title: Text(
+        '$departure → $arrival',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+      subtitle: Text(
+        '耗時: ${_formatDuration(duration)}',
+        style: const TextStyle(color: Colors.black45),
+      ),
+    );
+  }
+
+  IconData _getIconForMode(String mode) {
+    switch (mode) {
+      case 'MRT':
+        return Icons.train;
+      case 'Bus':
+        return Icons.directions_bus;
+      case 'pedestrian':
+        return Icons.directions_walk;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _formatDuration(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    return '$minutes 分 $remainingSeconds 秒';
+  }
+
+
 }
+
 

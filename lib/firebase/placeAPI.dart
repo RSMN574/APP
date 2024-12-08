@@ -1,18 +1,25 @@
 import 'dart:convert';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+import '../Const/regularClass.dart';
 
 class PlacesService {
   final String apiKey = 'AIzaSyB2rwLvaJa9EC52izD0DXJLiJK2EW-6LjI';
 
-  Future<List<dynamic>> getPlaceAutocomplete(String input) async {
+  Future<List<dynamic>> getPlaceAutocomplete(String input,context) async {
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    print(locationProvider);
     final Uri uri = Uri.https(
       'maps.googleapis.com',
       '/maps/api/place/autocomplete/json',
       {
         'input': input,
         'key': apiKey,
-        'components': 'country:tw'
+        'components': 'country:tw',
+        'location': '${locationProvider.latitude},${locationProvider.longitude}', // 中心点坐标，例如台北市
+        'radius': '5000', // 半径，单位为米
       },
     );
 
