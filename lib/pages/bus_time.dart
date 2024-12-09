@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
 import '../database/favorite_feature.dart';
 import '../database/getBusTime.dart';
@@ -34,9 +37,11 @@ class BusTime extends StatefulWidget {
 }
 
 class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
+
   late final stopNamesWithTime1;
   late final stopNamesWithTime2;
   late final  TabController _tabController;
+  final Set<Marker> markers = {};
   Timer? _timer;
   late Future<Map<String, dynamic>> _dataFuture;
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
@@ -50,7 +55,47 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   }
 
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
+  void _loadMarkers() {
 
+    Set<Marker> markers = {};
+    for (var stop in stopNamesWithTime1) {
+      // 解析 StopPosition
+      final rawPosition = stop['StopPosition'];
+
+      // if (rawPosition is String) {
+      //   // 如果是 String，解析为 Map
+      //   position = json.decode(rawPosition);
+      // } else if (rawPosition is Map) {
+      //   // 如果已经是 Map，直接使用
+      //   position = rawPosition.cast<String, dynamic>();
+      // } else {
+      //   print("Invalid StopPosition type: $rawPosition");
+      //   continue;
+      // }
+      // 检查 StopPosition 的类型
+      print("StopPosition: ${stop}, Type: ${stop['StopPosition'].runtimeType}");
+
+
+
+      final marker = Marker(
+        markerId: MarkerId(stop['StopUID']),
+        position: LatLng(
+        stop['StopPosition']['PositionLat'],
+         stop['StopPosition']['PositionLon'],
+        ),
+        infoWindow: InfoWindow(
+          title:    stop['StopName'],
+          snippet:   stop['StopName'],
+        ),
+      );
+      markers.add(marker);
+    }
+    setState(() {
+      Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
+
+    });
+
+  }
   void _startAutoReload() {
     remainingSecondsNotifier.value = 40; // 初始40秒
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -70,6 +115,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     remainingSecondsNotifier.dispose(); // 释放 ValueNotifier
     _tabController.dispose(); // 释放 TabController
     super.dispose();
+
   }
 
   // 加载数据，包括站名和 NextBusTime
@@ -82,11 +128,14 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
         1,
         busTimeData.where((stop) => stop['Direction'] == 1).toList(),
       );
+
     } catch (e) {
       if (kDebugMode) {
         print('Error fetching stop names with time for direction 1: $e');
       }
       stopNamesWithTime1=await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
+
+
       // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
     }
     // final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
@@ -101,6 +150,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
        print("定時更新不啟動");
      }
    }
+     _loadMarkers();
     // 更新数据时只更新 ValueNotifier
     _dataNotifier.value = {
       'routeInfo': routeInfo,
@@ -110,9 +160,10 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   }
 
   // 获取每个站的站名和 NextBusTime
-  Future<List<Map<String, String>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData) async {
+  Future<List<Map<String, dynamic>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData) async {
     List stops = await getInfo("routeInfo");
-    List<Map<String, String>> stopNamesWithTime = [];
+
+    List<Map<String, dynamic>> stopNamesWithTime = [];
     String hasPlateNum="";
     if (tabIndex < stops.length) {
       var stopData = json.decode(stops[tabIndex]["Stops"]);
@@ -120,7 +171,6 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
         String stopName = stop["StopName"]["Zh_tw"];
 
         Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
-
 
          if(nextBusTime["PlateNumb"]!=''){
 
@@ -131,7 +181,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                "nextBusTime": nextBusTime["time"],
                'color': nextBusTime["color"],
                "PlateNumb": nextBusTime["PlateNumb"],
-               "Estimates":nextBusTime["Estimates"].toString()
+               "Estimates":nextBusTime["Estimates"].toString(),
+               "StopPosition":stop["StopPosition"],
+               "StopUID":stop['StopUID']
              });
            }else{
              stopNamesWithTime.add({
@@ -139,7 +191,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                "nextBusTime": nextBusTime["time"],
                'color': nextBusTime["color"],
                "PlateNumb": '',
-               "Estimates":nextBusTime["Estimates"].toString()
+               "Estimates":nextBusTime["Estimates"].toString(),
+               "StopPosition":stop["StopPosition"],
+               "StopUID":stop['StopUID']
              });
            }
 
@@ -150,7 +204,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
              "nextBusTime": nextBusTime["time"],
              'color': nextBusTime["color"],
              "PlateNumb": '',
-             "Estimates":nextBusTime["Estimates"].toString()
+             "Estimates":nextBusTime["Estimates"].toString(),
+             "StopPosition":stop["StopPosition"],
+             "StopUID":stop['StopUID']
            });
              }
 
@@ -168,7 +224,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
         if (a[0]["EstimateTime"] == 0) {
           String plateNumb = a[0]["PlateNumb"];
           isTimerOn.value=true;
-          return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"]};
+          return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"],
+            "StopPosition":a[0]["StopPosition"].toString(),
+            "StopUID":a[0]['StopUID']};
         } else {
           int result = (a[0]["EstimateTime"] / 60).floor();
 
@@ -178,7 +236,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
               "time": result < 1 ? "即將到站" : "$result 分鐘",
               "color": result < 3 ? "2" : "min",
               "PlateNumb": result < 3 ?  a[0]["PlateNumb"] : "",
-              "Estimates": a[0]["Estimates"]
+              "Estimates": a[0]["Estimates"],
+              "StopPosition":a[0]["StopPosition"],
+              "StopUID":a[0]['StopUID']
             };
 
 
@@ -201,7 +261,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                 "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
                 "color": '2',
                 "PlateNumb": a[0]["PlateNumb"],
-                "Estimates": a[0]["Estimates"]
+                "Estimates": a[0]["Estimates"],
+                "StopPosition":a[0]["StopPosition"],
+                "StopUID":a[0]['StopUID']
               };
 
 
@@ -218,7 +280,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
               "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
               "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
             "PlateNumb": "",
-              "Estimates": a[0]["Estimates"]
+              "Estimates": a[0]["Estimates"],
+              "StopPosition":a[0]["StopPosition"],
+              "StopUID":a[0]['StopUID']
             };
           }
 
@@ -228,14 +292,20 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
             "time": "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
             "color": '',
             "PlateNumb": "",
-            "Estimates": a[0]["Estimates"]
+            "Estimates": a[0]["Estimates"],
+            "StopPosition":a[0]["StopPosition"],
+            "StopUID":a[0]['StopUID']
           };
         }
       } else {
-        return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"]};
+        return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
+          "StopPosition":a[0]["StopPosition"],"StopUID":a[0]['StopUID']
+};
       }
     }
-    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"]};
+    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
+      "StopPosition":a[0]["StopPosition"],"StopUID":a[0]['StopUID']
+};
   }
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
@@ -255,7 +325,22 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
 
-    return ValueListenableBuilder<Map<String, dynamic>?>(
+    return  PopScope(
+      canPop: false,
+      onPopInvoked: ( bool didPop ){
+        if ( didPop ) {
+          Provider.of<MarkerProvider>(context, listen: false).setMarker({});
+        }
+                 // really exit
+        else {
+          /*
+            Insert your code
+            */
+
+          Navigator.of(context).pop();
+        }
+      },
+      child: ValueListenableBuilder<Map<String, dynamic>?>(
       valueListenable: _dataNotifier,
       builder: (context, data, child) {
         if (data == null) {
@@ -532,7 +617,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
         );
 
       },
-    );
+    ));
   }
 
   // 构建 TabBar
