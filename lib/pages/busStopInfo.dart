@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
@@ -19,9 +21,21 @@ class BusStopInfo extends StatefulWidget {
 }
 
 class _BusStopInfoState extends State<BusStopInfo> {
-  List<Map<String, dynamic>> data = [];
+  final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
 
+  List<Map<String, dynamic>> data = [];
+  final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
   // 构建 TabBar
+  @override
+  void initState() {
+    super.initState();
+    _loadData(); // 初次加载数据
+  }
+  @override
+  void dispose() {
+    _streamController.close(); // 关闭 StreamController
+    super.dispose();
+  }
   PreferredSize _buildTabBar() {
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
@@ -120,7 +134,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        await fetchBusStopInfo();
+       _loadData();
       },
       child: ListView.builder(
         itemCount: directionList.length,
@@ -266,14 +280,16 @@ class _BusStopInfoState extends State<BusStopInfo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchBusStopInfo(),
+      body:StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _streamController.stream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return  Center(child: LoadingAnimationWidget.stretchedDots(
-              color: Colors.black,
-              size: 40,
-            ));
+            return Center(
+              child: LoadingAnimationWidget.stretchedDots(
+                color: Colors.black,
+                size: 40,
+              ),
+            );
           } else if (snapshot.hasError) {
             return ErrorPage();
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -285,45 +301,39 @@ class _BusStopInfoState extends State<BusStopInfo> {
                 appBar: AppBar(
                   title: Text(widget.stop),
                   actions: [
+                    IconButton(
+                      icon: Icon(Icons.refresh),
+                      onPressed: _loadData, // 刷新数据
+                    ),
                     PopupMenuButton<String>(
-                      iconColor:   Colors.black,
+                      iconColor: Colors.black,
                       itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
                         SelectView(Icons.info, '站牌資訊', 'A'),
-                        this.SelectView(Icons.add, '加入收藏', 'B'),
-
+                        SelectView(Icons.add, '加入收藏', 'B'),
                       ],
                       onSelected: (String action) async {
-                        // 点击选项的时候
-                        switch (action) {
-                          case 'B':
-                            var output=await  saveList('favoritesBusStop',widget.stop );
-                            // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-                            // 顯示相應的 QuickAlert
-                            if (output.contains('已儲存項目')) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.success,
-                                text: '${output}已儲存項目',
-                              );
-                            } else if (output.contains('已存在於列表中，不會重複添加')) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.warning,
-                                text: '${output}已存在於列表中，不會重複添加',
-                              );
-                            } else if (output.contains('儲存項目時發生錯誤')) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: 'Oops...',
-                                text: '儲存項目時發生錯誤',
-                              );
-                            }
-
-
-                            break;
-
-
+                        if (action == 'B') {
+                          var output = await saveList('favoritesBusStop', widget.stop);
+                          if (output.contains('已儲存項目')) {
+                            QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.success,
+                              text: '${output}已儲存項目',
+                            );
+                          } else if (output.contains('已存在於列表中，不會重複添加')) {
+                            QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.warning,
+                              text: '${output}已存在於列表中，不會重複添加',
+                            );
+                          } else if (output.contains('儲存項目時發生錯誤')) {
+                            QuickAlert.show(
+                              context: context,
+                              type: QuickAlertType.error,
+                              title: 'Oops...',
+                              text: '儲存項目時發生錯誤',
+                            );
+                          }
                         }
                       },
                     ),
@@ -359,7 +369,14 @@ class _BusStopInfoState extends State<BusStopInfo> {
             );
           }
         },
-      ),
+      )
     );
+  } Future<void> _loadData() async {
+    try {
+      final data = await fetchBusStopInfo();
+      _streamController.add(data); // 向数据流中添加新数据
+    } catch (e) {
+      _streamController.addError(e); // 向数据流中添加错误
+    }
   }
 }

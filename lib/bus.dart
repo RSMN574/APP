@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:com.rsmn574.app/pages/busStopInfo.dart';
 import 'package:com.rsmn574.app/pages/bus_time.dart';
@@ -10,7 +11,7 @@ import 'Const/regularConst.dart';
 import 'database/favorite_feature.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
-import 'database/shared_perferences.dart';
+
 
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
@@ -19,18 +20,50 @@ class Bus extends StatefulWidget {
   State<Bus> createState() => BusState();
 }
 
-class BusState extends State<Bus> {
+class BusState extends State<Bus>  {
+
   final List<IconData> icons=[Icons.favorite, Icons.favorite, Icons.route];
   final List<String> items=["收藏路線", "收藏站牌",  "規劃"];
   final List<String> id=["route", "stop",  "routeplan"];
-  int current = 0;
+  int _current = 0;
   final PageController pageController = PageController();
   List<String>? favoriteStops;
   List<String>? favoriteRoutes;
+
+
+
+
+
+  // 更新當前值
+  Future<List<Map<String, dynamic>>> updateCurrent() async {
+
+
+
+
+      if(_current==0){
+    List<Map<String, dynamic>>_future = await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
+    print(_future);
+    return _future;
+      }else if(_current==1){
+        List<Map<String, dynamic>> _future =  await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
+        print(_future);
+        return _future;
+
+      }
+    return [];
+  }
   @override
   void initState() {
     super.initState();
     _initializeFavorites();
+
+
+
+  }
+  @override
+  void dispose() {
+
+    super.dispose();
 
   }
 
@@ -48,22 +81,18 @@ class BusState extends State<Bus> {
   List busData=[];
   List<Map<String, dynamic>> _favorites =[];
   final List<String> _list = ['全部', '臺中市','臺北市'];
-  final List<String> _listID = ['', 'Taichung','Taipei'];
-   String currentCity="臺中市";
-  String correspondingID="Taichung";
+  final List<String> _listID = ['all', 'Taichung','Taipei'];
+  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
+  ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
-  // List suggestions = [];
-  // Future<void> _loadFavorites() async {
-  //   favoriteStops = await loadList('favoritesBusStop');
-  //   favoriteRoutes = await loadList('favoritesBusRoute');
-  //   setState(() {}); // 更新 UI
-  // }
-  Future<List<Map<String, dynamic>>> _loadFavorites(String key) async {
+
+  Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
     favorite_feature db=favorite_feature();
-    final favorites = await db.getFavorites(key, correspondingID);
+
+    final favorites = await db.getFavorites(key, correspondingIDNotifier.value,city);
 // setState(() {
 //   _favorites=favorites;
 // });
@@ -72,15 +101,15 @@ class BusState extends State<Bus> {
 
   Future<List> _updateSuggestions(id) async {
     // 查找 currentCity 在 _list 中的索引
-    int index = _list.indexOf(currentCity);
+    int index = _list.indexOf(currentCityNotifier.value);
 
     if (index != -1 ) {
       // 获取 _listID 中对应的值
-       correspondingID = _listID[index];
-      busCurrentCity=correspondingID;
-       busData= await  GetBus(correspondingID);
+      correspondingIDNotifier.value = _listID[index];
+      busCurrentCity=correspondingIDNotifier.value;
+       busData= await  GetBus(correspondingIDNotifier.value);
 
-       print(busData);
+
     } else {
       print('City not found in the list');
       return []; // 返回一个空列表，避免 Future 没有返回值的问题
@@ -214,13 +243,13 @@ class BusState extends State<Bus> {
                                 child: CustomDropdown<String>(
                                   hintText: '選擇城市',
                                   items: _list,
-                                  initialItem: currentCity,
+                                  initialItem: currentCityNotifier.value,
 
                                   onChanged: (value) {
                                     // Handle selection change
-                                    setState(() {
-                                      currentCity = value!;
-                                    });
+
+                                      currentCityNotifier.value = value!;
+
                                   },
                                 ),
                               ),
@@ -330,7 +359,7 @@ class BusState extends State<Bus> {
                                       CustomDropdown<String>(
                                         hintText: '選擇城市',
                                         items: _list,
-                                        initialItem: currentCity,
+                                        initialItem: currentCityNotifier.value,
                                         onChanged: (value) {
                                           // Handle selection change
                                         },
@@ -407,11 +436,16 @@ class BusState extends State<Bus> {
               child: CustomDropdown<String>(
                 hintText: 'Select City',
                 items: _list,
-                initialItem: currentCity,
+                initialItem: currentCityNotifier.value,
                 onChanged: (value) {
+
                   setState(() {
-                    _loadFavorites("FavoritesRoute");
-                    currentCity=value!;
+
+                    currentCityNotifier.value=value!;
+                    // 重新觸發 FutureBuilder
+                    updatedCorrespondingID();
+                    updateCurrent();
+
                     // _updateSuggestions("route");
                   });
 
@@ -589,7 +623,7 @@ class BusState extends State<Bus> {
                               );
                             } else {
                               // 数据加载完成后，显示 Buslist
-                              return Buslist(suggestions: snapshot.data ?? [], city: correspondingID,);
+                              return Buslist(suggestions: snapshot.data ?? [], city:  correspondingIDNotifier.value,);
 
 
                             }
@@ -653,10 +687,11 @@ class BusState extends State<Bus> {
         GestureDetector(
           onTap: () {
             setState(() {
-              current = index;
+               _current = index;
+              updateCurrent();
             });
             pageController.animateToPage(
-              current,
+              _current,
               duration: const Duration(milliseconds: 200),
               curve: Curves.ease,
             );
@@ -667,9 +702,9 @@ class BusState extends State<Bus> {
             width: 100,
             height: 55,
             decoration: BoxDecoration(
-              color: current == index ? Colors.white70 : Colors.white54,
-              borderRadius: BorderRadius.circular(current == index ? 12 : 7),
-              border: current == index ? Border.all(color: busBlue, width: 2.5) : null,
+              color: _current == index ? Colors.white70 : Colors.white54,
+              borderRadius: BorderRadius.circular(_current == index ? 12 : 7),
+              border: _current == index ? Border.all(color: busBlue, width: 2.5) : null,
             ),
             child: Center(
               child: Column(
@@ -677,8 +712,8 @@ class BusState extends State<Bus> {
                 children: [
                   Icon(
                     icons[index],
-                    size: current == index ? 23 : 20,
-                    color: current == index ? Colors.black : Colors.grey.shade400,
+                    size: _current == index ? 23 : 20,
+                    color: _current == index ? Colors.black : Colors.grey.shade400,
                   ),
                   Text(items[index]),
                 ],
@@ -686,7 +721,7 @@ class BusState extends State<Bus> {
             ),
           ),
         ),
-        if (current == index)
+        if (_current == index)
           Container(
             width: 5,
             height: 5,
@@ -725,8 +760,8 @@ class BusState extends State<Bus> {
 
   Widget _buildList(String key, Widget Function(dynamic) itemBuilder) {
 
-    return FutureBuilder<dynamic>(
-      future:_loadFavorites(key),
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future:updateCurrent(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -803,7 +838,7 @@ class BusState extends State<Bus> {
     );
   }
   Widget _buildStopListItem( stop) {
-
+print(stop);
     return _buildListItem(stop["stopName"], () => _showConfirmDialog(context, stop["stopName"],"FavoritesStop"), () {
       Navigator.push(
         context,
@@ -811,12 +846,30 @@ class BusState extends State<Bus> {
       );
     });
   }
+void updatedCorrespondingID(){
+  // 查找 currentCity 在 _list 中的索引
+  int index = _list.indexOf(currentCityNotifier.value);
 
+  if (index != -1 ) {
+  // 获取 _listID 中对应的值
+    setState(() {
+      correspondingIDNotifier.value = _listID[index];
+    });
+
+
+
+
+  } else {
+  print('City not found in the list');
+
+  }// 调用异步初始化函数
+
+}
   Widget _buildRouteListItem( route) {
 
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
-      await GetBusInfo(int.parse(route["routeName"]),correspondingID);
-      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${correspondingID}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+      await GetBusInfo(int.parse(route["routeName"]), correspondingIDNotifier.value);
+      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
 
 
 
@@ -828,7 +881,7 @@ class BusState extends State<Bus> {
           destinationStopName:(route)["DestinationStopNameZh"],
           operators: "",
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
-          city: correspondingID,
+          city:  correspondingIDNotifier.value,
 
 
 

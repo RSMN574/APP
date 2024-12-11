@@ -62,7 +62,7 @@ class favorite_feature {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getFavorites(String key, String currentCity) async {
+  Future<List<Map<String, dynamic>>> getFavorites(String key, String currentCity, String city) async {
     final db = await database;
 
     // 添加搜索条件，查询符合城市条件的记录

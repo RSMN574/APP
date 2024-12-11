@@ -824,7 +824,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
         favorite_feature dbHelper = favorite_feature(); // 创建实例
 
         final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop');
-        print(result);
+
         // output=await  saveList('favoritesBusStop',other["id"] );
         // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
         // 顯示相應的 QuickAlert
