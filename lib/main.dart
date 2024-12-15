@@ -11,6 +11,7 @@ import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
 import 'commute.dart';
+import 'database/schedule.dart';
 import 'firebase/FCM.dart';
 import 'firebase_options.dart';
 import 'widget/geolocator.dart';
@@ -125,8 +126,10 @@ class _NavigationExampleState extends State<NavigationExample> {
       NearbyStationsPage(),
 
       InfoPages(),
-    ]);
 
+    ]);
+    final schedule _schedule = schedule();
+    _schedule.initDatabase();
     // 在应用启动时获取定位信息
     getLocation(context);
 

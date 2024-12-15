@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
+import '../database/schedule.dart';
 
 class RoutePlanner extends StatefulWidget {
   @override
@@ -275,7 +276,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
                 ElevatedButton(
                   onPressed: () {
                     // 确认按钮逻辑，执行所需的操作
-                   confirmRouteSelection(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation,);
+                   confirmRouteSelection(selectedCity,selectedRoute!,selectedDepartureStation!,selectedArrivalStation!,);
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -571,12 +572,68 @@ if(type=="arrival"){
       });
     }
   }
-  void confirmRouteSelection(String selectedCity, String? selectedRoute, String? selectedDepartureStation, String? selectedArrivalStation){
+  void confirmRouteSelection(String selectedCity, String selectedRoute, String selectedDepartureStation, String selectedArrivalStation){
     print(selectedCity);
     print(selectedRoute);
     print(selectedDepartureStation);
     print(selectedArrivalStation);
+    _showAddToCategoryDialog(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation);
   }
 
+  void _showAddToCategoryDialog(String city, String route,String Departure,String DestinationS) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('選擇類別'),
+          content: Text('將路線 $route 添加到以下類別:'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // 添加到旅行逻辑
+                Navigator.pop(context); // 关闭对话框
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('路線 $route 已添加到旅行')),
+                );
+              },
+              child: Text('添加到旅行'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // 添加到通勤逻辑
+                Navigator.pop(context); // 关闭对话框
 
+                final schedule _schedule = schedule();
+                final result = await _schedule.addSchedule(
+                    city: city,
+                    DepartureStopName: Departure,
+                    DestinationStopName: DestinationS,
+                    route: route, type: 'bus'
+                );
+
+// 根据 addSchedule 方法返回的结果进行处理
+                if (result == -1) {
+                  // 如果已经存在相同的记录，提示用户
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('该行程已经存在。'))
+                  );
+                } else if (result == 100) {
+                  // 成功添加行程，提示用户
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('行程添加成功！'))
+                  );
+                } else {
+                  // 添加行程失败，提示用户
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('添加行程失败。'))
+                  );
+                }
+              },
+              child: Text('添加到上班通勤'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

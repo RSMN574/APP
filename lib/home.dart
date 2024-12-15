@@ -38,7 +38,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
 
+Future<void> showBusStops() async {
+  var i=await mysqlSelect('SELECT * FROM Bus.Bus_Taichung_Stop');
+  print (i);
 
+}
   // 获取当前位置
   void _getCurrentLocation() async {
 
@@ -80,6 +84,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
     _searchFocusNode.unfocus();
 // 地图创建时调用获取当前定位
     _getCurrentLocation();
+    showBusStops();
   }
   @override
   Widget build(BuildContext context) {
