@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'Const/regularConst.dart';
 import 'database/schedule.dart';
 
 class Commute extends StatefulWidget {
@@ -12,6 +13,7 @@ class _CommuteState extends State<Commute> {
   int _currentIndex = 0;
   final PageController _pageController = PageController();
   List<Map<String, dynamic>> scheduleData = [];
+
   @override
   void initState() {
     super.initState();
@@ -20,24 +22,114 @@ class _CommuteState extends State<Commute> {
 
   Future<void> fetchScheduleData() async {
     final db = schedule();
-    final data = await db.getSchedule("schedule", "臺中市", );
+    final data = await db.getSchedule("schedule", "臺中市");
     setState(() {
       scheduleData = data;
     });
   }
+
+  // 下拉刷新方法
+  Future<void> _onRefresh() async {
+    await fetchScheduleData(); // 重新获取数据
+  }
+
   Widget _buildCommutePage() {
-    return ListView.builder(
-      itemCount: scheduleData.length,
-      itemBuilder: (context, index) {
-        final item = scheduleData[index];
-        return _buildScheduleCard(item);
+    return RefreshIndicator(
+      onRefresh: _onRefresh, // 下拉刷新时调用
+      child: ListView.builder(
+        itemCount: scheduleData.length,
+        itemBuilder: (context, index) {
+          final item = scheduleData[index];
+          return _buildScheduleCard(item);
+        },
+      ),
+    );
+  }
+  Future<void> _dialogBuilder(BuildContext context, Map<String, dynamic> data) {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 20),
+              Column(
+                children: [
+                  _buildDialogOption(context, Icons.info, "資訊", "info"),
+                  _buildDialogOption(context, Icons.edit, "編輯", "edit"),
+                  _buildDialogOption(context, Icons.delete, "移除", "remove",data),
+                ],
+              ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: busBlue,
+                  ),
+                  child: const Text(
+                    '關閉',
+                    style: TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
 
+  Widget _buildDialogOption(BuildContext context, IconData icon, String title, String id,[Map<String, dynamic>? other]) {
+    return InkWell(
+      onTap: () async {
+        // 处理对话框选项点击事件
+        if(id=="remove"){
+          final db = schedule();
+         int result=await  db.removeSchedule(city: other?['city'], type: other?['type'], table: 'schedule', UserStartingStopName: other?['UserStartingStopName'], UserDestinationStopName: other?['UserDestinationStopName']
+              , StartingStopName: other?['StartingStopName'], FinalStopName: other?['FinalStopName'], route: other?['Route']);
+          if (result == -1) {
+            // 如果已经存在相同的记录，提示用户
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('行程錯誤'))
+            );
+          } else if (result == 100) {
+            // 成功添加行程，提示用户
+            fetchScheduleData();
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('行程刪除成功！'))
+            );
+          } else {
+            // 添加行程失败，提示用户
+            ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('行程刪除失败。'))
+            );
+          }
 
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: busBlue),
+            const SizedBox(width: 10),
+            Text(title, style: const TextStyle(fontSize: 18)),
+          ],
+        ),
+      ),
+    );
+  }
   Widget _buildScheduleCard(Map<String, dynamic> data) {
-    return Container(
+    return GestureDetector(
+        onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
+    child: Container(
+
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -81,13 +173,30 @@ class _CommuteState extends State<Commute> {
             children: [
               Expanded(
                 child: Text(
-                  '起點: ${data['DepartureStopName']}',
+                  '路線起點: ${data['StartingStopName']}', // 顯示路線起始站
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
               Expanded(
                 child: Text(
-                  '終點: ${data['DestinationStopName']}',
+                  '路線終點: ${data['FinalStopName']}', // 顯示路線終點站
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '用戶上車: ${data['UserStartingStopName'] ?? '未設定'}', // 顯示用戶選擇的上車站
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  '用戶下車: ${data['UserDestinationStopName'] ?? '未設定'}', // 顯示用戶選擇的下車站
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
@@ -100,10 +209,8 @@ class _CommuteState extends State<Commute> {
           ),
         ],
       ),
-    );
+    ));
   }
-
-
 
   void _onTabTapped(int index) {
     setState(() {
@@ -123,7 +230,7 @@ class _CommuteState extends State<Commute> {
       Center(child: Text('旅行頁面', style: TextStyle(fontSize: 24))),
     ];
 
-    return  Column(
+    return Column(
       children: [
         // 模擬 AppBar
         CustomBottomNavigationBar(
@@ -142,12 +249,10 @@ class _CommuteState extends State<Commute> {
             children: _pages,
           ),
         ),
-        // CustomBottomNavigationBar
-
       ],
     );
-
-}}
+  }
+}
 
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
@@ -163,7 +268,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color:Colors.white ,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black12,
@@ -243,4 +348,3 @@ class CustomBottomNavigationBar extends StatelessWidget {
     );
   }
 }
-

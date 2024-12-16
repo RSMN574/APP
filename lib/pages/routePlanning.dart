@@ -9,7 +9,7 @@ class RoutePlanner extends StatefulWidget {
   _RoutePlannerState createState() => _RoutePlannerState();
 }
 
-class _RoutePlannerState extends State<RoutePlanner> {
+class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderStateMixin{
   // 基础数据
   List<String> transportModes = ['火車', '高鐵', '捷運', '公車', '飛機', '客運', 'Ubike'];
   String selectedTransport = '公車';
@@ -21,7 +21,8 @@ class _RoutePlannerState extends State<RoutePlanner> {
   // 公车数据
   ValueNotifier<List<String>> busRoutesNotifier = ValueNotifier([]);
   String? selectedRoute;
-
+  // TabController 用來監聽當前的 Tab
+  late TabController tabController;
   // 站点数据
   Map<String, List<String>> busStopsByRoute = {
     '101路': ['市政府站', '101大樓', '信義安和'],
@@ -32,9 +33,9 @@ class _RoutePlannerState extends State<RoutePlanner> {
 // 站点选择
   String? selectedDepartureStation; // 当前选择的出发站
   String? selectedArrivalStation; // 当前选择的到达站
-
-
-
+String? selectDirection;
+String? routeArrivalStation;
+  String? routeDepartureStation;
 // 出发站和到达站的数据（可能会根据选择的路线进行动态更新）
   List<String> departureStations = []; // 根据选择的路线更新的出发站
   List<String> arrivalStations = []; // 根据选择的路线更新的到达站
@@ -48,6 +49,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
   void initState() {
     super.initState();
     fetchBusRoutes(); // 初始化加载公交路线数据
+    tabController = TabController(length: 2, vsync: this);
   }
 
   Future<void> fetchBusRoutes() async {
@@ -249,7 +251,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
-                    showStationPicker("arrival");
+                    showStationPicker2();
                   },
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -306,6 +308,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
       child: Container(
         color: Colors.white,
         child: TabBar(
+          controller: tabController, // 绑定 TabController
           // controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,
@@ -323,6 +326,126 @@ class _RoutePlannerState extends State<RoutePlanner> {
     );
   }
 
+  void showStationPicker2( ) async {
+    // 查詢路線和站點信息
+    var routeQuery = await mysqlSelect(
+      "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+    );
+    var stopsQuery = await mysqlSelect(
+      "SELECT Stops FROM Bus.Bus_Taichung WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+    );
+    if(selectDirection=="arrival"){
+
+    }else if(selectDirection=='departure'){
+
+    }
+    // 路線方向信息
+   late  List<dynamic> departureStops;
+    if(routeDepartureStation== routeQuery[0]["DepartureStopNameZh"]){
+departureStops = json.decode(stopsQuery[1]["Stops"]);
+    }else   if(routeDepartureStation== routeQuery[0]["DestinationStopNameZh"]){
+      departureStops = json.decode(stopsQuery[0]["Stops"]);
+    }
+    List<String> routeInfo = [
+      routeQuery[0]["DepartureStopNameZh"],
+      routeQuery[0]["DestinationStopNameZh"],
+    ];
+
+    // 初始站點列表
+
+
+
+    // 搜尋結果
+    ValueNotifier<List<dynamic>> filteredDepartureStops = ValueNotifier(departureStops);
+
+
+    // 選擇的站點
+    String? selected;
+
+
+
+
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            '選擇站點',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.5,
+                    child:
+                        // 第一個 Tab (出發站)
+                        Column(
+                          children: [
+                            _buildSearchBox(
+                              onSearch: (query) {
+                                filteredDepartureStops.value = departureStops
+                                    .where((stop) => stop["StopName"]["Zh_tw"]
+                                    .toString()
+                                    .contains(query))
+                                    .toList();
+                              },
+                            ),
+                            Expanded(
+                              child: ValueListenableBuilder<List<dynamic>>(
+                                valueListenable: filteredDepartureStops,
+                                builder: (context, stops, _) {
+                                  return _buildStationList(
+                                    stops: stops,
+                                    onStationSelected: (station) {
+                                      selected = station;
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        // 第二個 Tab (到達站)
+
+
+                  ),
+                ],
+              ),
+
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消', style: TextStyle(color: Colors.red)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('確認', style: TextStyle(color: Colors.green)),
+            ),
+          ],
+        );
+      },
+    );
+
+
+
+
+      setState(() {
+        if (selected != null) selectedArrivalStation = selected!;
+        // routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
+        // routeArrivalStation=  routeQuery[0]["DepartureStopNameZh"];
+        //
+        // selectDirection='arrival';
+      });
+
+  }
   void showStationPicker(String type) async {
     // 查詢路線和站點信息
     var routeQuery = await mysqlSelect(
@@ -331,7 +454,11 @@ class _RoutePlannerState extends State<RoutePlanner> {
     var stopsQuery = await mysqlSelect(
       "SELECT Stops FROM Bus.Bus_Taichung WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
+if(selectDirection=="arrival"){
 
+}else if(selectDirection=='departure'){
+
+}
     // 路線方向信息
     List<String> routeInfo = [
       routeQuery[0]["DepartureStopNameZh"],
@@ -350,6 +477,8 @@ class _RoutePlannerState extends State<RoutePlanner> {
     String? selected;
     String? selectedArrival;
 
+
+
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -362,6 +491,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
             width: double.maxFinite,
             child: DefaultTabController(
               length: 2,
+              initialIndex: tabController.index,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -370,6 +500,7 @@ class _RoutePlannerState extends State<RoutePlanner> {
                   SizedBox(
                     height: MediaQuery.of(context).size.height * 0.5,
                     child: TabBarView(
+                      controller: tabController, // 關聯 TabController
                       children: [
                         // 第一個 Tab (出發站)
                         Column(
@@ -447,23 +578,30 @@ class _RoutePlannerState extends State<RoutePlanner> {
         );
       },
     );
-if(type=="arrival"){
-  // 設置選中的站點
-  setState(() {
-    if (selected != null) selectedArrivalStation = selected!;
 
-  });
+    // 根據選擇的 Tab 和類型設置對應的站點
+    String selectedTab = tabController.index == 0 ? 'A' : 'B';
 
-}else if(type=="departure"){
-  // 設置選中的站點
-  setState(() {
-    if (selected != null) selectedDepartureStation = selected!;
+    if (selectedTab == "A") {
+      setState(() {
+        if (selected != null) {
+          selectedDepartureStation = selected!;
+          routeDepartureStation=  routeQuery[0]["DepartureStopNameZh"];
+          routeArrivalStation=  routeQuery[0]["DestinationStopNameZh"];
 
-  });
 
-}
+        }
+      });
+    } else if (selectedTab == "B") {
+      setState(() {
+        if (selected != null) selectedArrivalStation = selected!;
+        routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
+        routeArrivalStation=  routeQuery[0]["DepartureStopNameZh"];
 
+      });
+    }
   }
+
 
 // 構建搜索框
   Widget _buildSearchBox({required Function(String) onSearch}) {
@@ -573,10 +711,7 @@ if(type=="arrival"){
     }
   }
   void confirmRouteSelection(String selectedCity, String selectedRoute, String selectedDepartureStation, String selectedArrivalStation){
-    print(selectedCity);
-    print(selectedRoute);
-    print(selectedDepartureStation);
-    print(selectedArrivalStation);
+
     _showAddToCategoryDialog(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation);
   }
 
@@ -606,8 +741,10 @@ if(type=="arrival"){
                 final schedule _schedule = schedule();
                 final result = await _schedule.addSchedule(
                     city: city,
-                    DepartureStopName: Departure,
-                    DestinationStopName: DestinationS,
+                    UserStartingStopName: Departure,
+                    UserDestinationStopName: DestinationS,
+                    StartingStopName:routeDepartureStation,
+                    FinalStopName:routeArrivalStation,
                     route: route, type: 'bus'
                 );
 

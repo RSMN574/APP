@@ -27,16 +27,18 @@ class schedule {
         // 创建 FavoritesRoute 表
         print('Creating schedule table');
         await db.execute('''
-          CREATE TABLE IF NOT EXISTS schedule (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            type TEXT NOT NULL,
-            Route TEXT NOT NULL,
-            DepartureStopName TEXT NOT NULL,
-            DestinationStopName TEXT NOT NULL,
-            other JSON,
-            city TEXT NOT NULL
-          )
-        ''');
+  CREATE TABLE IF NOT EXISTS schedule (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    Route TEXT NOT NULL,
+    StartingStopName TEXT NOT NULL,         -- 新增路線起始站
+    UserStartingStopName TEXT,             -- 新增用戶上車站
+    FinalStopName TEXT NOT NULL,           -- 路線終點站
+    UserDestinationStopName TEXT,          -- 用戶目的站
+    other JSON,
+    city TEXT NOT NULL
+  )
+''');
 
 
 
@@ -55,13 +57,15 @@ class schedule {
       whereArgs: [city],
     );
 
-print(results);
+
     return results;
   }
 
   Future<int> addSchedule({
-    String? DepartureStopName,
-    String? DestinationStopName,
+    String? UserStartingStopName,
+    String? UserDestinationStopName,
+    String? StartingStopName,
+    String? FinalStopName,
     String? route,
     String? other,
     required String type,
@@ -76,10 +80,12 @@ print(results);
         final existing = await db.query(
           'schedule',
           where:
-          'DepartureStopName = ? AND DestinationStopName = ? AND type = ? AND Route = ? AND city = ?',
+          'UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?  AND type = ? AND Route = ? AND city = ?',
           whereArgs: [
-            DepartureStopName,
-            DestinationStopName,
+            UserStartingStopName,
+            UserDestinationStopName,
+            StartingStopName,
+            FinalStopName,
             type,
             route,
             city
@@ -95,8 +101,10 @@ print(results);
         await db.insert(
           'schedule',
           {
-            'DepartureStopName': DepartureStopName,
-            'DestinationStopName': DestinationStopName,
+            'UserStartingStopName': UserStartingStopName,
+            'UserDestinationStopName': UserDestinationStopName,
+            'StartingStopName': StartingStopName,
+            'FinalStopName': FinalStopName,
             'type':type,
             'Route': route,
             'city': city,
@@ -117,14 +125,15 @@ print(results);
 
 
   Future<int> removeSchedule(
-      {String? route,String? stopName, required String city,required String type,required String table,required int id,required String DestinationStopName,required String DepartureStopName}) async {
+      {required String route,String? stopName, required String city,required String type,required String table,required String UserStartingStopName,
+        required String UserDestinationStopName,required String StartingStopName,required String FinalStopName}) async {
     final db = await database;
     // 尝试删除记录
     if(table=="schedule"){
       final rowsAffected = await db.delete(
         'schedule',
-        where: 'Route = ? AND city = ? AND id = ? AND type = ? AND DestinationStopName = ? AND DepartureStopName = ?', // 添加 city 条件
-        whereArgs: [route, city,id,type,DestinationStopName,DepartureStopName], // 传递 routeName 和 city
+        where: 'Route = ? AND city = ? AND type = ? AND UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?', // 添加 city 条件
+        whereArgs: [route, city,type,UserStartingStopName,UserDestinationStopName,StartingStopName,FinalStopName,], // 传递 routeName 和 city
       );
       // 根据删除结果返回不同值
       if (rowsAffected > 0) {
@@ -133,7 +142,7 @@ print(results);
         return 200; // 未找到匹配的记录，删除失败
       }
     }else{
-      return 200;
+      return -1;
     }
 
 
