@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
 
 import 'Const/regularConst.dart';
@@ -61,7 +61,7 @@ class _CommuteState extends State<Commute> {
                 const SizedBox(height: 20),
               Column(
                 children: [
-                  _buildDialogOption(context, Icons.info, "資訊", "info"),
+                  _buildDialogOption(context, Icons.info, "資訊", "info",data),
                   _buildDialogOption(context, Icons.edit, "編輯", "edit"),
                   _buildDialogOption(context, Icons.delete, "移除", "remove",data),
                 ],
@@ -96,7 +96,7 @@ class _CommuteState extends State<Commute> {
           if (result == -1) {
             // 如果已经存在相同的记录，提示用户
             ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('行程錯誤'))
+                const SnackBar(content: Text('行程錯誤！'))
             );
           } else if (result == 100) {
             // 成功添加行程，提示用户
@@ -110,6 +110,69 @@ class _CommuteState extends State<Commute> {
                 SnackBar(content: Text('行程刪除失败。'))
             );
           }
+
+        }else  if(id=="info"){
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                title: Text(
+                  '路線資訊',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: busBlue,  // 自定义颜色
+                  ),
+                ),
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 10),  // 添加一些间距
+                    Text(
+                      '路線起點: ${other?['StartingStopName']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500, // 加粗部分文本
+                      ),
+                    ),
+                    SizedBox(height: 8),  // 每行文本之间的间距
+                    Text(
+                      '路線終點: ${other?['FinalStopName']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '用戶上車站: ${other?['UserStartingStopName']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '用戶下車站: ${other?['UserDestinationStopName']}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+
+              );
+            },
+          );
 
         }
       },
@@ -128,8 +191,7 @@ class _CommuteState extends State<Commute> {
   Widget _buildScheduleCard(Map<String, dynamic> data) {
     return GestureDetector(
         onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
-    child: Container(
-
+    child:Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -146,70 +208,61 @@ class _CommuteState extends State<Commute> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 路線标题
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              '路線: ${data['Route']}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          // 顯示交通工具類型
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              '類型: ${data['type'] ?? '未知'}',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+
+          // 起點與終點區域
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '路線: ${data['Route']}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              // 顯示交通工具類型
-              Text(
-                '類型: ${data['type'] ?? '未知'}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
               Expanded(
                 child: Text(
-                  '路線起點: ${data['StartingStopName']}', // 顯示路線起始站
+                  '起點: ${data['UserStartingStopName'] ?? '未設定'}',
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
+              const SizedBox(width: 16), // 在兩者之間添加間距
               Expanded(
                 child: Text(
-                  '路線終點: ${data['FinalStopName']}', // 顯示路線終點站
+                  '終點: ${data['UserDestinationStopName'] ?? '未設定'}',
                   style: const TextStyle(fontSize: 16, color: Colors.black87),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '用戶上車: ${data['UserStartingStopName'] ?? '未設定'}', // 顯示用戶選擇的上車站
-                  style: const TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  '用戶下車: ${data['UserDestinationStopName'] ?? '未設定'}', // 顯示用戶選擇的下車站
-                  style: const TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),  // 增加底部间隔
+
+          // 城市部分
           Text(
             '城市: ${data['city']}',
             style: const TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],
       ),
-    ));
+    )
+    );
   }
 
   void _onTabTapped(int index) {

@@ -36,8 +36,12 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white, // 白色背景
       appBar: AppBar(
-        title: Text('火車查詢系統'),
+        title: Text('火車查詢系統', style: TextStyle(color: Colors.black)), // 黑色文字
+        backgroundColor: Colors.white, // 白色背景
+        elevation: 2, // 微弱阴影效果
+        iconTheme: IconThemeData(color: Colors.black), // 使图标为黑色
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -45,6 +49,9 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
             Tab(text: '按出發地和目的地查詢'),
             Tab(text: '按車站查詢'),
           ],
+          labelColor: Colors.black, // 选中的标签文字为黑色
+          unselectedLabelColor: Colors.grey, // 未选中的标签文字为灰色
+          indicatorColor: Colors.black, // 指示器颜色为黑色
         ),
       ),
       body: TabBarView(
@@ -59,6 +66,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         ],
       ),
     );
+
   }
 }
 
@@ -92,45 +100,60 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: widget.controller,
-              decoration: const InputDecoration(
-                labelText: '輸入車次',
-                border: OutlineInputBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 車次輸入框
+              TextField(
+                controller: widget.controller,
+                decoration: const InputDecoration(
+                  labelText: '輸入車次',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            SizedBox(height: 16),
-            TextButton(
-              onPressed: () => _selectDate(context),
-              child: Text(
-                selectedDate == null
-                    ? '選擇日期'
-                    : '選擇日期: ${dateFormat.format(selectedDate!)}',
-                style: const TextStyle(fontSize: 16),
+              const SizedBox(height: 16),
+              // 日期選擇按鈕
+              TextButton(
+                onPressed: () => _selectDate(context),
+                child: Text(
+                  selectedDate == null
+                      ? '選擇日期'
+                      : '選擇日期: ${dateFormat.format(selectedDate!)}',
+                  style: const TextStyle(fontSize: 16, color: Colors.black), // 黑色文字
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () async {
-                // 查詢邏輯
-               var trainData=await fetchTrain(int.parse(widget.controller.text),selectedDate!);
+              const SizedBox(height: 16),
+              // 查詢按鈕
+              ElevatedButton(
+                onPressed: () async {
+                  // 查詢邏輯
+                  var trainData = await fetchTrain(
+                    int.parse(widget.controller.text),
+                    selectedDate!,
+                  );
 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => TrainSchedulePage( trainData: trainData, type: 'trainNo',)),
-                );
-              },
-              child: const Text('查詢'),
-            ),
-          ],
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TrainSchedulePage(
+                        trainData: trainData,
+                        type: 'trainNo',
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  foregroundColor: Colors.white, backgroundColor: Colors.black, // 白色文字
+                ),
+                child: const Text('查詢'),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+
   }
 }
 
@@ -185,38 +208,43 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 出發地輸入框
             TextField(
               controller: widget.departureController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: '出發地',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
+            // 目的地輸入框
             TextField(
               controller: widget.destinationController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: '目的地',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
+            // 日期選擇按鈕
             TextButton(
               onPressed: () => _selectDate(context),
               child: Text(
                 selectedDate == null
                     ? '選擇日期'
                     : '選擇日期: ${dateFormat.format(selectedDate!)}',
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 16, color: Colors.black), // 黑色文字
               ),
             ),
-            SizedBox(height: 16),
-
-
+            const SizedBox(height: 16),
+            // 查詢按鈕
             ElevatedButton(
               onPressed: () {
                 // 查詢邏輯
               },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white, backgroundColor: Colors.black, // 白色文字
+              ),
               child: const Text('查詢'),
             ),
           ],
@@ -448,31 +476,63 @@ class _StationSearchPageState extends State<StationSearchPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 輸入車站名稱 TextField
             TextField(
               controller: _controller,
-              readOnly: true, // 避免直接编辑，强制使用弹窗选择
-              decoration: const InputDecoration(
+              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
+              decoration: InputDecoration(
                 labelText: '輸入車站名稱',
-                border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Colors.black), // 標籤文字為黑色
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12), // 圓角邊框
+                ),
+                filled: true,
+                fillColor: Colors.white, // 背景顏色為白色
+                contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               ),
               onTap: _showStationDialog,
             ),
             const SizedBox(height: 16),
+            // 選擇日期的 TextButton
             TextButton(
               onPressed: () => _selectDate(context),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                backgroundColor: Colors.transparent,
+                side: BorderSide(color: Colors.black.withOpacity(0.2)), // 淡黑色邊框
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: Text(
                 selectedDate == null
                     ? '選擇日期'
                     : '選擇日期: ${dateFormat.format(selectedDate!)}',
-                style: const TextStyle(fontSize: 16),
+                style: TextStyle(fontSize: 16, color: Colors.black),
               ),
             ),
             const SizedBox(height: 16),
+            // 查詢按鈕
             ElevatedButton(
               onPressed: () {
                 // 查詢邏輯
               },
-              child: const Text('查詢'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue, // 藍色背景
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12), // 圓角
+                ),
+                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+                shadowColor: Colors.black.withOpacity(0.2), // 微弱陰影
+                elevation: 4,
+              ),
+              child: const Text(
+                '查詢',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white, // 白色文字
+                ),
+              ),
             ),
           ],
         ),

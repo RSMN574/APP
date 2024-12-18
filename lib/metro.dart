@@ -39,7 +39,7 @@ class _MetroState extends State<Metro>with TickerProviderStateMixin {
     "臺中市",
     "高雄市",
   ];
-
+  int selectedIndex = -1; // 選中的站點索引
   String _selectedCity = "臺北市"; // 默认选项
   late MRTGreenLinePainter _mrtGreenLinePainter; // 用于保存画布绘制器
 
@@ -140,8 +140,14 @@ return ;
                     child:GestureDetector(
 
                                       onTapDown: (details) {
-                                        Offset localPosition = details.localPosition;
-                                        int stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
+                                        late int stationIndex;
+                                        setState(() {
+                                          // 判斷點擊到哪個站點
+                                          selectedIndex = MRTGreenLinePainter().getStationIndexAtOffset(details.localPosition);
+                                          Offset localPosition = details.localPosition;
+                                          stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
+
+                                        });
 
                                         if (stationIndex != -1) {
                     showBottomSheet(
@@ -269,7 +275,7 @@ return ;
             ),
           ); // 加载时显示进度指示器
         } else if (snapshot.hasError) {
-          return const Text("加载失败"); // 显示加载错误
+          return const Text("載入失敗"); // 显示加载错误
         } else {
           return InteractiveViewer(
             child: snapshot.data!,
@@ -316,7 +322,7 @@ return ;
             ),
           ); // 显示加载进度条
         } else if (snapshot.hasError) {
-          return const Text("出错了，無法載入車站信息"); // 显示错误信息
+          return const Text("無法載入車站資訊"); // 显示错误信息
         } else if (snapshot.hasData) {
           var stationI = snapshot.data;
           return SingleChildScrollView(
@@ -398,7 +404,7 @@ return ;
 
 
         } else {
-          return const Text("未找到任何车站信息");
+          return const Text("未找到任何車站資訊");
         }
       },
     );
@@ -441,37 +447,36 @@ return ;
 
 
 class MRTGreenLinePainter extends CustomPainter {
-
   final List<StationInfo> stationInfos = [
-    StationInfo('北屯總站', 'Beitun Main Station',3),
-    StationInfo('舊社', 'Jiushe',2),
-    StationInfo('松竹', 'Songzhu',110),
-    StationInfo('四維國小', 'Sihwei Elementary School\n(Erfenpu)',1),
-    StationInfo('文心崇德', 'Wenxin Chongde',1),
-    StationInfo('文心中清', 'Wenxin Zhongqing\n(Tianjin Shopping District)',1),
-    StationInfo('文華高中', 'Wenhua Senior High School',1),
-    StationInfo('文心櫻花', 'Wenxin Yinghua',1),
-    StationInfo('市政府', 'Taichung City Hall',1),
-    StationInfo('水安宮', 'Shui-an Temple',1),
-    StationInfo('文心森林公園', 'Wenxin Forest Park',1),
-    StationInfo('南屯', 'Nantun (Wenxin Wuquan W.)',1),
-    StationInfo('豐樂公園', 'Feng-le Park',1),
-    StationInfo('大慶', 'Daqing\n(Chungshan Medical University)',1),
-    StationInfo('九張犁', 'Jiuzhangli',1),
-    StationInfo('九德', 'Jiude',1),
-    StationInfo('烏日', 'Wuri',1),
-    StationInfo('高鐵臺中站', 'HSR Taichung Station',1),
+    StationInfo('北屯總站', 'Beitun Main Station'),
+    StationInfo('舊社', 'Jiushe'),
+    StationInfo('松竹', 'Songzhu'),
+    StationInfo('四維國小', 'Sihwei Elementary School\n(Erfenpu)'),
+    StationInfo('文心崇德', 'Wenxin Chongde'),
+    StationInfo('文心中清', 'Wenxin Zhongqing\n(Tianjin Shopping District)'),
+    StationInfo('文華高中', 'Wenhua Senior High School'),
+    StationInfo('文心櫻花', 'Wenxin Yinghua'),
+    StationInfo('市政府', 'Taichung City Hall'),
+    StationInfo('水安宮', 'Shui-an Temple'),
+    StationInfo('文心森林公園', 'Wenxin Forest Park'),
+    StationInfo('南屯', 'Nantun (Wenxin Wuquan W.)'),
+    StationInfo('豐樂公園', 'Feng-le Park'),
+    StationInfo('大慶', 'Daqing\n(Chungshan Medical University)'),
+    StationInfo('九張犁', 'Jiuzhangli'),
+    StationInfo('九德', 'Jiude'),
+    StationInfo('烏日', 'Wuri'),
+    StationInfo('高鐵臺中站', 'HSR Taichung Station'),
   ];
 
   final List<Offset> stationOffsets = [];
+  final int selectedStationIndex;
 
-  MRTGreenLinePainter() {
+  MRTGreenLinePainter({this.selectedStationIndex = -1}) {
     double startY = 50; // 起始Y轴位置
     double stationGap = 100; // 每个站点之间的间距
 
-    // 根据站点数量计算垂直分布
     for (int i = 0; i < stationInfos.length; i++) {
-      stationOffsets.add(Offset(150, startY + i * stationGap)); // 固定 X 轴位置
+      stationOffsets.add(Offset(150, startY + i * stationGap));
     }
   }
 
@@ -485,11 +490,15 @@ class MRTGreenLinePainter extends CustomPainter {
 
     final Paint stationBorderPaint = Paint()
       ..color = Colors.green
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
 
     final Paint stationInnerPaint = Paint()
       ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    final Paint selectedStationPaint = Paint()
+      ..color = Colors.green
       ..style = PaintingStyle.fill;
 
     // 绘制捷运的绿线
@@ -497,43 +506,21 @@ class MRTGreenLinePainter extends CustomPainter {
       canvas.drawLine(stationOffsets[i], stationOffsets[i + 1], linePaint);
     }
 
-    // 绘制站点圆角矩形
+    // 绘制站点圆形
     for (int i = 0; i < stationOffsets.length; i++) {
       Offset station = stationOffsets[i];
-      // 外部和内部的 RRect 正方形
-      RRect outerRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: station, width: 25, height: 25),
-        const Radius.circular(8),
-      );
-      canvas.drawRRect(outerRect, stationBorderPaint);
 
-      RRect innerRect = RRect.fromRectAndRadius(
-        Rect.fromCenter(center: station, width: 21, height: 21),
-        const Radius.circular(6),
-      );
-      canvas.drawRRect(innerRect, stationInnerPaint);
+      // 外圆边框
+      canvas.drawCircle(station, 12, stationBorderPaint);
 
-
-
-
-// 创建文本样式
-      TextSpan span = TextSpan(
-        style: TextStyle(color: Colors.black, fontSize: 12), // 设置字体颜色和大小
-        text: stationInfos[i].travelTimesRuntime.toString(),// 要显示的数字
-      );
-      TextPainter textPainter1 = TextPainter(
-        text: span,
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      );
-      textPainter1.layout();
-
-// 计算文本的偏移量，使其居中显示在正方形内
-      Offset textOffset = Offset(
-        station.dx - textPainter1.width / 2,
-        station.dy - textPainter1.height / 2,
-      );
-      textPainter1.paint(canvas, textOffset);
+      // 内圆填充（选中 or 未选中）
+      if (i == selectedStationIndex) {
+        // 点选时填满绿色
+        canvas.drawCircle(station, 10, selectedStationPaint);
+      } else {
+        // 未选中填充白色
+        canvas.drawCircle(station, 10, stationInnerPaint);
+      }
 
       // 绘制站点名称
       TextPainter textPainter = TextPainter(
@@ -544,7 +531,7 @@ class MRTGreenLinePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(station.dx + 40, station.dy - 10));
+      textPainter.paint(canvas, Offset(station.dx + 30, station.dy - 10));
 
       // 绘制站点英文名称
       TextPainter englishTextPainter = TextPainter(
@@ -555,22 +542,19 @@ class MRTGreenLinePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       );
       englishTextPainter.layout();
-      englishTextPainter.paint(canvas, Offset(station.dx + 40, station.dy + 5));
+      englishTextPainter.paint(canvas, Offset(station.dx + 30, station.dy + 5));
     }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
+    return true;
   }
 
   // 根据触摸坐标判断是否点击在车站上
   int getStationIndexAtOffset(Offset offset) {
     for (int i = 0; i < stationOffsets.length; i++) {
-      if ((offset.dx >= stationOffsets[i].dx - 30) &&
-          (offset.dx <= stationOffsets[i].dx + 30) &&
-          (offset.dy >= stationOffsets[i].dy - 15) &&
-          (offset.dy <= stationOffsets[i].dy + 15)) {
+      if ((offset - stationOffsets[i]).distance <= 12) { // 判断是否点击在圆形内
         return i;
       }
     }
@@ -578,11 +562,11 @@ class MRTGreenLinePainter extends CustomPainter {
   }
 }
 
-
-
 class StationInfo {
   final String name; // 车站中文名称
   final String englishName; // 车站英文名称
-  final int travelTimesRuntime;
-  StationInfo(this.name, this.englishName,this.travelTimesRuntime);
+
+  StationInfo(this.name, this.englishName);
 }
+
+

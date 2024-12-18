@@ -64,24 +64,24 @@ class _NotificationPageState extends State<NotificationPage> {
   void _setupFirebaseMessaging() async {
     NotificationSettings settings = await _firebaseMessaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('用户授权接收通知');
+      print('用户授權接收通知');
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (message.notification != null) {
           final notification = {
-            'title': message.notification!.title ?? '无标题',
+            'title': message.notification!.title ?? '無標題',
             'time': DateTime.now().toString(),
-            'description': message.notification!.body ?? '无内容',
+            'description': message.notification!.body ?? '無內容',
           };
           _insertNotification(notification); // 插入到数据库
         }
       });
     } else {
-      print('用户拒绝接收通知');
+      print('用戶拒絕通知');
     }
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('应用从通知打开: ${message.notification?.title}');
+      print('應用從通知打開: ${message.notification?.title}');
       // 处理点击通知的逻辑
     });
   }
@@ -93,7 +93,7 @@ class _NotificationPageState extends State<NotificationPage> {
         title: Text('通知'),
       ),
       body: notifications.isEmpty
-          ? Center(child: Text('当前没有通知'))
+          ? const Center(child: Text('當前沒有通知'))
           : ListView.separated(
         itemCount: notifications.length,
         separatorBuilder: (context, index) => Divider(),

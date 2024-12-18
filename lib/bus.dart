@@ -56,8 +56,8 @@ class BusState extends State<Bus>  {
   void initState() {
     super.initState();
     _initializeFavorites();
-
-
+    updatedCorrespondingID();
+    _getData();
 
   }
   @override
@@ -98,22 +98,33 @@ class BusState extends State<Bus>  {
 // });
     return favorites;
   }
+Future <List>_getData()async{
+    busCurrentCity=correspondingIDNotifier.value;
+  print(  correspondingIDNotifier.value);
+    busData= await  GetBus(correspondingIDNotifier.value);
 
+print(busData);
+
+    return []; // 返回一个空列表，避免 Future 没有返回值的问题
+
+
+}
   Future<List> _updateSuggestions(id) async {
     // 查找 currentCity 在 _list 中的索引
-    int index = _list.indexOf(currentCityNotifier.value);
+    // int index = _list.indexOf(currentCityNotifier.value);
 
-    if (index != -1 ) {
-      // 获取 _listID 中对应的值
-      correspondingIDNotifier.value = _listID[index];
-      busCurrentCity=correspondingIDNotifier.value;
-       busData= await  GetBus(correspondingIDNotifier.value);
-
-
-    } else {
-      print('City not found in the list');
-      return []; // 返回一个空列表，避免 Future 没有返回值的问题
-    }// 调用异步初始化函数
+    // if (index!= -1) {
+    //   // 获取 _listID 中对应的值
+    //   correspondingIDNotifier.value = _listID[index];
+    //   busCurrentCity=correspondingIDNotifier.value;
+    //
+    //    busData= await  GetBus(correspondingIDNotifier.value);
+    //
+    //
+    // } else {
+    //   print('City not found in the list');
+    //   return []; // 返回一个空列表，避免 Future 没有返回值的问题
+    // }// 调用异步初始化函数
 
 
      suggestions.value.clear();
@@ -135,7 +146,7 @@ class BusState extends State<Bus>  {
             suggestions.value.add(route);
             suggestionsForRoute.add(route);
           }
-        }
+         }
       }
       // setState(() {
       //   double screenHeight = MediaQuery.of(context).size.height;
@@ -247,7 +258,8 @@ class BusState extends State<Bus>  {
 
                                   onChanged: (value) {
                                     // Handle selection change
-
+                                    updatedCorrespondingID();
+                                    _getData();
                                       currentCityNotifier.value = value!;
 
                                   },
@@ -361,6 +373,9 @@ class BusState extends State<Bus>  {
                                         items: _list,
                                         initialItem: currentCityNotifier.value,
                                         onChanged: (value) {
+                                          updatedCorrespondingID();
+
+                                          _getData();
                                           // Handle selection change
                                         },
                                       ),
@@ -439,11 +454,14 @@ class BusState extends State<Bus>  {
                 initialItem: currentCityNotifier.value,
                 onChanged: (value) {
 
-                  setState(() {
-
+                  setState(()  {
                     currentCityNotifier.value=value!;
-                    // 重新觸發 FutureBuilder
                     updatedCorrespondingID();
+
+                    _getData();
+
+                    // 重新觸發 FutureBuilder
+
                     updateCurrent();
 
                     // _updateSuggestions("route");
@@ -496,7 +514,7 @@ class BusState extends State<Bus>  {
                             ),
                             dropdownColor: Colors.white, // 下拉選單背景色
                             icon: const Icon(Icons.arrow_drop_down, color: Colors.black54), // 下拉箭頭圖標
-                            items: <String>['路線', '站牌', '業者']
+                            items: <String>['路線', '站牌', ]
                                 .map<DropdownMenuItem<String>>((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -611,7 +629,7 @@ class BusState extends State<Bus>  {
                             ?
                         // Buslist(suggestions:suggestions.value )
                         FutureBuilder(
-                          future: _updateSuggestions('route'), // 等待 _updateSuggestions() 完成
+                          future: _updateSuggestions('route',), // 等待 _updateSuggestions() 完成
                           builder: (context, snapshot) {
                             if (snapshot.connectionState == ConnectionState.waiting) {
                               return const Center(
