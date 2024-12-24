@@ -26,10 +26,10 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
   final city;
+  final routeID;
 
 
-
-  const BusTime({Key? key, this.routeName, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city })
+  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city })
       : super(key: key);
 
   @override
@@ -439,7 +439,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                               case 'B':
                                 favorite_feature dbHelper = favorite_feature(); // 创建实例
 
-                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",table: "FavoritesRoute");
+                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",routeID:int.parse(widget.routeID),table: "FavoritesRoute");
 
                                       // var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
 
@@ -823,7 +823,7 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
       if(id=="favorite"){
         favorite_feature dbHelper = favorite_feature(); // 创建实例
 
-        final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop');
+        final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
 
         // output=await  saveList('favoritesBusStop',other["id"] );
         // stationComparison=await  saveList('favoritesBusStopId',other["id"] );

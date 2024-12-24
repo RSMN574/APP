@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'database/getData.dart';
 import 'database/getTrain.dart';
 
 class Train extends StatefulWidget {
@@ -282,7 +285,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
     }
   } final TextEditingController _controller = TextEditingController();
 
-  // final List<String> cities = ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市'];
+
   final Map<String, List<String>> stations = {
     '台北市': ['台北車站', '大安站', '松山站'],
     '新北市': ['板橋車站', '新店站', '淡水站'],
@@ -294,8 +297,38 @@ class _StationSearchPageState extends State<StationSearchPage> {
   String? selectedCity;
   String? selectedStation;
 
-  void _showStationDialog() {
-    String _selectedCity = '台中市'; // 預設選中城市
+  Future<void> _showStationDialog() async {
+    // 假设 mysqlSelect 返回的查询结果为如下格式
+    List stationData = await     mysqlSelect("SELECT  StationName,LocationCity FROM Train.Train_Station;");
+    // 转换为 List<Map<String, dynamic>>
+    List<Map<String, dynamic>> stationDataMap = stationData.map((item) {
+
+      return {
+        'StationName': {'Zh_tw': json.decode(item["StationName"])['Zh_tw'], 'En': json.decode(item["StationName"])['En']},
+        'LocationCity': item['LocationCity'],
+      };
+    }).toList();
+// 创建一个空的 Map 来存储按县市分组的车站
+    final Map<String, List<String>> stationsList = {};
+
+// 遍历查询结果，按 LocationCity 分组车站
+    for (var entry in stationDataMap) {
+      print(entry['StationName']['Zh_tw']);
+      String city = entry['LocationCity']; // 获取城市名
+      String stationName = (entry['StationName']['Zh_tw']); // 获取中文车站名
+
+      // 如果这个城市还没有记录，初始化为一个空列表
+      if (!stationsList.containsKey(city)) {
+        stationsList[city] = [];
+      }
+
+      // 将车站名加入到对应城市的列表中
+      stationsList[city]!.add(stationName);
+    }
+
+// 输出最终的 Map，查看每个城市对应的车站列表
+    print(stationsList);
+    String _selectedCity = '臺中市'; // 預設選中城市
     String? _selectedStation; // 預設無選中的車站
     showDialog(
       context: context,
@@ -341,7 +374,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                               ],
                             ),
                             child: ListView(
-                              children: stations.keys.map((city) {
+                              children: stationsList.keys.map((city) {
                                 return GestureDetector(
                                   onTap: () {
                                     setState(() {
@@ -387,7 +420,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                               ],
                             ),
                             child: ListView(
-                              children: stations[_selectedCity]!.map((station) {
+                              children: stationsList[_selectedCity]!.map((station) {
                                 return GestureDetector(
                                   onTap: () {
                                     setState(() {
@@ -395,7 +428,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     });
                                   },
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                                     decoration: BoxDecoration(
                                       color: _selectedStation == station ? Colors.grey[800] : Colors.transparent,
                                       borderRadius: BorderRadius.circular(8),
@@ -470,6 +503,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

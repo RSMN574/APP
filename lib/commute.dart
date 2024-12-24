@@ -1,7 +1,12 @@
 
+import 'dart:convert';
+
+import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
 
 import 'Const/regularConst.dart';
+import 'database/getData.dart';
 import 'database/schedule.dart';
 
 class Commute extends StatefulWidget {
@@ -189,8 +194,26 @@ class _CommuteState extends State<Commute> {
     );
   }
   Widget _buildScheduleCard(Map<String, dynamic> data) {
+print(data);
     return GestureDetector(
         onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
+        onTap: () async {
+          await GetBusInfo(data["routeID"],  cityNameConverter( data['city']));
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context,) => BusTime(
+              routeName:data['Route'],
+              departureStopName:data["StartingStopName"],
+              destinationStopName:data["FinalStopName"],
+              operators: "",
+
+              city:   cityNameConverter( data['city']), routeID: data["routeID"],
+
+
+
+            )),
+          );
+        },
     child:Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),

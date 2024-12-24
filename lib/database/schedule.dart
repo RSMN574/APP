@@ -1,5 +1,6 @@
 
 
+import 'package:com.rsmn574.app/database/getData.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -22,7 +23,7 @@ class schedule {
 
     return await openDatabase(
       path,
-      version: 2, // 提升版本号以触发升级
+      version: 3, // 提升版本号以触发升级
       onCreate: (db, version) async {
         // 创建 FavoritesRoute 表
         print('Creating schedule table');
@@ -36,7 +37,8 @@ class schedule {
     FinalStopName TEXT NOT NULL,           -- 路線終點站
     UserDestinationStopName TEXT,          -- 用戶目的站
     other JSON,
-    city TEXT NOT NULL
+    city TEXT NOT NULL,
+    routeID INTEGER
   )
 ''');
 
@@ -67,7 +69,7 @@ class schedule {
     String? StartingStopName,
     String? FinalStopName,
     String? route,
-    String? other,
+      other,
     required String type,
     required String city,
 
@@ -96,7 +98,7 @@ class schedule {
         if (existing.isNotEmpty) {
           return -1;
         }
-
+print(other);
         // 尝试插入新记录
         await db.insert(
           'schedule',
@@ -108,6 +110,7 @@ class schedule {
             'type':type,
             'Route': route,
             'city': city,
+            'routeID':other
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -116,6 +119,7 @@ class schedule {
         return 100;
       } catch (e) {
         // 插入失败返回 200
+          print(200);
           print(e);
         return 200;
       }

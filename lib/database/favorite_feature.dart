@@ -22,7 +22,7 @@ class favorite_feature {
 
     return await openDatabase(
       path,
-      version: 2, // 提升版本号以触发升级
+      version: 3, // 提升版本号以触发升级
       onCreate: (db, version) async {
         // 创建 FavoritesRoute 表
         print('Creating FavoritesRoute table');
@@ -32,7 +32,8 @@ class favorite_feature {
             routeName TEXT NOT NULL,
             DepartureStopNameZh TEXT NOT NULL,
             DestinationStopNameZh TEXT NOT NULL,
-            city TEXT NOT NULL
+            city TEXT NOT NULL,
+            routeID INT NOT NULL
           )
         ''');
 
@@ -43,6 +44,7 @@ class favorite_feature {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             stopName TEXT NOT NULL,
             city TEXT NOT NULL
+              
           )
         ''');
       },
@@ -82,7 +84,7 @@ class favorite_feature {
      String? routeName,
     String? StopName,
     required String city,
-    required String table,
+    required String table,  required routeID ,
   }) async {
     if(table=="FavoritesRoute"){
       try {
@@ -92,12 +94,13 @@ class favorite_feature {
         final existing = await db.query(
           'FavoritesRoute',
           where:
-              'DepartureStopNameZh = ? AND DestinationStopNameZh = ? AND routeName = ? AND city = ?',
+              'DepartureStopNameZh = ? AND DestinationStopNameZh = ? AND routeName = ? AND city = ? AND routeID = ?',
           whereArgs: [
             DepartureStopNameZh,
             DestinationStopNameZh,
             routeName,
-            city
+            city,
+            routeID
           ],
         );
 
@@ -114,6 +117,7 @@ class favorite_feature {
             'DestinationStopNameZh': DestinationStopNameZh,
             'routeName': routeName,
             'city': city,
+           'routeID' :routeID
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );

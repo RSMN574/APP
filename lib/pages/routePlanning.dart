@@ -19,7 +19,7 @@ class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderS
   String selectedCity = '臺中市';
 
   // 公车数据
-  ValueNotifier<List<String>> busRoutesNotifier = ValueNotifier([]);
+  ValueNotifier<List<Map<String, dynamic>>> busRoutesNotifier = ValueNotifier([]);
   String? selectedRoute;
   // TabController 用來監聽當前的 Tab
   late TabController tabController;
@@ -39,7 +39,7 @@ String? routeArrivalStation;
 // 出发站和到达站的数据（可能会根据选择的路线进行动态更新）
   List<String> departureStations = []; // 根据选择的路线更新的出发站
   List<String> arrivalStations = []; // 根据选择的路线更新的到达站
-
+ int? RouteID;
 
   List<String> filteredStops = [];
   TextEditingController departureController = TextEditingController();
@@ -54,21 +54,18 @@ String? routeArrivalStation;
 
   Future<void> fetchBusRoutes() async {
     try {
-      List result = await mysqlSelect("SELECT RouteName FROM Bus.Bus_Taichung_Route;");
-      print(result);
-      // List<String> routes = result.map<String>((route) {
-      //   print(route);
-      //   return json.decode(route["RouteName"])["Zh_tw"];
-      // }).toList();
-// 提取 Zh_tw 值，并去重
-//       List<String> routes = result
-//           .map<String>((route) => route["RouteName"]["Zh_tw"]) // 提取每个 RouteName 的 Zh_tw
-//           .toSet() // 转换为 Set 去重
-//           .toList(); // 转回 List
-      List<String> routes=[];
+      List result = await mysqlSelect("SELECT RouteName,RouteID FROM Bus.Bus_Taichung_Route;");
+
+      List<Map<String, dynamic>> routes=[];
       for(var a in result){
-        routes.add (  json.decode(a["RouteName"])["Zh_tw"]);
+        // 新增一个元素到列表中
+        routes.add({"route": json.decode(a["RouteName"])["Zh_tw"], "id": a["RouteID"]});
+
       }
+
+      // 使用 map 提取 "route" 部分
+      // List<String> routeNames = routes.map((item) => item['route'] as String).toList();
+
       busRoutesNotifier.value = routes;
     } catch (e) {
       print("Error fetching bus routes: $e");
@@ -159,7 +156,7 @@ String? routeArrivalStation;
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: ValueListenableBuilder<List<String>>(
+      child: ValueListenableBuilder<List<Map<String, dynamic>>>(
         valueListenable: busRoutesNotifier,
         builder: (context, busRoutes, child) {
           if (busRoutes.isEmpty) {
@@ -278,7 +275,7 @@ String? routeArrivalStation;
                 ElevatedButton(
                   onPressed: () {
                     // 确认按钮逻辑，执行所需的操作
-                   confirmRouteSelection(selectedCity,selectedRoute!,selectedDepartureStation!,selectedArrivalStation!,);
+                   confirmRouteSelection(selectedCity,selectedRoute!,selectedDepartureStation!,selectedArrivalStation!);
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -466,9 +463,15 @@ if(selectDirection=="arrival"){
     ];
 
     // 初始站點列表
-    List<dynamic> departureStops = json.decode(stopsQuery[1]["Stops"]);
+    List<dynamic> departureStops = [];
     List<dynamic> arrivalStops = json.decode(stopsQuery[0]["Stops"]);
-
+    try {
+      // 尝试解析 stopsQuery[1]["Stops"]
+      departureStops = json.decode(stopsQuery[1]["Stops"]);
+    } catch (e) {
+      // 如果发生错误，尝试解析 stopsQuery[0]["Stops"]
+      departureStops = json.decode(stopsQuery[0]["Stops"]);
+    }
     // 搜尋結果
     ValueNotifier<List<dynamic>> filteredDepartureStops = ValueNotifier(departureStops);
     ValueNotifier<List<dynamic>> filteredArrivalStops = ValueNotifier(arrivalStops);
@@ -641,7 +644,10 @@ if(selectDirection=="arrival"){
       context: context,
       builder: (BuildContext context) {
         String searchQuery = '';
-        List<String> filteredRoutes = List.from(busRoutesNotifier.value);
+        // 提取 route 部分
+
+        List<String> filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList();
+        List<String> filteredID = busRoutesNotifier.value.map((item) => item['id'] as String).toList();
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -665,9 +671,11 @@ if(selectDirection=="arrival"){
                     onChanged: (value) {
                       setState(() {
                         searchQuery = value;
-                        filteredRoutes = busRoutesNotifier.value
+                        filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList()
                             .where((route) => route.contains(searchQuery))
                             .toList();
+
+
                       });
                     },
                   ),
@@ -683,6 +691,8 @@ if(selectDirection=="arrival"){
                       title: Text(filteredRoutes[index]),
                       onTap: () {
                         Navigator.of(context).pop(filteredRoutes[index]); // 返回选择的路线
+                        RouteID=int.parse(filteredID[index]);
+                        print(RouteID);
                       },
                     );
                   },
@@ -710,12 +720,12 @@ if(selectDirection=="arrival"){
       });
     }
   }
-  void confirmRouteSelection(String selectedCity, String selectedRoute, String selectedDepartureStation, String selectedArrivalStation){
+  void confirmRouteSelection(String selectedCity, String selectedRoute, String selectedDepartureStation, String selectedArrivalStation,){
 
-    _showAddToCategoryDialog(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation);
+    _showAddToCategoryDialog(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation,);
   }
 
-  void _showAddToCategoryDialog(String city, String route,String Departure,String DestinationS) {
+  void _showAddToCategoryDialog(String city, String route,String Departure,String DestinationS,) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -745,7 +755,8 @@ if(selectDirection=="arrival"){
                     UserDestinationStopName: DestinationS,
                     StartingStopName:routeDepartureStation,
                     FinalStopName:routeArrivalStation,
-                    route: route, type: 'bus'
+                    route: route, type: 'bus',
+                     other:RouteID
                 );
 
 // 根据 addSchedule 方法返回的结果进行处理

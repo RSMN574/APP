@@ -1,0 +1,52 @@
+String cityNameConverter(String inputCity) {
+  // 全台灣縣市對應表
+  Map<String, String> cityMapping = {
+    // 英文 → 中文
+    "Taipei": "臺北市",
+    "New Taipei": "新北市",
+    "Taichung": "臺中市",
+    "Tainan": "臺南市",
+    "Kaohsiung": "高雄市",
+    "Keelung": "基隆市",
+    "Hsinchu City": "新竹市",
+    "Hsinchu County": "新竹縣",
+    "Miaoli": "苗栗縣",
+    "Changhua": "彰化縣",
+    "Nantou": "南投縣",
+    "Yunlin": "雲林縣",
+    "Chiayi City": "嘉義市",
+    "Chiayi County": "嘉義縣",
+    "Pingtung": "屏東縣",
+    "Yilan": "宜蘭縣",
+    "Hualien": "花蓮縣",
+    "Taitung": "臺東縣",
+    "Penghu": "澎湖縣",
+    "Kinmen": "金門縣",
+    "Lienchiang": "連江縣",
+    // 中文 → 英文
+    "臺北市": "Taipei",
+    "新北市": "New Taipei",
+    "臺中市": "Taichung",
+    "臺南市": "Tainan",
+    "高雄市": "Kaohsiung",
+    "基隆市": "Keelung",
+    "新竹市": "Hsinchu City",
+    "新竹縣": "Hsinchu County",
+    "苗栗縣": "Miaoli",
+    "彰化縣": "Changhua",
+    "南投縣": "Nantou",
+    "雲林縣": "Yunlin",
+    "嘉義市": "Chiayi City",
+    "嘉義縣": "Chiayi County",
+    "屏東縣": "Pingtung",
+    "宜蘭縣": "Yilan",
+    "花蓮縣": "Hualien",
+    "臺東縣": "Taitung",
+    "澎湖縣": "Penghu",
+    "金門縣": "Kinmen",
+    "連江縣": "Lienchiang",
+  };
+
+  // 查找并返回对应的城市名称
+  return cityMapping[inputCity] ?? "Unknown city";
+}

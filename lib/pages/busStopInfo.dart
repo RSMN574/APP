@@ -158,7 +158,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                     destinationStopName:  stop["to"],
                     operators: "",
                     routeMapImageUrl: "",
-                    city: "Taichung",
+                    city: "Taichung", routeID: stop["RouteID"],
 
                   ),
                 ),

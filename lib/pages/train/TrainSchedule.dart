@@ -134,16 +134,9 @@ class TrainSchedulePage extends StatelessWidget {
           ),
           margin: const EdgeInsets.symmetric(vertical: 6),
           child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blueAccent,
-              child: Text(
-                '${stop['StopSequence']}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
             title: Text(
               stop['StationName']['Zh_tw'],
-              style: const TextStyle(fontSize: 16, color: Colors.black87),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
             ),
             subtitle: Text(
               '到站: ${stop['ArrivalTime']} - 離站: ${stop['DepartureTime']}',
