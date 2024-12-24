@@ -41,10 +41,10 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.white, // 白色背景
       appBar: AppBar(
-        title: Text('火車查詢系統', style: TextStyle(color: Colors.black)), // 黑色文字
+        title: const Text('火車查詢系統', style: TextStyle(color: Colors.black)), // 黑色文字
         backgroundColor: Colors.white, // 白色背景
         elevation: 2, // 微弱阴影效果
-        iconTheme: IconThemeData(color: Colors.black), // 使图标为黑色
+        iconTheme: const IconThemeData(color: Colors.black), // 使图标为黑色
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -345,7 +345,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.3),
                     blurRadius: 10,
-                    offset: Offset(0, 5),
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),

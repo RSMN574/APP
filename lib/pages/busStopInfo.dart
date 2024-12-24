@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../Const/regularConst.dart';
+import '../database/favorite_feature.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -313,20 +314,24 @@ class _BusStopInfoState extends State<BusStopInfo> {
                       ],
                       onSelected: (String action) async {
                         if (action == 'B') {
-                          var output = await saveList('favoritesBusStop', widget.stop);
-                          if (output.contains('已儲存項目')) {
+                          favorite_feature dbHelper = favorite_feature(); // 创建实例
+
+                          final output = await dbHelper.addFavorite(StopName:widget.stop,table: "FavoritesStop", city: 'Taichung');
+
+
+                          if (output==100) {
                             QuickAlert.show(
                               context: context,
                               type: QuickAlertType.success,
-                              text: '${output}已儲存項目',
+                              text: '${widget.stop}已儲存項目',
                             );
-                          } else if (output.contains('已存在於列表中，不會重複添加')) {
+                          } else if (output==-1) {
                             QuickAlert.show(
                               context: context,
                               type: QuickAlertType.warning,
-                              text: '${output}已存在於列表中，不會重複添加',
+                              text: '${widget.stop}已存在於列表中，不會重複添加',
                             );
-                          } else if (output.contains('儲存項目時發生錯誤')) {
+                          } else if (output==200) {
                             QuickAlert.show(
                               context: context,
                               type: QuickAlertType.error,
@@ -334,6 +339,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                               text: '儲存項目時發生錯誤',
                             );
                           }
+
                         }
                       },
                     ),

@@ -339,7 +339,14 @@ String? routeArrivalStation;
     // 路線方向信息
    late  List<dynamic> departureStops;
     if(routeDepartureStation== routeQuery[0]["DepartureStopNameZh"]){
-departureStops = json.decode(stopsQuery[1]["Stops"]);
+      try {
+        // 尝试解析 stopsQuery[1]["Stops"]
+        departureStops = json.decode(stopsQuery[1]["Stops"]);
+      } catch (e) {
+        // 如果解析 stopsQuery[1]["Stops"] 失败，则使用 stopsQuery[0]["Stops"]
+        print("解析 stopsQuery[1][\"Stops\"] 失败: $e");
+        departureStops = json.decode(stopsQuery[0]["Stops"]);
+      }
     }else   if(routeDepartureStation== routeQuery[0]["DestinationStopNameZh"]){
       departureStops = json.decode(stopsQuery[0]["Stops"]);
     }
@@ -451,11 +458,7 @@ departureStops = json.decode(stopsQuery[1]["Stops"]);
     var stopsQuery = await mysqlSelect(
       "SELECT Stops FROM Bus.Bus_Taichung WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
-if(selectDirection=="arrival"){
 
-}else if(selectDirection=='departure'){
-
-}
     // 路線方向信息
     List<String> routeInfo = [
       routeQuery[0]["DepartureStopNameZh"],
@@ -692,7 +695,7 @@ if(selectDirection=="arrival"){
                       onTap: () {
                         Navigator.of(context).pop(filteredRoutes[index]); // 返回选择的路线
                         RouteID=int.parse(filteredID[index]);
-                        print(RouteID);
+
                       },
                     );
                   },

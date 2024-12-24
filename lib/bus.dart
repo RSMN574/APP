@@ -27,8 +27,9 @@ class BusState extends State<Bus>  {
   final List<String> id=["route", "stop",  "routeplan"];
   int _current = 0;
   final PageController pageController = PageController();
-  List<String>? favoriteStops;
-  List<String>? favoriteRoutes;
+  ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
+  ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
+
 
 
 
@@ -36,20 +37,16 @@ class BusState extends State<Bus>  {
 
   // 更新當前值
   Future<List<Map<String, dynamic>>> updateCurrent() async {
+    favoriteStops.value=await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
+
+     favoriteStops.value=await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
 
 
 
 
-      if(_current==0){
-    List<Map<String, dynamic>>_future = await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
-    print(_future);
-    return _future;
-      }else if(_current==1){
-        List<Map<String, dynamic>> _future =  await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
-        print(_future);
-        return _future;
 
-      }
+
+
     return [];
   }
   @override
@@ -100,10 +97,10 @@ class BusState extends State<Bus>  {
   }
 Future <List>_getData()async{
     busCurrentCity=correspondingIDNotifier.value;
-  print(  correspondingIDNotifier.value);
+
     busData= await  GetBus(correspondingIDNotifier.value);
 
-print(busData);
+
 
     return []; // 返回一个空列表，避免 Future 没有返回值的问题
 
@@ -775,47 +772,31 @@ print(busData);
       ),
     );
   }
-
   Widget _buildList(String key, Widget Function(dynamic) itemBuilder) {
-
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future:updateCurrent(),
+    return FutureBuilder<List<dynamic>>(
+      future: _loadFavorites(key, city: correspondingIDNotifier.value),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        }  else if (key=='favoritesBusRoute' && snapshot.data != null && snapshot.data!.isNotEmpty  ) {
-
-          final List<dynamic>? items = snapshot.data;
-          return ListView.separated(
-            itemCount: items?.length ?? 0,
-            itemBuilder: (context, index) {
-              return itemBuilder(items![index]);
-            }, separatorBuilder: (BuildContext context, int index) {
-            return const Divider(
-              color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
-              height: 9, // 分隔線與上下元素的間距
-              thickness: 1, // 分隔線的粗細
-              indent: 20, // 分隔線距離左側的間距
-              endIndent: 20, // 分隔線距離右側的間距
-
-            );
-
-          },
-          );
-        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          final List<dynamic>? items = snapshot.data;
-
-          return ListView.builder(
-            itemCount: items?.length ?? 0,
-            itemBuilder: (context, index) {
-              return itemBuilder(items![index]);
-            },
-          );
-        } else {
-          return  Center(child:_NoFavoritesWidget());
+          return const Center(child: Text("加载失败"));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          print(snapshot.data!);
+          return Center(child: _NoFavoritesWidget());
         }
+ print(snapshot.data!);
+        final items = snapshot.data!;
+        return ListView.separated(
+          itemCount: items.length,
+          itemBuilder: (context, index) => itemBuilder(items[index]),
+          separatorBuilder: (context, index) => const Divider(
+            color: Color.fromRGBO(231, 231, 231, 1), // 分隔线颜色
+            height: 9, // 间距
+            thickness: 1, // 粗细
+            indent: 20, // 左侧间距
+            endIndent: 20, // 右侧间距
+          ),
+        );
       },
     );
   }
