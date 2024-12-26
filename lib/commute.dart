@@ -194,10 +194,11 @@ class _CommuteState extends State<Commute> {
     );
   }
   Widget _buildScheduleCard(Map<String, dynamic> data) {
-print(data);
+
     return GestureDetector(
         onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
         onTap: () async {
+
           await GetBusInfo(data["routeID"],  cityNameConverter( data['city']));
           Navigator.push(
             context,

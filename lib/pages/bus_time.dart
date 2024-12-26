@@ -51,16 +51,31 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     super.initState();
     _loadData(); // 初始加载数据
     _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
-
+// 添加监听器
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        // 标签正在更改
+        print("Changing to tab: ${_tabController.index}");
+      } else {
+        // 标签更改已完成
+       if(_tabController.index==0){
+         print("tab: ${_tabController.index}");
+         _loadMarkers("stopNamesWithTime1");
+       }else  if(_tabController.index==1){
+         _loadMarkers("stopNamesWithTime2");
+       }
+      }
+    });
   }
 
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
-  void _loadMarkers() {
+  Future<void> _loadMarkers(String stopType) async {
 
     Set<Marker> markers = {};
+  if(stopType=="stopNamesWithTime1"){
+
     for (var stop in stopNamesWithTime1) {
       // 解析 StopPosition
-      final rawPosition = stop['StopPosition'];
 
       // if (rawPosition is String) {
       //   // 如果是 String，解析为 Map
@@ -73,23 +88,40 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       //   continue;
       // }
       // 检查 StopPosition 的类型
-      print("StopPosition: ${stop}, Type: ${stop['StopPosition'].runtimeType}");
 
+      final marker = Marker(
+
+        markerId: MarkerId(stop['StopUID']),
+        position: LatLng(
+          stop['StopPosition']['PositionLat'],
+          stop['StopPosition']['PositionLon'],
+        ),
+        infoWindow: InfoWindow(
+          title: stop['stopName'] ?? 'Unknown',
+          snippet: stop['StopUID'] ?? 'Unknown',
+        ),
+      );
+      markers.add(marker);
+    }
+  }else   if(stopType=="stopNamesWithTime2"){
+
+    for (var stop in stopNamesWithTime2) {
 
 
       final marker = Marker(
         markerId: MarkerId(stop['StopUID']),
         position: LatLng(
-        stop['StopPosition']['PositionLat'],
-         stop['StopPosition']['PositionLon'],
+          stop['StopPosition']['PositionLat'],
+          stop['StopPosition']['PositionLon'],
         ),
         infoWindow: InfoWindow(
-          title:    stop['StopName'],
-          snippet:   stop['StopName'],
+          title: stop['stopName'] ?? 'Unknown',
+          snippet: stop['StopUID'] ?? 'Unknown',
         ),
       );
       markers.add(marker);
     }
+  }
     setState(() {
       Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
 
@@ -150,7 +182,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
        print("定時更新不啟動");
      }
    }
-     _loadMarkers();
+     _loadMarkers("stopNamesWithTime1");
     // 更新数据时只更新 ValueNotifier
     _dataNotifier.value = {
       'routeInfo': routeInfo,
@@ -516,6 +548,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                         Container(
                           color: bgColorWhite,
                           child: TabBarView(
+                            controller: _tabController,
                             children: [
                               _buildTabContent(stopNamesWithTime1), // Tab for direction 0
                               _buildTabContent(stopNamesWithTime2), // Tab for direction 1
@@ -627,6 +660,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       child: Container(
         color: Colors.white,
         child: TabBar(
+          controller: _tabController,
           // controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,

@@ -145,12 +145,7 @@ Future <List>_getData()async{
           }
          }
       }
-      // setState(() {
-      //   double screenHeight = MediaQuery.of(context).size.height;
-      //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-      //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-      // });
+
       return        suggestionsForRoute;
     } else if (id == "stop") {
       suggestions.value.clear();
@@ -172,12 +167,7 @@ Future <List>_getData()async{
       return             suggestions.value;
     }
 
-    // setState(() {
-    //   double screenHeight = MediaQuery.of(context).size.height;
-    //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-    //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-    //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-    // });
+
     return             suggestions.value;
   }
 // 返回每个隐藏的菜单项

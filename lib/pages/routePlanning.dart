@@ -649,8 +649,9 @@ String? routeArrivalStation;
         String searchQuery = '';
         // 提取 route 部分
 
-        List<String> filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList();
-        List<String> filteredID = busRoutesNotifier.value.map((item) => item['id'] as String).toList();
+        // List<String> filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList();
+        // List<String> filteredID = busRoutesNotifier.value.map((item) => item['id'] as String).toList();
+        List<Map<String,dynamic>> filtered= busRoutesNotifier.value ;
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -674,9 +675,7 @@ String? routeArrivalStation;
                     onChanged: (value) {
                       setState(() {
                         searchQuery = value;
-                        filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList()
-                            .where((route) => route.contains(searchQuery))
-                            .toList();
+                        filtered =   busRoutesNotifier.value.where((item) => item["route"].toString().contains(value)).toList();
 
 
                       });
@@ -688,13 +687,14 @@ String? routeArrivalStation;
                 width: double.maxFinite,
                 height: 300,
                 child: ListView.builder(
-                  itemCount: filteredRoutes.length,
+                  itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     return ListTile(
-                      title: Text(filteredRoutes[index]),
+                      title: Text(filtered[index]["route"]),
                       onTap: () {
-                        Navigator.of(context).pop(filteredRoutes[index]); // 返回选择的路线
-                        RouteID=int.parse(filteredID[index]);
+                        Navigator.of(context).pop(filtered[index]["route"]); // 返回选择的路线
+
+                        RouteID=int.parse(filtered[index]["id"]);
 
                       },
                     );
