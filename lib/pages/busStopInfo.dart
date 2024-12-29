@@ -9,7 +9,7 @@ import '../database/favorite_feature.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import '../database/shared_perferences.dart';
+
 import '../pages/bus_time.dart';
 import '../widget/error.dart';
 class BusStopInfo extends StatefulWidget {

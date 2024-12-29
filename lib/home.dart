@@ -40,7 +40,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
 
 Future<void> showBusStops() async {
   var i=await mysqlSelect('SELECT * FROM Bus.Bus_Taichung_Stop');
-  print (i);
+
 
 }
   // 获取当前位置
@@ -111,7 +111,10 @@ Future<void> showBusStops() async {
             Positioned.fill(
               child: SizedBox(
                 height: mapHeight,
-                child: map()
+                child: map(  onMapCreated: (controller) {
+                  // 自定义逻辑
+                  print("HomePage Map Created");
+                },)
               ),
             ),
 

@@ -1,12 +1,9 @@
-
-
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
@@ -47,6 +44,10 @@ Future<void> main() async {
   } catch (e) {
     print('Firebase 初始化失败: $e');
   }
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    // 记录日志或上报异常
+  };
 
   runApp(MultiProvider(
     providers: [
@@ -83,7 +84,7 @@ class NavigationBarApp extends StatelessWidget {
         "plane": (BuildContext context) => plane(),
         "train": (BuildContext context) => Train(),
         "metro": (BuildContext context) => Metro(),
-        "bus": (BuildContext context) => Bus(),
+        "bus": (BuildContext context) => const Bus(),
         // "busTime": (BuildContext context) => BusTime(city: '',),
         'notification': (BuildContext context) => NotificationPage(),
         "home": (BuildContext context) => Home(),
@@ -107,7 +108,7 @@ class NavigationExample extends StatefulWidget {
 class _NavigationExampleState extends State<NavigationExample> {
   int currentPageIndex = 0;
   String? selectedRegion;
-
+  final PageController _pageController = PageController(); // 控制 PageView
   final List<String> regions = [
     '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣', '臺北市',
     '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹縣',
@@ -136,7 +137,20 @@ class _NavigationExampleState extends State<NavigationExample> {
     // 获取天气信息
     // getWeatherInfo(context);
   }
-
+  Widget _buildPage(int index) {
+    switch (index) {
+      case 0:
+        return Home();
+      case 1:
+        return Commute();
+      case 2:
+        return NearbyStationsPage();
+      case 3:
+        return InfoPages();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
@@ -181,12 +195,17 @@ class _NavigationExampleState extends State<NavigationExample> {
       ),
       bottomNavigationBar: _buildNavigationBar(),
       body: GestureDetector(
-        onTap: () {
-          hideKeyboard(context);
-        },
-        child: IndexedStack(
-          index: currentPageIndex,
-          children: _pages,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: PageView.builder(
+          physics: const NeverScrollableScrollPhysics(), // 禁用 PageView 的滑动手势
+          controller: _pageController,
+          onPageChanged: (index) {
+            setState(() {
+              currentPageIndex = index;
+            });
+          },
+          itemCount: 4,
+          itemBuilder: (context, index) => _buildPage(index),
         ),
       ),
     );
@@ -195,53 +214,74 @@ class _NavigationExampleState extends State<NavigationExample> {
   Widget _buildNavigationBar() {
     return NavigationBarTheme(
       data: NavigationBarThemeData(
-        indicatorColor: const Color(0xFFFFFFFF),
+        indicatorColor: Colors.white,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
               (Set<WidgetState> states) {
             if (states.contains(WidgetState.selected)) {
-              return const TextStyle(color: primary, fontWeight: FontWeight.bold);
+              return const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold);
             }
             return const TextStyle(fontSize: 12, color: Colors.grey);
           },
         ),
-        backgroundColor: Colors.white,
       ),
       child: NavigationBar(
         selectedIndex: currentPageIndex,
         onDestinationSelected: (int index) {
-          setState(() {
-            currentPageIndex = index;
-          });
+          _pageController.jumpToPage(index);
         },
-        destinations: _buildNavigationDestinations(),
+        destinations: [
+          NavigationDestination(
+            icon: SvgPicture.asset(SvgAssets.homeOutline, width: 20, height: 20),
+            selectedIcon: SvgPicture.asset(SvgAssets.home, color: Colors.blue, width: 20, height: 20),
+            label: '首頁',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.commute_outlined),
+            selectedIcon:Icon(Icons.commute, color: Colors.blue, ),
+            label: '我的出行',
+          ),
+          NavigationDestination(
+            icon: SvgPicture.asset(SvgAssets.busStop, width: 20, height: 20),
+            selectedIcon: SvgPicture.asset(SvgAssets.busStop, color: Colors.blue, width: 20, height: 20),
+            label: '最近站牌',
+          ),
+          NavigationDestination(
+            icon: SvgPicture.asset(SvgAssets.personOutline, width: 20, height: 20),
+            selectedIcon: SvgPicture.asset(SvgAssets.person, color: Colors.blue, width: 20, height: 20),
+            label: '我的資料',
+          ),
+        ],
       ),
     );
   }
 
-  List<NavigationDestination> _buildNavigationDestinations() {
-    return [
-      NavigationDestination(
-        icon: SvgPicture.asset(SvgAssets.homeOutline, width: 20, height: 20),
-        selectedIcon: SvgPicture.asset(SvgAssets.home, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),
-        label: '首頁',
-      ),
-      const NavigationDestination(
-        icon: Icon(Icons.commute_outlined),
-        label: '我的出行',
-      ),
-      NavigationDestination(
-        icon: SvgPicture.asset(SvgAssets.busStop, width: 20, height: 20),
-        selectedIcon: SvgPicture.asset(SvgAssets.busStop, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),
-        label: '最近站牌',
-      ),
+  // Widget _buildNavigationBar() {
+  //   return NavigationBarTheme(
+  //     data: NavigationBarThemeData(
+  //       indicatorColor: const Color(0xFFFFFFFF),
+  //       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+  //             (Set<WidgetState> states) {
+  //           if (states.contains(WidgetState.selected)) {
+  //             return const TextStyle(color: primary, fontWeight: FontWeight.bold);
+  //           }
+  //           return const TextStyle(fontSize: 12, color: Colors.grey);
+  //         },
+  //       ),
+  //       backgroundColor: Colors.white,
+  //     ),
+  //     child: NavigationBar(
+  //       selectedIndex: currentPageIndex,
+  //       onDestinationSelected: (int index) {
+  //         setState(() {
+  //           currentPageIndex = index;
+  //         });
+  //       },
+  //       destinations: _buildNavigationDestinations(),
+  //     ),
+  //   );
+  // }
 
-      NavigationDestination(
-        icon: SvgPicture.asset(SvgAssets.personOutline, width: 20, height: 20),
-        selectedIcon: SvgPicture.asset(SvgAssets.person, colorFilter: const ColorFilter.mode(primary, BlendMode.srcIn), width: 20, height: 20),
-        label: '我的資料',
-      ),
-    ];
-  }
+
 
   void hideKeyboard(BuildContext context) {
     FocusScopeNode currentFocus = FocusScope.of(context);
@@ -249,4 +289,5 @@ class _NavigationExampleState extends State<NavigationExample> {
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
+
 }

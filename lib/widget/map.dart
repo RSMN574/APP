@@ -7,8 +7,18 @@ import 'package:provider/provider.dart';
 import '../Const/regularClass.dart';
 
 class map extends StatefulWidget {
-  const map({Key? key}) : super(key: key);
+  final Set<Marker>? markers;
+  final CameraPosition? initialCameraPosition;
+  final Function(GoogleMapController)? onMapCreated;
+  final bool myLocationEnabled;
 
+  const map({
+    Key? key,
+     this.markers,
+     this.initialCameraPosition,
+    this.onMapCreated,
+    this.myLocationEnabled = true,
+  }) : super(key: key);
   @override
   State<map> createState() => _MapScreenState();
 }
@@ -72,11 +82,8 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
             target: _currentPosition,
             zoom: 12,
           ),
-          onMapCreated: (GoogleMapController controller) async {
-            _mapController = controller;
-            await _mapController!.setMapStyle(_mapStyle); // 设置地图样式
-            _getCurrentLocation(); // 获取当前位置
-          },
+          onMapCreated: widget.onMapCreated,
+
           onCameraMove: (CameraPosition position) {
             // 限制地图的边界范围
             if (!_taiwanBounds.contains(position.target)) {
@@ -101,7 +108,7 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
               );
             }
           },
-          markers: Set<Marker>.of(markerProvider.markers), // 从 MarkerProvider 获取标记
+          markers: widget.markers ?? Set<Marker>.of(markerProvider.markers),
           myLocationEnabled: true,
           myLocationButtonEnabled: true,
         );
