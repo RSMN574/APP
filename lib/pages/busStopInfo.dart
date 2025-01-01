@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../Const/regularConst.dart';
@@ -137,78 +138,119 @@ class _BusStopInfoState extends State<BusStopInfo> {
       onRefresh: () async {
        _loadData();
       },
-      child: ListView.builder(
-        itemCount: directionList.length,
-        itemBuilder: (context, index) {
-          final stop = directionList[index];
+      child:       Container(
+        margin: const EdgeInsets.only(bottom: 25), // 设置底部间距
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadData(); // 刷新时重新加载数据
+          },
+          child: ListView.separated(
+            itemCount: directionList.length,
+            itemBuilder: (context, index) {
+              final stop = directionList[index];
+              final PlateNumb = stop["PlateNumb"];
 
-          final isRed = stop["isRed"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
+              final color = stop["color"] == '0'
+                  ? const Color.fromRGBO(235, 15, 41, 0.85)
+                  : (stop["color"] == '2'
+                  ? const Color.fromRGBO(225, 85, 104, 0.1)
+                  : (stop["color"] == "班次結束"
+                  ? const Color.fromRGBO(69, 69, 69, 0.1)
+                  : (stop["color"] == "min"
+                  ? const Color.fromRGBO(13, 168, 255, 0.1)
+                  : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-          return ListTile(
-            onTap: () async {
-              // 使用 Navigator.push 创建新的页面
-              await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BusTime(
-                    routeName:  stop["RouteName"]["Zh_tw"],
-                    departureStopName:  stop["from"],
-                    destinationStopName:  stop["to"],
-                    operators: "",
-                    routeMapImageUrl: "",
-                    city: "Taichung", routeID: stop["RouteID"],
+              return Container(
+                height: 53.0, // 每个列表项的固定高度
+                child: ListTile(
+                  onTap: () async {
+                    await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BusTime(
+                          routeName:  stop["RouteName"]["Zh_tw"],
+                          departureStopName:  stop["from"],
+                          destinationStopName:  stop["to"],
+                          operators: "",
+                          routeMapImageUrl: "",
+                          city: "Taichung", routeID: stop["RouteID"],
 
+                        ),
+                      ),
+                    );
+                  },
+                  leading: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      stop["time"] ?? "未知",
+                      style: TextStyle(
+                        fontFamily: 'MiSans-normal',
+                        fontSize: 17,
+                        color: stop["color"] == '0'
+                            ? Colors.white
+                            : (stop["color"] == '2'
+                            ? const Color.fromRGBO(255, 85, 104, 1)
+                            : (stop["color"] == "班次結束"
+                            ? const Color.fromRGBO(149, 149, 149, 1.0)
+                            : (stop["color"] == "min"
+                            ? const Color.fromRGBO(13, 168, 255, 1)
+                            : const Color.fromRGBO(68, 68, 68, 1)))),
+                      ),
+                    ),
                   ),
+                  title: Row(
+                    children: [
+                      Text(
+                        stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                        style: TextStyle(
+                          fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
+                          fontSize: 17,
+                          color: stop["color"] == "班次結束"
+                              ? const Color.fromRGBO(136, 136, 136, 1)
+                              : Colors.black,
+                        ),
+                      ),
+                      if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6), // 左侧间距
+                          child: SvgPicture.asset(
+                            'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
+                            width: 18, // SVG图标宽度
+                            height: 18, // SVG图标高度
+                          ),
+                        )
+                      else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6), // 左侧间距
+                          child: SvgPicture.asset(
+                            'assets/icons/tc_MRT.svg', // 自定义SVG路径
+                            width: 18, // SVG图标宽度
+                            height: 18, // SVG图标高度
+                          ),
+                        ),
+                    ],
+                  ),
+
                 ),
               );
-
             },
-            leading: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isRed,
-                border: Border.all(
-                  width: 1.0,
-                  color: stop["isRed"] == '0'
-                      ? const Color.fromRGBO(235, 15, 41, 0.85)
-                      : (stop["isRed"] == '2'
-                      ? const Color.fromRGBO(235, 15, 41, 0.35)
-                      : busBlue),
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                stop["time"] ?? "未知",
-                style: TextStyle(
-                  fontFamily: 'MiSans-Semibold',
-                  fontSize: 18,
-                  color: stop["isRed"] == '0'
-                      ? Colors.white
-                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.7) : const Color.fromRGBO(90, 107, 107, 1)),
-                ),
-              ),
-            ),
-            title: Text(
-              stop["RouteName"]["Zh_tw"] ?? "未知站名",
-              style: const TextStyle(
-                fontFamily: 'MiSans-Demibold',
-                fontSize: 18,
-                color: Color.fromRGBO(77, 77, 77, 1),
-              ),
-            ),
-            subtitle: Text(
-              stop["to"] ?? "未知目的地",
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          );
-        },
-      ),
+            separatorBuilder: (BuildContext context, int index) {
+              return const Divider(
+                color: Color.fromRGBO(231, 231, 231, 1), // 分隔线颜色
+                height: 9, // 分隔线与上下元素间距
+                thickness: 1, // 分隔线粗细
+                indent: 20, // 分隔线左间距
+                endIndent: 20, // 分隔线右间距
+              );
+            },
+          ),
+        ),
+      )
     );
   }
 

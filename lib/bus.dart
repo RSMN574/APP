@@ -5,8 +5,10 @@ import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:com.rsmn574.app/pages/routePlanning.dart';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/widget/BusList.dart';
+import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
 import 'database/favorite_feature.dart';
 import 'database/getData.dart';
@@ -29,7 +31,16 @@ class BusState extends State<Bus>  {
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
-
+  List busData=[];
+  List<Map<String, dynamic>> _favorites =[];
+  final List<String> _list = ['全部', '臺中市','臺北市'];
+  final List<String> _listID = ['all', 'Taichung','Taipei'];
+  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
+  ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
+  final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
+  final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
+  TextEditingController busIdController = TextEditingController();
+  final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
 
 
@@ -55,7 +66,10 @@ class BusState extends State<Bus>  {
     _initializeFavorites();
     updatedCorrespondingID();
     _getData();
-
+    String currentCity = Provider.of<CityProvider>(context, listen: false).city;
+    if (_list.contains(currentCity)) {
+      currentCityNotifier.value = currentCity; // 正确赋值
+    }
   }
   @override
   void dispose() {
@@ -75,16 +89,7 @@ class BusState extends State<Bus>  {
     }
 
   }
-  List busData=[];
-  List<Map<String, dynamic>> _favorites =[];
-  final List<String> _list = ['全部', '臺中市','臺北市'];
-  final List<String> _listID = ['all', 'Taichung','Taipei'];
-  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
-  ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
-  final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
-  final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
-  TextEditingController busIdController = TextEditingController();
-  final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
+
 
   Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
     favorite_feature db=favorite_feature();

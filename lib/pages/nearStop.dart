@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
@@ -61,7 +62,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         infoWindow: InfoWindow(
           title: station.stationNameZh ?? 'Unknown',
           snippet: station.stationUID ?? 'Unknown',
-        ),
+        ),onTap: () {
+
+        _stopName.value=station.stationNameZh;
+        setState(() {
+          _index = 1; // 切换到搜索内容
+        });
+
+      }
       );
       markers.add(marker);
     }
@@ -113,107 +121,115 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
             ),
           ),
-          DraggableScrollableSheet(
-            initialChildSize: 0.43,
-            minChildSize: 0.4,
-            maxChildSize: 1.0,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return Stack(
-                clipBehavior: Clip.none,
-                children: [
 
-
-                  Container(
-                    margin: const EdgeInsets.only(top: 60),
-                    height: 800,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      child: Column(
-                        children: [
-
-              Container(
-
-              height: 800,
-
-              child: IndexedStack(
-                            index: _index,
-                            children: <Widget>[
-                              FutureBuilder<List<Station>>(
-                                future: getNearStation(
-                                  "${locationProvider.latitude}%2C${locationProvider.longitude}",
-                                ),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  } else if (snapshot.hasError) {
-                                    return const Center(
-                                      child: Text(
-                                        "找不到附近的站牌",
-                                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                                      ),
-                                    );
-                                  } else if (snapshot.hasData &&
-                                      snapshot.data != null &&
-                                      snapshot.data!.isNotEmpty) {
-                                    final seenNames = <String>{};
-                                    final uniqueStations = snapshot.data!.where((station) {
-                                      final name = station.stationNameZh;
-                                      if (seenNames.contains(name)) {
-                                        return false;
-                                      } else {
-                                        seenNames.add(name);
-                                        return true;
-                                      }
-                                    }).toList();
-
-                                    // 加载标记
-                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                      _loadMarkers(context, snapshot.data!);
-                                    });
-                                    return Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: ListView.builder(
-                                        shrinkWrap: true,
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        itemCount: uniqueStations.length,
-                                        itemBuilder: (context, index) {
-                                          final station = uniqueStations[index];
-                                          return _stationCard(station: station);
-                                        },
-                                      ),
-                                    );
-                                  } else {
-                                    return const Center(
-                                      child: Text(
-                                        "找不到附近的站牌",
-                                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                                      ),
-                                    );
-                                  }
-                                },
-                              ),
-                              DraggableScrollableSheetPageTwo()
-
-                            ],
-                          ),)
-
-
-                        ],
-                      ),
-                    ),
+      DraggableScrollableSheet(
+        initialChildSize: 0.43,
+        minChildSize: 0.4,
+        maxChildSize: 1.0,
+        builder: (BuildContext context, ScrollController scrollController) {
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 提示线放置在 Stack 的最上层
+              Positioned(
+                top: 0, // 让提示线在最顶部
+                left: MediaQuery.of(context).size.width / 2 - 20, // 居中提示线
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(2.5),
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
 
-          // 重載按鈕
+              // 滚动内容区域
+              Container(
+                height: 800,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 700,
+                        child: IndexedStack(
+                          index: _index,
+                          children: <Widget>[
+                            FutureBuilder<List<Station>>(
+                              future: getNearStation(
+                                "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                              ),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                } else if (snapshot.hasError) {
+                                  return const Center(
+                                    child: Text(
+                                      "找不到附近的站牌",
+                                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                                    ),
+                                  );
+                                } else if (snapshot.hasData &&
+                                    snapshot.data != null &&
+                                    snapshot.data!.isNotEmpty) {
+                                  final seenNames = <String>{};
+                                  final uniqueStations = snapshot.data!.where((station) {
+                                    final name = station.stationNameZh;
+                                    if (seenNames.contains(name)) {
+                                      return false;
+                                    } else {
+                                      seenNames.add(name);
+                                      return true;
+                                    }
+                                  }).toList();
+
+                                  // 加载标记
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _loadMarkers(context, snapshot.data!);
+                                  });
+                                  return Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: const NeverScrollableScrollPhysics(),
+                                      itemCount: uniqueStations.length,
+                                      itemBuilder: (context, index) {
+                                        final station = uniqueStations[index];
+                                        return _stationCard(station: station);
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  return const Center(
+                                    child: Text(
+                                      "找不到附近的站牌",
+                                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                            DraggableScrollableSheetPageTwo()
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+
+      // 重載按鈕
           Positioned(
             bottom: 20,
             right: 20,
@@ -351,7 +367,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       ),
       child:
           // 在这里直接使用 BusStopInfo 组件
-      BusStopList(_stopName.value), // 传递 stopName 作为参数给 BusStopInfo
+      BusStopList(_stopName.value, key: ValueKey(_stopName.value),), // 传递 stopName 作为参数给 BusStopInfo
 
     );
   }
@@ -398,7 +414,7 @@ class _BusStopListState extends State<BusStopList> {
       // 根据方向查找去程或回程的目的地信息
       if (direction == 1) {
         var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-        print(result);
+
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
@@ -427,78 +443,124 @@ class _BusStopListState extends State<BusStopList> {
       onRefresh: () async {
         _loadData();
       },
-      child: ListView.builder(
-        itemCount: directionList.length,
-        itemBuilder: (context, index) {
-          final stop = directionList[index];
+      child:
 
-          final isRed = stop["isRed"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.3) : Colors.white);
 
-          return ListTile(
-            onTap: () async {
-              // 使用 Navigator.push 创建新的页面
-              await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BusTime(
-                    routeName:  stop["RouteName"]["Zh_tw"],
-                    departureStopName:  stop["from"],
-                    destinationStopName:  stop["to"],
-                    operators: "",
-                    routeMapImageUrl: "",
-                    city: "Taichung", routeID: stop["RouteID"],
 
+
+      Container(
+        margin: const EdgeInsets.only(bottom: 25), // 设置底部间距
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await _loadData(); // 刷新时重新加载数据
+          },
+          child: ListView.separated(
+            itemCount: directionList.length,
+            itemBuilder: (context, index) {
+              final stop = directionList[index];
+              final PlateNumb = stop["PlateNumb"];
+
+              final color = stop["color"] == '0'
+                  ? const Color.fromRGBO(235, 15, 41, 0.85)
+                  : (stop["color"] == '2'
+                  ? const Color.fromRGBO(225, 85, 104, 0.1)
+                  : (stop["color"] == "班次結束"
+                  ? const Color.fromRGBO(69, 69, 69, 0.1)
+                  : (stop["color"] == "min"
+                  ? const Color.fromRGBO(13, 168, 255, 0.1)
+                  : const Color.fromRGBO(68, 68, 68, 0.1))));
+
+              return Container(
+                height: 53.0, // 每个列表项的固定高度
+                child: ListTile(
+                  onTap: () async {
+                    await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BusTime(
+                          routeName:  stop["RouteName"]["Zh_tw"],
+                          departureStopName:  stop["from"],
+                          destinationStopName:  stop["to"],
+                          operators: "",
+                          routeMapImageUrl: "",
+                          city: "Taichung", routeID: stop["RouteID"],
+
+                        ),
+                      ),
+                    );
+                  },
+                  leading: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Text(
+                      stop["time"] ?? "未知",
+                      style: TextStyle(
+                        fontFamily: 'MiSans-normal',
+                        fontSize: 17,
+                        color: stop["color"] == '0'
+                            ? Colors.white
+                            : (stop["color"] == '2'
+                            ? const Color.fromRGBO(255, 85, 104, 1)
+                            : (stop["color"] == "班次結束"
+                            ? const Color.fromRGBO(149, 149, 149, 1.0)
+                            : (stop["color"] == "min"
+                            ? const Color.fromRGBO(13, 168, 255, 1)
+                            : const Color.fromRGBO(68, 68, 68, 1)))),
+                      ),
+                    ),
                   ),
+                  title: Row(
+                    children: [
+                      Text(
+                        stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                        style: TextStyle(
+                          fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
+                          fontSize: 17,
+                          color: stop["color"] == "班次結束"
+                              ? const Color.fromRGBO(136, 136, 136, 1)
+                              : Colors.black,
+                        ),
+                      ),
+                      if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6), // 左侧间距
+                          child: SvgPicture.asset(
+                            'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
+                            width: 18, // SVG图标宽度
+                            height: 18, // SVG图标高度
+                          ),
+                        )
+                      else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6), // 左侧间距
+                          child: SvgPicture.asset(
+                            'assets/icons/tc_MRT.svg', // 自定义SVG路径
+                            width: 18, // SVG图标宽度
+                            height: 18, // SVG图标高度
+                          ),
+                        ),
+                    ],
+                  ),
+
                 ),
               );
-
             },
-            leading: Container(
-              padding: const EdgeInsets.all(9),
-              decoration: BoxDecoration(
-                color: isRed,
-                border: Border.all(
-                  width: 1.0,
-                  color: stop["isRed"] == '0'
-                      ? const Color.fromRGBO(235, 15, 41, 0.85)
-                      : (stop["isRed"] == '2'
-                      ? const Color.fromRGBO(235, 15, 41, 0.35)
-                      : busBlue),
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                stop["time"] ?? "未知",
-                style: TextStyle(
-                  fontFamily: 'MiSans-Semibold',
-                  fontSize: 18,
-                  color: stop["isRed"] == '0'
-                      ? Colors.white
-                      : (stop["isRed"] == '2' ? const Color.fromRGBO(235, 15, 41, 0.7) : const Color.fromRGBO(90, 107, 107, 1)),
-                ),
-              ),
-            ),
-            title: Text(
-              stop["RouteName"]["Zh_tw"] ?? "未知站名",
-              style: const TextStyle(
-                fontFamily: 'MiSans-Demibold',
-                fontSize: 18,
-                color: Color.fromRGBO(77, 77, 77, 1),
-              ),
-            ),
-            subtitle: Text(
-              stop["to"] ?? "未知目的地",
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          );
-        },
-      ),
+            separatorBuilder: (BuildContext context, int index) {
+              return const Divider(
+                color: Color.fromRGBO(231, 231, 231, 1), // 分隔线颜色
+                height: 9, // 分隔线与上下元素间距
+                thickness: 1, // 分隔线粗细
+                indent: 20, // 分隔线左间距
+                endIndent: 20, // 分隔线右间距
+              );
+            },
+          ),
+        ),
+      )
     );
   }
 
@@ -617,21 +679,14 @@ class _BusStopListState extends State<BusStopList> {
       preferredSize: const Size.fromHeight(60),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1), // 微弱阴影
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
+          color: Colors.white, // 使用白色背景
         ),
         child: const TabBar(
           indicatorColor: Colors.black, // 使用黑色作为指示器颜色
           labelColor: Colors.black, // 黑色文字
           unselectedLabelColor: Colors.grey, // 灰色未选中文字
           indicatorWeight: 2.0, // 更细的指示器
-          indicatorSize: TabBarIndicatorSize.label,
+          indicatorSize: TabBarIndicatorSize.label, // 窄指示器
           labelStyle: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600, // 略轻的加粗，显得现代
@@ -640,13 +695,20 @@ class _BusStopListState extends State<BusStopList> {
             fontSize: 15, // 未选中标签稍小字体
           ),
           tabs: [
-            Tab(icon: Icon(Icons.directions_bus, size: 24), text: "A"),
-            Tab(icon: Icon(Icons.directions_bus, size: 24), text: "B"),
+            Tab(
+              icon: Icon(Icons.directions_bus, size: 24),
+              text: "A",
+            ),
+            Tab(
+              icon: Icon(Icons.directions_bus, size: 24),
+              text: "B",
+            ),
           ],
         ),
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -664,57 +726,108 @@ class _BusStopListState extends State<BusStopList> {
             } else if (snapshot.hasError) {
               return ErrorPage();
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              print('snapshot.has not Data');
               return ErrorPage();
             } else {
               return DefaultTabController(
                 length: 2,
                 child: Scaffold(
-                  appBar: AppBar(
-                    title: Text(widget.stop),
-                    actions: [
-                      IconButton(
-                        icon: Icon(Icons.refresh),
-                        onPressed: _loadData, // 刷新数据
-                      ),
-                      PopupMenuButton<String>(
-                        iconColor: Colors.black,
-                        itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                          SelectView(Icons.info, '站牌資訊', 'A'),
-                          SelectView(Icons.add, '加入收藏', 'B'),
+                  appBar: PreferredSize(
+                    preferredSize: const Size.fromHeight(120), // 自定义高度
+                    child: Container(
+                      decoration: BoxDecoration(
+
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+
+                        color: Colors.white,
+
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2), // 微弱阴影
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
                         ],
-                        onSelected: (String action) async {
-                          if (action == 'B') {
-                            favorite_feature dbHelper = favorite_feature(); // 创建实例
-
-                            final output = await dbHelper.addFavorite(StopName:widget.stop,table: "FavoritesStop", city: 'Taichung');
-
-
-                            if (output==100) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.success,
-                                text: '${widget.stop}已儲存項目',
-                              );
-                            } else if (output==-1) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.warning,
-                                text: '${widget.stop}已存在於列表中，不會重複添加',
-                              );
-                            } else if (output==200) {
-                              QuickAlert.show(
-                                context: context,
-                                type: QuickAlertType.error,
-                                title: 'Oops...',
-                                text: '儲存項目時發生錯誤',
-                              );
-                            }
-
-                          }
-                        },
                       ),
-                    ],
-                    bottom: _buildTabBar(),
+                      child: Stack(
+                        children: [
+                          AppBar(
+
+                            backgroundColor: Colors.transparent, // 设置透明背景
+                            elevation: 0, // 移除默认阴影
+                            title: Text(
+                              widget.stop,
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                            actions: [
+                              IconButton(
+                                icon: Icon(Icons.refresh, color: Colors.black),
+                                onPressed: _loadData, // 刷新数据
+                              ),
+                              PopupMenuButton<String>(
+                                icon: Icon(Icons.more_vert, color: Colors.black),
+                                itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                                  SelectView(Icons.info, '站牌資訊', 'A'),
+                                  SelectView(Icons.add, '加入收藏', 'B'),
+                                ],
+                                onSelected: (String action) async {
+                                  if (action == 'B') {
+                                    favorite_feature dbHelper = favorite_feature();
+
+                                    final output = await dbHelper.addFavorite(
+                                      StopName: widget.stop,
+                                      table: "FavoritesStop",
+                                      city: 'Taichung',
+                                    );
+
+                                    if (output == 100) {
+                                      QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.success,
+                                        text: '${widget.stop}已儲存項目',
+                                      );
+                                    } else if (output == -1) {
+                                      QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.warning,
+                                        text: '${widget.stop}已存在於列表中，不會重複添加',
+                                      );
+                                    } else if (output == 200) {
+                                      QuickAlert.show(
+                                        context: context,
+                                        type: QuickAlertType.error,
+                                        title: 'Oops...',
+                                        text: '儲存項目時發生錯誤',
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
+                            bottom: _buildTabBar(),
+                          ),
+                          Positioned(
+                            top: 8, // 提示线距离顶部的位置
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                width: 40,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(2.5),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   body: TabBarView(
                     children: [
@@ -722,10 +835,12 @@ class _BusStopListState extends State<BusStopList> {
                         future: _buildTabContent(0, snapshot.data!),
                         builder: (context, contentSnapshot) {
                           if (contentSnapshot.connectionState == ConnectionState.waiting) {
-                            return  Center(child: LoadingAnimationWidget.stretchedDots(
-                              color: Colors.black,
-                              size: 40,
-                            ));
+                            return Center(
+                              child: LoadingAnimationWidget.stretchedDots(
+                                color: Colors.black,
+                                size: 40,
+                              ),
+                            );
                           }
                           return contentSnapshot.data as Widget;
                         },
@@ -743,6 +858,9 @@ class _BusStopListState extends State<BusStopList> {
                   ),
                 ),
               );
+
+
+
             }
           },
         )

@@ -38,8 +38,8 @@ class BusTime extends StatefulWidget {
 
 class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
-  late final stopNamesWithTime1;
-  late final stopNamesWithTime2;
+  late var stopNamesWithTime1;
+  late var stopNamesWithTime2;
   late final  TabController _tabController;
   final Set<Marker> markers = {};
   Timer? _timer;
@@ -545,16 +545,17 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
                     Stack(
                       children: [
-                        Container(
+      Container(
                           color: bgColorWhite,
                           child: TabBarView(
                             controller: _tabController,
                             children: [
+
                               _buildTabContent(stopNamesWithTime1), // Tab for direction 0
                               _buildTabContent(stopNamesWithTime2), // Tab for direction 1
                             ],
                           ),
-                        ),
+                       ),
                       if (isTimerOn.value == false)
                     Positioned(
                     bottom: 0,
@@ -787,7 +788,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       },
 
       ),
-    ),);
+    ),
+    );
   }
 
   Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates,) {
