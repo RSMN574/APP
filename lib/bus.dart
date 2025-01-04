@@ -101,7 +101,8 @@ class BusState extends State<Bus>  {
     return favorites;
   }
 Future <List>_getData()async{
-    busCurrentCity=correspondingIDNotifier.value;
+  busCurrentCity=correspondingIDNotifier.value;
+
 
     busData= await  GetBus(correspondingIDNotifier.value);
 
@@ -633,8 +634,12 @@ Future <List>_getData()async{
                               );
                             } else {
                               // 数据加载完成后，显示 Buslist
-                              return Buslist(suggestions: snapshot.data ?? [], city:  correspondingIDNotifier.value,);
-
+                              return Buslist(
+                                suggestions: snapshot.data ?? [],
+                                city: correspondingIDNotifier.value == 'all'
+                                    ? "Taipei,Taichung"
+                                    : correspondingIDNotifier.value,
+                              );
 
                             }
                           },

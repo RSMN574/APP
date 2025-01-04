@@ -49,6 +49,23 @@ class Station {
       versionID: json['VersionID'] ?? 0, // 如果为空，使用默认值 0
     );
   }
+  @override
+  String toString() {
+    return 'Station(stationNameZh: $stationNameZh, stationID: $stationID,stationUID: $stationUID)';
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      "stationUID": stationUID,
+      "stationID": stationID,
+      "stationNameZh": stationNameZh,
+      "positionLon": positionLon,
+      "positionLat": positionLat,
+      "stops":stops
+
+    };
+  }
+
+
 }
 class Stop {
   final String stopUID;
@@ -76,6 +93,16 @@ class Stop {
       routeID: json['RouteID'],
       routeNameZh: json['RouteName']['Zh_tw'],
     );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      "StopUID": stopUID,
+      "StopID": stopID,
+      "StopName": stopNameZh,
+      "RouteUID": routeUID,
+      "RouteID": routeID,
+
+    };
   }
 }
 

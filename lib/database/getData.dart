@@ -53,19 +53,30 @@ Future<void> connMysql() async {
   }
 }
 
-Future<List> GetBus(String city, [RouteName]) async {
+Future<List> GetBus(String city ) async {
 
     await connMysql(); // 連接資料庫
-String query='''
-SELECT * 
-FROM Bus.Bus_${city}_Route 
-WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%${RouteName}%'
-''';
+// String query='''
+// SELECT *
+// FROM Bus.Bus_${city}_Route
+// WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%${RouteName}%'
+// ''';
 
   // 使用參數化查詢以避免 SQL 注入
   String query2 =
       "SELECT * FROM Bus.Bus_${city}_Route";
+  if(city=="all"){
+     query2 =
+        """
+        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+FROM Bus.Bus_Taipei_Route
+UNION ALL
+SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+FROM Bus.Bus_Taichung_Route;
+ """;
+  }
   List data=[];
+
   try {
     data.clear();
     result =await conn?.execute(query2);
@@ -176,7 +187,7 @@ getInfo(data){
  }
 }
 
-GetBusStopInfo(String stopName ,String city) async {
+GetBusStopInfo(String stopName ,String city,) async {
 
   await connMysql(); // 連接資料庫
 

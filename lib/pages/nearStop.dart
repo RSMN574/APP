@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -15,11 +14,12 @@ import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
 import '../models/Station.dart';
+import '../widget/bubble.dart';
 import '../widget/error.dart';
 import '../widget/map.dart';
-import 'busStopInfo.dart';
 import 'bus_time.dart';
-
+ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
+ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
@@ -31,6 +31,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   int _index=0;
   ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
   ValueNotifier<String> _stopName = ValueNotifier<String>('');
+  final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
+
   @override
   void dispose() {
 
@@ -61,12 +63,27 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         ),
         infoWindow: InfoWindow(
           title: station.stationNameZh ?? 'Unknown',
-          snippet: station.stationUID ?? 'Unknown',
-        ),onTap: () {
-
+          snippet: station.stationID ?? 'Unknown',
+        ),onTap: () async {
+        List<dynamic> data=await GetBusStopInfo(station.stationNameZh,"Taichung");
+        // 使用 map 來提取 StationID 並轉換為字串
+        List<String> stationIDs = data.map((station) {
+          // 確保 StationID 存在並轉換為字串
+          if (station.containsKey('StationID')) {
+            return station['StationID'].toString();
+          }
+          return '';
+        })
+        // 過濾掉空字串
+            .where((id) => id.isNotEmpty)
+            .toList();
+         _stationIDs.value=stationIDs;
         _stopName.value=station.stationNameZh;
+        _selectStationID.value=station.stationID;
+
         setState(() {
           _index = 1; // 切换到搜索内容
+
         });
 
       }
@@ -179,15 +196,32 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                 } else if (snapshot.hasData &&
                                     snapshot.data != null &&
                                     snapshot.data!.isNotEmpty) {
-                                  final seenNames = <String>{};
-                                  final uniqueStations = snapshot.data!.where((station) {
-                                    final name = station.stationNameZh;
-                                    if (seenNames.contains(name)) {
-                                      return false;
-                                    } else {
-                                      seenNames.add(name);
-                                      return true;
+                                  // print( snapshot.data?[0].toString()  );
+                                  // print( snapshot.data?[1].toString()  );
+
+
+
+
+
+                                  // 使用 Map 分組
+                                  Map<String, List<Map<String, dynamic>>> groupedStations = {};
+
+                                  for (var station in   snapshot.data!) {
+                                    String stationName = station.stationNameZh;
+                                    if (!groupedStations.containsKey(stationName)) {
+                                      groupedStations[stationName] = [];
                                     }
+                                    groupedStations[stationName]!.add(station.toJson());
+                                  }
+
+                                  // 將分組後的資料轉換為指定格式
+                                  List<Map<String, dynamic>> result = groupedStations.entries.map((entry) {
+                                    return {
+                                      "StationGroup": {
+                                        "StationGroupName": {"Zh_tw": entry.key},
+                                        "Stations": entry.value
+                                      }
+                                    };
                                   }).toList();
 
                                   // 加载标记
@@ -199,9 +233,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                     child: ListView.builder(
                                       shrinkWrap: true,
                                       physics: const NeverScrollableScrollPhysics(),
-                                      itemCount: uniqueStations.length,
+                                      itemCount:result.length,
                                       itemBuilder: (context, index) {
-                                        final station = uniqueStations[index];
+                                        final station = result[index];
                                         return _stationCard(station: station);
                                       },
                                     ),
@@ -267,11 +301,19 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     ));
   }
 
-  Widget _stationCard ({ station }) {
+  Widget _stationCard ({ required Map<String, dynamic> station }) {
+// print((station["StationGroup"]["Stations"]));
     return GestureDetector(
       onTap: () {
 
-        _stopName.value=station.stationNameZh;
+        List<String> stationIDs = (station["StationGroup"]["Stations"] as List<dynamic>?)
+            ?.map((station) => station["stationID"].toString())
+            .toList() ?? [];
+
+
+        _stopName.value=station["StationGroup"]["StationGroupName"]["Zh_tw"];
+        _stationIDs.value=stationIDs;
+
         setState(() {
           _index = 1; // 切换到搜索内容
         });
@@ -311,7 +353,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              station.stationNameZh,
+        station["StationGroup"]["StationGroupName"]["Zh_tw"],
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -323,33 +365,52 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             const SizedBox(height: 8),
             // 确保返回的每个元素是一个 Widget
             Column(
-              children: station.stops.map<Widget>((stop) { // 明确声明为 List<Widget>
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        stop.routeNameZh,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.black,
-                        ),
+              children: station["StationGroup"]["Stations"].map<Widget>((stationItem) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stationItem["stationNameZh"], // 顯示站點名稱
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
                       ),
-                      Text(
-                        stop.stopNameZh,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w300,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      children: (stationItem["stops"] as List<Stop>).map<Widget>((stop) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                stop.routeNameZh, // 顯示路線名稱
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                stop.stopNameZh, // 顯示站名
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w300,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 );
               }).toList(),
             ),
+
           ],
         ),
       ),
@@ -376,49 +437,138 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 }
 class BusStopList extends StatefulWidget {
   final String stop;
-
-  const BusStopList(this.stop, {super.key});
+  final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
+  // 提供外部访问方法
+  void changeTab(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 使用 _key 获取对应的 State
+      final state = _key.currentState as _BusStopListState?;
+      state?._changeTab(index);  // 调用 _changeTab 方法
+    });
+  }
+   BusStopList(this.stop, {super.key});
   @override
   State<StatefulWidget> createState() {
     return _BusStopListState();
   }
 }
 
-class _BusStopListState extends State<BusStopList> {
-  final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
-
+class _BusStopListState extends State<BusStopList>with SingleTickerProviderStateMixin {
+   StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
+   late TabController _tabController;
   List<Map<String, dynamic>> data = [];
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
   // 构建 TabBar
-  @override
-  void initState() {
-    super.initState();
-    _loadData(); // 初次加载数据
-  }
+   @override
+   void initState() {
+     super.initState();
+     _loadData();
+     // 初始化 TabController
+     _tabController = TabController(
+         length: _stationIDs.value.length, // 使用 stationIDs 的長度
+         vsync: this
+     );
+     // 監聽 _stopName 的變化，根據值切換 Tab
+     _selectStationID.addListener(() {
+       String currentStop = _selectStationID.value;
+       _stationIDs.value.sort(); // 對站點列表進行排序
+
+       int index = _stationIDs.value.indexOf(currentStop); // 獲取 currentStop 在排序後列表中的索引
+       _tabController.animateTo(index);
+
+     });
+
+   }
+
+   // 監聽 _selectStationID 的變化
+   Future<void> _onStationIDChanged() async {
+
+
+     // 檢查 _stationIDs 是否已經有值
+     if (_stationIDs.value.isNotEmpty) {
+       _tabController.dispose(); // 销毁旧的 TabController
+        _tabController = TabController(
+         length: _stationIDs.value.length,
+         vsync: this,
+       );
+
+     }
+     _stationIDs.value.sort();
+
+     String currentStop = _selectStationID.value;
+     int index = _stationIDs.value.indexOf(currentStop);
+
+
+     if (index != -1) {
+       _tabController.animateTo(index); // 切換 Tab
+     }
+   }
+
   @override
   void dispose() {
+    _selectStationID.removeListener(_onStationIDChanged); // 移除監聽器
     _streamController.close(); // 关闭 StreamController
+    // 釋放 TabController
+    _tabController.dispose();
     super.dispose();
-  } Future<void> _loadData() async {
+
+  }
+  Future<void> _loadData() async {
+
     try {
+
       final data = await fetchBusStopInfo();
+
       _streamController.add(data); // 向数据流中添加新数据
     } catch (e) {
       _streamController.addError(e); // 向数据流中添加错误
     }
   }
-  Future<Widget> _buildTabContent(int direction, List<Map<String, dynamic>> stopEstimatedTime) async {
+  Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
+    // 使用 Map 來確保每個路線只出現一次
+    List<Map<String, dynamic>> uniqueList;
+    final Map<String, Map<String, dynamic>> uniqueRoutes = {};
+    for (var item in stopEstimatedTime) {
+      final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
+      if (!uniqueRoutes.containsKey(routeKey) ||
+          _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
+        uniqueRoutes[routeKey] = item;
+      }
+    }
 
-    for (var i in directionList) {
+    uniqueList= uniqueRoutes.values.toList();
+
+    List<Map<String, dynamic>> finalList=[];
+
+    // 按 StationID 分类
+    Map<String, List<Map<String, dynamic>>> groupedData = {};
+    for (var item in uniqueList) {
+      String stationID = item["StationID"];
+      groupedData.putIfAbsent(stationID, () => []).add(item);
+    }
+
+    // 打印分组后的结果
+    groupedData.forEach((stationID, items) {
+      if(stationID==direction){
+        finalList=items;
+        // print("finalList");
+        // print(finalList);
+      }
+      // print("StationID: $stationID");
+      // print("Data: $items");
+    });
+
+    for (var i in finalList) {
+
       // 根据方向查找去程或回程的目的地信息
-      if (direction == 1) {
+      if (i['Direction'] == 1) {
         var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
 
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-      } else if (direction == 0) {
+      } else if (i['Direction'] == 0) {
         var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
         i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
@@ -427,7 +577,7 @@ class _BusStopListState extends State<BusStopList> {
     }
 
     // 对 stop["time"] 按照时间升序排序
-    directionList.sort((a, b) {
+    finalList.sort((a, b) {
       if (a["time"] == "即將到站") return -1;
       if (b["time"] == "即將到站") return 1;
       if (a["time"] == "班次結束") return 1;
@@ -441,7 +591,7 @@ class _BusStopListState extends State<BusStopList> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        _loadData();
+
       },
       child:
 
@@ -455,9 +605,9 @@ class _BusStopListState extends State<BusStopList> {
             await _loadData(); // 刷新时重新加载数据
           },
           child: ListView.separated(
-            itemCount: directionList.length,
+            itemCount: finalList.length,
             itemBuilder: (context, index) {
-              final stop = directionList[index];
+              final stop = finalList[index];
               final PlateNumb = stop["PlateNumb"];
 
               final color = stop["color"] == '0'
@@ -513,40 +663,50 @@ class _BusStopListState extends State<BusStopList> {
                       ),
                     ),
                   ),
-                  title: Row(
-                    children: [
-                      Text(
-                        stop["RouteName"]["Zh_tw"] ?? "未知站名",
-                        style: TextStyle(
-                          fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
-                          fontSize: 17,
-                          color: stop["color"] == "班次結束"
-                              ? const Color.fromRGBO(136, 136, 136, 1)
-                              : Colors.black,
-                        ),
-                      ),
-                      if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6), // 左侧间距
-                          child: SvgPicture.asset(
-                            'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
-                            width: 18, // SVG图标宽度
-                            height: 18, // SVG图标高度
-                          ),
-                        )
-                      else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6), // 左侧间距
-                          child: SvgPicture.asset(
-                            'assets/icons/tc_MRT.svg', // 自定义SVG路径
-                            width: 18, // SVG图标宽度
-                            height: 18, // SVG图标高度
-                          ),
-                        ),
-                    ],
+                  title:  Row(
+                children: [
+                Text(
+                stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                  style: TextStyle(
+                    fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
+                    fontSize: 17,
+                    color: stop["color"] == "班次結束"
+                        ? const Color.fromRGBO(136, 136, 136, 1)
+                        : Colors.black,
                   ),
-
                 ),
+                  const SizedBox(width: 8), // 增加站名和方向之間的間距
+                  Text(
+                    "往 ${stop["to"] ?? "未知方向"}",
+                    style: TextStyle(
+                      fontFamily: 'MiSans-normal',
+                      fontSize: 14,
+                      color: const Color.fromRGBO(136, 136, 136, 1),
+                    ),
+                  ),
+                  if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
+              Padding(
+              padding: const EdgeInsets.only(left: 6), // 左侧间距
+              child: SvgPicture.asset(
+              'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
+              width: 18, // SVG图标宽度
+              height: 18, // SVG图标高度
+              ),
+              )
+              else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
+              Padding(
+              padding: const EdgeInsets.only(left: 6), // 左侧间距
+              child: SvgPicture.asset(
+              'assets/icons/tc_MRT.svg', // 自定义SVG路径
+              width: 18, // SVG图标宽度
+              height: 18, // SVG图标高度
+              ),
+              ),
+              ],
+              ),
+
+                  trailing: bubble(plateNum: PlateNumb),
+              ),
               );
             },
             separatorBuilder: (BuildContext context, int index) {
@@ -605,7 +765,7 @@ class _BusStopListState extends State<BusStopList> {
 
     if (info != null) {
       for (var i in info) {
-        var stationInfo = await fetchStationInfo(i["StationID"], "Taichung");
+        var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
         for (var stop in stationInfo) {
           var timeData = await getTimeList(stop);
           stop["time"] = timeData["time"];
@@ -674,41 +834,47 @@ class _BusStopListState extends State<BusStopList> {
 
 
 
-  PreferredSize _buildTabBar() {
+  PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
+
+
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white, // 使用白色背景
         ),
-        child: const TabBar(
+        child: TabBar(
+
+          controller: _tabController, // 添加 controller
           indicatorColor: Colors.black, // 使用黑色作为指示器颜色
           labelColor: Colors.black, // 黑色文字
           unselectedLabelColor: Colors.grey, // 灰色未选中文字
           indicatorWeight: 2.0, // 更细的指示器
           indicatorSize: TabBarIndicatorSize.label, // 窄指示器
-          labelStyle: TextStyle(
+          labelStyle: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600, // 略轻的加粗，显得现代
           ),
-          unselectedLabelStyle: TextStyle(
+          unselectedLabelStyle: const TextStyle(
             fontSize: 15, // 未选中标签稍小字体
           ),
-          tabs: [
-            Tab(
-              icon: Icon(Icons.directions_bus, size: 24),
-              text: "A",
-            ),
-            Tab(
-              icon: Icon(Icons.directions_bus, size: 24),
-              text: "B",
-            ),
-          ],
-        ),
+
+        tabs: List.generate(_stationIDs.value.length, (index) {
+          String label = String.fromCharCode(65 + index); // 將索引轉為字母 A, B, C...
+          return Tab(
+            icon: Icon(Icons.directions_bus, size: 24),
+            text: _stationIDs.value[index],
+
+          );
+        }),
+
+      ),
       ),
     );
   }
-
+    void _changeTab(int index) {
+    _tabController.index = index; // 控制 TabBarView 显示的 tab
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -724,6 +890,7 @@ class _BusStopListState extends State<BusStopList> {
                 ),
               );
             } else if (snapshot.hasError) {
+              print(snapshot.error);
               return ErrorPage();
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               print('snapshot.has not Data');
@@ -808,7 +975,7 @@ class _BusStopListState extends State<BusStopList> {
                                 },
                               ),
                             ],
-                            bottom: _buildTabBar(),
+                            bottom: _buildTabBar(snapshot.data!),
                           ),
                           Positioned(
                             top: 8, // 提示线距离顶部的位置
@@ -830,10 +997,13 @@ class _BusStopListState extends State<BusStopList> {
                     ),
                   ),
                   body: TabBarView(
-                    children: [
-                      FutureBuilder(
-                        future: _buildTabContent(0, snapshot.data!),
+                    controller: _tabController,  // 加入 controller 綁定
+                    children: List.generate(_stationIDs.value.length, (index) {
+                      String label = String.fromCharCode(65 + index); // A, B, C...
+                      return FutureBuilder(
+                        future: _buildTabContent(_stationIDs.value[index], snapshot.data!), // 傳入 A, B, C...
                         builder: (context, contentSnapshot) {
+
                           if (contentSnapshot.connectionState == ConnectionState.waiting) {
                             return Center(
                               child: LoadingAnimationWidget.stretchedDots(
@@ -842,20 +1012,27 @@ class _BusStopListState extends State<BusStopList> {
                               ),
                             );
                           }
-                          return contentSnapshot.data as Widget;
-                        },
-                      ),
-                      FutureBuilder(
-                        future: _buildTabContent(1, snapshot.data!),
-                        builder: (context, contentSnapshot) {
-                          if (contentSnapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
+
+                          if (contentSnapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${contentSnapshot.error}'),
+                            );
                           }
-                          return contentSnapshot.data as Widget;
+
+                          if (contentSnapshot.data == null) {
+                            return Center(
+                              child: Text("No content available"),
+                            );
+                          }
+
+                          return contentSnapshot.data is Widget
+                              ? contentSnapshot.data as Widget
+                              : Center(child: Text("Invalid content"));
                         },
-                      ),
-                    ],
-                  ),
+                      );
+                    }),
+                  )
+
                 ),
               );
 
