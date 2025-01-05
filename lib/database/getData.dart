@@ -12,7 +12,7 @@ const int idleTimeout = 30; // 30秒無操作超時
 var result;
 MySQLConnection? conn;
 var busid;
-List busName=[];
+ List busName=[];
 int? sum=0;
 List jsonData=[];
 int routeID=0;
@@ -96,7 +96,7 @@ FROM Bus.Bus_Taichung_Route;
 
     // 打印結果，方便調試
 
-// print( busName);
+
 
   } catch (e) {
     print("Query error: $e");

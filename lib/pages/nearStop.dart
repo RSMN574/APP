@@ -20,6 +20,7 @@ import '../widget/map.dart';
 import 'bus_time.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
+ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
@@ -29,7 +30,7 @@ class NearbyStationsPage extends StatefulWidget {
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
   int _index=0;
-  ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
+
   ValueNotifier<String> _stopName = ValueNotifier<String>('');
   final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
 
@@ -56,7 +57,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       }
 
       final marker = Marker(
-        markerId: MarkerId(station.stationUID),
+        markerId: MarkerId(station.stationID),
         position: LatLng(
           station.positionLat,
           station.positionLon,
@@ -97,6 +98,25 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     // Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
 
     debugPrint('Markers loaded: ${markers.length}');
+  }
+  static void _updateMarkerStyle([String? selectedIndex]) {
+   // String selectedStationID = _stationIDs.value[selectedIndex];
+
+    // 遍歷所有 markers，更新樣式
+    _markers.value = _markers.value.map((marker) {
+      if (marker.markerId.value == _selectStationID.value) {
+        print("marker.markerId.value");
+        // 更新為選中樣式
+        return marker.copyWith(
+          iconParam: BitmapDescriptor.defaultMarkerWithHue(190.0), // 使用柔和藍色
+        );
+      } else {
+        // 恢復為普通樣式
+        return marker.copyWith(
+          iconParam: BitmapDescriptor.defaultMarker,
+        );
+      }
+    }).toSet();
   }
 
   @override
@@ -428,7 +448,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       ),
       child:
           // 在这里直接使用 BusStopInfo 组件
-      BusStopList(_stopName.value, key: ValueKey(_stopName.value),), // 传递 stopName 作为参数给 BusStopInfo
+      BusStopList(_stopName.value, ), // 传递 stopName 作为参数给 BusStopInfo
 
     );
   }
@@ -438,14 +458,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 class BusStopList extends StatefulWidget {
   final String stop;
   final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
-  // 提供外部访问方法
-  void changeTab(int index) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 使用 _key 获取对应的 State
-      final state = _key.currentState as _BusStopListState?;
-      state?._changeTab(index);  // 调用 _changeTab 方法
-    });
-  }
+
    BusStopList(this.stop, {super.key});
   @override
   State<StatefulWidget> createState() {
@@ -462,51 +475,39 @@ class _BusStopListState extends State<BusStopList>with SingleTickerProviderState
    @override
    void initState() {
      super.initState();
-     _loadData();
+
      // 初始化 TabController
      _tabController = TabController(
          length: _stationIDs.value.length, // 使用 stationIDs 的長度
          vsync: this
      );
-     // 監聽 _stopName 的變化，根據值切換 Tab
      _selectStationID.addListener(() {
+       if (_tabController.length != _stationIDs.value.length) {
+
+         _tabController = TabController(
+           length: _stationIDs.value.length,
+           vsync: this,
+         );
+       }
+
        String currentStop = _selectStationID.value;
        _stationIDs.value.sort(); // 對站點列表進行排序
-
        int index = _stationIDs.value.indexOf(currentStop); // 獲取 currentStop 在排序後列表中的索引
-       _tabController.animateTo(index);
+
+       if (index != -1) {
+         _NearbyStationsPageState._updateMarkerStyle(_selectStationID.value); // 切換 marker 樣式
+         _tabController.animateTo(index); // 切換 Tab
+       }
+
 
      });
 
    }
 
-   // 監聽 _selectStationID 的變化
-   Future<void> _onStationIDChanged() async {
 
-
-     // 檢查 _stationIDs 是否已經有值
-     if (_stationIDs.value.isNotEmpty) {
-       _tabController.dispose(); // 销毁旧的 TabController
-        _tabController = TabController(
-         length: _stationIDs.value.length,
-         vsync: this,
-       );
-
-     }
-     _stationIDs.value.sort();
-
-     String currentStop = _selectStationID.value;
-     int index = _stationIDs.value.indexOf(currentStop);
-
-
-     if (index != -1) {
-       _tabController.animateTo(index); // 切換 Tab
-     }
-   }
 
   @override
   void dispose() {
-    _selectStationID.removeListener(_onStationIDChanged); // 移除監聽器
     _streamController.close(); // 关闭 StreamController
     // 釋放 TabController
     _tabController.dispose();
@@ -518,7 +519,8 @@ class _BusStopListState extends State<BusStopList>with SingleTickerProviderState
     try {
 
       final data = await fetchBusStopInfo();
-
+print('data');
+print(data);
       _streamController.add(data); // 向数据流中添加新数据
     } catch (e) {
       _streamController.addError(e); // 向数据流中添加错误
@@ -872,12 +874,11 @@ class _BusStopListState extends State<BusStopList>with SingleTickerProviderState
       ),
     );
   }
-    void _changeTab(int index) {
-    _tabController.index = index; // 控制 TabBarView 显示的 tab
-  }
+
 
   @override
   Widget build(BuildContext context) {
+    _loadData();
     return Scaffold(
         body:StreamBuilder<List<Map<String, dynamic>>>(
           stream: _streamController.stream,

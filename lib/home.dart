@@ -634,7 +634,7 @@ if(type=="bike") {
         "${destination?.latitude}%2C${destination?.longitude}",
       );
     }
-
+   // "${locationProvider.latitude}%2C${locationProvider.longitude}",
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
@@ -684,30 +684,53 @@ if(type=="bike") {
                     final route = routes[index];
                     final sections = route['sections'] as List<dynamic>;
                     final totalTime = route['travel_time'];
-                    final totalPrice = route['total_price'];
+                    final totalPrice = route['total_price'] ?? 0;
 
                     return Card(
-                      margin: const EdgeInsets.all(8.0),
-                      elevation: 4.0, // 微弱阴影效果
+                      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      elevation: 3.0, // 微弱阴影效果
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: ExpansionTile(
-                        title: Text(
-                          '路線 ${index + 1} - 時間: ${_formatDuration(totalTime)}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '路線 ${index + 1}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '總時間: ${_formatDuration(totalTime)}',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                ),
+                                Text(
+                                  '費用: \$${totalPrice}',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 20, thickness: 1),
+                            ...sections.map<Widget>((section) {
+                              return _buildSectionItem(section);
+                            }).toList(),
+                          ],
                         ),
-                        subtitle: Text(
-                          '費用: \$${totalPrice}',
-                          style: const TextStyle(color: Colors.black45),
-                        ),
-                        children: sections.map<Widget>((section) {
-                          return _buildSectionItem(section);
-                        }).toList(),
                       ),
                     );
                   },
                 );
+
+
               },
             ),
           );
@@ -716,24 +739,39 @@ if(type=="bike") {
     );
   }
 
-// 构建每段行程的组件
   Widget _buildSectionItem(Map<String, dynamic> section) {
     final departure = section['departure']['place']['name'] ?? '起點';
     final arrival = section['arrival']['place']['name'] ?? '終點';
     final mode = section['transport']['mode'] ?? '步行';
     final duration = section['travelSummary']['duration'];
+    final transport = section['transport'];
+
+    String? busNumber;
+    String? agencyName;
+    String? headsign;
+
+    if (mode == 'Bus') {
+      busNumber = transport['number'] ?? '未知';
+      agencyName = section['agency']['name'] ?? '未知公司';
+      headsign = transport['headsign'] ?? '未知方向';
+    }
 
     return ListTile(
       leading: Icon(
         _getIconForMode(mode),
-        color: Colors.black87,
+        color: Colors.black45,
+        size: 30,
       ),
       title: Text(
-        '$departure → $arrival',
+        mode == 'Bus'
+            ? '搭乘公車 $busNumber - $headsign'
+            : '$departure → $arrival',
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
-        '耗時: ${_formatDuration(duration)}',
+        mode == 'Bus'
+            ? '耗時: ${_formatDuration(duration)} | 公司: $agencyName'
+            : '耗時: ${_formatDuration(duration)}',
         style: const TextStyle(color: Colors.black45),
       ),
     );
