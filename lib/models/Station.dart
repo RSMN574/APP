@@ -104,6 +104,10 @@ class Stop {
 
     };
   }
+  @override
+  String toString() {
+    return '路線名稱: $routeNameZh, 路線 ID: $routeID, 站名: $stopNameZh, 站點 ID: $stopID';
+  }
 }
 
 

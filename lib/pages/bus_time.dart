@@ -687,6 +687,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
       onRefresh: () async {
         await _loadData(); // 刷新时重新加载数据
+        _startAutoReload();
       },
       child: ListView.separated(
 

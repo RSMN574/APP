@@ -43,20 +43,11 @@ class BusState extends State<Bus>  {
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
 
-
-
-
   // 更新當前值
   Future<List<Map<String, dynamic>>> updateCurrent() async {
     favoriteStops.value=await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
 
      favoriteStops.value=await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
-
-
-
-
-
-
 
     return [];
   }
@@ -73,9 +64,7 @@ class BusState extends State<Bus>  {
   }
   @override
   void dispose() {
-
     super.dispose();
-
   }
 
   // 异步初始化函数
@@ -87,55 +76,29 @@ class BusState extends State<Bus>  {
     } catch (e) {
       print('Error initializing database: $e');
     }
-
   }
 
 
   Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
     favorite_feature db=favorite_feature();
-
     final favorites = await db.getFavorites(key, correspondingIDNotifier.value,city);
-// setState(() {
-//   _favorites=favorites;
-// });
     return favorites;
   }
 Future <List>_getData()async{
   busCurrentCity=correspondingIDNotifier.value;
 
-
     busData= await  GetBus(correspondingIDNotifier.value);
-
-
 
     return []; // 返回一个空列表，避免 Future 没有返回值的问题
 
 
 }
   Future<List> _updateSuggestions(id) async {
-    // 查找 currentCity 在 _list 中的索引
-    // int index = _list.indexOf(currentCityNotifier.value);
-
-    // if (index!= -1) {
-    //   // 获取 _listID 中对应的值
-    //   correspondingIDNotifier.value = _listID[index];
-    //   busCurrentCity=correspondingIDNotifier.value;
-    //
-    //    busData= await  GetBus(correspondingIDNotifier.value);
-    //
-    //
-    // } else {
-    //   print('City not found in the list');
-    //   return []; // 返回一个空列表，避免 Future 没有返回值的问题
-    // }// 调用异步初始化函数
-
 
      suggestions.value.clear();
 
     if (id == "route") {
-     //  String correspondingID = _listID[index];
-     // var i=await  GetBus(correspondingID,busIdController.text);
-     // print(i);
+
       List suggestionsForRoute=[];
       suggestions.value.clear();
       // suggestionsForRoute.add(GetBus(correspondingID,busIdController.text));
@@ -164,15 +127,9 @@ Future <List>_getData()async{
         }
       }
       suggestions.value = (suggestions.value.toSet().toList());
-      // setState(() {
-      //   double screenHeight = MediaQuery.of(context).size.height;
-      //   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-      //   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-      //   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-      // });
+
       return             suggestions.value;
     }
-
 
     return             suggestions.value;
   }
@@ -321,7 +278,6 @@ Future <List>_getData()async{
                     ),
                   );
 
-
                   break;
                 case "B":
 
@@ -354,7 +310,6 @@ Future <List>_getData()async{
                                 return const Center(child: Text('No data available.'));
                               } else {
                                 final data = snapshot.data as List;
-
                                 return  Padding(
                                   padding: const EdgeInsets.all(16.0),
                                   child: Column(
@@ -419,14 +374,7 @@ Future <List>_getData()async{
                   );
 
 
-
-
-
-
-
                   break;
-
-
 
               }
             },
@@ -450,13 +398,9 @@ Future <List>_getData()async{
                   setState(()  {
                     currentCityNotifier.value=value!;
                     updatedCorrespondingID();
-
                     _getData();
-
                     // 重新觸發 FutureBuilder
-
                     updateCurrent();
-
                     // _updateSuggestions("route");
                   });
 
@@ -469,7 +413,6 @@ Future <List>_getData()async{
                 height: 70,
                 child: Row(
                   children: [
-
 
                     Container(
                       width: 100,
@@ -561,7 +504,6 @@ Future <List>_getData()async{
                                 });
                               }
                             } else {
-
                               suggestions.value.clear();
                               suggestionsHeightNotifier.value = 0;
 
@@ -579,14 +521,7 @@ Future <List>_getData()async{
                             ),
                             filled: true,
                             fillColor: Colors.transparent, // Fill color will be applied by ShapeDecoration
-                            // focusedBorder: OutlineInputBorder(
-                            //   borderRadius: BorderRadius.circular(30.0),
-                            //   borderSide: BorderSide(color: busBlue, width: 2.0),
-                            // ),
-                            // enabledBorder: OutlineInputBorder(
-                            //   borderRadius: BorderRadius.circular(30.0),
-                            //   borderSide: BorderSide(color: Colors.grey[300]!, width: 2.0),
-                            // ),
+
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.clear),
                               color: Colors.grey[700],
@@ -598,7 +533,7 @@ Future <List>_getData()async{
                               },
                             ),
                           ),
-                          style: TextStyle(color: Colors.black87, fontSize: 16),
+                          style: const TextStyle(color: Colors.black87, fontSize: 16),
                         ),
                       ),
                     )
@@ -784,7 +719,6 @@ Future <List>_getData()async{
           print(snapshot.data!);
           return Center(child: _NoFavoritesWidget());
         }
- print(snapshot.data!);
         final items = snapshot.data!;
         return ListView.separated(
           itemCount: items.length,
@@ -837,7 +771,6 @@ Future <List>_getData()async{
     );
   }
   Widget _buildStopListItem( stop) {
-print(stop);
     return _buildListItem(stop["stopName"], () => _showConfirmDialog(context, stop["stopName"],"FavoritesStop"), () {
       Navigator.push(
         context,
@@ -855,9 +788,6 @@ void updatedCorrespondingID(){
       correspondingIDNotifier.value = _listID[index];
     });
 
-
-
-
   } else {
   print('City not found in the list');
 
@@ -870,9 +800,6 @@ void updatedCorrespondingID(){
 
       await GetBusInfo(route["routeID"], correspondingIDNotifier.value);
       List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
-
-
-
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context,) => BusTime(
@@ -882,8 +809,6 @@ void updatedCorrespondingID(){
           operators: "",
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
           city:  correspondingIDNotifier.value, routeID: route["RouteID"],
-
-
 
         )),
       );
@@ -903,13 +828,6 @@ void updatedCorrespondingID(){
   }
   Widget _buildListItemRoute( jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
     return
-
-
-
-
-
-
-
 
       ListTile(
         title: Text((jsonData["routeName"]).toString()
@@ -1014,16 +932,13 @@ void updatedCorrespondingID(){
   }
 
   Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
-
-
-
     favorite_feature db=favorite_feature();
     if(SharedPreferencesList=="FavoritesRoute"){
       var i= await db.removeFavorite(routeName: item, city: 'Taichung', table: SharedPreferencesList,);
-      print(i);
+
     }else if(SharedPreferencesList=="FavoritesStop"){
       var i= await db.removeFavorite(stopName: item, city: 'Taichung', table: SharedPreferencesList,);
-      print(i);
+
     }
 
     // await _loadFavorites(); // 重新加载收藏列表

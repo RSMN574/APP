@@ -11,10 +11,11 @@ import 'Const/regularClass.dart';
 import 'database/getBusTime.dart';
 import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
-import 'firebase/routeAPI.dart';
+
 
 import 'widget/transportGrid.dart';
- Set<Marker> _bikeMarkers = {};
+
+Set<Marker> _bikeMarkers = {};
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 
 class Home extends StatefulWidget {
@@ -22,7 +23,7 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
+class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   @override
   bool get wantKeepAlive => true; // 返回 true，以保持状态
   final TextEditingController _routeController = TextEditingController();
@@ -38,44 +39,39 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home>{
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
 
-Future<void> showBusStops() async {
-  var i=await mysqlSelect('SELECT * FROM Bus.Bus_Taichung_Stop');
+  Future<void> showBusStops() async {
+    var i = await mysqlSelect('SELECT * FROM Bus.Bus_Taichung_Stop');
+  }
 
-
-}
   // 获取当前位置
   void _getCurrentLocation() async {
+    try {
+      // 使用高精度设置
+      LocationSettings locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      );
 
-      try {
-        // 使用高精度设置
-        LocationSettings locationSettings = const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        );
+      // 获取当前位置
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
+      );
 
-        // 获取当前位置
-        Position position = await Geolocator.getCurrentPosition(
-          locationSettings: locationSettings,
-        );
+      setState(() {
+        _currentPosition = LatLng(position.latitude, position.longitude);
+        print('获取到的当前位置: $_currentPosition');
+      });
 
-        setState(() {
-          _currentPosition = LatLng(position.latitude, position.longitude);
-          print('获取到的当前位置: $_currentPosition');
-        });
-
-        // 更新地图的摄像机位置到当前定位
-        _mapController?.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: _currentPosition,
-            zoom: 15.0, // 设置合适的缩放级别
-          ),
-        ));
-      } catch (e) {
-        print('无法获取当前位置: $e');
-      }
+      // 更新地图的摄像机位置到当前定位
+      _mapController?.animateCamera(CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: _currentPosition,
+          zoom: 15.0, // 设置合适的缩放级别
+        ),
+      ));
+    } catch (e) {
+      print('无法获取当前位置: $e');
     }
-
-
-
+  }
 
   @override
   void initState() {
@@ -86,14 +82,17 @@ Future<void> showBusStops() async {
     _getCurrentLocation();
     showBusStops();
   }
+
   @override
   Widget build(BuildContext context) {
-
     super.build(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
-    final mapHeight = screenHeight - (screenHeight * _bottomSheetHeightMin) - appBarHeight - bottomNavBarHeight;
+    final mapHeight = screenHeight -
+        (screenHeight * _bottomSheetHeightMin) -
+        appBarHeight -
+        bottomNavBarHeight;
 
     return WillPopScope(
       onWillPop: () async {
@@ -110,40 +109,37 @@ Future<void> showBusStops() async {
           children: [
             Positioned.fill(
               child: SizedBox(
-                height: mapHeight,
-                child: map(  onMapCreated: (controller) {
-                  // 自定义逻辑
-                  print("HomePage Map Created");
-                },)
-              ),
+                  height: mapHeight,
+                  child: map(
+                    onMapCreated: (controller) {
+                      // 自定义逻辑
+                      print("HomePage Map Created");
+                    },
+                  )),
             ),
-
-              IndexedStack(
+            IndexedStack(
               index: _index,
               children: <Widget>[
                 _buildMainContent(context),
                 _buildSearchContent(context),
                 _buildPlaceDetails(_placePrediction),
                 _buildPlaceWays(_placePrediction),
-
               ],
             ),
-
-
           ],
         ),
       ),
     );
   }
+
   Future<void> _fetchData() async {
-
-               youBikeStations.value = await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
-
+    youBikeStations.value =
+        await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
 
     _loadMarkers(); // 更新標記
+  }
 
-
-  } Future<void> _loadMarkers() async {
+  Future<void> _loadMarkers() async {
     BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
       ImageConfiguration(size: Size(8, 8)), // 調整大小
       'assets/img/ubike_icon.png',
@@ -158,43 +154,40 @@ Future<void> showBusStops() async {
           json.decode(station["StationPosition"])["PositionLon"],
         ),
         infoWindow: InfoWindow(
-          title:  json.decode(station["StationName"])["Zh_tw"],
+          title: json.decode(station["StationName"])["Zh_tw"],
           snippet: "Capacity: ${station["BikesCapacity"]}",
         ),
       );
-   cache.add(marker);
-
-
+      cache.add(marker);
     }
     // 获取 MarkerProvider 的实例，并调用 setMarker 方法
     Provider.of<MarkerProvider>(context, listen: false).setMarker(cache);
   }
-  Future<void> _handleClick(String type )  async {
-if(type=="bike") {
-  _fetchData();
 
-  // 显示第二个 BottomSheet
-  _bottomSheetController =    showBottomSheet(
-    context: context,
-    builder: (context) {
-      return  SizedBox(
-          height: 300, // 设置您想要的高度
-          width: double.infinity, // 宽度填满
-          child: _buildBikeContent(context)
+  Future<void> _handleClick(String type) async {
+    if (type == "bike") {
+      _fetchData();
+
+      // 显示第二个 BottomSheet
+      _bottomSheetController = showBottomSheet(
+        context: context,
+        builder: (context) {
+          return SizedBox(
+              height: 300, // 设置您想要的高度
+              width: double.infinity, // 宽度填满
+              child: _buildBikeContent(context));
+        },
       );
-    },
-  );
 
-  // 监听 BottomSheet 是否关闭
-  _bottomSheetController!.closed.then((_) {
-    // 这里可以处理 BottomSheet 关闭后的逻辑
-    // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-    Provider.of<MarkerProvider>(context, listen: false).setMarker({});
-
-  });
-
-}
+      // 监听 BottomSheet 是否关闭
+      _bottomSheetController!.closed.then((_) {
+        // 这里可以处理 BottomSheet 关闭后的逻辑
+        // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+        Provider.of<MarkerProvider>(context, listen: false).setMarker({});
+      });
+    }
   }
+
   Widget _buildMainContent(BuildContext context) {
     return DraggableScrollableSheet(
       initialChildSize: 0.43,
@@ -205,9 +198,8 @@ if(type=="bike") {
           clipBehavior: Clip.none,
           children: [
             Container(
-              margin: const EdgeInsets.only(top:60),
+              margin: const EdgeInsets.only(top: 60),
               height: 800,
-
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -216,9 +208,8 @@ if(type=="bike") {
                 controller: scrollController,
                 child: Column(
                   children: [
-
                     // WeatherWidget(),
-                    TransportGrid(onClick:_handleClick),
+                    TransportGrid(onClick: _handleClick),
                     const ImgSwiper()
                   ],
                 ),
@@ -303,7 +294,8 @@ if(type=="bike") {
                         decoration: InputDecoration(
                           hintText: '搜尋',
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15.0, horizontal: 20.0),
                           suffixIcon: IconButton(
                             icon: const Icon(Icons.search, color: Colors.blue),
                             onPressed: () {
@@ -332,20 +324,30 @@ if(type=="bike") {
                         child: ListView.builder(
                           itemCount: _placePredictions.length,
                           itemBuilder: (context, index) {
-                            final mainText = _placePredictions[index]['structured_formatting']['main_text'];
-                            final secondaryText = _placePredictions[index]['structured_formatting']['secondary_text'];
+                            final mainText = _placePredictions[index]
+                                ['structured_formatting']['main_text'];
+                            final secondaryText = _placePredictions[index]
+                                ['structured_formatting']['secondary_text'];
 
                             return ListTile(
-                              leading: const Icon(Icons.location_on, color: Colors.blue),
-                              title: Text(mainText, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text(secondaryText, style: const TextStyle(color: Colors.grey)),
+                              leading: const Icon(Icons.location_on,
+                                  color: Colors.blue),
+                              title: Text(mainText,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold)),
+                              subtitle: Text(secondaryText,
+                                  style: const TextStyle(color: Colors.grey)),
                               onTap: () {
-                                final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-                                String origin = '${locationProvider.latitude},${locationProvider.longitude}';
+                                final locationProvider =
+                                    Provider.of<LocationProvider>(context,
+                                        listen: false);
+                                String origin =
+                                    '${locationProvider.latitude},${locationProvider.longitude}';
                                 print(_placePredictions[index]);
 
                                 setState(() {
-                                  _destinationController.text=_placePredictions[index]["description"];
+                                  _destinationController.text =
+                                      _placePredictions[index]["description"];
                                   _placePrediction = _placePredictions[index];
                                   _index = 2; // 切换到地点详细信息
                                 });
@@ -387,10 +389,10 @@ if(type=="bike") {
     //     _originController.text="現在位置";
     //   }
 
-
     return GestureDetector(
       onHorizontalDragEnd: (details) {
-        if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
+        if (details.velocity.pixelsPerSecond.dx < -200) {
+          // 向左滑动
           setState(() {
             if (_index > 0) {
               _index--; // 返回上一页
@@ -433,17 +435,20 @@ if(type=="bike") {
                     ),
                   if (place != null) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
                           const Text(
                             '起點', // 起点标签
-                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(30.0),
@@ -453,9 +458,11 @@ if(type=="bike") {
                                 decoration: InputDecoration(
                                   hintText: '選擇起點(現在位置)',
                                   border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 15.0, horizontal: 20.0),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search, color: Colors.blue),
+                                    icon: const Icon(Icons.search,
+                                        color: Colors.blue),
                                     onPressed: () {
                                       _loadPredictions();
                                       // 隐藏键盘
@@ -463,9 +470,7 @@ if(type=="bike") {
                                     },
                                   ),
                                 ),
-                                onChanged: (value) {
-
-                                },
+                                onChanged: (value) {},
                                 onSubmitted: (value) {
                                   _loadPredictions();
                                   // 隐藏键盘
@@ -479,17 +484,20 @@ if(type=="bike") {
                     ),
                     const SizedBox(height: 15.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
                           const Text(
                             '終點', // 终点标签
-                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(30.0),
@@ -499,9 +507,11 @@ if(type=="bike") {
                                 decoration: InputDecoration(
                                   hintText: '選擇終點',
                                   border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 15.0, horizontal: 20.0),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search, color: Colors.blue),
+                                    icon: const Icon(Icons.search,
+                                        color: Colors.blue),
                                     onPressed: () {
                                       _loadPredictions();
                                       // 隐藏键盘
@@ -509,9 +519,7 @@ if(type=="bike") {
                                     },
                                   ),
                                 ),
-                                onChanged: (value) {
-
-                                },
+                                onChanged: (value) {},
                                 onSubmitted: (value) {
                                   _loadPredictions();
                                   // 隐藏键盘
@@ -527,20 +535,19 @@ if(type=="bike") {
                     Center(
                       child: ElevatedButton(
                         onPressed: () async {
-
                           setState(() {
-
                             _index = 3; // 切换到地点详细信息
                           });
                         },
                         style: ElevatedButton.styleFrom(
-
-                          padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 15.0),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 50.0, vertical: 15.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30.0),
                           ),
                         ),
-                        child: const Text('出發', style: TextStyle(fontSize: 18.0)),
+                        child:
+                            const Text('出發', style: TextStyle(fontSize: 18.0)),
                       ),
                     ),
                   ] else ...[
@@ -558,7 +565,8 @@ if(type=="bike") {
   void _loadPredictions() async {
     PlacesService placesService = PlacesService();
     try {
-      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text,context);
+      List<dynamic> predictions = await placesService.getPlaceAutocomplete(
+          _routeController.text, context);
       setState(() {
         _placePredictions = predictions;
       });
@@ -599,9 +607,6 @@ if(type=="bike") {
     );
   }
 
-
-
-
   Widget _buildPlaceWays(dynamic place) {
     // 获取交通方式的图标
     IconData _getIconForMode(String mode) {
@@ -627,17 +632,21 @@ if(type=="bike") {
     // 获取路线数据
     Future<Map<String, dynamic>> _getDirections() async {
       PlacesService placesService = PlacesService();
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
+      final locationProvider =
+          Provider.of<LocationProvider>(context, listen: false);
+      LatLng? destination =
+          await placesService.getLatLngFromPlaceId(place["place_id"]);
       return await getDirections(
-        "${locationProvider.latitude}%2C${locationProvider.longitude}",
+        "${24.150784}%2C${120.646877}",
         "${destination?.latitude}%2C${destination?.longitude}",
       );
     }
-   // "${locationProvider.latitude}%2C${locationProvider.longitude}",
+
+    // "${locationProvider.latitude}%2C${locationProvider.longitude}",
     return GestureDetector(
       onHorizontalDragEnd: (details) {
-        if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
+        if (details.velocity.pixelsPerSecond.dx < -200) {
+          // 向左滑动
           setState(() {
             if (_index > 0) {
               _index--; // 返回上一页
@@ -652,21 +661,22 @@ if(type=="bike") {
         builder: (BuildContext context, ScrollController scrollController) {
           return Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.white, // 白色背景
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12,
+                  color: Colors.black12, // 微弱阴影效果
                   offset: Offset(0, -2),
                   blurRadius: 5,
                 ),
-              ], // 微弱阴影效果
+              ],
             ),
             child: FutureBuilder<Map<String, dynamic>>(
               future: _getDirections(), // 调用异步方法
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator()); // 加载中的占位组件
+                  return const Center(
+                      child: CircularProgressIndicator()); // 加载中的占位组件
                 } else if (snapshot.hasError) {
                   return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
                 } else if (!snapshot.hasData || snapshot.data == null) {
@@ -687,7 +697,8 @@ if(type=="bike") {
                     final totalPrice = route['total_price'] ?? 0;
 
                     return Card(
-                      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12.0, vertical: 8.0),
                       elevation: 3.0, // 微弱阴影效果
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -702,7 +713,7 @@ if(type=="bike") {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black,
+                                color: Colors.black, // 黑色文字
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -711,11 +722,13 @@ if(type=="bike") {
                               children: [
                                 Text(
                                   '總時間: ${_formatDuration(totalTime)}',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black54),
                                 ),
                                 Text(
                                   '費用: \$${totalPrice}',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black54),
                                 ),
                               ],
                             ),
@@ -729,8 +742,6 @@ if(type=="bike") {
                     );
                   },
                 );
-
-
               },
             ),
           );
@@ -763,9 +774,7 @@ if(type=="bike") {
         size: 30,
       ),
       title: Text(
-        mode == 'Bus'
-            ? '搭乘公車 $busNumber - $headsign'
-            : '$departure → $arrival',
+        mode == 'Bus' ? '搭乘公車 $busNumber - $headsign' : '$departure → $arrival',
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
       subtitle: Text(
@@ -795,8 +804,4 @@ if(type=="bike") {
     final remainingSeconds = seconds % 60;
     return '$minutes 分 $remainingSeconds 秒';
   }
-
-
 }
-
-

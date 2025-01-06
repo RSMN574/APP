@@ -105,7 +105,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     // 遍歷所有 markers，更新樣式
     _markers.value = _markers.value.map((marker) {
       if (marker.markerId.value == _selectStationID.value) {
-        print("marker.markerId.value");
+
         // 更新為選中樣式
         return marker.copyWith(
           iconParam: BitmapDescriptor.defaultMarkerWithHue(190.0), // 使用柔和藍色
@@ -149,7 +149,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 builder: (context, markers, child) {
                   return  map( markers:_markers.value,  onMapCreated: (controller) {
                     // 自定义逻辑
-                    print("NearbyStationsPage Map Created");
+
                   },);
                 },
               )
@@ -193,7 +193,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   child: Column(
                     children: [
                       Container(
-                        height: 700,
+                        height: 2000,
                         child: IndexedStack(
                           index: _index,
                           children: <Widget>[
@@ -218,9 +218,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                     snapshot.data!.isNotEmpty) {
                                   // print( snapshot.data?[0].toString()  );
                                   // print( snapshot.data?[1].toString()  );
-
-
-
 
 
                                   // 使用 Map 分組
@@ -322,7 +319,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   Widget _stationCard ({ required Map<String, dynamic> station }) {
-// print((station["StationGroup"]["Stations"]));
+
     return GestureDetector(
       onTap: () {
 
@@ -337,7 +334,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         setState(() {
           _index = 1; // 切换到搜索内容
         });
-
 
         // Navigator.push(
         //   context,
@@ -386,50 +382,42 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             // 确保返回的每个元素是一个 Widget
             Column(
               children: station["StationGroup"]["Stations"].map<Widget>((stationItem) {
+                // 获取所有 stops 的 routeNameZh 去重
+                final uniqueRouteNames = (stationItem["stops"] as List<Stop>)
+                    .map((stop) => stop.routeNameZh.trim()) // 去除空格
+                    .toSet() // 去除重复项
+                    .toList(); // 转换为 List
+
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      stationItem["stationNameZh"], // 顯示站點名稱
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    // 将去重后的 routeNameZh 列表进行展示
                     Column(
-                      children: (stationItem["stops"] as List<Stop>).map<Widget>((stop) {
+                      children: uniqueRouteNames.map<Widget>((routeName) {
+                        print(routeName); // 打印唯一的路線名稱
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                stop.routeNameZh, // 顯示路線名稱
+                                routeName, // 顯示唯一的路線名稱
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w400,
                                   color: Colors.black,
                                 ),
                               ),
-                              Text(
-                                stop.stopNameZh, // 顯示站名
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w300,
-                                  color: Colors.grey,
-                                ),
-                              ),
                             ],
                           ),
                         );
                       }).toList(),
-                    ),
+                    )
                   ],
                 );
               }).toList(),
-            ),
+            )
+
 
           ],
         ),
@@ -438,7 +426,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   Widget DraggableScrollableSheetPageTwo() {
-    print(_stopName.value); // 打印当前的站点信息
 
     return Container(
 
@@ -452,8 +439,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     );
   }
-
-
 }
 class BusStopList extends StatefulWidget {
   final String stop;
@@ -466,7 +451,7 @@ class BusStopList extends StatefulWidget {
   }
 }
 
-class _BusStopListState extends State<BusStopList>with SingleTickerProviderStateMixin {
+class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin {
    StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
    late TabController _tabController;
   List<Map<String, dynamic>> data = [];
@@ -499,9 +484,41 @@ class _BusStopListState extends State<BusStopList>with SingleTickerProviderState
          _tabController.animateTo(index); // 切換 Tab
        }
 
+     });
+     // 初始化时确保 _stationIDs 不为空
+     if (_stationIDs.value.isEmpty) {
+       _tabController = TabController(length: 1, vsync: this);
+     } else {
+       _tabController = TabController(length: _stationIDs.value.length, vsync: this);
+     }
 
+     // 监听 _stationIDs 的变化
+     _stationIDs.addListener(() {
+       if (!mounted) return;
+
+       // 当 stationIDs 发生变化时，重新创建 TabController
+       setState(() {
+         _tabController.dispose(); // 释放旧的 controller
+         _tabController = TabController(
+           length: _stationIDs.value.isEmpty ? 1 : _stationIDs.value.length,
+           vsync: this,
+         );
+       });
      });
 
+     // 监听 _selectStationID 的变化
+     _selectStationID.addListener(() {
+       if (!mounted) return;
+
+       String currentStop = _selectStationID.value;
+       if (_stationIDs.value.isNotEmpty) {
+         int index = _stationIDs.value.indexOf(currentStop);
+         if (index != -1) {
+           _NearbyStationsPageState._updateMarkerStyle(_selectStationID.value);
+           _tabController.animateTo(index);
+         }
+       }
+     });
    }
 
 
@@ -519,8 +536,7 @@ class _BusStopListState extends State<BusStopList>with SingleTickerProviderState
     try {
 
       final data = await fetchBusStopInfo();
-print('data');
-print(data);
+
       _streamController.add(data); // 向数据流中添加新数据
     } catch (e) {
       _streamController.addError(e); // 向数据流中添加错误
@@ -834,11 +850,7 @@ print(data);
     }
   }
 
-
-
   PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
-
-
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
       child: Container(
@@ -874,7 +886,6 @@ print(data);
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -1025,7 +1036,6 @@ print(data);
                               child: Text("No content available"),
                             );
                           }
-
                           return contentSnapshot.data is Widget
                               ? contentSnapshot.data as Widget
                               : Center(child: Text("Invalid content"));
@@ -1036,9 +1046,6 @@ print(data);
 
                 ),
               );
-
-
-
             }
           },
         )
