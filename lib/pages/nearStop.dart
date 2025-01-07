@@ -216,8 +216,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                 } else if (snapshot.hasData &&
                                     snapshot.data != null &&
                                     snapshot.data!.isNotEmpty) {
-                                  // print( snapshot.data?[0].toString()  );
-                                  // print( snapshot.data?[1].toString()  );
 
 
                                   // 使用 Map 分組
@@ -394,7 +392,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     // 将去重后的 routeNameZh 列表进行展示
                     Column(
                       children: uniqueRouteNames.map<Widget>((routeName) {
-                        print(routeName); // 打印唯一的路線名稱
+
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 6.0),
                           child: Row(
@@ -570,8 +568,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
     groupedData.forEach((stationID, items) {
       if(stationID==direction){
         finalList=items;
-        // print("finalList");
-        // print(finalList);
+
       }
       // print("StationID: $stationID");
       // print("Data: $items");
@@ -788,6 +785,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
           var timeData = await getTimeList(stop);
           stop["time"] = timeData["time"];
           stop["isRed"] = timeData["isRed"];
+          stop["color"] = timeData["color"];
         }
         tempData.addAll(stationInfo);
       }
@@ -808,7 +806,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         )
     );
   }
-  // 获取到站时间列表的异步方法
+// 获取到站时间列表的异步方法
   Future<Map<String, dynamic>> getTimeList(stopData) async {
     if (stopData["EstimateTime"] != null) {
       if (stopData["EstimateTime"] == 0) {
@@ -816,14 +814,16 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         for (var estimate in stopData['Estimates']) {
           PlateNumb.add(estimate["PlateNumb"]);
         }
-        return {"time": "即將到站", "isRed": '0', "PlateNumb": PlateNumb.toString()};
+        return {"color": '0',"time": "即將到站", "isRed": '0', "PlateNumb": PlateNumb.toString()};
       } else {
         int result = (stopData["EstimateTime"] / 60).floor();
         List PlateNumb = [];
         for (var estimate in stopData['Estimates']) {
           PlateNumb.add(estimate["PlateNumb"]);
         }
+
         return {
+          "color": result < 3 ? "2" : "min",
           "time": result < 1 ? "即將到站" : "$result 分鐘",
           "isRed": result < 3 ? "2" : "",
           "PlateNumb": result < 20 ? PlateNumb.toString() : ""
@@ -835,18 +835,20 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         return {
           "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
           "isRed": '',
-          "PlateNumb": ""
+          "PlateNumb": "",
+          "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
         };
       } else {
         DateTime NextBusTime = DateTime.now().add(Duration(hours: difference.inHours, minutes: difference.inMinutes.remainder(60)));
         return {
           'time': "${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}",
           "isRed": '',
-          "PlateNumb": ""
+          "PlateNumb": "",
+          "color": "班次結束"
         };
       }
     } else {
-      return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
+      return {"time": "班次結束", "isRed": '', "PlateNumb": "","color": "班次結束"};
     }
   }
 

@@ -32,7 +32,6 @@ class BusState extends State<Bus>  {
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
   List busData=[];
-  List<Map<String, dynamic>> _favorites =[];
   final List<String> _list = ['全部', '臺中市','臺北市'];
   final List<String> _listID = ['all', 'Taichung','Taipei'];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
@@ -297,9 +296,12 @@ Future <List>_getData()async{
                               ),
                             ),
                           ),
-                          body: FutureBuilder<dynamic>(
+                          body:ValueListenableBuilder<String>(
+              valueListenable: currentCityNotifier,
+              builder: (context, currentCity, child) {
+              return FutureBuilder<dynamic>(
                             future: fetchByUrl(
-                              "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON",
+                              "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/${ correspondingIDNotifier.value}?%24top=10&%24format=JSON",
                             ),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -311,7 +313,7 @@ Future <List>_getData()async{
                               } else {
                                 final data = snapshot.data as List;
                                 return  Padding(
-                                  padding: const EdgeInsets.all(16.0),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -321,42 +323,58 @@ Future <List>_getData()async{
                                         items: _list,
                                         initialItem: currentCityNotifier.value,
                                         onChanged: (value) {
-                                          updatedCorrespondingID();
+                                          setState(()  {
+                                            currentCityNotifier.value=value!;
+                                            updatedCorrespondingID();
+                                            _getData();
+                                            // 重新觸發 FutureBuilder
+                                            updateCurrent();
 
-                                          _getData();
-                                          // Handle selection change
+                                          });
                                         },
+
                                       ),
-                                      // Expanded ListView to avoid RenderBox issues
+                                      const SizedBox(height: 16), // 增加間距
+                                      // Expanded ListView
                                       Expanded(
                                         child: ListView.builder(
                                           itemCount: data.length,
                                           itemBuilder: (context, index) {
                                             final alert = data[index];
-                                            return Card(
-                                              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                                              color: Colors.white, // Set card color for a clean look
-                                              elevation: 5, // Slight shadow for the cards
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(12), // Rounded corners
+                                            return Container(
+                                              margin: const EdgeInsets.only(bottom: 12.0),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black.withOpacity(0.05), // 微弱陰影
+                                                    offset: const Offset(0, 4),
+                                                    blurRadius: 8,
+                                                  ),
+                                                ],
                                               ),
-                                              child: ListTile(
+                                              child: ValueListenableBuilder<String>(
+                                          valueListenable: currentCityNotifier,
+                                                builder: (context, currentCity, child) {
+                                           return ListTile(
                                                 contentPadding: const EdgeInsets.all(16.0),
                                                 title: Text(
                                                   alert['Title'] ?? '無標題',
                                                   style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 18, // Larger font size for titles
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 18,
+                                                    color: Colors.black,
                                                   ),
                                                 ),
                                                 subtitle: Text(
                                                   alert['Description'] ?? '無描述',
                                                   style: const TextStyle(
-                                                    fontSize: 14, // Slightly smaller font for descriptions
-                                                    color: Colors.grey, // Grey color for description
+                                                    fontSize: 14,
+                                                    color: Colors.grey,
                                                   ),
                                                 ),
-                                              ),
+                                              );})
                                             );
                                           },
                                         ),
@@ -365,9 +383,10 @@ Future <List>_getData()async{
                                   ),
                                 );
 
+
                               }
                             },
-                          ),
+                          );})
                         )
 
                     ),
@@ -549,6 +568,7 @@ Future <List>_getData()async{
                   ValueListenableBuilder<double>(
                     valueListenable: suggestionsHeightNotifier,
                     builder: (context, height, child) {
+
                       return Container(
                         color: bgColor,
                         height: height,

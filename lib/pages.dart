@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
@@ -9,6 +10,10 @@ import 'pages/other/settings.dart'; // 設定頁面
 
 class InfoPages extends StatelessWidget {
   @override
+
+
+
+
   Widget build(BuildContext context) {
     return Column(
       children: [
@@ -105,11 +110,13 @@ class InfoPages extends StatelessWidget {
           ),
           child: TextButton(
             onPressed: () async {
+              final packageInfo = await PackageInfo.fromPlatform();
               QuickAlert.show(
                 context: context,
                 type: QuickAlertType.info,
-                text: "版本號: 0.1.9 封測版 \n"
-                    "token: $FCMtoken",
+                text: "版本號:${packageInfo.version} \n"
+                " 建構號:${packageInfo.buildNumber}",
+
                 confirmBtnText: "複製 token",
                 onConfirmBtnTap: () {
                   Clipboard.setData(ClipboardData(text: FCMtoken ?? "無效的 token"))

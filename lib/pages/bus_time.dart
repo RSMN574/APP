@@ -207,7 +207,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
          if(nextBusTime["PlateNumb"]!=''){
 
            if(hasPlateNum!=nextBusTime["PlateNumb"]){
-             hasPlateNum=nextBusTime["PlateNumb"];
+             hasPlateNum=nextBusTime["PlateNumb"]?? "";
              stopNamesWithTime.add({
                "stopName": stopName,
                "nextBusTime": nextBusTime["time"],
@@ -254,7 +254,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     if (a.isNotEmpty) {
       if (a[0]["EstimateTime"] != null) {
         if (a[0]["EstimateTime"] == 0) {
-          String plateNumb = a[0]["PlateNumb"];
+          String plateNumb = a[0]["PlateNumb"] ?? "";
           isTimerOn.value=true;
           return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"],
             "StopPosition":a[0]["StopPosition"].toString(),
@@ -774,7 +774,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                   ],
                 ),
 
-                  trailing: bubble(plateNum: PlateNumb),
+                trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
+
               ));
         }, separatorBuilder: (BuildContext context, int index) {
         return const Divider(

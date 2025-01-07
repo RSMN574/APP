@@ -46,14 +46,16 @@ class _BusStopInfoState extends State<BusStopInfo> {
         for (var estimate in stopData['Estimates']) {
           PlateNumb.add(estimate["PlateNumb"]);
         }
-        return {"time": "即將到站", "isRed": '0', "PlateNumb": PlateNumb.toString()};
+        return {"color": '0',"time": "即將到站", "isRed": '0', "PlateNumb": PlateNumb.toString()};
       } else {
         int result = (stopData["EstimateTime"] / 60).floor();
         List PlateNumb = [];
         for (var estimate in stopData['Estimates']) {
           PlateNumb.add(estimate["PlateNumb"]);
         }
+
         return {
+          "color": result < 3 ? "2" : "min",
           "time": result < 1 ? "即將到站" : "$result 分鐘",
           "isRed": result < 3 ? "2" : "",
           "PlateNumb": result < 20 ? PlateNumb.toString() : ""
@@ -65,18 +67,20 @@ class _BusStopInfoState extends State<BusStopInfo> {
         return {
           "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
           "isRed": '',
-          "PlateNumb": ""
+          "PlateNumb": "",
+          "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
         };
       } else {
         DateTime NextBusTime = DateTime.now().add(Duration(hours: difference.inHours, minutes: difference.inMinutes.remainder(60)));
         return {
           'time': "${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}",
           "isRed": '',
-          "PlateNumb": ""
+          "PlateNumb": "",
+          "color": "班次結束"
         };
       }
     } else {
-      return {"time": "班次結束", "isRed": '', "PlateNumb": ""};
+      return {"time": "班次結束", "isRed": '', "PlateNumb": "","color": "班次結束"};
     }
   }
 
@@ -175,7 +179,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                     : (stop["color"] == "min"
                     ? const Color.fromRGBO(13, 168, 255, 0.1)
                     : const Color.fromRGBO(68, 68, 68, 0.1))));
-
+print(stop["color"]);
                 return Container(
                   height: 53.0, // 每个列表项的固定高度
                   child: ListTile(
@@ -327,7 +331,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
 
     List<dynamic> info = await GetBusStopInfo(widget.stop, "Taichung");
     List<Map<String, dynamic>> tempData = [];
-print('info'); print(info);
+
     _stationIDs.value= info.map((station) => station["StationID"] as String).toList();// 提取 StationID
 
     if (info != null) {
@@ -337,6 +341,7 @@ print('info'); print(info);
           var timeData = await getTimeList(stop);
           stop["time"] = timeData["time"];
           stop["isRed"] = timeData["isRed"];
+          stop["color"] = timeData["color"];
         }
         tempData.addAll(stationInfo);
       }
