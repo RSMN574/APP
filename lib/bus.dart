@@ -43,23 +43,25 @@ class BusState extends State<Bus>  {
 
 
   // 更新當前值
-  Future<List<Map<String, dynamic>>> updateCurrent() async {
-    favoriteStops.value=await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
+  Future<int> updateCurrent() async {
+    favoriteRoutes.value=await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
 
      favoriteStops.value=await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
 
-    return [];
+    return 200;
   }
   @override
   void initState() {
     super.initState();
-    _initializeFavorites();
-    updatedCorrespondingID();
-    _getData();
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
     if (_list.contains(currentCity)) {
       currentCityNotifier.value = currentCity; // 正确赋值
     }
+    _initializeFavorites();
+    updatedCorrespondingID();
+    _getData();
+    updateCurrent();
+
   }
   @override
   void dispose() {
@@ -147,7 +149,7 @@ Future <List>_getData()async{
   }
   @override
   Widget build(BuildContext context) {
-
+    updateCurrent();
     return Scaffold(
       appBar: AppBar(
 
@@ -329,6 +331,7 @@ Future <List>_getData()async{
                                             _getData();
                                             // 重新觸發 FutureBuilder
                                             updateCurrent();
+
 
                                           });
                                         },
@@ -727,33 +730,48 @@ Future <List>_getData()async{
       ),
     );
   }
+
   Widget _buildList(String key, Widget Function(dynamic) itemBuilder) {
-    return FutureBuilder<List<dynamic>>(
-      future: _loadFavorites(key, city: correspondingIDNotifier.value),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return const Center(child: Text("加载失败"));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          print(snapshot.data!);
-          return Center(child: _NoFavoritesWidget());
-        }
-        final items = snapshot.data!;
-        return ListView.separated(
-          itemCount: items.length,
-          itemBuilder: (context, index) => itemBuilder(items[index]),
-          separatorBuilder: (context, index) => const Divider(
-            color: Color.fromRGBO(231, 231, 231, 1), // 分隔线颜色
-            height: 9, // 间距
-            thickness: 1, // 粗细
-            indent: 20, // 左侧间距
-            endIndent: 20, // 右侧间距
-          ),
-        );
-      },
-    );
+
+      ValueNotifier<List<Map<String, dynamic>>>? notifier;
+
+      if (key == "FavoritesRoute") {
+        notifier = favoriteRoutes;
+      } else if (key == "FavoritesStop") {
+        notifier = favoriteStops;
+      } else {
+        return const Center(child: Text("無效的選項"));
+      }
+
+      return FutureBuilder<int>(
+        future: updateCurrent(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return const Center(child: Text("載入失敗"));
+          } else if (!snapshot.hasData || notifier!.value.isEmpty) {
+            return Center(child: _NoFavoritesWidget());
+          }
+
+          final items = notifier?.value;
+          return ListView.separated(
+            itemCount: items!.length,
+            itemBuilder: (context, index) => itemBuilder(items[index]),
+            separatorBuilder: (context, index) => const Divider(
+              color: Color.fromRGBO(231, 231, 231, 1), // 分隔線顏色
+              height: 9, // 間距
+              thickness: 1, // 粗細
+              indent: 20, // 左側間距
+              endIndent: 20, // 右側間距
+            ),
+          );
+        },
+      );
+
+
   }
+
   Widget _NoFavoritesWidget() {
     return Container(
       color: Colors.white, // 白色底
@@ -804,9 +822,9 @@ void updatedCorrespondingID(){
 
   if (index != -1 ) {
   // 获取 _listID 中对应的值
-    setState(() {
+
       correspondingIDNotifier.value = _listID[index];
-    });
+print( currentCityNotifier.value);
 
   } else {
   print('City not found in the list');
@@ -954,13 +972,15 @@ void updatedCorrespondingID(){
   Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
     favorite_feature db=favorite_feature();
     if(SharedPreferencesList=="FavoritesRoute"){
-      var i= await db.removeFavorite(routeName: item, city: 'Taichung', table: SharedPreferencesList,);
+     await db.removeFavorite(routeName: item, city: 'Taichung', table: SharedPreferencesList,);
 
     }else if(SharedPreferencesList=="FavoritesStop"){
-      var i= await db.removeFavorite(stopName: item, city: 'Taichung', table: SharedPreferencesList,);
+     await db.removeFavorite(stopName: item, city: 'Taichung', table: SharedPreferencesList,);
 
     }
+setState(() {
 
+});
     // await _loadFavorites(); // 重新加载收藏列表
   }
 }

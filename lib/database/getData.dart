@@ -56,11 +56,7 @@ Future<void> connMysql() async {
 Future<List> GetBus(String city ) async {
 
     await connMysql(); // 連接資料庫
-// String query='''
-// SELECT *
-// FROM Bus.Bus_${city}_Route
-// WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) LIKE '%${RouteName}%'
-// ''';
+
 
   // 使用參數化查詢以避免 SQL 注入
   String query2 =

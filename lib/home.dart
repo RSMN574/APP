@@ -113,7 +113,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                   child: map(
                     onMapCreated: (controller) {
                       // 自定义逻辑
-                      print("HomePage Map Created");
+
                     },
                   )),
             ),
@@ -637,11 +637,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       LatLng? destination =
           await placesService.getLatLngFromPlaceId(place["place_id"]);
       return await getDirections(
-        "${24.150784}%2C${120.646877}",
+        "${locationProvider.latitude}%2C${locationProvider.longitude}",
         "${destination?.latitude}%2C${destination?.longitude}",
       );
     }
-
+//  "${24.150784}%2C${120.646877}",
     // "${locationProvider.latitude}%2C${locationProvider.longitude}",
     return GestureDetector(
       onHorizontalDragEnd: (details) {

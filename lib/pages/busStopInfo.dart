@@ -128,11 +128,15 @@ class _BusStopInfoState extends State<BusStopInfo> {
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
       } else if (i['Direction'] == 0) {
         var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
         i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
       }
     }
 
@@ -179,7 +183,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                     : (stop["color"] == "min"
                     ? const Color.fromRGBO(13, 168, 255, 0.1)
                     : const Color.fromRGBO(68, 68, 68, 0.1))));
-print(stop["color"]);
+
                 return Container(
                   height: 53.0, // 每个列表项的固定高度
                   child: ListTile(
@@ -190,8 +194,8 @@ print(stop["color"]);
                         MaterialPageRoute(
                           builder: (context) => BusTime(
                             routeName:  stop["RouteName"]["Zh_tw"],
-                            departureStopName:  stop["from"],
-                            destinationStopName:  stop["to"],
+                            departureStopName:  stop["DepartureStopName"],
+                            destinationStopName:  stop["DestinationStopName"],
                             operators: "",
                             routeMapImageUrl: "",
                             city: "Taichung", routeID: stop["RouteID"],

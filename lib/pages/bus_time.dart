@@ -18,6 +18,19 @@ import '../database/getData.dart';
 import '../widget/map.dart';
 import 'busStopInfo.dart';
 
+class Mark {
+  final List<dynamic>? highlight;
+  final int? direction;
+
+  Mark({ this.highlight,  this.direction});
+  // 從 Map 創建 Mark 的工廠構造函數
+  factory Mark.fromMap(Map<String, dynamic> map) {
+    return Mark(
+      highlight: map['highlight'] ?? [],
+      direction: map['direction'] ?? 0,
+    );
+  }
+}
 
 class BusTime extends StatefulWidget {
   final routeName;
@@ -27,9 +40,9 @@ class BusTime extends StatefulWidget {
   final routeMapImageUrl;
   final city;
   final routeID;
+  final Mark? mark;
 
-
-  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city })
+  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark })
       : super(key: key);
 
   @override
@@ -66,6 +79,18 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
        }
       }
     });
+
+    // 根據 mark.direction 設定 _tabController 的 index
+    if (widget.mark?.direction == 0) {
+      _tabController.index = 0;
+    } else if (widget.mark?.direction == 1) {
+      _tabController.index = 1;
+    }
+
+    // 找出 highlight 的站
+    List? highlightedStations = widget.mark?.highlight;
+    print('Highlighted stations: $highlightedStations');
+
   }
 
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
@@ -75,19 +100,6 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   if(stopType=="stopNamesWithTime1"){
 
     for (var stop in stopNamesWithTime1) {
-      // 解析 StopPosition
-
-      // if (rawPosition is String) {
-      //   // 如果是 String，解析为 Map
-      //   position = json.decode(rawPosition);
-      // } else if (rawPosition is Map) {
-      //   // 如果已经是 Map，直接使用
-      //   position = rawPosition.cast<String, dynamic>();
-      // } else {
-      //   print("Invalid StopPosition type: $rawPosition");
-      //   continue;
-      // }
-      // 检查 StopPosition 的类型
 
       final marker = Marker(
 
@@ -913,48 +925,69 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
             print("Error decoding JSON: $e");
           }
         }
-
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => Scaffold(
               appBar: AppBar(
-                backgroundColor: busBlue,
-                elevation: 0,
+                backgroundColor: Colors.white,
+                elevation: 2,
                 title: const Text(
                   "下班車資訊",
                   style: TextStyle(
-                    fontSize: 26,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black,
                   ),
                 ),
+                iconTheme: const IconThemeData(color: Colors.black), // 设置返回图标颜色
               ),
               body: estimates.isNotEmpty
                   ? ListView.builder(
                 itemCount: estimates.length, // 項目數
                 itemBuilder: (context, index) {
                   final bus = estimates[index]; // 獲取當前項目資料
-                  return Card(
+                  return Container(
                     margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2), // 微弱的阴影
+                          blurRadius: 8,
+                          offset: const Offset(0, 4), // 阴影偏移量
+                        ),
+                      ],
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
-                      leading: const Icon(Icons.directions_bus, color: Colors.blue),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.directions_bus, color: Colors.blue),
+                      ),
                       title: Text(
                         '公車 ${bus["PlateNumb"] ?? "未知"}',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.black,
+                        ),
                       ),
                       subtitle: Text(
                         '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
                       ),
                       trailing: (bus["IsLastBus"] ?? false)
                           ? const Icon(Icons.warning, color: Colors.red)
-                          : null,
+                          : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                     ),
                   );
                 },
@@ -962,13 +995,17 @@ Widget _buildDialogOption (BuildContext context, IconData icon, String title, St
                   : const Center(
                 child: Text(
                   "目前沒有公車預估時間",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
-
             ),
           ),
         );
+
+
       }else if(id=="stop"){
 
         Navigator.push(

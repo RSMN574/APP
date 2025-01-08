@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-
 import '../Const/regularClass.dart';
 
 class map extends StatefulWidget {
@@ -11,19 +10,20 @@ class map extends StatefulWidget {
   final CameraPosition? initialCameraPosition;
   final Function(GoogleMapController)? onMapCreated;
   final bool myLocationEnabled;
-
+final LatLng? initialPosition;
   const map({
     Key? key,
      this.markers,
      this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
+    this.initialPosition
   }) : super(key: key);
   @override
   State<map> createState() => _MapScreenState();
 }
-
-class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
+//with AutomaticKeepAliveClientMixin
+class _MapScreenState extends State<map>  {
   final String _mapStyle = '''
   [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, 
   {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
@@ -32,8 +32,8 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
   {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}]
   ''';
 
-  @override
-  bool get wantKeepAlive => true;
+  // @override
+  // bool get wantKeepAlive => true;
 
   GoogleMapController? _mapController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
@@ -50,7 +50,7 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
-
+print(position);
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
       });
@@ -73,46 +73,51 @@ class _MapScreenState extends State<map> with AutomaticKeepAliveClientMixin {
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
 
+    // super.build(context);
     return Consumer<MarkerProvider>(
       builder: (context, markerProvider, child) {
         return GoogleMap(
           initialCameraPosition: CameraPosition(
             target: _currentPosition,
-            zoom: 12,
+            zoom: 15,
           ),
-          onMapCreated: widget.onMapCreated,
-
+          onMapCreated: (controller) {
+            widget.onMapCreated?.call(controller);
+            _mapController = controller;
+            _mapController?.setMapStyle(_mapStyle);
+            _getCurrentLocation(); // 地圖創建完成後再次定位並更新視角
+          },
           onCameraMove: (CameraPosition position) {
-            // 限制地图的边界范围
-            if (!_taiwanBounds.contains(position.target)) {
-              LatLng target = position.target;
-              double lat = target.latitude;
-              double lng = target.longitude;
-
-              if (lat < _taiwanBounds.southwest.latitude) {
-                lat = _taiwanBounds.southwest.latitude;
-              } else if (lat > _taiwanBounds.northeast.latitude) {
-                lat = _taiwanBounds.northeast.latitude;
-              }
-
-              if (lng < _taiwanBounds.southwest.longitude) {
-                lng = _taiwanBounds.southwest.longitude;
-              } else if (lng > _taiwanBounds.northeast.longitude) {
-                lng = _taiwanBounds.northeast.longitude;
-              }
-
-              _mapController?.moveCamera(
-                CameraUpdate.newLatLng(LatLng(lat, lng)),
-              );
-            }
+            // 限制地圖的邊界範圍
+            // if (!_taiwanBounds.contains(position.target)) {
+            //   LatLng target = position.target;
+            //   double lat = target.latitude;
+            //   double lng = target.longitude;
+            //
+            //   if (lat < _taiwanBounds.southwest.latitude) {
+            //     lat = _taiwanBounds.southwest.latitude;
+            //   } else if (lat > _taiwanBounds.northeast.latitude) {
+            //     lat = _taiwanBounds.northeast.latitude;
+            //   }
+            //
+            //   if (lng < _taiwanBounds.southwest.longitude) {
+            //     lng = _taiwanBounds.southwest.longitude;
+            //   } else if (lng > _taiwanBounds.northeast.longitude) {
+            //     lng = _taiwanBounds.northeast.longitude;
+            //   }
+            //
+            //   _mapController?.moveCamera(
+            //     CameraUpdate.newLatLng(LatLng(lat, lng)),
+            //   );
+            // }
           },
           markers: widget.markers ?? Set<Marker>.of(markerProvider.markers),
-          myLocationEnabled: true,
+          myLocationEnabled: widget.myLocationEnabled,
           myLocationButtonEnabled: true,
         );
       },
     );
   }
+
 }

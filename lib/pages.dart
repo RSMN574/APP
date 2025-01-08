@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'firebase/FCM.dart';
 import 'pages/city.dart';
@@ -131,6 +132,41 @@ class InfoPages extends StatelessWidget {
             },
             child: Text(
               '封測版',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // 封測版按鈕
+        Container(
+          width: 300,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 13, 193, 255),
+                Color.fromARGB(255, 27, 141, 255)
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: TextButton(
+            onPressed: () async {
+              const url = 'https://forms.gle/CfjfDBkFe1vxeAH17';  // 字串保持不變
+              final Uri uri = Uri.parse(url);  // 在此處解析 URL
+              await launchUrl(uri);  // 替換成 launchUrl
+
+            },
+            child: Text(
+              '回報BUG 和建議',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 17,

@@ -157,7 +157,7 @@ return ;
                       builder: (context) {
                         return DraggableScrollableSheet(
                           initialChildSize: 0.4, // 初始高度比例
-                          minChildSize: 0.1, // 最小高度比例
+                          minChildSize: 0.3, // 最小高度比例
                           maxChildSize: 0.8, // 最大高度比例
                           expand: false, // 防止内容展开
                           builder: (BuildContext context, ScrollController scrollController) {
