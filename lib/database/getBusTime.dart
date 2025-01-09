@@ -82,7 +82,7 @@ Future<Map<String, dynamic>> getDirections(
 Future <List<Station>> getNearStation(
     String location) async {
 
-  const String testurl ="https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24spatialFilter=nearby%2824.150784%2C%20120.646877%2C300%29&%24format=JSON";
+  const String testurl ="https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24spatialFilter=nearby%2824.150784%2C%20120.646877%2C1000%29&%24format=JSON";
      final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20600%29&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);

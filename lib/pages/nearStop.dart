@@ -1,13 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-
 import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
 import '../database/favorite_feature.dart';
@@ -22,6 +20,7 @@ import 'bus_time.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
 ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
+ValueNotifier<String> _stopName = ValueNotifier<String>('');
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
@@ -32,7 +31,7 @@ class NearbyStationsPage extends StatefulWidget {
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
   int _index=0;
 
-  ValueNotifier<String> _stopName = ValueNotifier<String>('');
+
   final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
 
   @override
@@ -160,126 +159,121 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             ),
           ),
 
-      DraggableScrollableSheet(
-        initialChildSize: 0.43,
-        minChildSize: 0.4,
-        maxChildSize: 0.86,
-        builder: (BuildContext context, ScrollController scrollController) {
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 提示线放置在 Stack 的最上层
-          Positioned(
-                top: 0, // 让提示线在最顶部
-                left: MediaQuery.of(context).size.width / 2 - 20, // 居中提示线
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(2.5),
-                  ),
-                ),
-              ),
-
-              // 滚动内容区域
-              SingleChildScrollView(
-              controller: scrollController,
-              child:  Container(
-                height: 900,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child:
-                      Container(
-                        height: 4000,
-                        child: IndexedStack(
-                          index: _index,
-                          children: <Widget>[
-                          SingleChildScrollView(
-                          controller: scrollController,
-                          child: FutureBuilder<List<Station>>(
-                              future: getNearStation(
-                                "${locationProvider.latitude}%2C${locationProvider.longitude}",
-                              ),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                } else if (snapshot.hasError) {
-                                  return const Center(
-                                    child: Text(
-                                      "找不到附近的站牌",
-                                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                                    ),
-                                  );
-                                } else if (snapshot.hasData &&
-                                    snapshot.data != null &&
-                                    snapshot.data!.isNotEmpty) {
-
-
-                                  // 使用 Map 分組
-                                  Map<String, List<Map<String, dynamic>>> groupedStations = {};
-
-                                  for (var station in   snapshot.data!) {
-                                    String stationName = station.stationNameZh;
-                                    if (!groupedStations.containsKey(stationName)) {
-                                      groupedStations[stationName] = [];
-                                    }
-                                    groupedStations[stationName]!.add(station.toJson());
-                                  }
-
-                                  // 將分組後的資料轉換為指定格式
-                                  List<Map<String, dynamic>> result = groupedStations.entries.map((entry) {
-                                    return {
-                                      "StationGroup": {
-                                        "StationGroupName": {"Zh_tw": entry.key},
-                                        "Stations": entry.value
-                                      }
-                                    };
-                                  }).toList();
-
-                                  // 加载标记
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    _loadMarkers(context, snapshot.data!);
-                                  });
-                                  return Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: const NeverScrollableScrollPhysics(),
-                                      itemCount:result.length,
-                                      itemBuilder: (context, index) {
-                                        final station = result[index];
-                                        return _stationCard(station: station);
-                                      },
-                                    ),
-                                  );
-                                } else {
-                                  return const Center(
-                                    child: Text(
-                                      "找不到附近的站牌",
-                                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),),
-                            DraggableScrollableSheetPageTwo()
-                          ],
-                        ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.43,
+            minChildSize: 0.25,
+            maxChildSize: 0.96,
+            builder: (BuildContext context, ScrollController scrollController) {
+              return Stack(
+                clipBehavior: Clip.none, // 确保不会阻挡手势
+                children: [
+                  // 提示线
+                  Positioned(
+                    top: 0,
+                    left: MediaQuery.of(context).size.width / 2 - 20,
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(2.5),
                       ),
+                    ),
+                  ),
 
-               )),
+                  // 滚动内容区域
+                  IndexedStack(
+                  index: _index,
+                  children: <Widget>[  Container(
+                    height: 800,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      child: FutureBuilder<List<Station>>(
+                        future: getNearStation(
+                          "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(
+                              child: LoadingAnimationWidget.stretchedDots(
+                                color: Colors.black,
+                                size: 40,
+                              ),
+                            );
+                          } else if (snapshot.hasError) {
+                            return const Center(
+                              child: Text(
+                                "找不到附近的站牌",
+                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                              ),
+                            );
+                          } else if (snapshot.hasData &&
+                              snapshot.data != null &&
+                              snapshot.data!.isNotEmpty) {
+                            // 使用 Map 分组
+                            Map<String, List<Map<String, dynamic>>> groupedStations = {};
+                            for (var station in snapshot.data!) {
+                              String stationName = station.stationNameZh;
+                              if (!groupedStations.containsKey(stationName)) {
+                                groupedStations[stationName] = [];
+                              }
+                              groupedStations[stationName]!.add(station.toJson());
+                            }
 
-            ],
-          );
-        },
-      ),
+                            // 转换为指定格式
+                            List<Map<String, dynamic>> result =
+                            groupedStations.entries.map((entry) {
+                              return {
+                                "StationGroup": {
+                                  "StationGroupName": {"Zh_tw": entry.key},
+                                  "Stations": entry.value
+                                }
+                              };
+                            }).toList();
 
-      // 重載按鈕
+                            // 加载标记
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              _loadMarkers(context, snapshot.data!);
+                            });
+
+                            return Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: List.generate(
+                                  result.length,
+                                      (index) {
+                                    final station = result[index];
+                                    return _stationCard(station: station);
+                                  },
+                                ),
+                              ),
+                            );
+                          } else {
+                            return const Center(
+                              child: Text(
+                                "找不到附近的站牌",
+                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                    DraggableScrollableSheetPageTwo(scrollController),
+                  ])
+                ],
+              );
+            },
+          )
+,
+
+
+          // 重載按鈕
           Positioned(
             bottom: 20,
             right: 20,
@@ -351,16 +345,16 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -368,76 +362,36 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-        station["StationGroup"]["StationGroupName"]["Zh_tw"],
+              station["StationGroup"]["StationGroupName"]["Zh_tw"],
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
+                fontSize: 20,
+                fontWeight: FontWeight.w400,
                 color: Colors.black,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Divider(color: Colors.grey[300], thickness: 1),
-            const SizedBox(height: 8),
-            // 确保返回的每个元素是一个 Widget
-            Column(
-              children: station["StationGroup"]["Stations"].map<Widget>((stationItem) {
-                // 获取所有 stops 的 routeNameZh 去重
-                final uniqueRouteNames = (stationItem["stops"] as List<Stop>)
-                    .map((stop) => stop.routeNameZh.trim()) // 去除空格
-                    .toSet() // 去除重复项
-                    .toList(); // 转换为 List
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 将去重后的 routeNameZh 列表进行展示
-                    Column(
-                      children: uniqueRouteNames.map<Widget>((routeName) {
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                routeName, // 顯示唯一的路線名稱
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    )
-                  ],
-                );
-              }).toList(),
-            )
-
-
           ],
         ),
       ),
+
     );
   }
 
-  Widget DraggableScrollableSheetPageTwo() {
-
+  Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
     return Container(
-
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
-      child:
-          // 在这里直接使用 BusStopInfo 组件
-      BusStopList(_stopName.value, ), // 传递 stopName 作为参数给 BusStopInfo
-
+      child: PrimaryScrollController(
+        controller: scrollController, // 绑定 PrimaryScrollController
+        child: BusStopList(_stopName.value),
+      ),
     );
   }
+
+
 }
 class BusStopList extends StatefulWidget {
   final String stop;
@@ -646,9 +600,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
 
                   onTap: () async {
 
-                    await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
-//                     List<dynamic> i= await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE RouteID=${stop['RouteID']}");
-// print(i);
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -660,7 +612,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                           routeMapImageUrl: "",
                           city: "Taichung", routeID: stop["RouteID"],
                           mark: Mark.fromMap({
-                            "highlight":  [stop["RouteName"]["Zh_tw"]],
+                            "highlight":  [  _stopName.value,],
                             "direction":  stop["Direction"],
                           }),
 
@@ -695,7 +647,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                   title:  Row(
                 children: [
                 Text(
-                stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                stop["RouteName"]["Zh_tw"] ?? "未知班次",
                   style: TextStyle(
                     fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
                     fontSize: 17,
@@ -906,9 +858,12 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
   @override
   Widget build(BuildContext context) {
     _loadData();
-    return StreamBuilder<List<Map<String, dynamic>>>(
+    return
+
+      StreamBuilder<List<Map<String, dynamic>>>(
           stream: _streamController.stream,
           builder: (context, snapshot) {
+            print("StreamBuilder");
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
                 child: LoadingAnimationWidget.stretchedDots(
@@ -919,16 +874,15 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
             } else if (snapshot.hasError) {
               print(snapshot.error);
               return ErrorPage();
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              print('snapshot.has not Data');
-              return ErrorPage();
             } else {
               return DefaultTabController(
                 length: 2,
                 child: Column(
                   children: [
                     // 自定义 AppBar
-                    PreferredSize(
+                    SingleChildScrollView(
+
+                      child:  PreferredSize(
                       preferredSize: const Size.fromHeight(120), // 自定义高度
                       child: Container(
                         height: 120,
@@ -1019,7 +973,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                           ],
                         ),
                       ),
-                    ),
+                    ),),
                     // 内容部分
                     Expanded(
                       child: TabBarView(

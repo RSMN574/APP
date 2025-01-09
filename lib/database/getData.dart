@@ -114,29 +114,29 @@ FROM Bus.Bus_Taichung_Route;
   }
 
 }
-GetBusInfo(int routeid,String city) async {
-  routeID=routeid;
-  sum=0;
-  List routeName=[];
+Future<List<Map<String, dynamic>>> GetBusInfo(int routeid, String city) async {
+   sum = 0;
+  List<Map<String, dynamic>> routeName = [];
+
+  routeID = routeid;
 
   await connMysql(); // 連接資料庫
 
-  var query ='SELECT Stops FROM Bus.Bus_$city where Routeid=$routeid';
+  var query = 'SELECT Stops FROM Bus.Bus_$city WHERE Routeid = $routeid';
+  jsonData = await mysqlSelect(query);
 
- jsonData=await mysqlSelect(query);
-  for(var i in jsonData){
+  for (var i in jsonData) {
+
     sum=(sum!+json.decode(i['Stops']).length) as int?;
     routeName.add(i);
-    // print(json.decode(i['Stops']).length);
   }
-
 
   // 重置閒置計時器
   _startIdleTimer();
 
-return routeName;
-
+  return routeName;
 }
+
 Future mysqlSelect (String v)async{
 
 

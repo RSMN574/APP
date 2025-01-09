@@ -116,7 +116,7 @@ class _BuslistState extends State<Buslist> {
               ),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey), // 保持簡潔的右側箭頭
               onTap: () async {
-print(route);
+
                 await GetBusInfo(int.parse(route["RouteID"]), route["City"]);
 
                 // 使用 Navigator.push 创建新的页面

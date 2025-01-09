@@ -62,6 +62,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
     _loadData(); // 初始加载数据
     _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
 // 添加监听器
@@ -82,9 +83,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
     // 根據 mark.direction 設定 _tabController 的 index
     if (widget.mark?.direction == 0) {
-      _tabController.index = 0;
-    } else if (widget.mark?.direction == 1) {
       _tabController.index = 1;
+    } else if (widget.mark?.direction == 1) {
+      _tabController.index = 0;
     }
 
     // 找出 highlight 的站
@@ -164,27 +165,41 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   // 加载数据，包括站名和 NextBusTime
   Future<void> _loadData() async { //stop data
-    final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
-    final busTimeData = await fetchBusTime(widget.routeName.toString(), widget.city);
+    List<Map<String, dynamic>> data =await GetBusInfo(int.parse(widget.routeID), widget.city);
 
+    final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
+    final busTimeData = await fetchBusTime(widget.routeName, widget.city);
+    print("busTimeData");     print(busTimeData);
     try {
-       stopNamesWithTime1  = await fetchStopNamesWithTime(
-        1,
-        busTimeData.where((stop) => stop['Direction'] == 1).toList(),
+     stopNamesWithTime1  = await fetchStopNamesWithTime(
+          1,
+          busTimeData.where((stop) => stop['Direction'] == 1).toList(),data
       );
 
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching stop names with time for direction 1: $e');
-      }
-      stopNamesWithTime1=await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
+    }catch (e) {
 
+      stopNamesWithTime1  = await fetchStopNamesWithTime(
+          0,
+          busTimeData.where((stop) => stop['Direction'] == 0).toList(),data
+      );
 
       // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
     }
+
+
+    try {
     // final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
-     stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList());
-   if(isTimerOn.value){
+     stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList(),data);
+
+
+    }catch (e) {
+
+    stopNamesWithTime2=await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList(),data);
+
+
+    // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
+    }
+    if(isTimerOn.value){
      _startAutoReload();
      if (kDebugMode) {
        print("定時更新啟動");
@@ -204,18 +219,19 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   }
 
   // 获取每个站的站名和 NextBusTime
-  Future<List<Map<String, dynamic>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData) async {
-    List stops = await getInfo("routeInfo");
+  Future<List<Map<String, dynamic>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData, List<Map<String, dynamic>> data) async {
 
     List<Map<String, dynamic>> stopNamesWithTime = [];
     String hasPlateNum="";
-    if (tabIndex < stops.length) {
-      var stopData = json.decode(stops[tabIndex]["Stops"]);
+    if (tabIndex < data.length) {
+      var stopData = json.decode(data[tabIndex]["Stops"]);
+
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
 
         Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
-
+        bool isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex == widget.mark?.direction;
+        print(   stopName); print(   isHighlighted);
          if(nextBusTime["PlateNumb"]!=''){
 
            if(hasPlateNum!=nextBusTime["PlateNumb"]){
@@ -227,7 +243,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                "PlateNumb": nextBusTime["PlateNumb"],
                "Estimates":nextBusTime["Estimates"].toString(),
                "StopPosition":stop["StopPosition"],
-               "StopUID":stop['StopUID']
+               "StopUID":stop['StopUID'],
+               "isHighlighted":isHighlighted
              });
            }else{
              stopNamesWithTime.add({
@@ -237,7 +254,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                "PlateNumb": '',
                "Estimates":nextBusTime["Estimates"].toString(),
                "StopPosition":stop["StopPosition"],
-               "StopUID":stop['StopUID']
+               "StopUID":stop['StopUID'],
+               "isHighlighted":isHighlighted
              });
            }
 
@@ -250,11 +268,12 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
              "PlateNumb": '',
              "Estimates":nextBusTime["Estimates"].toString(),
              "StopPosition":stop["StopPosition"],
-             "StopUID":stop['StopUID']
+             "StopUID":stop['StopUID'],
+             "isHighlighted":isHighlighted
            });
-             }
+             }}
 
-      }
+
     }
 
     return stopNamesWithTime;
@@ -694,7 +713,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
     return Container(
-      margin: EdgeInsets.only(bottom: 25),
+
       child: RefreshIndicator(
 
       onRefresh: () async {
@@ -720,8 +739,23 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
               : const Color.fromRGBO(68, 68, 68, 0.1))));
 
           return Container(
-
-              height: 53.0, // 設置每個項目的固定高度
+              margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
+              decoration: stop["isHighlighted"] == true
+                  ? BoxDecoration(
+                border: Border.all(
+                  width: 1.6, // 邊框粗細
+                  color: Colors.blue, // 高亮時邊框顏色
+                ),
+                borderRadius: BorderRadius.circular(10), // 圓角
+              )
+                  : BoxDecoration(
+                border: Border.all(
+                  width: 2, // 邊框粗細
+                  color: Colors.transparent, // 非高亮時邊框為透明
+                ),
+                borderRadius: BorderRadius.circular(10), // 圓角
+              ),
+              height: 54.5, // 設置每個項目的固定高度
               child:ListTile(
 
                 onTap: () {

@@ -5,6 +5,7 @@ import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
@@ -675,8 +676,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
               future: _getDirections(), // 调用异步方法
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: CircularProgressIndicator()); // 加载中的占位组件
+                  return Center(
+                    child: LoadingAnimationWidget.stretchedDots(
+                      color: Colors.black,
+                      size: 40,
+                    ),
+                  );// 加载中的占位组件
                 } else if (snapshot.hasError) {
                   return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
                 } else if (!snapshot.hasData || snapshot.data == null) {

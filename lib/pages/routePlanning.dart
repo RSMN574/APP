@@ -214,7 +214,7 @@ String? routeArrivalStation;
               ),
               const SizedBox(height: 20),
 
-              // 出发站选择
+              // 出發站选择
               if (selectedRoute != null) ...[
                 const Text('選擇出發站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
@@ -600,7 +600,7 @@ String? routeArrivalStation;
       });
     } else if (selectedTab == "B") {
       setState(() {
-        if (selected != null) selectedArrivalStation = selected!;
+        if (selected != null) selectedDepartureStation = selected!;
         routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
         routeArrivalStation=  routeQuery[0]["DepartureStopNameZh"];
 
@@ -649,8 +649,7 @@ String? routeArrivalStation;
         String searchQuery = '';
         // 提取 route 部分
 
-        // List<String> filteredRoutes = busRoutesNotifier.value.map((item) => item['route'] as String).toList();
-        // List<String> filteredID = busRoutesNotifier.value.map((item) => item['id'] as String).toList();
+
         List<Map<String,dynamic>> filtered= busRoutesNotifier.value ;
 
         return StatefulBuilder(
@@ -766,7 +765,7 @@ String? routeArrivalStation;
                 if (result == -1) {
                   // 如果已经存在相同的记录，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('该行程已经存在。'))
+                      const SnackBar(content: Text('該行程已經存在。'))
                   );
                 } else if (result == 100) {
                   // 成功添加行程，提示用户
@@ -776,7 +775,7 @@ String? routeArrivalStation;
                 } else {
                   // 添加行程失败，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('添加行程失败。'))
+                      SnackBar(content: Text('添加行程失敗。'))
                   );
                 }
               },
