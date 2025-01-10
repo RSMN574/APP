@@ -8,14 +8,17 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
+import '../database/MRT/getMRTInfo.dart';
 import '../database/favorite_feature.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
+import '../models/MRTStation.dart';
 import '../models/Station.dart';
 import '../widget/bubble.dart';
 import '../widget/error.dart';
 import '../widget/map.dart';
+import '../widget/tab.dart';
 import 'bus_time.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
@@ -126,6 +129,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
     final mapHeight = screenHeight - (screenHeight * 0.2) - appBarHeight - bottomNavBarHeight;
+    final DraggableScrollableController _scrollController = DraggableScrollableController();
 
     return WillPopScope(
         onWillPop: () async {
@@ -160,6 +164,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           ),
 
           DraggableScrollableSheet(
+            controller: _scrollController,
             initialChildSize: 0.43,
             minChildSize: 0.25,
             maxChildSize: 0.96,
@@ -167,105 +172,226 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               return Stack(
                 clipBehavior: Clip.none, // 确保不会阻挡手势
                 children: [
-                  // 提示线
+                  // 提示線
                   Positioned(
-                    top: 0,
+                    top: -10, // 往上移動，確保能顯示在頂部
                     left: MediaQuery.of(context).size.width / 2 - 20,
-                    child: Container(
-                      width: 40,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(2.5),
+                    child: GestureDetector(
+                      onPanUpdate: (details) {
+                        // 處理拖曳操作，帶動 DraggableScrollableSheet
+                        double delta = details.primaryDelta! / MediaQuery.of(context).size.height;
+                        double currentSize = _scrollController.size ?? 0.1;
+                        double newSize = (currentSize - delta).clamp(0.1, 0.96);
+                        _scrollController.animateTo(newSize, duration: Duration(milliseconds: 50), curve: Curves.easeInOut);
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(2.5),
+                        ),
                       ),
                     ),
                   ),
+              Container(
+              height: 800,
+              decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: TabWidget(
+                    items: ["公車站", "捷運站", "火車站", "高鐵站"],
+                    icons: [Icons.directions_bus, Icons.subway, Icons.train, Icons.directions_railway],
+                    id: ["bus", "metro", "train", "highspeed"],
+                    buildPageView: (context, controller) {
+                      return PageView.builder(
+                        itemCount: 4,
+                        controller: controller,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemBuilder: (context, index) {
+                          switch (index) {
+                            case 0:
+                              return   // 滚动内容区域
+                          IndexedStack(
+                          index: _index,
+                          children: <Widget>[
 
-                  // 滚动内容区域
-                  IndexedStack(
-                  index: _index,
-                  children: <Widget>[  Container(
-                    height: 800,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    child: SingleChildScrollView(
-                      controller: scrollController,
-                      child: FutureBuilder<List<Station>>(
-                        future: getNearStation(
+
+
+                          SingleChildScrollView(
+                          controller: scrollController,
+                          child: FutureBuilder<List<Station>>(
+                          future: getNearStation(
                           "${locationProvider.latitude}%2C${locationProvider.longitude}",
-                        ),
-                        builder: (context, snapshot) {
+                          ),
+                          builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Center(
-                              child: LoadingAnimationWidget.stretchedDots(
-                                color: Colors.black,
-                                size: 40,
-                              ),
-                            );
+                          return Center(
+                          child: LoadingAnimationWidget.stretchedDots(
+                          color: Colors.black,
+                          size: 40,
+                          ),
+                          );
                           } else if (snapshot.hasError) {
-                            return const Center(
-                              child: Text(
-                                "找不到附近的站牌",
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
-                            );
+                          return const Center(
+                          child: Text(
+                          "找不到附近的站牌",
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                          );
                           } else if (snapshot.hasData &&
-                              snapshot.data != null &&
-                              snapshot.data!.isNotEmpty) {
-                            // 使用 Map 分组
-                            Map<String, List<Map<String, dynamic>>> groupedStations = {};
-                            for (var station in snapshot.data!) {
-                              String stationName = station.stationNameZh;
-                              if (!groupedStations.containsKey(stationName)) {
-                                groupedStations[stationName] = [];
-                              }
-                              groupedStations[stationName]!.add(station.toJson());
-                            }
+                          snapshot.data != null &&
+                          snapshot.data!.isNotEmpty) {
+                          // 使用 Map 分组
+                          Map<String, List<Map<String, dynamic>>> groupedStations = {};
+                          for (var station in snapshot.data!) {
+                          String stationName = station.stationNameZh;
+                          if (!groupedStations.containsKey(stationName)) {
+                          groupedStations[stationName] = [];
+                          }
+                          groupedStations[stationName]!.add(station.toJson());
+                          }
 
-                            // 转换为指定格式
-                            List<Map<String, dynamic>> result =
-                            groupedStations.entries.map((entry) {
-                              return {
-                                "StationGroup": {
-                                  "StationGroupName": {"Zh_tw": entry.key},
-                                  "Stations": entry.value
-                                }
-                              };
-                            }).toList();
+                          // 转换为指定格式
+                          List<Map<String, dynamic>> result =
+                          groupedStations.entries.map((entry) {
+                          return {
+                          "StationGroup": {
+                          "StationGroupName": {"Zh_tw": entry.key},
+                          "Stations": entry.value
+                          }
+                          };
+                          }).toList();
 
-                            // 加载标记
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              _loadMarkers(context, snapshot.data!);
-                            });
+                          // 加载标记
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _loadMarkers(context, snapshot.data!);
+                          });
 
-                            return Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: List.generate(
-                                  result.length,
-                                      (index) {
-                                    final station = result[index];
-                                    return _stationCard(station: station);
-                                  },
-                                ),
-                              ),
-                            );
+                          return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                          children: List.generate(
+                          result.length,
+                          (index) {
+                          final station = result[index];
+                          return _stationCard(station: station);
+                          },
+                          ),
+                          ),
+                          );
                           } else {
-                            return const Center(
-                              child: Text(
-                                "找不到附近的站牌",
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
-                            );
+                          return const Center(
+                          child: Text(
+                          "找不到附近的站牌",
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                          );
+                          }
+                          },
+                          ),
+                          ),
+
+                            DraggableScrollableSheetPageTwo(scrollController),
+                          ]);
+
+                            case 1:
+                              return
+
+                                IndexedStack(
+                                    index: _index,
+                                    children: <Widget>[
+
+
+
+                                      SingleChildScrollView(
+                                        controller: scrollController,
+                                        child: FutureBuilder<List<MRTStation>>(
+                                          future: getNearMRTStation(
+                                            "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                          ),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                              return Center(
+                                                child: LoadingAnimationWidget.stretchedDots(
+                                                  color: Colors.black,
+                                                  size: 40,
+                                                ),
+                                              );
+                                            } else if (snapshot.hasError) {
+                                              return const Center(
+                                                child: Text(
+                                                  "找不到附近的站牌",
+                                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                                ),
+                                              );
+                                            } else if (snapshot.hasData &&
+                                                snapshot.data != null &&
+                                                snapshot.data!.isNotEmpty) {
+                                              // 使用 Map 分组
+                                              Map<String, List<Map<String, dynamic>>> groupedStations = {};
+                                              for (var station in snapshot.data!) {
+                                                String stationName = station.stationNameZh;
+                                                if (!groupedStations.containsKey(stationName)) {
+                                                  groupedStations[stationName] = [];
+                                                }
+                                                groupedStations[stationName]!.add(station.toJson());
+                                              }
+
+                                              // 转换为指定格式
+                                              List<Map<String, dynamic>> result =
+                                              groupedStations.entries.map((entry) {
+                                                return {
+                                                  "StationGroup": {
+                                                    "StationGroupName": {"Zh_tw": entry.key},
+                                                    "Stations": entry.value
+                                                  }
+                                                };
+                                              }).toList();
+
+                                              // 加载标记
+                                              // WidgetsBinding.instance.addPostFrameCallback((_) {
+                                              //   _loadMarkers(context, snapshot.data!);
+                                              // });
+
+                                              return Padding(
+                                                padding: const EdgeInsets.all(16.0),
+                                                child: Column(
+                                                  children: List.generate(
+                                                    result.length,
+                                                        (index) {
+                                                      final station = result[index];
+                                                      return _stationCard(station: station);
+                                                    },
+                                                  ),
+                                                ),
+                                              );
+                                            } else {
+                                              return const Center(
+                                                child: Text(
+                                                  "找不到附近的站牌",
+                                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      MRTPageTwo(scrollController: scrollController,),
+
+                                    ]);
+                            case 2:
+                              return const Center(child: Text("這是火車站的內容"));
+                            case 3:
+                              return const Center(child: Text("這是高鐵站的內容"));
+                            default:
+                              return const Center(child: Text("開發中"));
                           }
                         },
-                      ),
-                    ),
-                  ),
-                    DraggableScrollableSheetPageTwo(scrollController),
-                  ])
+                      );
+                    },
+                  )),
                 ],
               );
             },
@@ -492,7 +618,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
 
       _streamController.add(data); // 向数据流中添加新数据
     } catch (e) {
-      _streamController.addError(e); // 向数据流中添加错误
+
     }
   }
   Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
@@ -1019,6 +1145,31 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
           },
         );
 
+  }
+}
+
+class MRTPageTwo extends StatefulWidget {
+  final ScrollController scrollController;
+
+  const MRTPageTwo({super.key,required  ScrollController this.scrollController});
+
+  @override
+  State<MRTPageTwo> createState() => _MRTPageTwoState();
+}
+
+class _MRTPageTwoState extends State<MRTPageTwo> {
+  @override
+  Widget build(BuildContext context) {
+    return     Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: PrimaryScrollController(
+        controller: widget.scrollController, // 绑定 PrimaryScrollController
+        child: Text("開發中")
+      ),
+    );
   }
 }
 

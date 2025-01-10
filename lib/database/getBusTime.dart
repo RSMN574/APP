@@ -2,9 +2,10 @@ import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
 
+import '../Const/regularConst.dart';
 import '../models/Station.dart';
 import 'getData.dart'; // 用于网络请求
- final   tokenUri=Uri.parse('http://hidden.rsmn574.com:3920/token') ;
+
 Future<dynamic> fetchBusTime(routeName,city) async {
 
 

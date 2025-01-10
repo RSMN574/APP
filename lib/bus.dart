@@ -24,9 +24,9 @@ class Bus extends StatefulWidget {
 
 class BusState extends State<Bus>  {
 
-  final List<IconData> icons=[Icons.favorite, Icons.favorite, Icons.route];
-  final List<String> items=["收藏路線", "收藏站牌",  "規劃"];
-  final List<String> id=["route", "stop",  "routeplan"];
+  final List<IconData> icons=[Icons.favorite, Icons.favorite, Icons.route,Icons.airport_shuttle];
+  final List<String> items=["收藏路線", "收藏站牌",  "規劃","接駁車"];
+  final List<String> id=["route", "stop",  "routeplan","shuttleBus"];
   int _current = 0;
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
@@ -724,7 +724,7 @@ Future <List>_getData()async{
             case "routeplan":
               return RoutePlanner();
           default:
-              return const Center(child: Text("Unknown"));
+              return const Center(child: Text("開發中"));
           }
         },
       ),
