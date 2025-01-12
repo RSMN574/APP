@@ -15,7 +15,8 @@ import '../widget/error.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 class BusStopInfo extends StatefulWidget {
   final String stop;
-  const BusStopInfo(this.stop, {super.key});
+  final String city;
+  const BusStopInfo(this.stop, {super.key, required this.city});
   @override
   State<BusStopInfo> createState() => _BusStopInfoState();
 }
@@ -50,8 +51,10 @@ class _BusStopInfoState extends State<BusStopInfo> {
       } else {
         int result = (stopData["EstimateTime"] / 60).floor();
         List PlateNumb = [];
-        for (var estimate in stopData['Estimates']) {
-          PlateNumb.add(estimate["PlateNumb"]);
+        if (stopData['Estimates'] != null) {
+          for (var estimate in stopData['Estimates']) {
+            PlateNumb.add(estimate["PlateNumb"]);
+          }
         }
 
         return {
@@ -123,7 +126,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
 
       // 根据方向查找去程或回程的目的地信息
       if (i['Direction'] == 1) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
 
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
@@ -131,7 +134,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
         i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
         i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
       } else if (i['Direction'] == 0) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
         i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
@@ -188,7 +191,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                   height: 53.0, // 每个列表项的固定高度
                   child: ListTile(
                     onTap: () async {
-                      await GetBusInfo(int.parse(stop["RouteID"]), "Taichung");
+                      await GetBusInfo(int.parse(stop["RouteID"]), widget.city);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -198,7 +201,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                             destinationStopName:  stop["DestinationStopName"],
                             operators: "",
                             routeMapImageUrl: "",
-                            city: "Taichung", routeID: stop["RouteID"],
+                            city: widget.city, routeID: stop["RouteID"],
 
                           ),
                         ),
@@ -269,7 +272,8 @@ class _BusStopInfoState extends State<BusStopInfo> {
                       ],
                     ),
 
-                    trailing: bubble(plateNum: PlateNumb),
+                    trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
+
                   ),
                 );
               },
@@ -289,14 +293,12 @@ class _BusStopInfoState extends State<BusStopInfo> {
   }
   Future<void> _loadData() async {
 
-    try {
+
 
       final data = await fetchBusStopInfo();
 
       _streamController.add(data); // 向数据流中添加新数据
-    } catch (e) {
-      _streamController.addError(e); // 向数据流中添加错误
-    }
+
   }
   // 解析时间格式，转换成相对于当前时间的分钟数
   int _parseTimeToMinutes(String? time) {
@@ -333,14 +335,14 @@ class _BusStopInfoState extends State<BusStopInfo> {
   // 获取公交站信息的异步方法
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
 
-    List<dynamic> info = await GetBusStopInfo(widget.stop, "Taichung");
+    List<dynamic> info = await GetBusStopInfo(widget.stop, widget.city);
     List<Map<String, dynamic>> tempData = [];
 
     _stationIDs.value= info.map((station) => station["StationID"] as String).toList();// 提取 StationID
 
     if (info != null) {
       for (var i in info) {
-        var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
+        var stationInfo = await fetchStationInfo(_stationIDs.value, widget.city);
         for (var stop in stationInfo) {
           var timeData = await getTimeList(stop);
           stop["time"] = timeData["time"];
@@ -441,7 +443,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                                       final output = await dbHelper.addFavorite(
                                         StopName: widget.stop,
                                         table: "FavoritesStop",
-                                        city: 'Taichung',
+                                        city: widget.city,
                                       );
 
                                       if (output == 100) {

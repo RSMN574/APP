@@ -13,6 +13,7 @@ import '../database/favorite_feature.dart';
 import '../database/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/getStationInfo.dart';
+import '../metro.dart';
 import '../models/MRTStation.dart';
 import '../models/Station.dart';
 import '../widget/bubble.dart';
@@ -24,6 +25,8 @@ ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
 ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
 ValueNotifier<String> _stopName = ValueNotifier<String>('');
+ValueNotifier<String> _tabSelect = ValueNotifier<String>('');
+
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
@@ -32,10 +35,8 @@ class NearbyStationsPage extends StatefulWidget {
 }
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
-  int _index=0;
+  final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
 
-
-  final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
 
   @override
   void dispose() {
@@ -85,10 +86,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         _stopName.value=station.stationNameZh;
         _selectStationID.value=station.stationID;
 
-        setState(() {
-          _index = 1; // 切换到搜索内容
 
-        });
+          _indexNotifier.value  = 1; // 切换到搜索内容
+
+
 
       }
       );
@@ -133,9 +134,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     return WillPopScope(
         onWillPop: () async {
-      if (_index > 0) {
+      if (_indexNotifier.value  > 0) {
         setState(() {
-          _index--; // 返回到上一个索引
+          _indexNotifier.value --; // 返回到上一个索引
         });
         return false; // 阻止默认返回导航
       }
@@ -200,22 +201,31 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               ),
-              child: TabWidget(
+              child:
+
+              ValueListenableBuilder<int>(
+              valueListenable: _indexNotifier,
+              builder: (context, index, child) {
+              return
+              IndexedStack(
+                  index: _indexNotifier.value ,
+                  children: <Widget>[TabWidget(
                     items: ["公車站", "捷運站", "火車站", "高鐵站"],
                     icons: [Icons.directions_bus, Icons.subway, Icons.train, Icons.directions_railway],
-                    id: ["bus", "metro", "train", "highspeed"],
+                    id: ["bus", "metro", "train", "HSR"],
                     buildPageView: (context, controller) {
                       return PageView.builder(
                         itemCount: 4,
                         controller: controller,
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (context, index) {
+
                           switch (index) {
+
                             case 0:
+                              _tabSelect.value="bus";
                               return   // 滚动内容区域
-                          IndexedStack(
-                          index: _index,
-                          children: <Widget>[
+
 
 
 
@@ -234,12 +244,51 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                           ),
                           );
                           } else if (snapshot.hasError) {
-                          return const Center(
-                          child: Text(
-                          "找不到附近的站牌",
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "找不到附近的站牌",
+                                  style: TextStyle(
+                                    color: Colors.black54,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      // 重新觸發 FutureBuilder 的 future
+                                      getNearMRTStation(
+                                        "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                      );
+                                    });
+                                  },
+                                  icon: const Icon(
+                                    Icons.refresh,
+                                    color: Colors.black,
+                                  ),
+                                  label: const Text(
+                                    "重試",
+                                    style: TextStyle(color: Colors.black, fontSize: 14),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    elevation: 3,
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    shadowColor: Colors.grey[300],
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
+
                           } else if (snapshot.hasData &&
                           snapshot.data != null &&
                           snapshot.data!.isNotEmpty) {
@@ -291,18 +340,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                           }
                           },
                           ),
-                          ),
+                          );
 
-                            DraggableScrollableSheetPageTwo(scrollController),
-                          ]);
+
+
 
                             case 1:
+                              _tabSelect.value="metro";
                               return
-
-                                IndexedStack(
-                                    index: _index,
-                                    children: <Widget>[
-
 
 
                                       SingleChildScrollView(
@@ -319,14 +364,54 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   size: 40,
                                                 ),
                                               );
-                                            } else if (snapshot.hasError) {
-                                              return const Center(
-                                                child: Text(
-                                                  "找不到附近的站牌",
-                                                  style: TextStyle(color: Colors.grey, fontSize: 16),
+                                            }else if (snapshot.hasError) {
+                                              return Center(
+                                                child: Column(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    const Text(
+                                                      "找不到附近的站牌",
+                                                      style: TextStyle(
+                                                        color: Colors.black54,
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    ElevatedButton.icon(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          // 重新觸發 FutureBuilder 的 future
+                                                          getNearMRTStation(
+                                                            "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                                          );
+                                                        });
+                                                      },
+                                                      icon: const Icon(
+                                                        Icons.refresh,
+                                                        color: Colors.black,
+                                                      ),
+                                                      label: const Text(
+                                                        "重試",
+                                                        style: TextStyle(color: Colors.black, fontSize: 14),
+                                                      ),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: Colors.white,
+                                                        foregroundColor: Colors.black,
+                                                        elevation: 3,
+                                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                        ),
+                                                        shadowColor: Colors.grey[300],
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               );
-                                            } else if (snapshot.hasData &&
+
+                                            }
+                                            else if (snapshot.hasData &&
                                                 snapshot.data != null &&
                                                 snapshot.data!.isNotEmpty) {
                                               // 使用 Map 分组
@@ -377,13 +462,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                             }
                                           },
                                         ),
-                                      ),
-                                      MRTPageTwo(scrollController: scrollController,),
+                                      );
 
-                                    ]);
                             case 2:
+                              _tabSelect.value="train";
                               return const Center(child: Text("這是火車站的內容"));
                             case 3:
+                              _tabSelect.value="HSR";
                               return const Center(child: Text("這是高鐵站的內容"));
                             default:
                               return const Center(child: Text("開發中"));
@@ -391,7 +476,15 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                         },
                       );
                     },
-                  )),
+                  )
+                    ,   DraggableScrollableSheetPageTwo(scrollController),
+
+
+
+
+
+
+                  ]);})),
                 ],
               );
             },
@@ -450,29 +543,24 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         _stopName.value=station["StationGroup"]["StationGroupName"]["Zh_tw"];
         _stationIDs.value=stationIDs;
 
-        setState(() {
-          _index = 1; // 切换到搜索内容
-        });
 
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => BusStopInfo(station.stationNameZh),
-        //   ),
-        // );
+          _indexNotifier.value =  1; // 切换到搜索内容
+
+
+
       },
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) { // 向左滑动
           setState(() {
-            if (_index > 0) {
-              _index--; // 返回上一页
+            if (_indexNotifier.value  > 0) {
+              _indexNotifier.value =  1; // 切换到搜索内容
             }
           });
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -490,68 +578,99 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             Text(
               station["StationGroup"]["StationGroupName"]["Zh_tw"],
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.w400,
                 color: Colors.black,
               ),
             ),
-            const SizedBox(height: 12),
-            Divider(color: Colors.grey[300], thickness: 1),
+            const SizedBox(height: 8),
+            Divider(color: Colors.grey[300], thickness: 0.5),
           ],
         ),
-      ),
+      )
+      ,
 
     );
   }
 
   Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: PrimaryScrollController(
-        controller: scrollController, // 绑定 PrimaryScrollController
-        child: BusStopList(_stopName.value),
-      ),
-    );
+    if(       _tabSelect.value=="bus"){
+      print(_stopName.value);
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PrimaryScrollController(
+          controller: scrollController, // 绑定 PrimaryScrollController
+          child: BusStopList(_stopName.value ),
+        ),
+      );
+    }else if(       _tabSelect.value=="metro"){
+      print(_stopName.value);
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PrimaryScrollController(
+          controller: scrollController, // 绑定 PrimaryScrollController
+          child: MRTStationList(station: _stopName.value ,),
+        ),
+      );
+    }else {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PrimaryScrollController(
+          controller: scrollController, // 绑定 PrimaryScrollController
+          child: const Text("開發中"),
+        ),
+      );
+    }
+
+
   }
 
 
 }
 class BusStopList extends StatefulWidget {
   final String stop;
-  final GlobalKey<_BusStopListState> _key = GlobalKey<_BusStopListState>();
 
-   BusStopList(this.stop, {super.key});
+
+   const BusStopList(this.stop, {super.key});
   @override
   State<StatefulWidget> createState() {
     return _BusStopListState();
   }
 }
 
-class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin {
-   StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
-   late TabController _tabController;
-  List<Map<String, dynamic>> data = [];
-  final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
+class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin , AutomaticKeepAliveClientMixin<BusStopList>  {
+   final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
+
+    late ValueNotifier<TabController> _tabControllerNotifier;
   // 构建 TabBar
    @override
    void initState() {
      super.initState();
-
-     // 初始化 TabController
-     _tabController = TabController(
-         length: _stationIDs.value.length, // 使用 stationIDs 的長度
-         vsync: this
+// 初始化 _tabControllerNotifier
+     _tabControllerNotifier = ValueNotifier(
+       TabController(
+         length: _stationIDs.value.length, // 初始长度为 _stationIDs 的长度
+         vsync: this,
+       ),
      );
+     // 初始化 TabController
+     // _tabController = TabController(
+     //     length: _stationIDs.value.length, // 使用 stationIDs 的長度
+     //     vsync: this
+     // );
      _selectStationID.addListener(() {
-       if (_tabController.length != _stationIDs.value.length) {
+       if (  _tabControllerNotifier.value .length != _stationIDs.value.length) {
 
-         _tabController = TabController(
-           length: _stationIDs.value.length,
-           vsync: this,
-         );
+       _initTabController();
        }
 
        String currentStop = _selectStationID.value;
@@ -560,29 +679,23 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
 
        if (index != -1) {
          _NearbyStationsPageState._updateMarkerStyle(_selectStationID.value); // 切換 marker 樣式
-         _tabController.animateTo(index); // 切換 Tab
+         _tabControllerNotifier.value .animateTo(index); // 切換 Tab
        }
 
      });
      // 初始化时确保 _stationIDs 不为空
      if (_stationIDs.value.isEmpty) {
-       _tabController = TabController(length: 1, vsync: this);
-     } else {
-       _tabController = TabController(length: _stationIDs.value.length, vsync: this);
+     _initTabController();
      }
 
      // 监听 _stationIDs 的变化
      _stationIDs.addListener(() {
        if (!mounted) return;
-
+      print("mounted");
        // 当 stationIDs 发生变化时，重新创建 TabController
-       setState(() {
-         _tabController.dispose(); // 释放旧的 controller
-         _tabController = TabController(
-           length: _stationIDs.value.isEmpty ? 1 : _stationIDs.value.length,
-           vsync: this,
-         );
-       });
+ setState(() {
+   _initTabController();
+ });
      });
 
      // 监听 _selectStationID 的变化
@@ -594,32 +707,43 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
          int index = _stationIDs.value.indexOf(currentStop);
          if (index != -1) {
            _NearbyStationsPageState._updateMarkerStyle(_selectStationID.value);
-           _tabController.animateTo(index);
+           _tabControllerNotifier.value .animateTo(index);
          }
        }
      });
    }
+   @override
+   void didUpdateWidget(covariant BusStopList oldWidget) {
+     super.didUpdateWidget(oldWidget);
+     print("didUpdateWidget called");
+     _loadData();
+   }
 
+   void _initTabController() {
+
+     _tabControllerNotifier.value  = TabController(
+       length: _stationIDs.value.length,
+       vsync: this,
+     );
+   }
 
 
   @override
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     // 釋放 TabController
-    _tabController.dispose();
+    _tabControllerNotifier.value.dispose();
     super.dispose();
 
   }
   Future<void> _loadData() async {
 
-    try {
+
 
       final data = await fetchBusStopInfo();
 
       _streamController.add(data); // 向数据流中添加新数据
-    } catch (e) {
 
-    }
   }
   Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
@@ -651,8 +775,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         finalList=items;
 
       }
-      // print("StationID: $stationID");
-      // print("Data: $items");
+
     });
 
     for (var i in finalList) {
@@ -951,9 +1074,13 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         decoration: BoxDecoration(
           color: Colors.white, // 使用白色背景
         ),
-        child: TabBar(
+        child:
+        ValueListenableBuilder<TabController>(
+        valueListenable: _tabControllerNotifier,
+    builder: (context, tabController, child) {
+    return   TabBar(
 
-          controller: _tabController, // 添加 controller
+          controller: _tabControllerNotifier.value , // 添加 controller
           indicatorColor: Colors.black, // 使用黑色作为指示器颜色
           labelColor: Colors.black, // 黑色文字
           unselectedLabelColor: Colors.grey, // 灰色未选中文字
@@ -967,23 +1094,23 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
             fontSize: 15, // 未选中标签稍小字体
           ),
 
-        tabs: List.generate(_stationIDs.value.length, (index) {
-          String label = String.fromCharCode(65 + index); // 將索引轉為字母 A, B, C...
-          return Tab(
-            icon: Icon(Icons.directions_bus, size: 24),
-            text: _stationIDs.value[index],
+          tabs: List.generate(_stationIDs.value.length, (index) {
+            String label = String.fromCharCode(65 + index); // 將索引轉為字母 A, B, C...
+            return Tab(
+              icon: Icon(Icons.directions_bus, size: 24),
+              text: _stationIDs.value[index],
 
-          );
-        }),
+            );
+          }),
 
-      ),
+        );}),
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
-    _loadData();
+    super.build(context);
+
     return
 
       StreamBuilder<List<Map<String, dynamic>>>(
@@ -1103,7 +1230,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                     // 内容部分
                     Expanded(
                       child: TabBarView(
-                        controller: _tabController, // 加入 controller 綁定
+                        controller: _tabControllerNotifier.value , // 加入 controller 綁定
                         children: List.generate(_stationIDs.value.length, (index) {
                           String label = String.fromCharCode(65 + index); // A, B, C...
                           return FutureBuilder(
@@ -1146,18 +1273,21 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
         );
 
   }
-}
-
-class MRTPageTwo extends StatefulWidget {
-  final ScrollController scrollController;
-
-  const MRTPageTwo({super.key,required  ScrollController this.scrollController});
 
   @override
-  State<MRTPageTwo> createState() => _MRTPageTwoState();
+  bool get wantKeepAlive => true;
 }
 
-class _MRTPageTwoState extends State<MRTPageTwo> {
+class MRTStationList extends StatefulWidget {
+
+final String station;
+  const MRTStationList({super.key, required this.station,});
+
+  @override
+  State<MRTStationList> createState() => _MRTStationListState();
+}
+
+class _MRTStationListState extends State<MRTStationList> {
   @override
   Widget build(BuildContext context) {
     return     Container(
@@ -1165,11 +1295,10 @@ class _MRTPageTwoState extends State<MRTPageTwo> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: PrimaryScrollController(
-        controller: widget.scrollController, // 绑定 PrimaryScrollController
-        child: Text("開發中")
-      ),
-    );
+      child:     SingleChildScrollView(
+
+        child: buildStationInfo(widget.station),
+      ));
   }
 }
 

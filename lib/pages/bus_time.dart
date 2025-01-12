@@ -169,7 +169,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
     final busTimeData = await fetchBusTime(widget.routeName, widget.city);
-    print("busTimeData");     print(busTimeData);
+
     try {
      stopNamesWithTime1  = await fetchStopNamesWithTime(
           1,
@@ -230,8 +230,12 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
         String stopName = stop["StopName"]["Zh_tw"];
 
         Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
-        bool isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex == widget.mark?.direction;
-        print(   stopName); print(   isHighlighted);
+        bool isHighlighted = false;
+        if (widget.mark != null && widget.mark!.highlight != null) {
+          isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex == widget.mark!.direction;
+        }
+
+
          if(nextBusTime["PlateNumb"]!=''){
 
            if(hasPlateNum!=nextBusTime["PlateNumb"]){
@@ -355,7 +359,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
             "time": "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
             "color": '',
             "PlateNumb": "",
-            "Estimates": a[0]["Estimates"],
+            "Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
+
             "StopPosition":a[0]["StopPosition"],
             "StopUID":a[0]['StopUID']
           };
@@ -366,7 +371,8 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 };
       }
     }
-    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
+    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
+
       "StopPosition":a[0]["StopPosition"],"StopUID":a[0]['StopUID']
 };
   }
@@ -896,175 +902,175 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       },
     );
   }
-}
-Widget _buildDialogOption (BuildContext context, IconData icon, String title, String id,Map other) {
-  return InkWell(
-    onTap: () async {
-      var output;
-      // var stationComparison;
-      // 在这里可以添加对应的功能
+  Widget _buildDialogOption (BuildContext context, IconData icon, String title, String id,Map other) {
+    return InkWell(
+      onTap: () async {
+        var output;
+        // var stationComparison;
+        // 在这里可以添加对应的功能
 
-      if(id=="favorite"){
-        favorite_feature dbHelper = favorite_feature(); // 创建实例
+        if(id=="favorite"){
+          favorite_feature dbHelper = favorite_feature(); // 创建实例
 
-        final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
+          final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
 
-        // output=await  saveList('favoritesBusStop',other["id"] );
-        // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-        // 顯示相應的 QuickAlert
-        if (result==100) {
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.success,
-            text: output,
-          );
+          // output=await  saveList('favoritesBusStop',other["id"] );
+          // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+          // 顯示相應的 QuickAlert
+          if (result==100) {
+            QuickAlert.show(
+              context: context,
+              type: QuickAlertType.success,
+              text: output,
+            );
 
-        } else if (result==-1) {
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.warning,
-            text: output,
-          );
-        } else if (result==200) {
-          QuickAlert.show(
-            context: context,
-            type: QuickAlertType.error,
-            title: 'Oops...',
-            text: output,
-          );
-        }
-      }else if(id=='info'){
-        List<Map<String, dynamic>> estimates=[];
+          } else if (result==-1) {
+            QuickAlert.show(
+              context: context,
+              type: QuickAlertType.warning,
+              text: output,
+            );
+          } else if (result==200) {
+            QuickAlert.show(
+              context: context,
+              type: QuickAlertType.error,
+              title: 'Oops...',
+              text: output,
+            );
+          }
+        }else if(id=='info'){
+          List<Map<String, dynamic>> estimates=[];
 
 
 // 使用 jsonDecode 将 JSON 字符串转换为 Dart 对象
-        if (other["estimates"] != 'null') {
-          try {
-            // 自动修正 JSON 字符串
-            String correctedJsonString = other["estimates"]
-                .replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":') // 为键添加双引号
-                .replaceAllMapped(RegExp(r'(\d+)(?=,|\})'), (match) => '${match[0]}') // 保留数字
-                .replaceAllMapped(RegExp(r'(\w+-\w+)'), (match) => '"${match[0]}"') // 为带连字符的值添加双引号
-                .replaceAllMapped(RegExp(r'\"(?!\d)') , (match) => '"') // 移除不必要的连字符
+          if (other["estimates"] != 'null') {
+            try {
+              // 自动修正 JSON 字符串
+              String correctedJsonString = other["estimates"]
+                  .replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":') // 为键添加双引号
+                  .replaceAllMapped(RegExp(r'(\d+)(?=,|\})'), (match) => '${match[0]}') // 保留数字
+                  .replaceAllMapped(RegExp(r'(\w+-\w+)'), (match) => '"${match[0]}"') // 为带连字符的值添加双引号
+                  .replaceAllMapped(RegExp(r'\"(?!\d)') , (match) => '"') // 移除不必要的连字符
 
-                .replaceAllMapped(RegExp(r'\"(?!\w+-\w+)') , (match) => '"'); // 处理字符串带连字符的情况
+                  .replaceAllMapped(RegExp(r'\"(?!\w+-\w+)') , (match) => '"'); // 处理字符串带连字符的情况
 
-            // 解析为 List<Map<String, dynamic>>
-            estimates= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
+              // 解析为 List<Map<String, dynamic>>
+              estimates= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
 
-            if (kDebugMode) {
-              print("other" +other["estimates"]);
+              if (kDebugMode) {
+                print("other" +other["estimates"]);
+              }
+            } catch (e) {
+              print("Error decoding JSON: $e");
             }
-          } catch (e) {
-            print("Error decoding JSON: $e");
           }
-        }
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                elevation: 2,
-                title: const Text(
-                  "下班車資訊",
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Scaffold(
+                appBar: AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 2,
+                  title: const Text(
+                    "下班車資訊",
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
+                  iconTheme: const IconThemeData(color: Colors.black), // 设置返回图标颜色
                 ),
-                iconTheme: const IconThemeData(color: Colors.black), // 设置返回图标颜色
-              ),
-              body: estimates.isNotEmpty
-                  ? ListView.builder(
-                itemCount: estimates.length, // 項目數
-                itemBuilder: (context, index) {
-                  final bus = estimates[index]; // 獲取當前項目資料
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.2), // 微弱的阴影
-                          blurRadius: 8,
-                          offset: const Offset(0, 4), // 阴影偏移量
+                body: estimates.isNotEmpty
+                    ? ListView.builder(
+                  itemCount: estimates.length, // 項目數
+                  itemBuilder: (context, index) {
+                    final bus = estimates[index]; // 獲取當前項目資料
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2), // 微弱的阴影
+                            blurRadius: 8,
+                            offset: const Offset(0, 4), // 阴影偏移量
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.directions_bus, color: Colors.blue),
                         ),
-                      ],
+                        title: Text(
+                          '公車 ${bus["PlateNumb"] ?? "未知"}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: Colors.black,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        trailing: (bus["IsLastBus"] ?? false)
+                            ? const Icon(Icons.warning, color: Colors.red)
+                            : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      ),
+                    );
+                  },
+                )
+                    : const Center(
+                  child: Text(
+                    "目前沒有公車預估時間",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey,
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.directions_bus, color: Colors.blue),
-                      ),
-                      title: Text(
-                        '公車 ${bus["PlateNumb"] ?? "未知"}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.black,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
-                      ),
-                      trailing: (bus["IsLastBus"] ?? false)
-                          ? const Icon(Icons.warning, color: Colors.red)
-                          : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                    ),
-                  );
-                },
-              )
-                  : const Center(
-                child: Text(
-                  "目前沒有公車預估時間",
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey,
                   ),
                 ),
               ),
             ),
-          ),
-        );
+          );
 
 
-      }else if(id=="stop"){
+        }else if(id=="stop"){
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => BusStopInfo(other["stop"]))
-        );
-      }else if(id=="map"){
+          Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BusStopInfo(other["stop"], city: widget.city,))
+          );
+        }else if(id=="map"){
 
 
 
-      }
+        }
 
-    },
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10), // 添加上下间距
-      child: Row(
-        children: [
-          Icon(icon, color: busBlue), // 设置图标颜色
-          const SizedBox(width: 10), // 添加间距
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18),
-          ),
-        ],
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10), // 添加上下间距
+        child: Row(
+          children: [
+            Icon(icon, color: busBlue), // 设置图标颜色
+            const SizedBox(width: 10), // 添加间距
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

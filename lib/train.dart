@@ -295,208 +295,204 @@ class _StationSearchPageState extends State<StationSearchPage> {
     '高雄市': ['高雄車站', '左營站', '楠梓站'],
   };
   String? selectedCity;
-  String? selectedStation;
-
-  Future<void> _showStationDialog() async {
-    // 假设 mysqlSelect 返回的查询结果为如下格式
-    List stationData = await     mysqlSelect("SELECT  StationName,LocationCity FROM Train.Train_Station;");
-    // 转换为 List<Map<String, dynamic>>
+  // String? selectedStation;
+  Map<String, dynamic>? selectedStation;
+  Future<Map<String, dynamic>?> _showStationDialog() async {
+    List stationData = await mysqlSelect("SELECT StationID,StationClass,StationName,LocationCity FROM Train.Train_Station;");
     List<Map<String, dynamic>> stationDataMap = stationData.map((item) {
-
       return {
-        'StationName': {'Zh_tw': json.decode(item["StationName"])['Zh_tw'], 'En': json.decode(item["StationName"])['En']},
+        'StationName': {
+          'Zh_tw': json.decode(item["StationName"])['Zh_tw'],
+          'En': json.decode(item["StationName"])['En']
+        },
         'LocationCity': item['LocationCity'],
+        'StationClass': item['StationClass'],
+        'StationID': item['StationID'],
       };
     }).toList();
-// 创建一个空的 Map 来存储按县市分组的车站
+
     final Map<String, List<String>> stationsList = {};
-
-// 遍历查询结果，按 LocationCity 分组车站
     for (var entry in stationDataMap) {
-      print(entry['StationName']['Zh_tw']);
-      String city = entry['LocationCity']; // 获取城市名
-      String stationName = (entry['StationName']['Zh_tw']); // 获取中文车站名
-
-      // 如果这个城市还没有记录，初始化为一个空列表
+      String city = entry['LocationCity'];
+      String stationName = entry['StationName']['Zh_tw'];
       if (!stationsList.containsKey(city)) {
         stationsList[city] = [];
       }
-
-      // 将车站名加入到对应城市的列表中
       stationsList[city]!.add(stationName);
     }
 
-// 输出最终的 Map，查看每个城市对应的车站列表
-    print(stationsList);
-    String _selectedCity = '臺中市'; // 預設選中城市
-    String? _selectedStation; // 預設無選中的車站
-    showDialog(
+    String _selectedCity = '臺中市';
+    String? _selectedStation;
+    Map<String, dynamic>? selectedStationData;
+
+    Map<String, dynamic>? result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(builder: (context, setState) {
-          return Dialog(
-            backgroundColor: Colors.transparent, // 去掉默认白框
-            child: Container(
-              width: double.maxFinite,
-              decoration: BoxDecoration(
-                color: Colors.white, // 改為淺色背景
-                borderRadius: BorderRadius.circular(20), // 添加圆角
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 主内容部分
-                    Row(
-                      children: [
-                        // 左側城市
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            height: 300, // 限制高度
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200], // 淺色背景
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.16),
-                                  blurRadius: 1,
-                                  offset: Offset(1, 1),
-                                ),
-                              ],
-                            ),
-                            child: ListView(
-                              children: stationsList.keys.map((city) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedCity = city;
-                                      _selectedStation = null; // 切換城市時清空選中站點
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: _selectedCity == city ? Colors.grey[800] : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      city,
-                                      style: TextStyle(
-                                        color: _selectedCity == city ? Colors.white : Colors.grey[700],
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16), // 左右間距
-                        // 右側車站
-                        Expanded(
-                          flex: 1,
-                          child: Container(
-                            height: 300, // 限制高度
-                            decoration: BoxDecoration(
-
-                              color: Colors.grey[200], // 淺色背景
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.16),
-                                  blurRadius: 1,
-                                  offset: Offset(1, 1),
-                                ),
-                              ],
-                            ),
-                            child: ListView(
-                              children: stationsList[_selectedCity]!.map((station) {
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedStation = station;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: _selectedStation == station ? Colors.grey[800] : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      station,
-                                      style: TextStyle(
-                                        color: _selectedStation == station ? Colors.white : Colors.grey[700],
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20), // 按钮与内容间距
-                    // 底部按钮部分
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(); // 關閉對話框
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text('關閉',style:TextStyle(color: Colors.white) ,),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_selectedStation != null) {
-                              // 確認選擇並關閉
-                              Navigator.of(context).pop();
-                              print('選擇的站點: $_selectedStation');
-                            } else {
-                              // 如果未選擇站點，可以顯示提示
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('請選擇一個車站')),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text('確認',style:TextStyle(color: Colors.white) ,),
-                        ),
-                      ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                width: double.maxFinite,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              height: 300,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.16),
+                                    blurRadius: 1,
+                                    offset: Offset(1, 1),
+                                  ),
+                                ],
+                              ),
+                              child: ListView(
+                                children: stationsList.keys.map((city) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCity = city;
+                                        _selectedStation = null;
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: _selectedCity == city ? Colors.grey[800] : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        city,
+                                        style: TextStyle(
+                                          color: _selectedCity == city ? Colors.white : Colors.grey[700],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 1,
+                            child: Container(
+                              height: 300,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.16),
+                                    blurRadius: 1,
+                                    offset: Offset(1, 1),
+                                  ),
+                                ],
+                              ),
+                              child: ListView(
+                                children: stationsList[_selectedCity]!.map((station) {
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedStation = station;
+                                        selectedStationData = stationDataMap.firstWhere(
+                                              (entry) => entry['StationName']['Zh_tw'] == station,
+                                        );
+                                      });
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: _selectedStation == station ? Colors.grey[800] : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        station,
+                                        style: TextStyle(
+                                          color: _selectedStation == station ? Colors.white : Colors.grey[700],
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.of(context).pop(); // 关闭对话框，不返回任何值
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('關閉', style: TextStyle(color: Colors.white)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (selectedStationData != null) {
+                                Navigator.of(context).pop(selectedStationData); // 返回選中的車站資料
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('請選擇一個車站')),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text('確認', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          );
-        });
+            );
+          },
+        );
       },
     );
+
+    return result; // 返回選中的站點資料，或 null（用户未選擇）
   }
+
+
 
 
 
@@ -524,32 +520,45 @@ class _StationSearchPageState extends State<StationSearchPage> {
                 fillColor: Colors.white, // 背景顏色為白色
                 contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               ),
-              onTap: _showStationDialog,
+              onTap: () async {
+                selectedStation = await _showStationDialog();
+                if (selectedStation != null) {
+                  _controller.text = selectedStation?['StationName']['Zh_tw']; // 將選擇的車站名稱顯示在輸入框中
+                }
+  
+              },
             ),
             const SizedBox(height: 16),
             // 選擇日期的 TextButton
-            TextButton(
-              onPressed: () => _selectDate(context),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                backgroundColor: Colors.transparent,
-                side: BorderSide(color: Colors.black.withOpacity(0.2)), // 淡黑色邊框
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                selectedDate == null
-                    ? '選擇日期'
-                    : '選擇日期: ${dateFormat.format(selectedDate!)}',
-                style: TextStyle(fontSize: 16, color: Colors.black),
-              ),
-            ),
-            const SizedBox(height: 16),
+            // TextButton(
+            //   onPressed: () => _selectDate(context),
+            //   style: TextButton.styleFrom(
+            //     padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            //     backgroundColor: Colors.transparent,
+            //     side: BorderSide(color: Colors.black.withOpacity(0.2)), // 淡黑色邊框
+            //     shape: RoundedRectangleBorder(
+            //       borderRadius: BorderRadius.circular(12),
+            //     ),
+            //   ),
+            //   child: Text(
+            //     selectedDate == null
+            //         ? '選擇日期'
+            //         : '選擇日期: ${dateFormat.format(selectedDate!)}',
+            //     style: TextStyle(fontSize: 16, color: Colors.black),
+            //   ),
+            // ),
+            // const SizedBox(height: 16),
             // 查詢按鈕
             ElevatedButton(
               onPressed: () {
+
                 // 查詢邏輯
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StationPage(stationName:selectedStation?['StationName']['Zh_tw'] , stationID: selectedStation?["StationID"],),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue, // 藍色背景
@@ -576,4 +585,124 @@ class _StationSearchPageState extends State<StationSearchPage> {
   }
 
 }
+class StationPage extends StatefulWidget {
+  final String stationName;
+  final String stationID;
+  const StationPage({Key? key, required this.stationName, required this.stationID}) : super(key: key);
 
+  @override
+  _StationPageState createState() => _StationPageState();
+}
+
+class _StationPageState extends State<StationPage> {
+  late String displayedStationName;
+
+  @override
+  void initState() {
+    super.initState();
+    displayedStationName = widget.stationName; // 初始化显示的车站名称
+  }
+
+  void updateStationName(String newStationName) {
+    setState(() {
+      displayedStationName = newStationName; // 更新车站名称
+    });
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("${widget.stationName} 車站"),
+        backgroundColor: Colors.black,
+      ),
+      body: Container(
+        color: Colors.white,
+        padding: EdgeInsets.all(16),
+        child: FutureBuilder<Map<String, dynamic>>(
+          future: fetchTrainStation(widget.stationID),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('加載失敗: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return Center(child: Text('無列車信息'));
+            } else {
+              Map<String, dynamic> trainData = snapshot.data!;
+              return ListView.builder(
+                itemCount: trainData.length,
+                itemBuilder: (context, index) {
+                  var train = trainData[index];
+                  var stationName = train['StationName']['Zh_tw'] ?? '無車站';
+                  var trainNo = train['TrainNo'] ?? '未知';
+                  var trainType = train['TrainTypeName']['Zh_tw'] ?? '未知';
+                  var scheduledArrivalTime = train['ScheduledArrivalTime'] ?? '未知';
+                  var scheduledDepartureTime = train['ScheduledDepartureTime'] ?? '未知';
+                  var delayTime = train['DelayTime'] ?? 0;
+
+                  return Card(
+                    elevation: 4, // 设置阴影效果
+                    margin: EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12), // 圆角效果
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$stationName - $trainNo',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '列車類型: $trainType',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '預計到達時間: $scheduledArrivalTime',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '預計離開時間: $scheduledDepartureTime',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '延遲: ${delayTime}分鐘',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: delayTime > 0 ? Colors.red : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+}

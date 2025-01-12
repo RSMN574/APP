@@ -41,3 +41,39 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
     print('Error occurred: $e');
   }
 }
+Future<Map<String, dynamic>> fetchTrainStation(String station) async {
+
+  final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
+
+  String url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/${station}?%24format=JSON";
+  try {
+    await  connMysql();
+    final tokenResponse = await http.get(tokenUri);
+    final token=tokenResponse.body;
+    // 发起 GET 请求
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'accept': 'application/json',
+      },
+    );
+
+    // 检查响应状态
+    if (response.statusCode != 200) {
+      throw HttpException('HTTP error! status: ${response.statusCode}');
+    }
+
+    // 解析 JSON 数据
+  Map<String, dynamic>  jsonData = await jsonDecode(response.body);
+
+    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
+    // 这里你可以根据你的需求来构建 SQL 语句，例如：
+    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
+
+    return jsonData;
+  } catch (e) {
+    print('Error occurred: $e');
+  }
+  return {};
+}

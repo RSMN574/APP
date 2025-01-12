@@ -119,7 +119,7 @@ Future <List>_getData()async{
       return        suggestionsForRoute;
     } else if (id == "stop") {
       suggestions.value.clear();
-      var i = await mysqlSelect("SELECT StationName FROM Bus.Bus_Taichung_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%${busIdController.text}%'");
+      var i = await mysqlSelect("SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%${busIdController.text}%'");
       for (var a in i) {
         if (busIdController.text == json.decode(a["StationName"])["Zh_tw"]) {
           suggestions.value.insert(0, json.decode(a["StationName"])["Zh_tw"]);
@@ -812,7 +812,7 @@ Future <List>_getData()async{
     return _buildListItem(stop["stopName"], () => _showConfirmDialog(context, stop["stopName"],"FavoritesStop"), () {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => BusStopInfo(stop["stopName"])),
+        MaterialPageRoute(builder: (context) => BusStopInfo(stop["stopName"], city:correspondingIDNotifier.value ,)),
       );
     });
   }
@@ -972,10 +972,10 @@ print( currentCityNotifier.value);
   Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
     favorite_feature db=favorite_feature();
     if(SharedPreferencesList=="FavoritesRoute"){
-     await db.removeFavorite(routeName: item, city: 'Taichung', table: SharedPreferencesList,);
+     await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList,);
 
     }else if(SharedPreferencesList=="FavoritesStop"){
-     await db.removeFavorite(stopName: item, city: 'Taichung', table: SharedPreferencesList,);
+     await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList,);
 
     }
 setState(() {
@@ -983,61 +983,51 @@ setState(() {
 });
     // await _loadFavorites(); // 重新加载收藏列表
   }
-}
+  Widget BusStopList(List suggestions) {
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        return
+          Container(
+            padding: EdgeInsets.only(left: 6.3),
+            decoration: BoxDecoration(
+              color: index==0?Color.fromRGBO(238, 238, 238, 0.85) :Colors.white,
+              borderRadius: BorderRadius.circular(10),
+            ),
 
-Widget BusStopList(List suggestions) {
-  return ListView.builder(
-    itemCount: suggestions.length,
-    itemBuilder: (context, index) {
-      return
-Container(
- padding: EdgeInsets.only(left: 6.3),
-  decoration: BoxDecoration(
-      color: index==0?Color.fromRGBO(238, 238, 238, 0.85) :Colors.white,
-      borderRadius: BorderRadius.circular(10),
-       ),
+            child:
+            ListTile(
 
-      child:
-ListTile(
+              title: Text(suggestions[index].toString(),
+                  style:TextStyle(
 
-  title: Text(suggestions[index].toString(),
-  style:TextStyle(
-
-      fontFamily: "MiSans-Medium"
-  )
+                      fontFamily: "MiSans-Medium"
+                  )
 
 
-  ),
+              ),
 
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => BusStopInfo(suggestions[index].toString())),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => BusStopInfo(suggestions[index].toString(), city: correspondingIDNotifier.value,)),
+                );
+              },
+            ),
+
+
+          );
+
+
+
+      },
     );
-  },
-),
-
-
-  );
-
-
-
-    },
-  );
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+  }
 
 }
+

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -34,36 +36,62 @@ Future<String?> getLocation(BuildContext context) async {
   Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high);
 Provider.of<LocationProvider>(context, listen: false).setLocation(position.latitude, position.longitude);
-  // 通过经纬度获取地址信息
-  List<Placemark> placemarks = await placemarkFromCoordinates(
-      position.latitude, position.longitude);
 
-  if (placemarks.isNotEmpty) {
-    String? administrativeArea = placemarks[0].administrativeArea; // 省、州或区
-    String? subAdministrativeArea = placemarks[0].subAdministrativeArea; // 市或县
+  Map<String, String>  placemark = await getCountryAndCity( position.latitude, position.longitude);
 
-    if (placemarks[0].country == "台灣") {
+  if (placemark.isNotEmpty) {
+
+print(placemark );
+    if (placemark["country"] == "臺灣") {
       // 优先返回 subAdministrativeArea（市或县），如果没有，则返回 administrativeArea（省或州）
-      String taiwanCity = subAdministrativeArea ?? administrativeArea ?? '无法获取城市';
 
-      // 使用 cityMap 替换城市名称
+
+
+// 使用 cityMap 替换城市名称
       for (var key in cityMap.keys) {
-        if (administrativeArea!.contains(key)) {
-          administrativeArea = cityMap[key];
-          print(cityMap[key]);
+        if (placemark["city"]!.startsWith(key)) {
+          print('原始城市名稱: ${placemark["city"]}');
+          placemark["city"] = cityMap[key]!;
+          print('替換後的城市名稱: ${cityMap[key]}');
+          break; // 找到匹配後直接跳出循環
         }
       }
 
       // 更新 CityProvider 的城市状态
-      Provider.of<CityProvider>(context, listen: false).setCity(administrativeArea!);
+      Provider.of<CityProvider>(context, listen: false).setCity( placemark["city"]!);
 
-      return administrativeArea;
+      return placemark["city"];
     } else {
-      print('非台湾地區');
-      return '非台湾地區';
+      print('非臺灣地區');
+      return '非臺灣地區';
     }
   } else {
-    print('无法获取城市');
-    return '无法获取城市';
+    print('無法取得城市');
+    return '無法取得城市';
+  }
+}
+
+
+
+Future<Map<String, String>> getCountryAndCity(double latitude, double longitude) async {
+  String url =
+      'https://nominatim.openstreetmap.org/reverse?format=json&lat=$latitude&lon=$longitude&addressdetails=1&accept-language=zh-TW';
+
+  try {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      String country = data['address']['country'] ?? 'Unable to retrieve country';
+      String city = data['address']['city'] ??
+          data['address']['town'] ??
+          data['address']['village'] ??
+          data['address']['state_district'] ?? 'Unable to retrieve city';
+
+      return {'country': country, 'city': city};
+    } else {
+      return {'error': 'Request failed'};
+    }
+  } catch (e) {
+    return {'error': 'Error: $e'};
   }
 }

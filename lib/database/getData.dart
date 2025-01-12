@@ -18,11 +18,11 @@ List jsonData=[];
 int routeID=0;
 String busCurrentCity='Taichung';
 Future<void> connMysql() async {
-  print("Connecting to MySQL server...");
+
 
   // 如果連接已存在，則避免重複連接
   if (conn != null) {
-    print("Already connected to the database.");
+
     return;
   }
 
@@ -36,7 +36,7 @@ Future<void> connMysql() async {
       databaseName: "Bus",
     ) ;
     await conn!.connect();
-    print("MySQL connection established.");
+
     // 启动閒置計時器
     _startIdleTimer();
   } catch (e) {
@@ -248,7 +248,7 @@ Future<void> disconnect() async {
   if (conn != null) {
     await conn!.close();
     conn = null;
-    print('MySQL 連接已關閉');
+    // print('MySQL 連接已關閉');
   }
 }// 啟動閒置計時器
 void _startIdleTimer() {

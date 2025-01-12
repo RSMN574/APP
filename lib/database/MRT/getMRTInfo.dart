@@ -9,9 +9,9 @@ import '../getData.dart';
 Future <List<MRTStation>> getNearMRTStation(
     String location) async {
 
-  const String testurl ="https://tdx.transportdata.tw/api/advanced/v2/Rail/Metro/Station/NearBy?%24spatialFilter=nearby%2824.150862%2C%20120.646511%2C%20500%29&%24format=JSON";
+  const String testurl ="https://tdx.transportdata.tw/api/advanced/v2/Rail/Metro/Station/NearBy?%24spatialFilter=nearby%2824.153626%2C%20120.646916%2C%20100%29&%24format=JSON";
   final String url =
-      'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20600%29&%24format=JSON';
+      'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%201000%29&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求

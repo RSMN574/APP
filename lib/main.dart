@@ -132,8 +132,8 @@ class _NavigationExampleState extends State<NavigationExample> {
     final schedule _schedule = schedule();
     _schedule.initDatabase();
     // 在应用启动时获取定位信息
-    getLocation(context);
 
+    getLocation(context);
     // 获取天气信息
     // getWeatherInfo(context);
   }
@@ -153,6 +153,7 @@ class _NavigationExampleState extends State<NavigationExample> {
   }
   @override
   Widget build(BuildContext context) {
+
     final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
     return Scaffold(
       appBar: AppBar(

@@ -85,12 +85,12 @@ Future <List<Station>> getNearStation(
 
   const String testurl ="https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24spatialFilter=nearby%2824.150784%2C%20120.646877%2C1000%29&%24format=JSON";
      final String url =
-      'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20600%29&%24format=JSON';
+      'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
-    Uri.parse(testurl),
+    Uri.parse(url),
     headers: {
       'Authorization': 'Bearer $token',
       'accept': 'application/json',
