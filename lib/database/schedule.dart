@@ -98,7 +98,7 @@ class schedule {
         if (existing.isNotEmpty) {
           return -1;
         }
-print(other);
+
         // 尝试插入新记录
         await db.insert(
           'schedule',

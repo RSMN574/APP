@@ -835,7 +835,7 @@ print( currentCityNotifier.value);
   Widget _buildRouteListItem( route) {
 
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
-
+print(route);
       await GetBusInfo(route["routeID"], correspondingIDNotifier.value);
       List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
       Navigator.push(
@@ -846,7 +846,7 @@ print( currentCityNotifier.value);
           destinationStopName:(route)["DestinationStopNameZh"],
           operators: "",
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
-          city:  correspondingIDNotifier.value, routeID: route["RouteID"],
+          city:  correspondingIDNotifier.value, routeID: (route["routeID"]),
 
         )),
       );

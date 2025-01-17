@@ -39,7 +39,7 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
   final city;
-  final routeID;
+  final int routeID;
   final Mark? mark;
 
   const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark })
@@ -165,7 +165,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   // 加载数据，包括站名和 NextBusTime
   Future<void> _loadData() async { //stop data
-    List<Map<String, dynamic>> data =await GetBusInfo(int.parse(widget.routeID), widget.city);
+    List<Map<String, dynamic>> data =await GetBusInfo((widget.routeID), widget.city);
 
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
     final busTimeData = await fetchBusTime(widget.routeName, widget.city);
@@ -508,7 +508,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                               case 'B':
                                 favorite_feature dbHelper = favorite_feature(); // 创建实例
 
-                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",routeID:int.parse(widget.routeID),table: "FavoritesRoute");
+                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",routeID:(widget.routeID),table: "FavoritesRoute");
 
                                       // var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
 
@@ -719,7 +719,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
     return Container(
-
+padding: const EdgeInsets.only(bottom: 25),
       child: RefreshIndicator(
 
       onRefresh: () async {

@@ -129,7 +129,7 @@ class _BuslistState extends State<Buslist> {
                       destinationStopName: route["DestinationStopNameZh"],
                       operators: route["Operators"],
                       routeMapImageUrl: route["RouteMapImageUrl"],
-                     city:route["City"], routeID: route["RouteID"] ,
+                     city:route["City"], routeID: int.parse(route["RouteID"]) ,
                     ),
                   ),
                 );

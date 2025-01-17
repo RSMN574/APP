@@ -41,7 +41,7 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
     print('Error occurred: $e');
   }
 }
-Future<Map<String, dynamic>> fetchTrainStation(String station) async {
+Future<List<dynamic>> fetchTrainStation(String station) async {
 
   final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
 
@@ -65,8 +65,8 @@ Future<Map<String, dynamic>> fetchTrainStation(String station) async {
     }
 
     // 解析 JSON 数据
-  Map<String, dynamic>  jsonData = await jsonDecode(response.body);
-
+    List<dynamic>  jsonData = await jsonDecode(response.body);
+print(jsonData);
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
     // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
@@ -75,5 +75,5 @@ Future<Map<String, dynamic>> fetchTrainStation(String station) async {
   } catch (e) {
     print('Error occurred: $e');
   }
-  return {};
+  return [];
 }

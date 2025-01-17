@@ -691,7 +691,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
      // 监听 _stationIDs 的变化
      _stationIDs.addListener(() {
        if (!mounted) return;
-      print("mounted");
+
        // 当 stationIDs 发生变化时，重新创建 TabController
  setState(() {
    _initTabController();

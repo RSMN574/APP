@@ -117,8 +117,57 @@ return ;
     );
   }
 
-
-
+  // Widget _buildTabItem(int index) {
+  //   return Column(
+  //     children: [
+  //       GestureDetector(
+  //         onTap: () {
+  //           setState(() {
+  //             current = index;
+  //           });
+  //           pageController.animateToPage(
+  //             current,
+  //             duration: const Duration(milliseconds: 200),
+  //             curve: Curves.ease,
+  //           );
+  //         },
+  //         child: AnimatedContainer(
+  //           duration: const Duration(milliseconds: 300),
+  //           margin: const EdgeInsets.all(5),
+  //           width: 100,
+  //           height: 55,
+  //           decoration: BoxDecoration(
+  //             color: current == index ? Colors.white70 : Colors.white54,
+  //             borderRadius: BorderRadius.circular(current == index ? 12 : 7),
+  //             border: current == index ? Border.all(color: busBlue, width: 2.5) : null,
+  //           ),
+  //           child: Center(
+  //             child: Column(
+  //               mainAxisAlignment: MainAxisAlignment.center,
+  //               children: [
+  //                 Icon(
+  //                   icons[index],
+  //                   size: current == index ? 23 : 20,
+  //                   color: current == index ? Colors.black : Colors.grey.shade400,
+  //                 ),
+  //                 Text(items[index]),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //       if (current == index)
+  //         Container(
+  //           width: 5,
+  //           height: 5,
+  //           decoration: const BoxDecoration(
+  //             color: busBlue,
+  //             shape: BoxShape.circle,
+  //           ),
+  //         ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildPageView() {
     return Container(
@@ -129,23 +178,106 @@ return ;
         controller: pageController,
         physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (context, index) {
-
-
+          switch (id[index]) {
+            case "station":
               if (_selectedCity == "臺中市") {
-                  fetchData();
+                return SingleChildScrollView(
+                    child:GestureDetector(
+                      onTapDown: (details) {
+                        Offset localPosition = details.localPosition;
+                        int stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
 
+                        if (stationIndex != -1) {
+                          showBottomSheet(
 
-                return
-                  taichungMRT();
+                            context: context,
+
+                            builder: (context) {
+                              return DraggableScrollableSheet(
+                                initialChildSize: 0.4, // 初始高度比例
+                                minChildSize: 0.3, // 最小高度比例
+                                maxChildSize: 0.8, // 最大高度比例
+                                expand: false, // 防止内容展开
+                                builder: (BuildContext context, ScrollController scrollController) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      children: [
+                                        // 拖动提示线
+                                        SingleChildScrollView(
+                                          controller: scrollController, // 使用 ScrollController 使内容可以滚动
+                                          child:  Column(
+                                            children: [ Container(
+                                              height: 4, // 提示线高度
+                                              width: 40, // 提示线宽度
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey, // 提示线颜色
+                                                borderRadius: BorderRadius.circular(2), // 圆角
+                                              ),
+                                              margin: const EdgeInsets.only(bottom: 8), // 提示线与内容之间的间距
+                                            ),
+                                              Text(
+                                                _mrtGreenLinePainter.stationInfos[stationIndex].name,
+                                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(_mrtGreenLinePainter.stationInfos[stationIndex].englishName),
+                                              const SizedBox(height: 8),
+                                              TabBar(
+                                                controller: _tabController,
+                                                labelColor: Colors.black,
+                                                unselectedLabelColor: Colors.grey,
+                                                indicatorColor: Colors.blue,
+                                                tabs: const [
+                                                  Tab(text: "車站資訊"),
+                                                  Tab(text: "轉乘資訊"),
+                                                ],
+                                              ),],),),
+                                        Expanded(
+                                          child: TabBarView(
+                                            controller: _tabController,
+                                            children: [
+                                              // 将车站信息和转乘信息作为子项传入
+                                              SingleChildScrollView(
+                                                controller: scrollController,
+                                                child: buildStationInfo(_mrtGreenLinePainter.stationInfos[stationIndex].name),
+                                              ),
+                                              SingleChildScrollView(
+                                                controller: scrollController,
+                                                child: _buildTransferInfo(),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        }
+                      },
+                      child: CustomPaint(
+                        size: Size(300, 1500),
+                        painter: _mrtGreenLinePainter,
+                      ),
+                    ));
               } else {
-                return _buildCityText(_selectedCity);
+                return Text("車站");
               }
-
+            case "map":
+              return _buildCityText(_selectedCity);
+            default:
+              return const Center(child: Text("Unknown"));
           }
-
+        },
       ),
     );
   }
+
+
 Widget taichungMRT(){
     return
       SingleChildScrollView(
