@@ -836,7 +836,7 @@ print( currentCityNotifier.value);
 
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
 print(route);
-      await GetBusInfo(route["routeID"], correspondingIDNotifier.value);
+      await GetBusInfo( routeid: route["routeID"], city: correspondingIDNotifier.value);
       List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
       Navigator.push(
         context,

@@ -1,6 +1,6 @@
 
 
-import 'package:com.rsmn574.app/database/getData.dart';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -26,7 +26,7 @@ class schedule {
       version: 3, // 提升版本号以触发升级
       onCreate: (db, version) async {
         // 创建 FavoritesRoute 表
-        print('Creating schedule table');
+
         await db.execute('''
   CREATE TABLE IF NOT EXISTS schedule (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

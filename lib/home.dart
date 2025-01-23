@@ -9,6 +9,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
+import 'Const/regularConst.dart';
 import 'database/getBusTime.dart';
 import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
@@ -137,10 +138,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     youBikeStations.value =
         await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
 
-    _loadMarkers(); // 更新標記
+    _loadBikeMarkers(); // 更新標記
   }
 
-  Future<void> _loadMarkers() async {
+  Future<void> _loadBikeMarkers() async {
     BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
       ImageConfiguration(size: Size(8, 8)), // 調整大小
       'assets/img/ubike_icon.png',
@@ -164,7 +165,27 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     // 获取 MarkerProvider 的实例，并调用 setMarker 方法
     Provider.of<MarkerProvider>(context, listen: false).setMarker(cache);
   }
-
+  Future<void> _loadMarkers(PositionLat,PositionLon,MarkerID) async {
+    // BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
+    //   ImageConfiguration(size: Size(8, 8)), // 調整大小
+    //   'assets/img/ubike_icon.png',
+    // );
+    print(PositionLat+PositionLon);
+    final marker = Marker(
+      markerId:MarkerId(MarkerID),
+      // icon: customIcon,
+      position: LatLng(
+        PositionLat,
+        PositionLon,
+      ),
+      // infoWindow: InfoWindow(
+      //   title: json.decode(station["StationName"])["Zh_tw"],
+      //   snippet: "Capacity: ${station["BikesCapacity"]}",
+      // ),
+    );
+    // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+    Provider.of<MarkerProvider>(context, listen: false).setMarker({marker});
+  }
   Future<void> _handleClick(String type) async {
     if (type == "bike") {
       _fetchData();
@@ -610,18 +631,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
 
   Widget _buildPlaceWays(dynamic place) {
     // 获取交通方式的图标
-    IconData _getIconForMode(String mode) {
-      switch (mode) {
-        case "MRT":
-          return Icons.train;
-        case "Bus":
-          return Icons.directions_bus;
-        case "pedestrian":
-          return Icons.directions_walk;
-        default:
-          return Icons.help_outline;
-      }
-    }
 
     // 格式化时间
     String _formatDuration(int seconds) {
@@ -637,6 +646,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
           Provider.of<LocationProvider>(context, listen: false);
       LatLng? destination =
           await placesService.getLatLngFromPlaceId(place["place_id"]);
+      _loadMarkers(destination?.latitude,destination?.longitude,place["place_id"]);
       return await getDirections(
         "${locationProvider.latitude}%2C${locationProvider.longitude}",
         "${destination?.latitude}%2C${destination?.longitude}",
@@ -660,9 +670,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         minChildSize: _bottomSheetHeightMin,
         maxChildSize: 1.0,
         builder: (BuildContext context, ScrollController scrollController) {
+
           return Container(
             decoration: BoxDecoration(
-              color: Colors.white, // 白色背景
+              color: bgColor, // 白色背景
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               boxShadow: [
                 BoxShadow(
@@ -701,52 +712,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     final totalTime = route['travel_time'];
                     final totalPrice = route['total_price'] ?? 0;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12.0, vertical: 8.0),
-                      elevation: 3.0, // 微弱阴影效果
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '路線 ${index + 1}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black, // 黑色文字
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '總時間: ${_formatDuration(totalTime)}',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black54),
-                                ),
-                                Text(
-                                  '費用: \$${totalPrice}',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                            const Divider(height: 20, thickness: 1),
-                            ...sections.map<Widget>((section) {
-                              return _buildSectionItem(section);
-                            }).toList(),
-                          ],
-                        ),
-                      ),
-                    );
+                    return
+                      Column(children: [ const SizedBox(height: 20,),_buildSectionCard(sections,route['travel_time'])]);
+
                   },
                 );
+
               },
             ),
           );
@@ -787,7 +758,26 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
             ? '耗時: ${_formatDuration(duration)} | 公司: $agencyName'
             : '耗時: ${_formatDuration(duration)}',
         style: const TextStyle(color: Colors.black45),
-      ),
+      ), onTap: () async {
+      if (mode == 'Bus') {
+        print(section['departure']['place']["name"]);
+        // 当 mode 为 'Bus' 时执行的逻辑
+       // await GetBusInfo(route["routeID"], "");
+        // List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+        // Navigator.push(
+        //   context,
+        //   MaterialPageRoute(builder: (context,) => BusTime(
+        //     routeName:(route)["routeName"],
+        //     departureStopName:(route)["DepartureStopNameZh"],
+        //     destinationStopName:(route)["DestinationStopNameZh"],
+        //     operators: "",
+        //     routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
+        //     city:  correspondingIDNotifier.value, routeID: (route["routeID"]),
+        //
+        //   )),
+        // );
+      }
+    },
     );
   }
 
@@ -803,7 +793,126 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
         return Icons.help_outline;
     }
   }
+  Widget _buildSectionCard(List<dynamic> sections, travelTime ){
+    return // Generated code for this Row Widget...
 
+      Container(
+
+        width: MediaQuery.of(context).size.width * 0.94,
+        padding: EdgeInsets.all(12), // 为内容添加适当的内边距
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // 根据内容动态调整高度
+          children: [
+            Align(
+              alignment: AlignmentDirectional(-1, -1),
+              child: Text(
+                _formatDuration(travelTime) ,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: 8), // 上方间距
+              child: Row( // 用 Column 包裹多个组件
+                children: sections.asMap().entries.map((entry) {
+                  int index = entry.key; // 当前索引
+                  var i = entry.value; // 当前元素
+                  if (i["transport"]["mode"] == "pedestrian") {
+                    return Row(
+                      children: [Icon(
+                      Icons.directions_walk,
+                      color: Colors.black,
+                      size: 24,
+
+                    )  ,  if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
+                        Icon(
+                          Icons.arrow_right_rounded,
+                          color: Colors.black,
+                          size: 24,
+                        ),]);
+                  } else if (i["transport"]["mode"] == "Bus") {
+                    return Row(
+                      children: [
+                        Icon(
+                          Icons.directions_bus,
+                          color: Colors.black,
+                          size: 24,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          i["transport"]["name"],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
+                          Icon(
+                            Icons.arrow_right_rounded,
+                            color: Colors.black,
+                            size: 24,
+                          ),
+                      ],
+                    );
+
+                  } else {
+                    return Icon(
+                      Icons.query_stats,
+                      color: Colors.black,
+                      size: 24,
+                    );
+                  }
+                }).toList(),
+              ),
+            ),
+
+            Padding(
+              padding: EdgeInsets.only(top: 8), // 行间距
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Text(
+                    '頂何厝(專用道)',
+                    style: TextStyle(),
+                  ),
+                  Icon(
+                    Icons.arrow_right_rounded,
+                    color: Colors.black,
+                    size: 24,
+                  ),
+                  Text(
+                    '頂何厝(專用道)-茄苳腳(專用道)',
+                    style: TextStyle(),
+                  ),
+                  Icon(
+                    Icons.arrow_right_rounded,
+                    color: Colors.black,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+
+
+
+
+  }
   String _formatDuration(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;

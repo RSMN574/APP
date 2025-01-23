@@ -70,7 +70,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           title: station.stationNameZh ?? 'Unknown',
           snippet: station.stationID ?? 'Unknown',
         ),onTap: () async {
-        List<dynamic> data=await GetBusStopInfo(station.stationNameZh,"Taichung");
+        List<Map<String, dynamic>> data=await GetBusStopInfo(station.stationNameZh,"Taichung");
+        print(data);
         // 使用 map 來提取 StationID 並轉換為字串
         List<String> stationIDs = data.map((station) {
           // 確保 StationID 存在並轉換為字串
@@ -603,11 +604,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         ),
         child: PrimaryScrollController(
           controller: scrollController, // 绑定 PrimaryScrollController
-          child: BusStopList(_stopName.value ),
+          child: BusStopList(_stopName.value,key: ValueKey(_stopName.value), ),
         ),
       );
     }else if(       _tabSelect.value=="metro"){
-      print(_stopName.value);
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -716,7 +717,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
    void didUpdateWidget(covariant BusStopList oldWidget) {
      super.didUpdateWidget(oldWidget);
      print("didUpdateWidget called");
-     _loadData();
+
    }
 
    void _initTabController() {
@@ -736,14 +737,14 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
     super.dispose();
 
   }
-  Future<void> _loadData() async {
+  Future<List<Map<String, dynamic>>> _loadData() async {
 
 
 
-      final data = await fetchBusStopInfo();
+      final List<Map<String, dynamic>>data = await fetchBusStopInfo();
 
-      _streamController.add(data); // 向数据流中添加新数据
-
+      // _streamController.add(data); // 向数据流中添加新数据
+return data;
   }
   Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
@@ -778,26 +779,30 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
 
     });
 
-    for (var i in finalList) {
+    for (int index = 0; index < finalList.length; index++) {
+      var i = finalList[index];
 
       // 根据方向查找去程或回程的目的地信息
       if (i['Direction'] == 1) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        List<dynamic> result = await mysqlSelect(
+            "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
 
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-        i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        finalList[index]["RouteID"] = result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        finalList[index]["from"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        finalList[index]["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地"; // 赋值到 'to' 字段
+        finalList[index]["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        finalList[index]["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
       } else if (i['Direction'] == 0) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-        i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        List<dynamic> result = await mysqlSelect(
+            "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        finalList[index]["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地"; // 赋值到 'to' 字段
+        finalList[index]["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        finalList[index]["RouteID"] = result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        finalList[index]["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        finalList[index]["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
       }
     }
+
 
     // 对 stop["time"] 按照时间升序排序
     finalList.sort((a, b) {
@@ -859,7 +864,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                           destinationStopName:  stop["DestinationStopName"],
                           operators: "",
                           routeMapImageUrl: "",
-                          city: "Taichung", routeID: stop["RouteID"],
+                          city: "Taichung", routeID: int.parse(stop["RouteID"]),
                           mark: Mark.fromMap({
                             "highlight":  [  _stopName.value,],
                             "direction":  stop["Direction"],
@@ -990,7 +995,7 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
   // 获取公交站信息的异步方法
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
 
-    var info = await GetBusStopInfo(widget.stop, "Taichung");
+    List<dynamic> info = await GetBusStopInfo(widget.stop, "Taichung");
     List<Map<String, dynamic>> tempData = [];
 
     if (info != null) {
@@ -1113,22 +1118,27 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
 
     return
 
-      StreamBuilder<List<Map<String, dynamic>>>(
-          stream: _streamController.stream,
-          builder: (context, snapshot) {
-            print("StreamBuilder");
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: LoadingAnimationWidget.stretchedDots(
-                  color: Colors.black,
-                  size: 40,
-                ),
-              );
-            } else if (snapshot.hasError) {
-              print(snapshot.error);
-              return ErrorPage();
-            } else {
-              return DefaultTabController(
+
+      FutureBuilder<List<Map<String, dynamic>>>(
+        future: _loadData(), // 调用异步方法
+    builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+    return Center(
+    child: LoadingAnimationWidget.stretchedDots(
+    color: Colors.black,
+    size: 40,
+    ),
+    );// 加载中的占位组件
+    } else if (snapshot.hasError) {
+    return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
+    } else if (!snapshot.hasData || snapshot.data == null) {
+    return const Center(child: Text('沒有資料')); // 无数据占位
+    }
+
+
+
+    return  DefaultTabController(
+
                 length: 2,
                 child: Column(
                   children: [
@@ -1267,10 +1277,10 @@ class _BusStopListState extends State<BusStopList>with TickerProviderStateMixin 
                   ],
                 )
 
-              );
-            }
-          },
-        );
+              );});
+
+
+
 
   }
 

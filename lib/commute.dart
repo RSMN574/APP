@@ -1,6 +1,4 @@
 
-import 'dart:convert';
-
 import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
@@ -199,7 +197,7 @@ class _CommuteState extends State<Commute> {
         onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
         onTap: () async {
 
-          await GetBusInfo(data["routeID"],  cityNameConverter( data['city']));
+          await GetBusInfo( routeid: data["routeID"], city: cityNameConverter( data['city']));
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context,) => BusTime(

@@ -191,7 +191,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                   height: 53.0, // 每个列表项的固定高度
                   child: ListTile(
                     onTap: () async {
-                      await GetBusInfo(int.parse(stop["RouteID"]), widget.city);
+                      await GetBusInfo( routeid: int.parse(stop["RouteID"]), city: widget.city);
                       Navigator.push(
                         context,
                         MaterialPageRoute(

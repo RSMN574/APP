@@ -50,7 +50,7 @@ class BusTime extends StatefulWidget {
 }
 
 class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
-
+  final ScrollController _scrollController = ScrollController();
   late var stopNamesWithTime1;
   late var stopNamesWithTime2;
   late final  TabController _tabController;
@@ -63,7 +63,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
 
-    _loadData(); // 初始加载数据
+     _loadData(); // 初始加载数据
     _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
 // 添加监听器
     _tabController.addListener(() {
@@ -73,7 +73,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       } else {
         // 标签更改已完成
        if(_tabController.index==0){
-         print("tab: ${_tabController.index}");
+
          _loadMarkers("stopNamesWithTime1");
        }else  if(_tabController.index==1){
          _loadMarkers("stopNamesWithTime2");
@@ -88,12 +88,32 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       _tabController.index = 0;
     }
 
-    // 找出 highlight 的站
-    List? highlightedStations = widget.mark?.highlight;
-    print('Highlighted stations: $highlightedStations');
+
+
 
   }
 
+
+// 滚动到第一个高亮站点
+
+
+// 滚动到指定索引
+void _scrollToIndex(int index) {
+  const itemHeight = 54.5;
+  const separatorHeight = 9.0;
+  final scrollPosition = (itemHeight + separatorHeight) * index;
+  // 确保 setState 更新完成后调用滚动
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        scrollPosition,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  });
+
+}
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
   Future<void> _loadMarkers(String stopType) async {
 
@@ -142,10 +162,12 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   }
   void _startAutoReload() {
+    // 如果已有定时器正在运行，先取消它
+    _timer?.cancel();
     remainingSecondsNotifier.value = 40; // 初始40秒
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (remainingSecondsNotifier.value > 1) {
-        remainingSecondsNotifier.value -= 1;
+        remainingSecondsNotifier.value = remainingSecondsNotifier.value- 1;
       } else {
         remainingSecondsNotifier.value = 40; // 重置倒计时
         _loadData(); // 加载数据
@@ -165,7 +187,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
   // 加载数据，包括站名和 NextBusTime
   Future<void> _loadData() async { //stop data
-    List<Map<String, dynamic>> data =await GetBusInfo((widget.routeID), widget.city);
+    List<Map<String, dynamic>> data =await GetBusInfo( city: widget.city, routeid: (widget.routeID), );
 
     final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
     final busTimeData = await fetchBusTime(widget.routeName, widget.city);
@@ -199,6 +221,52 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
     // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
     }
+    // 根據 mark.direction 設定 _tabController 的 index
+    if (widget.mark?.direction == 0) {
+      List<dynamic> stopNames = stopNamesWithTime2.map((item) => item["stopName"] as String).toList();
+      // 找出 highlight 的站
+      List? highlightedStations = widget.mark?.highlight;
+
+
+      // 找到第一個 isHighlighted 為 true 的站
+      int highlightedStation =  stopNames.indexOf(highlightedStations?[0]);
+
+      // 如果找到 highlightedStation，取得其 stopName
+      if (highlightedStation != -1) {
+
+
+
+        _scrollToIndex(highlightedStation);
+      } else {
+        print("No highlighted station found.");
+      }
+
+
+    } else if (widget.mark?.direction == 1) {
+      List<dynamic> stopNames = stopNamesWithTime1.map((item) => item["stopName"] as String).toList();
+      // 找出 highlight 的站
+      List? highlightedStations = widget.mark?.highlight;
+
+
+      // 找到第一個 isHighlighted 為 true 的站
+      int highlightedStation =  stopNames.indexOf(highlightedStations?[0]);
+
+      // 如果找到 highlightedStation，取得其 stopName
+      if (highlightedStation != -1) {
+
+
+
+        _scrollToIndex(highlightedStation);
+      } else {
+        print("No highlighted station found.");
+      }
+
+
+
+    }
+    // 提取所有 stopName
+
+
     if(isTimerOn.value){
      _startAutoReload();
      if (kDebugMode) {
@@ -727,7 +795,7 @@ padding: const EdgeInsets.only(bottom: 25),
         _startAutoReload();
       },
       child: ListView.separated(
-
+        controller: _scrollController,
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
 

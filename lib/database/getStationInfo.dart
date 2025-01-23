@@ -2,10 +2,11 @@ import 'dart:convert'; // For JSON decoding
 import 'dart:io'; // For file reading and writing
 import 'package:http/http.dart' as http;
 
+import '../Const/regularConst.dart';
 import 'getData.dart'; // For network requests
 
 Future<List<Map<String, dynamic>>> fetchStationInfo(List<String> stationIds, String city) async {
-  final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
+
 
   try {
     // Connect to MySQL if necessary (assuming connMysql is defined elsewhere)

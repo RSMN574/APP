@@ -5,9 +5,11 @@ import 'package:path/path.dart';
 
 class favorite_feature {
   static final favorite_feature _instance = favorite_feature._internal();
+
   factory favorite_feature() => _instance;
 
   favorite_feature._internal();
+
   Database? _database;
 
   Future<Database> get database async {
@@ -64,7 +66,8 @@ class favorite_feature {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getFavorites(String key, String currentCity, String city) async {
+  Future<List<Map<String, dynamic>>> getFavorites(
+      String key, String currentCity, String city) async {
     final db = await database;
 
     // 添加搜索条件，查询符合城市条件的记录
@@ -74,19 +77,19 @@ class favorite_feature {
       whereArgs: [currentCity],
     );
 
-
     return results;
   }
 
   Future<int> addFavorite({
-     String? DepartureStopNameZh,
-     String? DestinationStopNameZh,
-     String? routeName,
+    String? DepartureStopNameZh,
+    String? DestinationStopNameZh,
+    String? routeName,
     String? StopName,
     required String city,
-    required String table,   routeID ,
+    required String table,
+    routeID,
   }) async {
-    if(table=="FavoritesRoute"){
+    if (table == "FavoritesRoute") {
       try {
         final db = await database;
 
@@ -117,7 +120,7 @@ class favorite_feature {
             'DestinationStopNameZh': DestinationStopNameZh,
             'routeName': routeName,
             'city': city,
-           'routeID' :routeID
+            'routeID': routeID
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -128,19 +131,15 @@ class favorite_feature {
         // 插入失败返回 200
         return 200;
       }
-    }else if(table=="FavoritesStop"){
+    } else if (table == "FavoritesStop") {
       try {
         final db = await database;
 
         // 检查是否已存在相同的记录
         final existing = await db.query(
           'FavoritesStop',
-          where:
-          'stopName = ?  AND city = ?',
-          whereArgs: [
-            StopName,
-            city
-          ],
+          where: 'stopName = ?  AND city = ?',
+          whereArgs: [StopName, city],
         );
 
         // 如果记录已存在，返回 -1 表示重复
@@ -164,19 +163,19 @@ class favorite_feature {
         // 插入失败返回 200
         return 200;
       }
-
-    }else{
+    } else {
       return 200;
     }
   }
 
-
-
   Future<int> removeFavorite(
-      {String? routeName,String? stopName, required String city,required String table}) async {
+      {String? routeName,
+      String? stopName,
+      required String city,
+      required String table}) async {
     final db = await database;
     // 尝试删除记录
-        if(table=="FavoritesRoute"){
+    if (table == "FavoritesRoute") {
       final rowsAffected = await db.delete(
         'FavoritesRoute',
         where: 'routeName = ? AND city = ?', // 添加 city 条件
@@ -188,25 +187,22 @@ class favorite_feature {
       } else {
         return 200; // 未找到匹配的记录，删除失败
       }
-    }else if(table=="FavoritesStop"){
-          final rowsAffected = await db.delete(
-            'FavoritesStop',
-            where: 'stopName = ? AND city = ?', // 添加 city 条件
-            whereArgs: [stopName, city], // 传递 routeName 和 city
-          );
-          // 根据删除结果返回不同值
-          if (rowsAffected > 0) {
-            return 100; // 成功删除
-          } else {
-            return 200; // 未找到匹配的记录，删除失败
-          }
-        }else{
-          return 200;
-        }
-
-
+    } else if (table == "FavoritesStop") {
+      final rowsAffected = await db.delete(
+        'FavoritesStop',
+        where: 'stopName = ? AND city = ?', // 添加 city 条件
+        whereArgs: [stopName, city], // 传递 routeName 和 city
+      );
+      // 根据删除结果返回不同值
+      if (rowsAffected > 0) {
+        return 100; // 成功删除
+      } else {
+        return 200; // 未找到匹配的记录，删除失败
+      }
+    } else {
+      return 200;
+    }
   }
-
 
   Future<bool> isFavorite(String routeId) async {
     final db = await database;

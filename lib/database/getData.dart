@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:com.rsmn574.app/bus.dart';
+
+import '../Const/regularConst.dart';
 final GlobalKey<BusState> _key = GlobalKey<BusState>();
 Timer? _idleTimer;
 const int idleTimeout = 30; // 30秒無操作超時
@@ -114,11 +116,15 @@ FROM Bus.Bus_Taichung_Route;
   }
 
 }
-Future<List<Map<String, dynamic>>> GetBusInfo(int routeid, String city) async {
+Future<List<Map<String, dynamic>>> GetBusInfo({  required int routeid,required String city,} ) async {
    sum = 0;
   List<Map<String, dynamic>> routeName = [];
 
-  routeID = routeid;
+     routeID = routeid;
+
+
+
+
 
   await connMysql(); // 連接資料庫
 
@@ -137,42 +143,55 @@ Future<List<Map<String, dynamic>>> GetBusInfo(int routeid, String city) async {
   return routeName;
 }
 
-Future mysqlSelect (String v)async{
+Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
+  List<Map<String, dynamic>> jsonArray = [];
 
+  try {
+    // 确保数据库连接
+    await connMysql(); // 連接資料庫
 
-  await connMysql(); // 連接資料庫
+    // 执行查询
+    var result = await conn!.execute(query);
 
-  List<dynamic> jsonArray=[];
-  jsonArray.clear();
- try{
-   result =await conn?.execute(v);
- }catch(e){
-   await connMysql(); // 如果未連接，先連接資料庫
-   if(e.toString().contains("connection closed")){
-     await connMysql();
-   }else{
-     print(e);
-   }
- }finally{
-   // 重置閒置計時器
-   _startIdleTimer();
- }
-  for (final row in result.rows) {
+    // 处理查询结果
+    for (final row in result.rows) {
+      jsonArray.add(row.assoc());
+    }
+  } catch (e) {
+    print("Error during mysqlSelect: $e");
 
-    //print(row.colByName("Zh_tw"));
-
-    // print all rows as Map<String, String>
-
-    jsonArray.add(row.assoc());
-
-
-
+    // 如果连接关闭，则尝试重连并重试查询
+    if (e.toString().contains("connection closed")) {
+      print("Reconnecting to database...");
+      await connMysql();
+      try {
+        var result = await conn!.execute(query);
+        for (final row in result.rows) {
+          jsonArray.add(row.assoc());
+        }
+      } catch (innerError) {
+        print("Failed to execute query after reconnection: $innerError");
+      }
+    }
+  } finally {
+    // 重置闲置计时器
+    _startIdleTimer();
   }
-  // print(jsonArray);
-return jsonArray;
 
-
+  return jsonArray;
 }
+
+Future<void> checkConnection() async {
+  try {
+    // 执行一个轻量级查询来验证连接
+    await conn?.execute('SELECT 1');
+  } catch (e) {
+    print("Database connection lost, reconnecting...");
+    await connMysql();
+  }
+}
+
+
 getInfo(data){
  if(data=='sum'){
    return sum;
@@ -183,16 +202,18 @@ getInfo(data){
  }
 }
 
-GetBusStopInfo(String stopName ,String city,) async {
+Future<List<Map<String, dynamic>>> GetBusStopInfo(String stopName ,String city,) async {
 
   await connMysql(); // 連接資料庫
 
 
   var query =  "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
-  List stopInfo=[];
+  List<Map<String, dynamic>> stopInfo=[];
 
   jsonData=await mysqlSelect(query);
-  for(var i in jsonData){
+  List<dynamic>data=await mysqlSelect(query);
+
+  for(var i in data){
     stopInfo.add(i);
   }
 
@@ -206,7 +227,7 @@ GetBusStopInfo(String stopName ,String city,) async {
 
 Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
 
-  final tokenUri = Uri.parse('http://hidden.rsmn574.com:3920/token');
+
   // var url="https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON";
   try {
     await connMysql(); // 連接資料庫
@@ -259,4 +280,42 @@ void _startIdleTimer() {
   _idleTimer = Timer(Duration(seconds: idleTimeout), () {
     disconnect();
   });
+}
+
+Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) async {
+  try {
+    // 连接数据库
+    await connMysql();
+
+
+    String queryFacility = "SELECT * FROM Train.Station_StationFacility WHERE StationID = $stationID;";
+    String queryStation = "SELECT * FROM Train.Train_Station WHERE StationID = $stationID;";
+    // 查询设施数据
+    List<Map<String, dynamic>> facilityData = await mysqlSelect(queryFacility);
+
+    // 查询车站数据
+    List<Map<String, dynamic>> stationData = await mysqlSelect(queryStation);
+
+    // 打印调试信息
+
+
+
+    // 合并两个查询结果
+    List<Map<String, dynamic>> combinedData = [
+      ...facilityData,
+      ...stationData,
+    ];
+
+    // 重置闲置计时器
+    _startIdleTimer();
+    print("combinedData $combinedData");
+    return combinedData;
+  } catch (e, stackTrace) {
+    // 捕获并记录错误
+    print("Error fetching station facilities: $e");
+    print(stackTrace);
+
+    // 返回空列表以防止程序崩溃
+    return [];
+  }
 }

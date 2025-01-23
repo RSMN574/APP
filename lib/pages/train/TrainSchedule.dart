@@ -58,7 +58,7 @@ class TrainSchedulePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '列車編號: ${trainData['DailyTrainInfo']['TrainNo']}',
+              '車次: ${trainData['DailyTrainInfo']['TrainNo']}',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -113,11 +113,11 @@ class TrainSchedulePage extends StatelessWidget {
   Widget _buildStopTimesList() {
     final stopTimes = trainData['StopTimes'] as List<dynamic>;
 
-    return ListView.separated(
+    return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: stopTimes.length,
-      separatorBuilder: (context, index) => Divider(color: Colors.grey[300], height: 1),
+
       itemBuilder: (context, index) {
         final stop = stopTimes[index];
         return Container(

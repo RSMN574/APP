@@ -49,12 +49,11 @@ int id=await getInfo('routeID');
 }
 Future<Map<String, dynamic>> getDirections(
     String origin, String destination) async {
-  const String url2 ='https://tdx.transportdata.tw/api/maas/routing?origin=25.047743%2C121.516273&destination=25.008297%2C%20121.459421&gc=0.0&top=5&transit=3%2C4%2C5%2C6%2C7%2C8%2C9&transfer_time=15%2C60&depart=2024-12-10T07%3A00%3A00&arrival=2024-12-10T07%3A00%3A00&first_mile_mode=0&first_mile_time=10&last_mile_mode=0&last_mile_time=10';
 
 
   final String url =
       'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=0.0&top=5&transit=3%2C4%2C5%2C6%2C7%2C8%2C9&transfer_time=15%2C60&first_mile_mode=0&first_mile_time=10&last_mile_mode=0&last_mile_time=10';
-
+print(url);
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求
