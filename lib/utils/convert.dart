@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 String cityNameConverter(String inputCity) {
   // 全台灣縣市對應表
   Map<String, String> cityMapping = {
@@ -49,4 +51,14 @@ String cityNameConverter(String inputCity) {
 
   // 查找并返回对应的城市名称
   return cityMapping[inputCity] ?? "Unknown city";
+}
+double calculateCornerRadius(BuildContext context,{double percentage = 0.02, double min = 4.0, double max = 16.0}) {
+  // 獲取螢幕寬度
+  final screenWidth = MediaQuery.of(context).size.width;
+
+  // 計算圓角半徑，根據螢幕寬度的百分比
+  double cornerRadius = screenWidth * percentage;
+
+  // 限制圓角半徑的最小和最大值
+  return cornerRadius.clamp(min, max);
 }

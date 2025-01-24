@@ -265,7 +265,7 @@ return ;
                       ),
                     ));
               } else {
-                return Text("車站");
+                return _buildCityText(_selectedCity);
               }
             case "map":
               return _buildCityText(_selectedCity);

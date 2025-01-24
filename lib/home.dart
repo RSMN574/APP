@@ -1,10 +1,14 @@
 import 'dart:convert';
 
+import 'package:com.rsmn574.app/utils/MRTColor.dart';
+import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -25,7 +29,39 @@ class Home extends StatefulWidget {
   _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
+class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , MRTColor{
+  DateTime _selectedTime= DateTime.now();
+  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
+  Future<void> _selectDateTime(BuildContext context) async {
+    // 选择日期
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedTime ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null) {
+      // 选择时间
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_selectedTime ?? DateTime.now()),
+      );
+
+      if (pickedTime != null) {
+        // 合并日期和时间
+        setState(() {
+          _selectedTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+        });
+      }
+    }
+  }
   @override
   bool get wantKeepAlive => true; // 返回 true，以保持状态
   final TextEditingController _routeController = TextEditingController();
@@ -82,7 +118,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     _searchFocusNode.unfocus();
 // 地图创建时调用获取当前定位
     _getCurrentLocation();
-    showBusStops();
+    //showBusStops();
   }
 
   @override
@@ -404,6 +440,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
   }
 
   Widget _buildPlaceDetails(dynamic place) {
+
     final locationProvider = Provider.of<LocationProvider>(context);
     //
     //   if(place != null){
@@ -441,11 +478,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
-                        padding: EdgeInsets.all(8.0),
+                        padding: const EdgeInsets.all(8.0),
                         child: FloatingActionButton(
                           mini: true,
                           backgroundColor: Colors.white,
-                          child: Icon(Icons.arrow_back, color: Colors.blue),
+                          child: const Icon(Icons.arrow_back, color: Colors.blue),
                           onPressed: () {
                             setState(() {
                               _index--; // 返回上一页
@@ -457,20 +494,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     ),
                   if (place != null) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
                           const Text(
                             '起點', // 起点标签
-                            style: TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(30.0),
@@ -483,8 +517,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                   contentPadding: const EdgeInsets.symmetric(
                                       vertical: 15.0, horizontal: 20.0),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search,
-                                        color: Colors.blue),
+                                    icon: const Icon(Icons.search, color: Colors.blue),
                                     onPressed: () {
                                       _loadPredictions();
                                       // 隐藏键盘
@@ -506,20 +539,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     ),
                     const SizedBox(height: 15.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
                       child: Row(
                         children: [
                           const Text(
                             '終點', // 终点标签
-                            style: TextStyle(
-                                fontSize: 16.0, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[200],
                                 borderRadius: BorderRadius.circular(30.0),
@@ -532,8 +562,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                                   contentPadding: const EdgeInsets.symmetric(
                                       vertical: 15.0, horizontal: 20.0),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search,
-                                        color: Colors.blue),
+                                    icon: const Icon(Icons.search, color: Colors.blue),
                                     onPressed: () {
                                       _loadPredictions();
                                       // 隐藏键盘
@@ -554,9 +583,39 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                       ),
                     ),
                     const SizedBox(height: 30.0),
+                    InkWell(
+                      onTap: () async {
+                        await _selectDateTime(context);
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                        padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(30.0),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time, color: Colors.blue),
+                            const SizedBox(width: 10.0),
+                            const Text(
+                              '選擇時間',
+                              style: TextStyle(fontSize: 16.0, color: Colors.blue),
+                            ),
+                            const Spacer(),
+                            Text(
+                              _selectedTime == null
+                                  ? '選擇時間'
+                                  : dateFormat.format(_selectedTime!),
+                              style: const TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     Center(
                       child: ElevatedButton(
-                        onPressed: () async {
+                        onPressed: () {
                           setState(() {
                             _index = 3; // 切换到地点详细信息
                           });
@@ -567,13 +626,20 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30.0),
                           ),
+                          backgroundColor: Colors.blue, // 按钮背景颜色
                         ),
-                        child:
-                            const Text('出發', style: TextStyle(fontSize: 18.0)),
+                        child: const Text(
+                          '出發',
+                          style: TextStyle(fontSize: 18.0, color: Colors.white),
+                        ),
                       ),
                     ),
+
                   ] else ...[
-                    const Text("未選擇地點"),
+                    const Text(
+                      "未選擇地點",
+                      style: TextStyle(fontSize: 16.0, color: Colors.grey),
+                    ),
                   ],
                 ],
               ),
@@ -629,18 +695,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     );
   }
 
-  Widget _buildPlaceWays(dynamic place) {
+  Widget _buildPlaceWays(dynamic place,) {
     // 获取交通方式的图标
 
-    // 格式化时间
-    String _formatDuration(int seconds) {
-      final minutes = seconds ~/ 60;
-      final remainingSeconds = seconds % 60;
-      return "$minutes 分 $remainingSeconds 秒";
-    }
 
     // 获取路线数据
     Future<Map<String, dynamic>> _getDirections() async {
+      DateFormat dataFormat=DateFormat("yyyy-MM-ddTHH:mm:ss");
       PlacesService placesService = PlacesService();
       final locationProvider =
           Provider.of<LocationProvider>(context, listen: false);
@@ -649,7 +710,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
       _loadMarkers(destination?.latitude,destination?.longitude,place["place_id"]);
       return await getDirections(
         "${locationProvider.latitude}%2C${locationProvider.longitude}",
-        "${destination?.latitude}%2C${destination?.longitude}",
+        "${destination?.latitude}%2C${destination?.longitude}",dataFormat.format(_selectedTime!),
       );
     }
 //  "${24.150784}%2C${120.646877}",
@@ -703,6 +764,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                 final data = snapshot.data!;
                 final routes = data['data']['routes'] as List<dynamic>;
 
+
                 return ListView.builder(
                   controller: scrollController,
                   itemCount: routes.length,
@@ -711,9 +773,39 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                     final sections = route['sections'] as List<dynamic>;
                     final totalTime = route['travel_time'];
                     final totalPrice = route['total_price'] ?? 0;
+                    // 合并类型相同的段落
+                    List<Map<String, dynamic>> mergedJourney = [];
+                    for (var segment in sections) {
+
+                      if (mergedJourney.isNotEmpty &&
+                          mergedJourney.last['type'] == segment['type']) {
+                        // 更新 travelSummary
+                        mergedJourney.last['travelSummary']['duration'] +=
+                        segment['travelSummary']['duration'];
+                        mergedJourney.last['travelSummary']['length'] +=
+                        segment['travelSummary']['length'];
+
+                        // 合并 intermediateStops
+                        if (segment.containsKey('intermediateStops')) {
+                          mergedJourney.last['intermediateStops'] ??= [];
+                          mergedJourney.last['intermediateStops']
+                              .addAll(segment['intermediateStops']);
+                        }
+
+                        // 更新到达信息
+                        mergedJourney.last['arrival'] = segment['arrival'];
+                      } else {
+                        mergedJourney.add(segment);
+                      }
+
+
+                    }
+                    // 移除 type 为 "waiting" 的段落
+                    mergedJourney.removeWhere((segment) => segment['type'] == 'waiting');
+                    mergedJourney.removeWhere((segment) => segment['type'] == 'pedestrian-station');
 
                     return
-                      Column(children: [ const SizedBox(height: 20,),_buildSectionCard(sections,route['travel_time'])]);
+                      Column(children: [ const SizedBox(height: 20,),_buildSectionCard(mergedJourney,route['travel_time'])]);
 
                   },
                 );
@@ -726,74 +818,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
     );
   }
 
-  Widget _buildSectionItem(Map<String, dynamic> section) {
-    final departure = section['departure']['place']['name'] ?? '起點';
-    final arrival = section['arrival']['place']['name'] ?? '終點';
-    final mode = section['transport']['mode'] ?? '步行';
-    final duration = section['travelSummary']['duration'];
-    final transport = section['transport'];
 
-    String? busNumber;
-    String? agencyName;
-    String? headsign;
 
-    if (mode == 'Bus') {
-      busNumber = transport['number'] ?? '未知';
-      agencyName = section['agency']['name'] ?? '未知公司';
-      headsign = transport['headsign'] ?? '未知方向';
-    }
 
-    return ListTile(
-      leading: Icon(
-        _getIconForMode(mode),
-        color: Colors.black45,
-        size: 30,
-      ),
-      title: Text(
-        mode == 'Bus' ? '搭乘公車 $busNumber - $headsign' : '$departure → $arrival',
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-      ),
-      subtitle: Text(
-        mode == 'Bus'
-            ? '耗時: ${_formatDuration(duration)} | 公司: $agencyName'
-            : '耗時: ${_formatDuration(duration)}',
-        style: const TextStyle(color: Colors.black45),
-      ), onTap: () async {
-      if (mode == 'Bus') {
-        print(section['departure']['place']["name"]);
-        // 当 mode 为 'Bus' 时执行的逻辑
-       // await GetBusInfo(route["routeID"], "");
-        // List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (context,) => BusTime(
-        //     routeName:(route)["routeName"],
-        //     departureStopName:(route)["DepartureStopNameZh"],
-        //     destinationStopName:(route)["DestinationStopNameZh"],
-        //     operators: "",
-        //     routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
-        //     city:  correspondingIDNotifier.value, routeID: (route["routeID"]),
-        //
-        //   )),
-        // );
-      }
-    },
-    );
-  }
-
-  IconData _getIconForMode(String mode) {
-    switch (mode) {
-      case 'MRT':
-        return Icons.train;
-      case 'Bus':
-        return Icons.directions_bus;
-      case 'pedestrian':
-        return Icons.directions_walk;
-      default:
-        return Icons.help_outline;
-    }
-  }
   Widget _buildSectionCard(List<dynamic> sections, travelTime ){
+    double screenWidth = MediaQuery.of(context).size.width;
+    double iconSize = screenWidth > 600 ? 32 : 27;
+    // 調用方法計算圓角半徑
+    double radius = calculateCornerRadius(context);
     return // Generated code for this Row Widget...
 
       Container(
@@ -826,34 +858,106 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
             ),
             Padding(
               padding: EdgeInsets.only(top: 8), // 上方间距
-              child: Row( // 用 Column 包裹多个组件
+              child:ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width)*0.94,
+    child:  Align(
+      alignment: Alignment.centerLeft, // 靠左對齊
+      child:  Wrap(
+
+      spacing: 4, // 子组件之间的水平间距
+      runSpacing: 6, // 子组件之间的垂直间距
+      alignment: WrapAlignment.start, // 左对齐
+
+    children: sections.asMap().entries.map((entry) {
+        int index = entry.key; // 当前索引
+        var i = entry.value; // 当前元素
+
+        // 根据 transport.mode 构建组件
+        Widget transportWidget;
+        if (i["transport"]["mode"] == "pedestrian" && i["type"] != "pedestrian-station") {
+
+          transportWidget =Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [ const Icon(Icons.directions_walk, color: Colors.black, size: 24),Text(_formatDurationMin(i["travelSummary"]["duration"]))]);
+        } else if (i["transport"]["mode"] == "Bus") {
+          transportWidget = Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+          Icon(Icons.directions_bus, color: Colors.black, size: 24),
+
+          Text(
+            i["transport"]["name"],
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+                      ],
+                    );
+        } else if (i["transport"]["mode"] == "MRT") {
+          print(i["transport"]);
+          transportWidget = Container(
+            decoration: BoxDecoration(
+              color: MRTColor.getColorByLineName(i["transport"]["name"]), // 获取颜色
+              borderRadius: BorderRadius.circular(radius),
+            ),
+            padding: EdgeInsets.symmetric(horizontal:8 ,vertical:3 ),
+            child: Text(
+
+              i["transport"]["name"],
+              style: TextStyle(
+
+                color: Colors.white,
+                letterSpacing: 0.2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          );
+        }  else if (i["transport"]["mode"] == "HSR") {
+          print(i["transport"]["mode"] );
+          transportWidget =  SvgPicture.asset(
+            "assets/icons/train-outline.svg",
+            width: iconSize,
+            height: iconSize,
+          );
+        } else if (i["transport"]["mode"] == "HighwayBus") {
+
+          transportWidget = Icon(Icons.question_mark, color: Colors.black, size: 24);
+        }  else {
+          transportWidget = Container(width: 0,);
+
+        }
+
+        // 添加箭头图标
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            transportWidget,
+            if (index < sections.length - 1)
+              Icon(Icons.arrow_right_rounded, color: Colors.black, size: 24),
+          ],
+        );
+      }).toList(),
+    ),
+              ))
+
+            ),
+
+            Padding(
+              padding: EdgeInsets.only(top: 8), // 行间距
+              child: Wrap(
+
                 children: sections.asMap().entries.map((entry) {
                   int index = entry.key; // 当前索引
                   var i = entry.value; // 当前元素
-                  if (i["transport"]["mode"] == "pedestrian") {
+               if (i["transport"]["mode"] == "Bus") {
                     return Row(
-                      children: [Icon(
-                      Icons.directions_walk,
-                      color: Colors.black,
-                      size: 24,
-
-                    )  ,  if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
-                        Icon(
-                          Icons.arrow_right_rounded,
-                          color: Colors.black,
-                          size: 24,
-                        ),]);
-                  } else if (i["transport"]["mode"] == "Bus") {
-                    return Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.directions_bus,
-                          color: Colors.black,
-                          size: 24,
-                        ),
+
                         SizedBox(width: 4),
                         Text(
-                          i["transport"]["name"],
+                          i["departure"]["place"]["name"]+"-"+i["arrival"]["place"]["name"],
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                           ),
@@ -867,42 +971,34 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
                       ],
                     );
 
-                  } else {
-                    return Icon(
-                      Icons.query_stats,
-                      color: Colors.black,
-                      size: 24,
+                  } else if(i["transport"]["mode"]=="MRT"){
+
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+
+                        SizedBox(width: 4),
+                        Text(
+                          i["departure"]["place"]["name"]+"-"+i["arrival"]["place"]["name"],
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
+                          Icon(
+                            Icons.arrow_right_rounded,
+                            color: Colors.black,
+                            size: 24,
+                          ),
+                      ],
                     );
                   }
+                  else
+                  {
+                    return  Container(width: 1,);
+                  }
                 }).toList(),
-              ),
-            ),
-
-            Padding(
-              padding: EdgeInsets.only(top: 8), // 行间距
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Text(
-                    '頂何厝(專用道)',
-                    style: TextStyle(),
-                  ),
-                  Icon(
-                    Icons.arrow_right_rounded,
-                    color: Colors.black,
-                    size: 24,
-                  ),
-                  Text(
-                    '頂何厝(專用道)-茄苳腳(專用道)',
-                    style: TextStyle(),
-                  ),
-                  Icon(
-                    Icons.arrow_right_rounded,
-                    color: Colors.black,
-                    size: 24,
-                  ),
-                ],
-              ),
+              )
             ),
           ],
         ),
@@ -914,8 +1010,23 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> {
 
   }
   String _formatDuration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '$minutes 分 $remainingSeconds 秒';
+    final hours = seconds ~/ 3600; // 计算小时
+    final minutes = (seconds % 3600) ~/ 60; // 剩余部分计算分钟
+    final remainingSeconds = ((seconds % 3600) % 60).round(); // 秒数四舍五入
+
+    if (hours > 0) {
+      return '$hours 小時 $minutes 分';
+    } else {
+      return '$minutes 分';
+    }
+  }
+  String _formatDurationMin(int seconds) {
+    final hours = seconds ~/ 3600; // 计算小时
+    final minutes = (seconds % 3600) ~/ 60; // 剩余部分计算分钟
+    final remainingSeconds = ((seconds % 3600) % 60).round(); // 秒数四舍五入
+
+
+      return '$minutes ';
+
   }
 }

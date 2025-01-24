@@ -23,18 +23,18 @@ class _BuslistState extends State<Buslist> {
   @override
   void initState() {
     super.initState();
-    _loadFavorites();
+    // _loadFavorites();
   }
 
-  // 加载收藏的公交线路
-  Future<void> _loadFavorites() async {
-    List<String>? loadedFavorites = await loadList("favoritesBusRoute");
-    if (loadedFavorites != null) {
-      setState(() {
-        favoritesBusRoute = loadedFavorites;
-      });
-    }
-  }
+  // // 加载收藏的公交线路
+  // Future<void> _loadFavorites() async {
+  //   List<String>? loadedFavorites = await loadList("favoritesBusRoute");
+  //   if (loadedFavorites != null) {
+  //     setState(() {
+  //       favoritesBusRoute = loadedFavorites;
+  //     });
+  //   }
+  // }
 
   String extractZhTw(jsonString) {
     return json.decode(jsonString)["Zh_tw"];

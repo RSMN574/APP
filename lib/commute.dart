@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
@@ -36,13 +38,20 @@ class _CommuteState extends State<Commute> {
     await fetchScheduleData(); // 重新获取数据
   }
 
-  Widget _buildCommutePage() {
+  Widget _buildCommutePage(String category) {
+    final filteredData = scheduleData.where((item) {
+      return item["category"] == category;
+    }).toList();;
+
+    // final filteredData = scheduleData;
     return RefreshIndicator(
-      onRefresh: _onRefresh, // 下拉刷新时调用
+      onRefresh: _onRefresh,
       child: ListView.builder(
-        itemCount: scheduleData.length,
+        itemCount: filteredData.length,
         itemBuilder: (context, index) {
-          final item = scheduleData[index];
+
+          final item = filteredData[index];
+
           return _buildScheduleCard(item);
         },
       ),
@@ -113,7 +122,7 @@ class _CommuteState extends State<Commute> {
                 SnackBar(content: Text('行程刪除失败。'))
             );
           }
-
+          Navigator.pop(context); // 关闭弹窗
         }else  if(id=="info"){
           showDialog(
             context: context,
@@ -301,8 +310,8 @@ class _CommuteState extends State<Commute> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      _buildCommutePage(),
-      Center(child: Text('旅行頁面', style: TextStyle(fontSize: 24))),
+      _buildCommutePage("commute"),
+      _buildCommutePage("trip"),
     ];
 
     return Column(

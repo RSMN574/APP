@@ -193,7 +193,8 @@ class TripNumberSearchPage extends StatefulWidget {
 }
 
 class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
-  DateTime? selectedDate;
+
+  DateTime selectedDate= DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
   Future<void> _selectDate(BuildContext context) async {
@@ -295,7 +296,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     '新北市': ['中和車站', '新莊車站', '蘆洲車站'],
     '高雄市': ['高雄車站', '鳳山車站', '新左營車站'],
   };
-   DateTime? selectedDate;
+
+  DateTime selectedDate= DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
 
   Future<void> _selectDateTime(BuildContext context) async {
@@ -342,6 +344,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           children: [
             // 出發地輸入框
             TextField(
+              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
               controller: widget.departureController,
               decoration: const InputDecoration(
                 labelText: '出發地',
@@ -356,6 +359,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
             const SizedBox(height: 16),
             // 目的地輸入框
             TextField(
+              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
               controller: widget.destinationController,
               decoration: const InputDecoration(
                 labelText: '目的地',
@@ -1057,7 +1061,7 @@ class _RoutePageState extends State<RoutePage> {
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(
               child: Text(
-                '無車站資訊',
+                '無列車資訊',
                 style: TextStyle(fontSize: 16, color: Colors.black54),
               ),
             );

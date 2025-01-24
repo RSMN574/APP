@@ -23,7 +23,7 @@ class schedule {
 
     return await openDatabase(
       path,
-      version: 3, // 提升版本号以触发升级
+      version: 5, // 提升版本号以触发升级
       onCreate: (db, version) async {
         // 创建 FavoritesRoute 表
 
@@ -36,9 +36,10 @@ class schedule {
     UserStartingStopName TEXT,             -- 新增用戶上車站
     FinalStopName TEXT NOT NULL,           -- 路線終點站
     UserDestinationStopName TEXT,          -- 用戶目的站
-    other JSON,
+    other TEXT,                            -- 存储 JSON 字符串
     city TEXT NOT NULL,
-    routeID INTEGER
+    routeID INTEGER,
+    category TEXT
   )
 ''');
 
@@ -69,7 +70,7 @@ class schedule {
     String? StartingStopName,
     String? FinalStopName,
     String? route,
-      other,
+     Map<String,dynamic>? other,
     required String type,
     required String city,
 
@@ -110,7 +111,8 @@ class schedule {
             'type':type,
             'Route': route,
             'city': city,
-            'routeID':other
+            'routeID':other?["routeID"],
+            'category':other?["category"]
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
