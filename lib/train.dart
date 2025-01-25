@@ -9,15 +9,24 @@ import 'package:intl/intl.dart';
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
 import 'database/getTrain.dart';
-
+ const Color primaryColor = Color(0xFF2A5CAA);
+ const Color accentColor = Color(0xFFFF9F1C);
+ const Color textPrimary = Color(0xFF2D3748);
+ const Color textSecondary = Color(0xFF718096);
+ const Color surfaceColor = Color(0xFFF3F5F7);
 class Train extends StatefulWidget {
   @override
   _TrainState createState() => _TrainState();
 }
 
 class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  // 顏色常數定義
+  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
+  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
+  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+  static const Color textSecondary = Color(0xFF718096);    // 次要文字
 
+  late TabController _tabController;
   final TextEditingController _trainNoController = TextEditingController();
   final TextEditingController _departureController = TextEditingController();
   final TextEditingController _destinationController = TextEditingController();
@@ -42,12 +51,18 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 白色背景
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('火車查詢系統', style: TextStyle(color: Colors.black)), // 黑色文字
-        backgroundColor: Colors.white, // 白色背景
-        elevation: 2, // 微弱阴影效果
-        iconTheme: const IconThemeData(color: Colors.black), // 使图标为黑色
+        title: const Text(
+          '火車查詢系統',
+          style: TextStyle(
+            color: textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 2,
+        iconTheme: IconThemeData(color: textPrimary),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -55,117 +70,119 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
             Tab(text: '按出發地和目的地查詢'),
             Tab(text: '按車站查詢'),
           ],
-          labelColor: Colors.black, // 选中的标签文字为黑色
-          unselectedLabelColor: Colors.grey, // 未选中的标签文字为灰色
-          indicatorColor: Colors.black, // 指示器颜色为黑色
-        ),actions: [   PopupMenuButton<String>(
-        iconColor:   Colors.black,
-        itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-          SelectView( icon: Icons.train, text: '線路資訊', id: 'line',),
-
-        ],
-        onSelected: (String action) async {
-          // 点击选项的时候
-          switch (action) {
-            case "line":
-              Navigator.push(
-                context,
-                  MaterialPageRoute(
-                    builder: (context) => Scaffold(
-                      appBar: AppBar(
-                        elevation: 3, // 增加微弱阴影效果
-                        backgroundColor:blue, // 设置背景色
-                        title: const Text(
-                          "線路資訊",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+          labelColor: primaryColor,
+          unselectedLabelColor: textSecondary,
+          indicatorColor: primaryColor,
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            iconColor: textPrimary,
+            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+              SelectView(
+                icon: Icons.train,
+                text: '線路資訊',
+                id: 'line',
+              ),
+            ],
+            onSelected: (String action) async {
+              switch (action) {
+                case "line":
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Scaffold(
+                        appBar: AppBar(
+                          elevation: 3,
+                          backgroundColor: primaryColor,
+                          title: const Text(
+                            "線路資訊",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
+                          centerTitle: true,
                         ),
-                        centerTitle: true, // 标题居中
-                      ),
-                      body: FutureBuilder(
-                        future: mysqlSelect("SELECT * FROM Train.Train_Line;"), // 异步加载数据
-                        builder: (BuildContext context, AsyncSnapshot snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(), // 显示加载中状态
-                            );
-                          } else if (snapshot.hasError) {
-                            return Center(
-                              child: Text(
-                                "加载失败: ${snapshot.error}",
-                                style: const TextStyle(color: Colors.red, fontSize: 16),
-                              ),
-                            );
-                          } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
-                            return const Center(
-                              child: Text(
-                                "没有数据",
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
-                              ),
-                            );
-                          } else {
-                            var lineData = snapshot.data as List;
-                            return Container(
-                              color: Colors.white, // 背景色为白色
-                              child: ListView.builder(
-                                itemCount: lineData.length,
-                                itemBuilder: (context, index) {
-                                  var line = lineData[index];
-                                  var lineNameZh = line['LineNameZh'] ?? '未知';
-                                  var lineNameEn = line['LineNameEn'] ?? 'Unknown';
-                                  var sectionNameZh = line['LineSectionNameZh'] ?? '未知區間';
+                        body: FutureBuilder(
+                          future: mysqlSelect("SELECT * FROM Train.Train_Line;"),
+                          builder: (BuildContext context, AsyncSnapshot snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return Center(
+                                child: CircularProgressIndicator(color: primaryColor),
+                              );
+                            } else if (snapshot.hasError) {
+                              return Center(
+                                child: Text(
+                                  "加載失敗: ${snapshot.error}",
+                                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                                ),
+                              );
+                            } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+                              return Center(
+                                child: Text(
+                                  "沒有數據",
+                                  style: TextStyle(color: textSecondary, fontSize: 16),
+                                ),
+                              );
+                            } else {
+                              var lineData = snapshot.data as List;
+                              return Container(
+                                color: Colors.white,
+                                child: ListView.builder(
+                                  itemCount: lineData.length,
+                                  itemBuilder: (context, index) {
+                                    var line = lineData[index];
+                                    var lineNameZh = line['LineNameZh'] ?? '未知';
+                                    var lineNameEn = line['LineNameEn'] ?? 'Unknown';
+                                    var sectionNameZh = line['LineSectionNameZh'] ?? '未知區間';
 
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12), // 圆角效果
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.05), // 微弱阴影效果
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ListTile(
-                                      title: Text(
-                                        lineNameZh,
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black,
-                                        ),
+                                    return Container(
+                                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.05),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
                                       ),
-                                      subtitle: Text(
-                                        "$lineNameEn\n區間: $sectionNameZh",
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey,
+                                      child: ListTile(
+                                        title: Text(
+                                          lineNameZh,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w600,
+                                            color: textPrimary,
+                                          ),
                                         ),
+                                        subtitle: Text(
+                                          "$lineNameEn\n區間: $sectionNameZh",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: textSecondary,
+                                          ),
+                                        ),
+                                        isThreeLine: true,
                                       ),
-                                      isThreeLine: true,
-                                    ),
-                                  );
-
-                                },
-                              ),
-                            );
-                          }
-                        },
+                                    );
+                                  },
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
                     ),
-                  )
-
-              );
-              break;
-
-          }
-        },
-      ),],
+                  );
+                  break;
+              }
+            },
+          ),
+        ],
       ),
       body: TabBarView(
         controller: _tabController,
@@ -179,7 +196,6 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         ],
       ),
     );
-
   }
 }
 
@@ -193,17 +209,42 @@ class TripNumberSearchPage extends StatefulWidget {
 }
 
 class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
+  // 顏色常數定義
+  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
+  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
+  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+  static const Color textSecondary = Color(0xFF718096);    // 次要文字
 
-  DateTime selectedDate= DateTime.now();
+  DateTime selectedDate = DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
+      initialDate: selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryColor,
+              onPrimary: Colors.white,
+              surface: surfaceColor,
+              onSurface: textPrimary,
+            ),
+            dialogBackgroundColor: surfaceColor,
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+
     if (picked != null && picked != selectedDate) {
       setState(() {
         selectedDate = picked;
@@ -214,38 +255,75 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 車次輸入框
-              TextField(
-                controller: widget.controller,
-                decoration: const InputDecoration(
-                  labelText: '輸入車次',
-                  border: OutlineInputBorder(),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 車次輸入框
+            TextField(
+              controller: widget.controller,
+              decoration: InputDecoration(
+                labelText: '輸入車次',
+                labelStyle: TextStyle(color: textSecondary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: surfaceColor),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: primaryColor),
+                ),
+                filled: true,
+                fillColor: surfaceColor,
+                prefixIcon: Icon(Icons.train, color: textSecondary),
               ),
-              const SizedBox(height: 16),
-              // 日期選擇按鈕
-              TextButton(
+            ),
+            const SizedBox(height: 24),
+
+            // 日期選擇按鈕
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: surfaceColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextButton(
                 onPressed: () => _selectDate(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 child: Text(
-                  selectedDate == null
-                      ? '選擇日期'
-                      : '選擇日期: ${dateFormat.format(selectedDate!)}',
-                  style: const TextStyle(fontSize: 16, color: Colors.black), // 黑色文字
+                  '選擇日期: ${dateFormat.format(selectedDate)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
-              // 查詢按鈕
-              ElevatedButton(
+            ),
+            const SizedBox(height: 24),
+
+            // 查詢按鈕
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
                 onPressed: () async {
-                  // 查詢邏輯
                   var trainData = await fetchTrain(
                     int.parse(widget.controller.text),
-                    selectedDate!,
+                    selectedDate,
                   );
 
                   Navigator.push(
@@ -259,15 +337,29 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: Colors.black, // 白色文字
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  shadowColor: primaryColor.withOpacity(0.3),
                 ),
-                child: const Text('查詢'),
+                child: const Text(
+                  '立即查詢',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2
+                  ),
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
-
+      ),
+    );
   }
 }
 
@@ -301,23 +393,78 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
 
   Future<void> _selectDateTime(BuildContext context) async {
-    // 选择日期
+
+
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryColor,    // 主色調
+              onPrimary: Colors.white,  // 主色調上的文字
+              surface: surfaceColor,    // 對話框背景
+              onSurface: textPrimary,   // 對話框文字
+            ),
+            dialogBackgroundColor: surfaceColor, // 背景色
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor, // 按鈕文字
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (pickedDate != null) {
-      // 选择时间
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
+        builder: (context, child) {
+          return Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: ColorScheme.light(
+                primary: primaryColor,
+                onPrimary: Colors.white,
+                surface: surfaceColor,
+                onSurface: textPrimary,
+              ),
+              timePickerTheme: TimePickerThemeData(
+                backgroundColor: surfaceColor,
+                hourMinuteTextColor: textPrimary,
+                dayPeriodTextColor: textPrimary, // AM/PM 文字顏色
+                dayPeriodColor: surfaceColor.withOpacity(0.5), // AM/PM 背景色
+                dayPeriodShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8), // AM/PM 圓角
+                  side: BorderSide(
+                    color: primaryColor.withOpacity(0.3), // AM/PM 邊框
+                    width: 1,
+                  ),
+                ),
+                hourMinuteColor: surfaceColor.withOpacity(0.8), // 小時/分鐘背景色
+                hourMinuteShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8), // 小時/分鐘圓角
+                  side: BorderSide(
+                    color: primaryColor.withOpacity(0.3), // 小時/分鐘邊框
+                    width: 1,
+                  ),
+                ),
+                dialBackgroundColor: surfaceColor.withOpacity(0.8), // 時鐘背景色
+                dialTextColor: textPrimary, // 時鐘文字顏色
+                entryModeIconColor: primaryColor, // 切換圖標顏色
+              ),
+            ),
+            child: child!,
+          );
+        },
       );
 
       if (pickedTime != null) {
-        // 合并日期和时间
         setState(() {
           selectedDate = DateTime(
             pickedDate.year,
@@ -326,92 +473,154 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
             pickedTime.hour,
             pickedTime.minute,
           );
-          print(selectedDate);
         });
       }
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             // 出發地輸入框
             TextField(
-              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
+              readOnly: true,
               controller: widget.departureController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '出發地',
-                border: OutlineInputBorder(),
-              ),onTap: () async {
-
-              departureSelectedStation = (await StationDialog.showStationDialog(context))!;
-              widget.departureController.text = departureSelectedStation['StationName']['Zh_tw']; // 將選擇的車站名稱顯示在輸入框中
-
-            },
+                labelStyle: TextStyle(color: textSecondary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: surfaceColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: primaryColor),
+                ),
+                filled: true,
+                fillColor: surfaceColor,
+                prefixIcon: Icon(Icons.train, color: textSecondary),
+              ),
+              onTap: () async {
+                departureSelectedStation = (await StationDialog.showStationDialog(context))!;
+                widget.departureController.text = departureSelectedStation['StationName']['Zh_tw'];
+              },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+
             // 目的地輸入框
             TextField(
-              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
+              readOnly: true,
               controller: widget.destinationController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '目的地',
-                border: OutlineInputBorder(),
-              ),    onTap: () async {
-
-              destinationSelectedStation = (await StationDialog.showStationDialog(context))!;
-              if(widget.departureController.text== destinationSelectedStation['StationName']['Zh_tw']){
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('出發地和目的地不能相同')),
-                );
-              }
-              widget.destinationController.text = destinationSelectedStation['StationName']['Zh_tw']; // 將選擇的車站名稱顯示在輸入框中
-
-            },
-            ),
-            const SizedBox(height: 16),
-            // 日期選擇按鈕
-            TextButton(
-              onPressed: () => _selectDateTime(context),
-              child: Text(
-                selectedDate == null
-                    ? '選擇時間'
-                    : '選擇時間: ${dateFormat.format(selectedDate!)}',
-                style: const TextStyle(fontSize: 16, color: Colors.black), // 黑色文字
+                labelStyle: TextStyle(color: textSecondary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: surfaceColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: primaryColor),
+                ),
+                filled: true,
+                fillColor: surfaceColor,
+                prefixIcon: Icon(Icons.flag, color: textSecondary),
               ),
-            ),
-            const SizedBox(height: 16),
-            // 查詢按鈕
-            ElevatedButton(
-              onPressed: () {
-                // 查詢邏輯
-                if(selectedDate != null){
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RoutePage(departure:departureSelectedStation,destination:destinationSelectedStation,date: selectedDate!),
-                    ),
-                  );
-                }else{
+              onTap: () async {
+                destinationSelectedStation = (await StationDialog.showStationDialog(context))!;
+                if(widget.departureController.text == destinationSelectedStation['StationName']['Zh_tw']){
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('請選擇日期'))
+                    const SnackBar(content: Text('出發地和目的地不能相同')),
                   );
                 }
-
-
+                widget.destinationController.text = destinationSelectedStation['StationName']['Zh_tw'];
               },
-              style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.black, // 白色文字
+            ),
+            const SizedBox(height: 24),
+
+            // 日期選擇按鈕
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: surfaceColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: const Text('查詢'),
+              child: TextButton(
+                onPressed: () => _selectDateTime(context),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  selectedDate == null
+                      ? '選擇時間'
+                      : '已選擇：${dateFormat.format(selectedDate!)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // 查詢按鈕
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if(selectedDate != null){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RoutePage(
+                            departure: departureSelectedStation,
+                            destination: destinationSelectedStation,
+                            date: selectedDate!
+                        ),
+                      ),
+                    );
+                  }else{
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('請選擇日期'))
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  shadowColor: primaryColor.withOpacity(0.3),
+                ),
+                child: const Text(
+                  '立即查詢',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -431,24 +640,15 @@ class StationSearchPage extends StatefulWidget {
 }
 
 class _StationSearchPageState extends State<StationSearchPage> {
+  // 顏色常數定義
+  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
+  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
+  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+  static const Color textSecondary = Color(0xFF718096);    // 次要文字
+
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
-    }
-  } final TextEditingController _controller = TextEditingController();
-
-
+  final TextEditingController _controller = TextEditingController();
   final Map<String, List<String>> stations = {
     '台北市': ['台北車站', '大安站', '松山站'],
     '新北市': ['板橋車站', '新店站', '淡水站'],
@@ -458,74 +658,118 @@ class _StationSearchPageState extends State<StationSearchPage> {
     '高雄市': ['高雄車站', '左營站', '楠梓站'],
   };
   String? selectedCity;
-
   Map<String, dynamic>? selectedStation;
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primaryColor,
+              onPrimary: Colors.white,
+              surface: surfaceColor,
+              onSurface: textPrimary,
+            ),
+            dialogBackgroundColor: surfaceColor,
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor,
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
 
-
-
-
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 輸入車站名稱 TextField
+            // 車站名稱輸入框
             TextField(
               controller: _controller,
-              readOnly: true, // 避免直接編輯，強制使用彈窗選擇
+              readOnly: true,
               decoration: InputDecoration(
                 labelText: '輸入車站名稱',
-                labelStyle: TextStyle(color: Colors.black), // 標籤文字為黑色
+                labelStyle: TextStyle(color: textSecondary),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12), // 圓角邊框
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: surfaceColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: primaryColor),
                 ),
                 filled: true,
-                fillColor: Colors.white, // 背景顏色為白色
-                contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                fillColor: surfaceColor,
+                prefixIcon: Icon(Icons.train, color: textSecondary),
+                contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               ),
               onTap: () async {
-
                 selectedStation = await StationDialog.showStationDialog(context);
                 if (selectedStation != null) {
-                  _controller.text = selectedStation?['StationName']['Zh_tw']; // 將選擇的車站名稱顯示在輸入框中
+                  _controller.text = selectedStation?['StationName']['Zh_tw'];
                 }
-  
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
             // 查詢按鈕
-            ElevatedButton(
-              onPressed: () {
-
-                // 查詢邏輯
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StationPage(stationName:selectedStation?['StationName']['Zh_tw'] , stationID: selectedStation?["StationID"]),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (selectedStation != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StationPage(
+                          stationName: selectedStation?['StationName']['Zh_tw'],
+                          stationID: selectedStation?["StationID"],
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請選擇車站')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue, // 藍色背景
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12), // 圓角
+                  elevation: 4,
+                  shadowColor: primaryColor.withOpacity(0.3),
                 ),
-                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 32),
-                shadowColor: Colors.black.withOpacity(0.2), // 微弱陰影
-                elevation: 4,
-              ),
-              child: const Text(
-                '查詢',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white, // 白色文字
+                child: const Text(
+                  '立即查詢',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
             ),
@@ -533,9 +777,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
         ),
       ),
     );
-
   }
-
 }
 class StationPage extends StatefulWidget {
   final String stationName;
@@ -547,21 +789,25 @@ class StationPage extends StatefulWidget {
   _StationPageState createState() => _StationPageState();
 }
 
-class _StationPageState extends State<StationPage> with SingleTickerProviderStateMixin  {
+class _StationPageState extends State<StationPage> with SingleTickerProviderStateMixin {
+
+
   late String displayedStationName;
   late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    displayedStationName = widget.stationName; // 初始化显示的车站名称
-    _tabController = TabController(length: 2, vsync: this); // 两个 Tab 页
+    displayedStationName = widget.stationName;
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   void updateStationName(String newStationName) {
     setState(() {
-      displayedStationName = newStationName; // 更新车站名称
+      displayedStationName = newStationName;
     });
   }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -574,19 +820,19 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
       appBar: AppBar(
         title: Text(
           "${widget.stationName} 車站",
-          style: const TextStyle(
-            color: Colors.black,
+          style: TextStyle(
+            color: textPrimary,
             fontWeight: FontWeight.bold,
           ),
         ),
         backgroundColor: Colors.white,
-        elevation: 1, // 微弱阴影
-        iconTheme: const IconThemeData(color: Colors.black),
+        elevation: 1,
+        iconTheme: IconThemeData(color: textPrimary),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.blue,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
+          indicatorColor: primaryColor,
+          labelColor: primaryColor,
+          unselectedLabelColor: textSecondary,
           tabs: const [
             Tab(text: "主頁"),
             Tab(text: "列車信息"),
@@ -613,258 +859,208 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
         '4': '簡易站',
         '5': '招呼站',
       };
-
       return stationClassMap[stationClass] ?? '未知等級';
     }
+
     return FutureBuilder<List<dynamic>>(
       future: fetchTrainStationFacility(widget.stationID),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator(color: primaryColor));
         } else if (snapshot.hasError) {
           return Center(
             child: Text(
               '載入失敗: ${snapshot.error}',
-              style: const TextStyle(fontSize: 16, color: Colors.redAccent),
+              style: TextStyle(fontSize: 16, color: Colors.redAccent),
             ),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(
+          return Center(
             child: Text(
               '無車站資訊',
-              style: TextStyle(fontSize: 16, color: Colors.black54),
+              style: TextStyle(fontSize: 16, color: textSecondary),
             ),
           );
         } else {
           final data = snapshot.data!;
-
-
-
-          return
-
-            SingleChildScrollView(
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12), // 圆角效果
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05), // 微弱阴影效果
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 背景图片
-                        ClipRRect(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                          child: Image.network(
-                            'https://res.klook.com/images/fl_lossy.progressive,q_65/c_fill,w_1295,h_720,f_auto/w_80,x_15,y_15,g_south_west,l_klook_water/activities/zdmg5rjnbvgaubuqzoxz/%E8%8A%B1%E8%93%AE%E5%A4%9A%E8%89%AF%E8%BB%8A%E7%AB%99%E7%91%9E%E7%A9%97%E7%89%A7%E5%A0%B4%E4%B8%83%E6%98%9F%E6%BD%AD%E4%B8%80%E6%97%A5%E9%81%8A%EF%BC%88%E5%A2%BE%E4%B8%81%E5%B1%8F%E6%9D%B1%E5%87%BA%E7%99%BC%EF%BC%89.jpg', // 替换为实际图片链接
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 车站名称和天气信息
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    data[0]['StationNameZh_tw'] ?? '未知車站',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  // Row(
-                                  //   children: [
-                                  //     Icon(
-                                  //       Icons.cloud,
-                                  //       color: Colors.grey,
-                                  //     ),
-                                  //     SizedBox(width: 4),
-                                  //     Text(
-                                  //       '12 - 17°C',
-                                  //       style: TextStyle(fontSize: 16),
-                                  //     ),
-                                  //   ],
-                                  // ),
-                                ],
-                              ),
-                              SizedBox(height: 8),
-                              // 地址
-                              Text(
-                                '車站地址',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              Text(
-                                data[1]['StationAddress'] ?? '未知地址',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              // 营业时间
-                              Text(
-                                '車站等級',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              Text(
-                                _getStationClass(data[1]['StationClass']),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              // 售票时间
-                              Text(
-                                '車站電話',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              Text(
-                                data[1]['StationPhone'] ?? '未知電話',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                '車站ID',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              Text(
-                                data[1]['StationID'] ?? '未知ID',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
-                              ),
-                              // 天气来源
-                              // Text(
-                              //   '*天氣資訊來源：中央氣象署',
-                              //   style: TextStyle(
-                              //     fontSize: 12,
-                              //     color: Colors.grey[600],
-                              //   ),
-                              // ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  ...data.map((station) {
-                    // 动态提取 FacilityMap 数据
-                    List<Map<String, String>> facilityMaps = [];
-                    for (int i = 0; i < 5; i++) {
-                      String? mapName =
-                      station['FacilityMapURLs${i}MapNameZh_tw'] as String?;
-                      String? mapURL = station['FacilityMapURLs${i}MapURL'] as String?;
-                      if (mapURL != null) {
-                        facilityMaps.add({
-                          'mapName': mapName ?? '',
-                          'mapURL': mapURL,
-                        });
-                      }
-                    }
-
-                    // 提取电梯信息（如果有）
-                    String? elevatorInfo = station['Elevators0Description'] as String?;
-
-                    return Container(
-
-                      margin: EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          // 显示设施信息
-                          ...facilityMaps.map((facility) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  facility['mapName']!,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    facility['mapURL']!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Text(
-                                        '圖片載入失敗',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.redAccent,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                            );
-                          }).toList(),
-
-                          // 显示电梯信息（如果有）
-                          if (elevatorInfo != null)
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                        child: Image.network(
+                          'https://res.klook.com/images/fl_lossy.progressive,q_65/c_fill,w_1295,h_720,f_auto/w_80,x_15,y_15,g_south_west,l_klook_water/activities/zdmg5rjnbvgaubuqzoxz/%E8%8A%B1%E8%93%AE%E5%A4%9A%E8%89%AF%E8%BB%8A%E7%AB%99%E7%91%9E%E7%A9%97%E7%89%A7%E5%A0%B4%E4%B8%83%E6%98%9F%E6%BD%AD%E4%B8%80%E6%97%A5%E9%81%8A%EF%BC%88%E5%A2%BE%E4%B8%81%E5%B1%8F%E6%9D%B1%E5%87%BA%E7%99%BC%EF%BC%89.jpg',
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              "電梯資訊: $elevatorInfo",
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
+                              data[0]['StationNameZh_tw'] ?? '未知車站',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: textPrimary,
                               ),
                             ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              '車站地址',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              data[1]['StationAddress'] ?? '未知地址',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '車站等級',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              _getStationClass(data[1]['StationClass']),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '車站電話',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              data[1]['StationPhone'] ?? '未知電話',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '車站ID',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: textSecondary,
+                              ),
+                            ),
+                            Text(
+                              data[1]['StationID'] ?? '未知ID',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ],
-              ),
-            );
+                    ],
+                  ),
+                ),
+                ...data.map((station) {
+                  List<Map<String, String>> facilityMaps = [];
+                  for (int i = 0; i < 5; i++) {
+                    String? mapName = station['FacilityMapURLs${i}MapNameZh_tw'] as String?;
+                    String? mapURL = station['FacilityMapURLs${i}MapURL'] as String?;
+                    if (mapURL != null) {
+                      facilityMaps.add({
+                        'mapName': mapName ?? '',
+                        'mapURL': mapURL,
+                      });
+                    }
+                  }
 
+                  String? elevatorInfo = station['Elevators0Description'] as String?;
 
-
-
-
-
-
-
+                  return Container(
+                    margin: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        ...facilityMaps.map((facility) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                facility['mapName']!,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  facility['mapURL']!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Text(
+                                      '圖片載入失敗',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.redAccent,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          );
+                        }).toList(),
+                        if (elevatorInfo != null)
+                          Text(
+                            "電梯資訊: $elevatorInfo",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: textPrimary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          );
         }
       },
     );
-
-
   }
-
-
 
   Widget _buildTrainInfoPage() {
     return Container(
@@ -874,19 +1070,19 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
         future: fetchTrainStation(widget.stationID),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: primaryColor));
           } else if (snapshot.hasError) {
             return Center(
               child: Text(
                 '加載失敗: ${snapshot.error}',
-                style: const TextStyle(fontSize: 16, color: Colors.redAccent),
+                style: TextStyle(fontSize: 16, color: Colors.redAccent),
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 '無列車信息',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(fontSize: 16, color: textSecondary),
               ),
             );
           } else {
@@ -898,20 +1094,15 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                 var stationName = train['StationName']['Zh_tw'] ?? '無車站';
                 var trainNo = train['TrainNo'] ?? '未知';
                 var trainType = train['TrainTypeName']['Zh_tw'] ?? '未知';
-                var scheduledArrivalTime =
-                _formatTime(train['ScheduledArrivalTime'] ?? '未知');
-                var scheduledDepartureTime =
-                _formatTime(train['ScheduledDepartureTime'] ?? '未知');
+                var scheduledArrivalTime = _formatTime(train['ScheduledArrivalTime'] ?? '未知');
+                var scheduledDepartureTime = _formatTime(train['ScheduledDepartureTime'] ?? '未知');
                 var delayTime = train['DelayTime'] ?? 0;
-                var endingStation =
-                    train['EndingStationName']['Zh_tw'] ?? '未知';
+                var endingStation = train['EndingStationName']['Zh_tw'] ?? '未知';
                 var direction = train['Direction'] == 0 ? '順行' : '逆行';
 
                 return Container(
-                  margin:
-                  const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -928,10 +1119,10 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                     children: [
                       Text(
                         stationName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -945,19 +1136,15 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                       const SizedBox(height: 6),
                       _buildDetailRow('終點站', endingStation),
                       const SizedBox(height: 6),
-                      _buildDetailRow('到達時間', scheduledArrivalTime,
-                          isHighlighted: true),
+                      _buildDetailRow('到達時間', scheduledArrivalTime, isHighlighted: true),
                       const SizedBox(height: 6),
-                      _buildDetailRow('離開時間', scheduledDepartureTime,
-                          isHighlighted: true),
+                      _buildDetailRow('離開時間', scheduledDepartureTime, isHighlighted: true),
                       const SizedBox(height: 6),
                       _buildDetailRow(
                         '延遲',
                         delayTime > 0 ? '${delayTime}分鐘' : '準時',
                         isHighlighted: true,
-                        highlightColor: delayTime > 0
-                            ? Colors.redAccent
-                            : Colors.green,
+                        highlightColor: delayTime > 0 ? Colors.redAccent : Colors.green,
                       ),
                     ],
                   ),
@@ -970,16 +1157,15 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildDetailRow(String title, String value,
-      {bool isHighlighted = false, Color? highlightColor}) {
+  Widget _buildDetailRow(String title, String value, {bool isHighlighted = false, Color? highlightColor}) {
     return Row(
       children: [
         Text(
           "$title: ",
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: textPrimary,
           ),
         ),
         Text(
@@ -987,26 +1173,22 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: isHighlighted ? highlightColor ?? Colors.blue : Colors.black,
+            color: isHighlighted ? highlightColor ?? primaryColor : textPrimary,
           ),
         ),
       ],
     );
   }
 
-  /// 格式化時間為12小時制
   String _formatTime(String time) {
     try {
       final parsedTime = DateTime.parse('1970-01-01 $time');
       final formatter = DateFormat('hh:mm a');
       return formatter.format(parsedTime);
     } catch (e) {
-      return time; // 無法格式化則返回原時間
+      return time;
     }
   }
-
-
-
 }
 
 
@@ -1080,7 +1262,7 @@ return
 
       // 过滤出 type 为 "transit" 的段
       List< dynamic> transitSections = section["sections"].where((section) => section['type'] == 'transit').toList();
-      
+
       // 提取并输出所有的 transport 数据
       List< dynamic> transports = transitSections.map((section) => section).toList();
       List< dynamic> arrival = transitSections.map((section) => section['arrival']["place"]["name"]).toList();

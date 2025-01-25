@@ -38,12 +38,20 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
 
 
+  MarkerProvider? _markerProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 在 didChangeDependencies 中获取依赖
+    _markerProvider = Provider.of<MarkerProvider>(context, listen: false);
+  }
+
   @override
   void dispose() {
-
     super.dispose(); // 确保调用父类的 dispose 方法
-    Provider.of<MarkerProvider>(context, listen: false).setMarker({});
-
+    // 使用之前保存的 _markerProvider
+    _markerProvider?.setMarker({});
   }
   // 加载标记
   Future<void> _loadMarkers(BuildContext context, List<Station>? stations) async {

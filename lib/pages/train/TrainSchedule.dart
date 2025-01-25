@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 
 class TrainSchedulePage extends StatelessWidget {
+  // 顏色常數定義
+  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
+  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
+  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+  static const Color textSecondary = Color(0xFF718096);    // 次要文字
+
   final Map<String, dynamic> trainData;
   final String type;
 
@@ -16,29 +22,35 @@ class TrainSchedulePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           '列車時刻表',
-          style: TextStyle(color: Colors.black87),
+          style: TextStyle(
+            color: textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
-        elevation: 0,
+        elevation: 1,
         backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildTrainInfoCard(),
-            const SizedBox(height: 24),
-            const Text(
-              '停靠站',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                '停靠站資訊',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimary,
+                ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             _buildStopTimesList(),
           ],
         ),
@@ -54,9 +66,9 @@ class TrainSchedulePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8, // 柔和的阴影
-            offset: const Offset(0, 4), // 阴影稍微下移
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -66,34 +78,34 @@ class TrainSchedulePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '車次: ${trainData['DailyTrainInfo']['TrainNo']}',
-              style: const TextStyle(
-                fontSize: 20,
+              '車次 ${trainData['DailyTrainInfo']['TrainNo']}',
+              style: TextStyle(
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: primaryColor,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildStationInfoRow(
               icon: Icons.place_outlined,
               label: '起站',
               stationName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildStationInfoRow(
               icon: Icons.flag_outlined,
               label: '終站',
               stationName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
             ),
-            const SizedBox(height: 16),
-            Text(
-              '列車種類: ${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}',
-              style: const TextStyle(fontSize: 16, color: Colors.black54),
+            const SizedBox(height: 20),
+            _buildInfoItem(
+              '列車種類',
+              trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
             ),
             const SizedBox(height: 8),
-            Text(
-              '備註: ${trainData['DailyTrainInfo']['Note']['Zh_tw']}',
-              style: const TextStyle(fontSize: 16, color: Colors.black54),
+            _buildInfoItem(
+              '備註',
+              trainData['DailyTrainInfo']['Note']['Zh_tw'],
             ),
           ],
         ),
@@ -108,11 +120,46 @@ class TrainSchedulePage extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Icon(icon, color: Colors.blueAccent, size: 20),
+        Icon(icon, color: primaryColor, size: 24),
+        const SizedBox(width: 12),
+        Text(
+          '$label：',
+          style: TextStyle(
+            fontSize: 16,
+            color: textSecondary,
+          ),
+        ),
         const SizedBox(width: 8),
         Text(
-          '$label: $stationName',
-          style: const TextStyle(fontSize: 16, color: Colors.black87),
+          stationName,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            color: textPrimary,
+          ),
         ),
       ],
     );
@@ -129,88 +176,112 @@ class TrainSchedulePage extends StatelessWidget {
         final stop = stopTimes[index];
         final isLast = index == stopTimes.length - 1;
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12), // 調整項目間距
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左側時間
-              SizedBox(
-                width: 80,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      stop['ArrivalTime'] ?? '--:--',
-                      style: const TextStyle(fontSize: 16, color: Colors.black87),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8), // 調整到站與離站間距
-                    Text(
-                      stop['DepartureTime'] ?? '--:--',
-                      style: const TextStyle(fontSize: 16, color: Colors.black54),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ), const SizedBox(width: 25), // 調整左中右的間距
-              // 中間時間軸
-              Column(
-                children: [
-                  if (index > 0) // 上方連線
-                    Container(
-                      width: 2,
-                      height: 30,
-                      color: Colors.blue,
-                    ),
-                  // 圓點
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  if (!isLast) // 下方連線
-                    Container(
-                      width: 2,
-                      height: 30,
-                      color: Colors.blue,
-                    ),
-                ],
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
               ),
-              const SizedBox(width: 25), // 調整左中右的間距
-              // 右側車站名稱與狀態
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 時間區塊
+                SizedBox(
+                  width: 80,
+                  child: Column(
+                    children: [
+                      Text(
+                        stop['ArrivalTime'] ?? '--:--',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        stop['DepartureTime'] ?? '--:--',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 時間軸
+                Column(
                   children: [
-                    Text(
-                      stop['StationName']['Zh_tw'] ?? '未知車站',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    if (index > 0)
+                      Container(
+                        width: 2,
+                        height: 24,
+                        color: primaryColor.withOpacity(0.3),
+                      ),
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    const SizedBox(height: 8), // 車站名稱與狀態間距
-                    if (stop['SuspendedFlag'] == 1)
-                      const Text(
-                        '此站暫停停靠',
-                        style: TextStyle(fontSize: 16, color: Colors.redAccent),
-                      )
-                    else
-                      const Text(
-                        '正常停靠',
-                        style: TextStyle(fontSize: 16, color: Colors.green),
+                    if (!isLast)
+                      Container(
+                        width: 2,
+                        height: 24,
+                        color: primaryColor.withOpacity(0.3),
                       ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(width: 24),
+                // 車站資訊
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stop['StationName']['Zh_tw'] ?? '未知車站',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (stop['SuspendedFlag'] == 1)
+                        Text(
+                          '此站暫停停靠',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.redAccent,
+                          ),
+                        )
+                      else
+                        Text(
+                          '正常停靠',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.green,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
-
-
-
 }

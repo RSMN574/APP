@@ -7,6 +7,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
+import 'HSR.dart';
 import 'commute.dart';
 import 'database/schedule.dart';
 import 'firebase/FCM.dart';
@@ -89,7 +90,7 @@ class NavigationBarApp extends StatelessWidget {
         'notification': (BuildContext context) => NotificationPage(),
         "home": (BuildContext context) => Home(),
         "bike": (BuildContext context) => Bike(),
-
+        "HSR": (BuildContext context) => HSR(),
       },
       theme: appTheme,
       themeMode: ThemeMode.system,
