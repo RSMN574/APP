@@ -11,8 +11,62 @@ final Color endColor = Color.fromARGB(255, 27, 141, 255);   // (27,141,255)
 final Color bgColor =Color.fromRGBO(245,245,245,1);
 final Color bgColorWhite =Colors.white;
 final ThemeData appTheme = ThemeData(
-  useMaterial3: true,
-    fontFamily: 'MiSans-Normal', colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue).copyWith(surface: Colors.white),
-    // 应用字体
-    scaffoldBackgroundColor:Colors.white
+ useMaterial3: true,
+ fontFamily: 'MiSans-Normal', // 全局字体
+ colorScheme: ColorScheme.fromSwatch(
+  primarySwatch: Colors.blue,
+ ).copyWith(
+  surface: Colors.white, // 组件表面颜色
+  background: Colors.white, // 背景颜色
+  onSurface: Colors.black, // 文字颜色
+ ),
+ scaffoldBackgroundColor: Colors.white,
+
+ // AppBar 样式
+ appBarTheme: const AppBarTheme(
+  backgroundColor: Colors.white,
+  elevation: 0,
+  titleTextStyle: TextStyle(
+   fontSize: 20,
+   fontWeight: FontWeight.bold,
+   color: Colors.black,
+  ),
+  iconTheme: IconThemeData(color: Colors.black),
+ ),
+
+ // 按钮样式
+ elevatedButtonTheme: ElevatedButtonThemeData(
+  style: ElevatedButton.styleFrom(
+   foregroundColor: Colors.white,
+   backgroundColor: Colors.blue,
+   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+   elevation: 2,
+   padding: EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+  ),
+ ),
+
+ // 输入框样式
+ inputDecorationTheme: InputDecorationTheme(
+  filled: true,
+  fillColor: Colors.grey[100], // 背景颜色
+  border: OutlineInputBorder(
+   borderRadius: BorderRadius.circular(10),
+   borderSide: BorderSide.none,
+  ),
+  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+ ),
+
+ // 文本样式
+ textTheme: const TextTheme(
+  bodyLarge: TextStyle(fontSize: 18, color: Colors.black),
+  bodyMedium: TextStyle(fontSize: 16, color: Colors.black54),
+  titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+ ),
+
+ // Card 样式
+ cardTheme: CardTheme(
+  elevation: 2,
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+  color: Colors.white,
+ ),
 );

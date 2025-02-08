@@ -20,15 +20,17 @@ import 'firebase/placeAPI.dart';
 
 
 import 'widget/transportGrid.dart';
-
-Set<Marker> _bikeMarkers = {};
+import 'package:event_bus/event_bus.dart';
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
-
+class detailPageDataEvent {
+  final List message;
+  detailPageDataEvent(this.message);
+}
 class Home extends StatefulWidget {
   @override
   _HomeState createState() => _HomeState();
 }
-
+EventBus eventBus = EventBus(); // 全局事件總線
 class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , MRTColor{
   DateTime _selectedTime= DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
@@ -71,16 +73,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   List<dynamic> _placePredictions = [];
   var _placePrediction;
   double _bottomSheetHeightMin = 0.2;
-  int _index = 0;
+  // int _int.value = 0;
   GoogleMapController? _mapController;
   PersistentBottomSheetController? _bottomSheetController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
+  final ValueNotifier<List> dataNotifier = ValueNotifier<List>([]);
 
-  Future<void> showBusStops() async {
-    var i = await mysqlSelect('SELECT * FROM Bus.Bus_Taichung_Stop');
-  }
-
+  final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
   // 获取当前位置
   void _getCurrentLocation() async {
     try {
@@ -134,10 +134,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
     return WillPopScope(
       onWillPop: () async {
-        if (_index > 0) {
-          setState(() {
-            _index--; // 返回到上一个索引
-          });
+        if (_indexNotifier.value > 0) {
+
+            _indexNotifier.value--; // 返回到上一个索引
           return false; // 阻止默认返回导航
         }
         return true; // 在索引为0时允许默认返回导航
@@ -154,16 +153,31 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
                     },
                   )),
+            ), ValueListenableBuilder<int>(
+              valueListenable: _indexNotifier,
+              builder: (context, index, child) {
+                return IndexedStack(
+                  index: index,
+                  children: [
+                    _buildMainContent(context),
+                    _buildSearchContent(context),
+                    _buildPlaceDetails(_placePrediction),
+                    _buildPlaceWays(_placePrediction),
+                    _buildDetailPage(),
+                  ],
+                );
+              },
             ),
-            IndexedStack(
-              index: _index,
-              children: <Widget>[
-                _buildMainContent(context),
-                _buildSearchContent(context),
-                _buildPlaceDetails(_placePrediction),
-                _buildPlaceWays(_placePrediction),
-              ],
-            ),
+            // IndexedStack(
+            //   index: _indexNotifier.value,
+            //   children: <Widget>[
+            //     _buildMainContent(context),
+            //     _buildSearchContent(context),
+            //     _buildPlaceDetails(_placePrediction),
+            //     _buildPlaceWays(_placePrediction),
+            //     _buildDetailPage()
+            //   ],
+            // ),
           ],
         ),
       ),
@@ -289,7 +303,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     return GestureDetector(
       onTap: () {
         setState(() {
-          _index = 1; // 切换到搜索内容
+          _indexNotifier.value = 1; // 切换到搜索内容
         });
         // 显示搜索框并聚焦
         FocusScope.of(context).requestFocus(_searchFocusNode);
@@ -336,82 +350,152 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
               ),
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 拖拽手柄
+                    Center(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
                     Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                       child: TextField(
                         controller: _routeController,
-                        focusNode: _searchFocusNode, // 绑定焦点节点
-                        autofocus: false, // 不在加载时自动获取焦点
+                        focusNode: _searchFocusNode,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[800],
+                        ),
                         decoration: InputDecoration(
-                          hintText: '搜尋',
-                          border: InputBorder.none,
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          hintText: '輸入目的地...',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
-                              vertical: 15.0, horizontal: 20.0),
-                          suffixIcon: IconButton(
-                            icon: const Icon(Icons.search, color: Colors.blue),
-                            onPressed: () {
-                              _loadPredictions();
-                              // 隐藏键盘
-                              FocusScope.of(context).unfocus();
-                            },
+                              vertical: 16.0, horizontal: 20.0),
+                          prefixIcon: Icon(Icons.search, color: Colors.blue[300]),
+                          suffixIcon: Container(
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.search, color: Colors.white),
+                              onPressed: () {
+                                _loadPredictions();
+                                FocusScope.of(context).unfocus();
+                              },
+                            ),
                           ),
                         ),
-                        onChanged: (value) {
-                          setState(() {
-                            _placePredictions.clear();
-                          });
-                        },
+                        onChanged: (value) => setState(() => _placePredictions.clear()),
                         onSubmitted: (value) {
                           _loadPredictions();
-                          // 隐藏键盘
                           FocusScope.of(context).unfocus();
                         },
                       ),
                     ),
-                    const SizedBox(height: 16.0),
+                    const SizedBox(height: 12.0),
                     if (_placePredictions.isNotEmpty)
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          itemCount: _placePredictions.length,
-                          itemBuilder: (context, index) {
-                            final mainText = _placePredictions[index]
-                                ['structured_formatting']['main_text'];
-                            final secondaryText = _placePredictions[index]
-                                ['structured_formatting']['secondary_text'];
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Material(
+                          elevation: 2,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: SingleChildScrollView(
+                              physics: const NeverScrollableScrollPhysics(), // 禁止內部滾動
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: _placePredictions.map((prediction) {
+                                  final mainText = prediction['structured_formatting']['main_text'];
+                                  final secondaryText = prediction['structured_formatting']['secondary_text'];
 
-                            return ListTile(
-                              leading: const Icon(Icons.location_on,
-                                  color: Colors.blue),
-                              title: Text(mainText,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold)),
-                              subtitle: Text(secondaryText,
-                                  style: const TextStyle(color: Colors.grey)),
-                              onTap: () {
-                                final locationProvider =
-                                    Provider.of<LocationProvider>(context,
-                                        listen: false);
-                                String origin =
-                                    '${locationProvider.latitude},${locationProvider.longitude}';
-                                print(_placePredictions[index]);
+                                  return Column(
+                                    children: [
+                                      ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 8,
+                                        ),
+                                        leading: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.1),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(Icons.location_on,
+                                              color: Colors.blue[700]),
+                                        ),
+                                        title: Text(mainText,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey[800],
+                                              fontSize: 15,
+                                            )),
+                                        subtitle: Text(secondaryText,
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 13,
+                                            )),
+                                        onTap: () {
+                                          final locationProvider =
+                                          Provider.of<LocationProvider>(context,
+                                              listen: false);
+                                          String origin =
+                                              '${locationProvider.latitude},${locationProvider.longitude}';
 
-                                setState(() {
-                                  _destinationController.text =
-                                      _placePredictions[index]["description"];
-                                  _placePrediction = _placePredictions[index];
-                                  _index = 2; // 切换到地点详细信息
-                                });
-                              },
-                            );
-                          },
+
+                                          setState(() {
+                                            _destinationController.text =
+                                            prediction["description"];
+                                            _placePrediction = prediction;
+                                            _indexNotifier.value = 2; // 切换到地点详细信息
+                                          });
+                                        },
+                                      ),
+                                      if (_placePredictions.indexOf(prediction) !=
+                                          _placePredictions.length - 1)
+                                        Divider(
+                                          height: 1,
+                                          color: Colors.grey[200],
+                                          indent: 16,
+                                        ),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                   ],
@@ -421,18 +505,27 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           },
         ),
         Positioned(
-          top: 30,
-          left: 20,
-          child: FloatingActionButton(
-            mini: true,
-            backgroundColor: Colors.white,
-            child: Icon(Icons.arrow_back, color: Colors.blue),
-            onPressed: () {
-              setState(() {
-                _index = 0; // 返回主页面
-                _searchFocusNode.unfocus(); // 隐藏键盘
-              });
-            },
+          top: MediaQuery.of(context).padding.top + 10,
+          left: 16,
+          child: Material(
+            borderRadius: BorderRadius.circular(24),
+            elevation: 2,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                splashRadius: 24,
+                onPressed: () {
+                  setState(() {
+                    _indexNotifier.value = 0;
+                    _searchFocusNode.unfocus();
+                  });
+                },
+              ),
+            ),
           ),
         ),
       ],
@@ -440,21 +533,15 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   }
 
   Widget _buildPlaceDetails(dynamic place) {
-
     final locationProvider = Provider.of<LocationProvider>(context);
-    //
-    //   if(place != null){
-    //     _destinationController.text=place['structured_formatting']['main_text'];
-    //     _originController.text="現在位置";
-    //   }
 
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) {
           // 向左滑动
           setState(() {
-            if (_index > 0) {
-              _index--; // 返回上一页
+            if (_indexNotifier.value > 0) {
+              _indexNotifier.value--; // 返回上一页
             }
           });
         }
@@ -465,70 +552,111 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         maxChildSize: 1.0,
         builder: (BuildContext context, ScrollController scrollController) {
           return Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+              ],
             ),
             child: SingleChildScrollView(
               controller: scrollController,
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-                  if (_index > 0)
+                  // 拖拽手柄
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  if (_indexNotifier.value > 0)
                     Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: FloatingActionButton(
-                          mini: true,
-                          backgroundColor: Colors.white,
-                          child: const Icon(Icons.arrow_back, color: Colors.blue),
-                          onPressed: () {
-                            setState(() {
-                              _index--; // 返回上一页
-                              _searchFocusNode.unfocus(); // 隐藏键盘
-                            });
-                          },
+                        padding: const EdgeInsets.all(16.0),
+                        child: Material(
+                          borderRadius: BorderRadius.circular(24),
+                          elevation: 2,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                              splashRadius: 24,
+                              onPressed: () {
+                                setState(() {
+                                  _indexNotifier.value--; // 返回上一页
+                                  _searchFocusNode.unfocus(); // 隐藏键盘
+                                });
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   if (place != null) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                       child: Row(
                         children: [
-                          const Text(
-                            '起點', // 起点标签
-                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          Text(
+                            '起點',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(30.0),
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
                               child: TextField(
                                 controller: _originController,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[800],
+                                ),
                                 decoration: InputDecoration(
                                   hintText: '選擇起點(現在位置)',
+                                  hintStyle: TextStyle(color: Colors.grey[500]),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(
                                       vertical: 15.0, horizontal: 20.0),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search, color: Colors.blue),
-                                    onPressed: () {
-                                      _loadPredictions();
-                                      // 隐藏键盘
-                                      FocusScope.of(context).unfocus();
-                                    },
+                                  suffixIcon: Container(
+                                    margin: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.search, color: Colors.white),
+                                      onPressed: () {
+                                        _loadPredictions();
+                                        FocusScope.of(context).unfocus();
+                                      },
+                                    ),
                                   ),
                                 ),
                                 onChanged: (value) {},
                                 onSubmitted: (value) {
                                   _loadPredictions();
-                                  // 隐藏键盘
                                   FocusScope.of(context).unfocus();
                                 },
                               ),
@@ -539,41 +667,55 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                     ),
                     const SizedBox(height: 15.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                       child: Row(
                         children: [
-                          const Text(
-                            '終點', // 终点标签
-                            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                          Text(
+                            '終點',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                            ),
                           ),
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(30.0),
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
                               child: TextField(
                                 controller: _destinationController,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[800],
+                                ),
                                 decoration: InputDecoration(
                                   hintText: '選擇終點',
+                                  hintStyle: TextStyle(color: Colors.grey[500]),
                                   border: InputBorder.none,
                                   contentPadding: const EdgeInsets.symmetric(
                                       vertical: 15.0, horizontal: 20.0),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search, color: Colors.blue),
-                                    onPressed: () {
-                                      _loadPredictions();
-                                      // 隐藏键盘
-                                      FocusScope.of(context).unfocus();
-                                    },
+                                  suffixIcon: Container(
+                                    margin: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.search, color: Colors.white),
+                                      onPressed: () {
+                                        _loadPredictions();
+                                        FocusScope.of(context).unfocus();
+                                      },
+                                    ),
                                   ),
                                 ),
                                 onChanged: (value) {},
                                 onSubmitted: (value) {
                                   _loadPredictions();
-                                  // 隐藏键盘
                                   FocusScope.of(context).unfocus();
                                 },
                               ),
@@ -582,63 +724,80 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30.0),
+                    const SizedBox(height: 20.0),
                     InkWell(
                       onTap: () async {
                         await _selectDateTime(context);
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
-                        padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                        margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
                         decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(30.0),
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.access_time, color: Colors.blue),
+                            Icon(Icons.access_time, color: Colors.blue[700]),
                             const SizedBox(width: 10.0),
-                            const Text(
+                            Text(
                               '選擇時間',
-                              style: TextStyle(fontSize: 16.0, color: Colors.blue),
+                              style: TextStyle(
+                                fontSize: 16.0,
+                                color: Colors.grey[800],
+                              ),
                             ),
                             const Spacer(),
                             Text(
                               _selectedTime == null
                                   ? '選擇時間'
                                   : dateFormat.format(_selectedTime!),
-                              style: const TextStyle(fontSize: 16, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
+                    const SizedBox(height: 30.0),
                     Center(
                       child: ElevatedButton(
                         onPressed: () {
-                          setState(() {
-                            _index = 3; // 切换到地点详细信息
-                          });
+
+
+                            _indexNotifier.value = 3; // 切换到地点详细信息
+
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 50.0, vertical: 15.0),
+                              horizontal: 50.0, vertical: 16.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30.0),
                           ),
-                          backgroundColor: Colors.blue, // 按钮背景颜色
+                          backgroundColor: Colors.blue,
+                          elevation: 2,
                         ),
                         child: const Text(
                           '出發',
-                          style: TextStyle(fontSize: 18.0, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
-
                   ] else ...[
-                    const Text(
-                      "未選擇地點",
-                      style: TextStyle(fontSize: 16.0, color: Colors.grey),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Text(
+                        "未選擇地點",
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -679,7 +838,33 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             child: Column(
               children: [
                 // 这里是您想要展示的内容，例如：
-                Padding(
+                if (_indexNotifier.value > 0)
+            Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Material(
+                borderRadius: BorderRadius.circular(24),
+                elevation: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                    splashRadius: 24,
+                    onPressed: () {
+                      setState(() {
+                        _indexNotifier.value--; // 返回上一页
+                        _searchFocusNode.unfocus(); // 隐藏键盘
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ), Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
                     "Bike Stations",
@@ -695,35 +880,30 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-  Widget _buildPlaceWays(dynamic place,) {
-    // 获取交通方式的图标
-
-
+  Widget _buildPlaceWays(dynamic place) {
     // 获取路线数据
     Future<Map<String, dynamic>> _getDirections() async {
-      DateFormat dataFormat=DateFormat("yyyy-MM-ddTHH:mm:ss");
+      DateFormat dataFormat = DateFormat("yyyy-MM-ddTHH:mm:ss");
       PlacesService placesService = PlacesService();
-      final locationProvider =
-          Provider.of<LocationProvider>(context, listen: false);
-      LatLng? destination =
-          await placesService.getLatLngFromPlaceId(place["place_id"]);
-      _loadMarkers(destination?.latitude,destination?.longitude,place["place_id"]);
+      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
+      _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
       return await getDirections(
         "${locationProvider.latitude}%2C${locationProvider.longitude}",
-        "${destination?.latitude}%2C${destination?.longitude}",dataFormat.format(_selectedTime!),
+        "${destination?.latitude}%2C${destination?.longitude}",
+        dataFormat.format(_selectedTime!),
       );
     }
-//  "${24.150784}%2C${120.646877}",
-    // "${locationProvider.latitude}%2C${locationProvider.longitude}",
+
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) {
           // 向左滑动
-          setState(() {
-            if (_index > 0) {
-              _index--; // 返回上一页
+
+            if (_indexNotifier.value > 0) {
+              _indexNotifier.value--; // 返回上一页
             }
-          });
+
         }
       },
       child: DraggableScrollableSheet(
@@ -731,86 +911,123 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         minChildSize: _bottomSheetHeightMin,
         maxChildSize: 1.0,
         builder: (BuildContext context, ScrollController scrollController) {
-
           return Container(
+
             decoration: BoxDecoration(
-              color: bgColor, // 白色背景
+              color: bgColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black12, // 微弱阴影效果
+                  color: Colors.black12,
                   offset: Offset(0, -2),
                   blurRadius: 5,
                 ),
               ],
             ),
-            child: FutureBuilder<Map<String, dynamic>>(
-              future: _getDirections(), // 调用异步方法
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: LoadingAnimationWidget.stretchedDots(
-                      color: Colors.black,
-                      size: 40,
-                    ),
-                  );// 加载中的占位组件
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
-                } else if (!snapshot.hasData || snapshot.data == null) {
-                  return const Center(child: Text('沒有資料')); // 无数据占位
-                }
-
-                // 使用数据生成 UI
-                final data = snapshot.data!;
-                final routes = data['data']['routes'] as List<dynamic>;
-
-
-                return ListView.builder(
-                  controller: scrollController,
-                  itemCount: routes.length,
-                  itemBuilder: (context, index) {
-                    final route = routes[index];
-                    final sections = route['sections'] as List<dynamic>;
-                    final totalTime = route['travel_time'];
-                    final totalPrice = route['total_price'] ?? 0;
-                    // 合并类型相同的段落
-                    List<Map<String, dynamic>> mergedJourney = [];
-                    for (var segment in sections) {
-
-                      if (mergedJourney.isNotEmpty &&
-                          mergedJourney.last['type'] == segment['type']) {
-                        // 更新 travelSummary
-                        mergedJourney.last['travelSummary']['duration'] +=
-                        segment['travelSummary']['duration'];
-                        mergedJourney.last['travelSummary']['length'] +=
-                        segment['travelSummary']['length'];
-
-                        // 合并 intermediateStops
-                        if (segment.containsKey('intermediateStops')) {
-                          mergedJourney.last['intermediateStops'] ??= [];
-                          mergedJourney.last['intermediateStops']
-                              .addAll(segment['intermediateStops']);
-                        }
-
-                        // 更新到达信息
-                        mergedJourney.last['arrival'] = segment['arrival'];
-                      } else {
-                        mergedJourney.add(segment);
-                      }
-
-
+            child: Stack(
+              children: [
+                FutureBuilder<Map<String, dynamic>>(
+                  future: _getDirections(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: LoadingAnimationWidget.stretchedDots(
+                          color: Colors.black,
+                          size: 40,
+                        ),
+                      );
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('錯誤: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data == null) {
+                      return const Center(child: Text('沒有資料'));
                     }
-                    // 移除 type 为 "waiting" 的段落
-                    mergedJourney.removeWhere((segment) => segment['type'] == 'waiting');
-                    mergedJourney.removeWhere((segment) => segment['type'] == 'pedestrian-station');
 
-                    return
-                      Column(children: [ const SizedBox(height: 20,),_buildSectionCard(mergedJourney,route['travel_time'])]);
+                    final data = snapshot.data!;
+                    final routes = data['data']['routes'] as List<dynamic>;
 
+                    return SafeArea(
+
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 25), // 确保底部不被遮挡
+                        child: ListView.builder(
+                          controller: scrollController,
+                          itemCount: routes.length,
+                          padding: EdgeInsets.only(top: 20), // 额外的底部间距
+                          itemBuilder: (context, index) {
+                            final route = routes[index];
+                            final sections = route['sections'] as List<dynamic>;
+
+                            // 合并类型相同的段落
+                            List<Map<String, dynamic>> mergedJourney = [];
+                            for (var segment in sections) {
+                              if (mergedJourney.isNotEmpty &&
+                                  mergedJourney.last['type'] == segment['type']) {
+                                mergedJourney.last['travelSummary']['duration'] +=
+                                segment['travelSummary']['duration'];
+                                mergedJourney.last['travelSummary']['length'] +=
+                                segment['travelSummary']['length'];
+
+                                if (segment.containsKey('intermediateStops')) {
+                                  mergedJourney.last['intermediateStops'] ??= [];
+                                  mergedJourney.last['intermediateStops']
+                                      .addAll(segment['intermediateStops']);
+                                }
+
+                                mergedJourney.last['arrival'] = segment['arrival'];
+                              } else {
+                                mergedJourney.add(segment);
+                              }
+                            }
+
+                            mergedJourney.removeWhere((segment) => segment['type'] == 'waiting');
+                            mergedJourney.removeWhere((segment) => segment['type'] == 'pedestrian-station');
+
+                            return Column(
+                              children: [
+                                const SizedBox(height: 20),
+                                _buildSectionCard(mergedJourney, route['travel_time']),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    );
                   },
-                );
-
-              },
+                ),
+                // 返回按钮
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (_indexNotifier.value > 0) {
+                          _indexNotifier.value--;
+                        }
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 5,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.arrow_back,
+                        color: Colors.blue[800],
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -828,7 +1045,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     double radius = calculateCornerRadius(context);
     return // Generated code for this Row Widget...
 
-      Container(
+      GestureDetector(
+          onTap: () {
+            eventBus.fire(detailPageDataEvent(sections));
+
+            // 導航至詳細資訊頁面，並傳遞數據
+
+             _indexNotifier.value++;
+
+          },
+          child:  Container(
 
         width: MediaQuery.of(context).size.width * 0.94,
         padding: EdgeInsets.all(12), // 为内容添加适当的内边距
@@ -844,6 +1070,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           ],
         ),
         child: Column(
+
           mainAxisSize: MainAxisSize.min, // 根据内容动态调整高度
           children: [
             Align(
@@ -851,8 +1078,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
               child: Text(
                 _formatDuration(travelTime) ,
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 18.5,
                   fontWeight: FontWeight.w800,
+                  color: Colors.black
                 ),
               ),
             ),
@@ -863,7 +1091,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     child:  Align(
       alignment: Alignment.centerLeft, // 靠左對齊
       child:  Wrap(
-
+        crossAxisAlignment: WrapCrossAlignment.center, // 確保換行時內容仍然對齊
       spacing: 4, // 子组件之间的水平间距
       runSpacing: 6, // 子组件之间的垂直间距
       alignment: WrapAlignment.start, // 左对齐
@@ -879,20 +1107,42 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           transportWidget =Row(
               mainAxisAlignment: MainAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: [ const Icon(Icons.directions_walk, color: Colors.black, size: 24),Text(_formatDurationMin(i["travelSummary"]["duration"]))]);
-        } else if (i["transport"]["mode"] == "Bus") {
-          transportWidget = Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-          Icon(Icons.directions_bus, color: Colors.black, size: 24),
+              children: [ Icon(Icons.directions_walk, color: Colors.grey[600], size: 24),Text(style: TextStyle(
 
-          Text(
-            i["transport"]["name"],
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-                      ],
-                    );
+                color: Colors.grey[600],
+              ), _formatDurationMin(i["travelSummary"]["duration"]))]);
+
+
+        } else if (i["transport"]["mode"] == "Bus") {
+          transportWidget = Container(
+
+            decoration: BoxDecoration(
+
+              borderRadius: BorderRadius.circular(radius),
+              border: Border.all(color: Color(0xFF01BC9F), width: 2), // 邊框顏色加粗
+            ),
+            padding: EdgeInsets.symmetric(horizontal:8 ,vertical:3 ),
+
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center, // 讓 Icon 與 Text 對齊
+              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon(Icons.directions_bus, color: Color(0xFF01BC9F), size: 24), // Icon 顏色
+                // SizedBox(width: 4),
+                Text(
+                  i["transport"]["name"],
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold, // 字體加粗
+                    color: Color(0xFF01BC9F), // 文字顏色
+                    fontSize: 16, // 適當調整字體大小
+                  ),
+                ),
+              ],
+            ),
+          );
+
+
         } else if (i["transport"]["mode"] == "MRT") {
           print(i["transport"]);
           transportWidget = Container(
@@ -914,15 +1164,28 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           );
         }  else if (i["transport"]["mode"] == "HSR") {
           print(i["transport"]["mode"] );
-          transportWidget =  SvgPicture.asset(
-            "assets/icons/train-outline.svg",
-            width: iconSize,
-            height: iconSize,
+          transportWidget = SizedBox(
+            width: 24,
+            height: 24,
+            child: Image.network(
+              "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/HSR-logo.png",
+              fit: BoxFit.contain, // 确保图片完整显示
+            ),
           );
         } else if (i["transport"]["mode"] == "HighwayBus") {
 
-          transportWidget = Icon(Icons.question_mark, color: Colors.black, size: 24);
-        }  else {
+          transportWidget = Icon(Icons.directions_bus, color: Colors.black, size: 24);
+        }else if (i["transport"]["mode"] == "TRA") {
+          transportWidget = SizedBox(
+            width: 24,
+            height: 24,
+            child: Image.network(
+              "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/TRA-logo.png",
+              fit: BoxFit.contain, // 确保图片完整显示
+            ),
+          );
+        }
+        else {
           transportWidget = Container(width: 0,);
 
         }
@@ -934,7 +1197,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           children: [
             transportWidget,
             if (index < sections.length - 1)
-              Icon(Icons.arrow_right_rounded, color: Colors.black, size: 24),
+              Icon(Icons.arrow_right_rounded,      color: Colors.grey[600], size: 24),
           ],
         );
       }).toList(),
@@ -1002,7 +1265,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             ),
           ],
         ),
-      );
+      ));
 
 
 
@@ -1028,5 +1291,272 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
       return '$minutes ';
 
+  }
+  Widget _buildDetailPage(){
+
+    eventBus.on<detailPageDataEvent>().listen((event) {
+      print( "event.message"); // 更新 UI
+    print( event.message); // 更新 UI
+      dataNotifier.value=event.message;
+    });
+   return  DraggableScrollableSheet(
+      initialChildSize: 0.33, // 初始大小
+      minChildSize: _bottomSheetHeightMin, // 最小大小
+      maxChildSize: 0.6, // 最大大小
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              children: _buildTravelSteps(),
+            ),
+          ),
+        );
+      },
+    );
+
+  }
+// 行程步驟 UI（完整美化版）
+  List<Widget> _buildTravelSteps() {
+    return dataNotifier.value.map((step) {
+      return Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 主標題（帶操作按鈕）
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _getStepTitle(step),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[800],
+                    ),
+                  ),
+                ),
+                _buildActionButton(step), // 根據類型顯示不同操作按鈕
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // 詳細行程內容
+            _buildStepContent(step),
+
+            // 分隔線
+            Divider(height: 24, thickness: 1, color: Colors.grey[300]),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+// 構建步驟標題
+  String _getStepTitle(Map<String, dynamic> step) {
+    switch (step['type']) {
+      case 'pedestrian':
+        return "步行 ${step['travelSummary']['length']?.toStringAsFixed(0) ?? ''}米";
+      case 'transit':
+        return "${step['transport']['shortName']} · ${step['travelSummary']['duration']}分鐘";
+      default:
+        return step['type'];
+    }
+  }
+
+// 構建操作按鈕
+  Widget _buildActionButton(Map<String, dynamic> step) {
+    switch (step['type']) {
+      case 'pedestrian':
+        return TextButton.icon(
+          icon: Icon(Icons.directions, size: 18, color: Colors.blue),
+          label: Text("步行導航", style: TextStyle(color: Colors.blue)), onPressed: () {  },
+          // onPressed: () => _startNavigation(step),
+        );
+      case 'transit':
+        return TextButton.icon(
+          icon: Icon(Icons.notifications_active, size: 18, color: Colors.orange),
+          label: Text("關注路線", style: TextStyle(color: Colors.orange)), onPressed: () {  },
+          // onPressed: () => _followRoute(step),
+        );
+      default:
+        return SizedBox.shrink();
+    }
+  }
+
+// 構建行程內容
+  Widget _buildStepContent(Map<String, dynamic> step) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 時間與地點區塊
+        _buildTimeBlock(
+          icon: Icons.access_time,
+          time: _formatTime(step['departure']['time']),
+          place: step['departure']['place']['name']??"未知地點",
+          duration: step['travelSummary']['duration'],
+        ),
+
+        // 交通資訊區塊
+        if (step['type'] == 'transit') ...[
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.directions_transit, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 8),
+              Text(
+                "預計車程：${step['travelSummary']['duration']}分鐘",
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              Spacer(),
+              Text(
+                "${step['transport']['fare']}元",
+                style: TextStyle(
+                  color: Colors.red[600],
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // 卡路里消耗提示
+        if (step['type'] == 'pedestrian') ...[
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
+              SizedBox(width: 4),
+              Text(
+                "本段預計消耗 ${_calculateCalories(step)} 大卡",
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ],
+
+        // 換乘提示
+        if (step['type'] == 'pedestrian-station') ...[
+          SizedBox(height: 8),
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info, size: 16, color: Colors.blue),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "站內換乘${step['travelSummary']['length']}米（約${step['travelSummary']['duration']}分鐘）",
+                    style: TextStyle(color: Colors.blue[800]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // 實時公交信息
+        if (step['type'] == 'transit') ...[
+          SizedBox(height: 12),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "實時信息",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                _buildRealTimeInfo(step),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+// 其他工具函式
+  String _formatTime(String isoTime) {
+    final time = DateTime.parse(isoTime);
+    return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+  }
+
+  int _calculateCalories(Map<String, dynamic> step, { double weight = 60}) {
+    final duration = step['travelSummary']['duration'] ?? 0;
+    final metValue = 3.5;
+    final timeInHours = duration / 60;
+    final calories = metValue * weight * timeInHours;
+    return calories.toInt();
+  }
+  Widget _buildRealTimeInfo(Map<String, dynamic> step) {
+    // 模擬實時數據
+    final nextDeparture = step['intermediateStops'].isNotEmpty
+        ? _formatTime(step['intermediateStops'].first['departure']['time'])
+        : "06:00";
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("下一班車：$nextDeparture 發出"),
+        SizedBox(height: 4),
+        Text("預計到達：${_formatTime(step['arrival']['time'])}"),
+        SizedBox(height: 8),
+        ElevatedButton.icon(
+          icon: Icon(Icons.refresh, size: 18),
+          label: Text("刷新實時信息"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green[50],
+            foregroundColor: Colors.green[800],
+          ), onPressed: () {  },
+          // onPressed: () => _refreshRealTime(step),
+        ),
+      ],
+    );
+  }
+  Widget _buildTimeBlock({required IconData icon, required String time, required String place, required int duration}) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              time,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            Text(
+              "$place · 約$duration分鐘",
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }

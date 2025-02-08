@@ -182,7 +182,7 @@ return ;
             case "station":
               if (_selectedCity == "臺中市") {
                 return SingleChildScrollView(
-                    child:GestureDetector(
+                    child:Container(margin:EdgeInsets.only(bottom: 500),child: GestureDetector(
                       onTapDown: (details) {
                         Offset localPosition = details.localPosition;
                         int stationIndex = _mrtGreenLinePainter.getStationIndexAtOffset(localPosition);
@@ -263,7 +263,7 @@ return ;
                         size: Size(300, 1500),
                         painter: _mrtGreenLinePainter,
                       ),
-                    ));
+                    ),));
               } else {
                 return _buildCityText(_selectedCity);
               }
