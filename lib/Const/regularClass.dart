@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LocationProvider with ChangeNotifier {
@@ -34,17 +35,34 @@ class CityProvider with ChangeNotifier {
 //     notifyListeners(); // 通知监听者状态已更新
 //   }
 // }
-class MarkerProvider with ChangeNotifier {
-   Set<Marker> _markers = {};
-  Set<Marker> get markers => _markers;
+class youbike with ClusterItem {
+  final String name;
+  final LatLng latLng;
 
-   void setMarker(Set<Marker> newMarkers) {
-     if (_markers != newMarkers) {
-       _markers = newMarkers;
-       notifyListeners();
-     }
-   }
+  youbike(this.name, this.latLng);
+
+  @override
+  LatLng get location => latLng;
 }
+
+class MarkerProvider extends ChangeNotifier {
+  Set<Marker> _markers = {};
+  List<youbike> _items = []; // ClusterManager 需要的是這個
+
+  Set<Marker> get markers => _markers;
+  List<youbike> get items => _items;
+
+  void setMarkers(Set<Marker> markers) {
+    _markers = markers;
+    notifyListeners();
+  }
+
+  void setItems(List<youbike> items) {
+    _items = items;
+    notifyListeners();
+  }
+}
+
 Map<String, String> cityMap = {
   '宜蘭': '宜蘭縣',
   '花蓮': '花蓮縣',

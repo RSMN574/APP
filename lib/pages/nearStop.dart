@@ -51,7 +51,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   void dispose() {
     super.dispose(); // 确保调用父类的 dispose 方法
     // 使用之前保存的 _markerProvider
-    _markerProvider?.setMarker({});
+    _markerProvider?.setMarkers({});
   }
   // 加载标记
   Future<void> _loadMarkers(BuildContext context, List<Station>? stations) async {

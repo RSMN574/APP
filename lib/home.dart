@@ -7,6 +7,9 @@ import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
+
+
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -21,6 +24,7 @@ import 'firebase/placeAPI.dart';
 
 import 'widget/transportGrid.dart';
 import 'package:event_bus/event_bus.dart';
+
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 class detailPageDataEvent {
   final List message;
@@ -32,7 +36,9 @@ class Home extends StatefulWidget {
 }
 EventBus eventBus = EventBus(); // 全局事件總線
 class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , MRTColor{
-  DateTime _selectedTime= DateTime.now();
+  DateTime _selectedTime = DateTime.now().add(Duration(minutes: 1));
+
+
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
   Future<void> _selectDateTime(BuildContext context) async {
     // 选择日期
@@ -73,7 +79,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   List<dynamic> _placePredictions = [];
   var _placePrediction;
   double _bottomSheetHeightMin = 0.2;
-  // int _int.value = 0;
   GoogleMapController? _mapController;
   PersistentBottomSheetController? _bottomSheetController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
@@ -81,6 +86,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   final ValueNotifier<List> dataNotifier = ValueNotifier<List>([]);
 
   final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<List<String>> selectedTransportModes = ValueNotifier(['高鐵', '台鐵', '公車', '捷運']);
+  final ValueNotifier<String> selectedTravelMode = ValueNotifier('走路');
   // 获取当前位置
   void _getCurrentLocation() async {
     try {
@@ -118,15 +125,22 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     _searchFocusNode.unfocus();
 // 地图创建时调用获取当前定位
     _getCurrentLocation();
-    //showBusStops();
+
+
   }
+
+
 
   @override
   Widget build(BuildContext context) {
+
     super.build(context);
+    final PageStorageBucket _bucket = PageStorageBucket(); // 用於存儲頁面狀態
+
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
+    final double _bottomSheetHeightMin = 0.3; // 這個變數應該來自你的程式碼
     final mapHeight = screenHeight -
         (screenHeight * _bottomSheetHeightMin) -
         appBarHeight -
@@ -135,8 +149,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     return WillPopScope(
       onWillPop: () async {
         if (_indexNotifier.value > 0) {
-
-            _indexNotifier.value--; // 返回到上一个索引
+          _indexNotifier.value--; // 返回到上一个索引
           return false; // 阻止默认返回导航
         }
         return true; // 在索引为0时允许默认返回导航
@@ -146,43 +159,54 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           children: [
             Positioned.fill(
               child: SizedBox(
-                  height: mapHeight,
-                  child: map(
-                    onMapCreated: (controller) {
-                      // 自定义逻辑
+                height: mapHeight,
+                child: map(
+                  onMapCreated: (GoogleMapController controller) {
+                    _mapController = controller;
 
-                    },
-                  )),
-            ), ValueListenableBuilder<int>(
+                  },
+                  onCameraMove: (CameraPosition position) {
+
+                  },
+                  onCameraIdle: ()  {
+
+                  },
+                ),
+              ),
+            ),
+            ValueListenableBuilder<int>(
               valueListenable: _indexNotifier,
               builder: (context, index, child) {
-                return IndexedStack(
-                  index: index,
-                  children: [
-                    _buildMainContent(context),
-                    _buildSearchContent(context),
-                    _buildPlaceDetails(_placePrediction),
-                    _buildPlaceWays(_placePrediction),
-                    _buildDetailPage(),
-                  ],
+                return PageStorage(
+                  bucket: _bucket,
+                  child: _buildCurrentPage(index),
                 );
               },
             ),
-            // IndexedStack(
-            //   index: _indexNotifier.value,
-            //   children: <Widget>[
-            //     _buildMainContent(context),
-            //     _buildSearchContent(context),
-            //     _buildPlaceDetails(_placePrediction),
-            //     _buildPlaceWays(_placePrediction),
-            //     _buildDetailPage()
-            //   ],
-            // ),
           ],
         ),
       ),
     );
   }
+
+  /// 動態創建頁面並使用 PageStorageKey 記住滾動位置
+  Widget _buildCurrentPage(int index) {
+    switch (index) {
+      case 0:
+        return _buildMainContent(context);
+      case 1:
+        return _buildSearchContent(context);
+      case 2:
+        return _buildPlaceDetails(_placePrediction);
+      case 3:
+        return _buildPlaceWays(_placePrediction);
+      case 4:
+        return _buildDetailPage();
+      default:
+        return _buildMainContent(context);
+    }
+  }
+
 
   Future<void> _fetchData() async {
     youBikeStations.value =
@@ -191,36 +215,15 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     _loadBikeMarkers(); // 更新標記
   }
 
-  Future<void> _loadBikeMarkers() async {
-    BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(size: Size(8, 8)), // 調整大小
-      'assets/img/ubike_icon.png',
-    );
-    Set<Marker> cache = {};
-    for (var station in youBikeStations.value) {
-      final marker = Marker(
-        markerId: MarkerId(station["StationUID"]),
-        icon: customIcon,
-        position: LatLng(
-          json.decode(station["StationPosition"])["PositionLat"],
-          json.decode(station["StationPosition"])["PositionLon"],
-        ),
-        infoWindow: InfoWindow(
-          title: json.decode(station["StationName"])["Zh_tw"],
-          snippet: "Capacity: ${station["BikesCapacity"]}",
-        ),
-      );
-      cache.add(marker);
-    }
-    // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-    Provider.of<MarkerProvider>(context, listen: false).setMarker(cache);
-  }
+
+
+//路線marker
   Future<void> _loadMarkers(PositionLat,PositionLon,MarkerID) async {
     // BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
     //   ImageConfiguration(size: Size(8, 8)), // 調整大小
     //   'assets/img/ubike_icon.png',
     // );
-    print(PositionLat+PositionLon);
+
     final marker = Marker(
       markerId:MarkerId(MarkerID),
       // icon: customIcon,
@@ -234,8 +237,57 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       // ),
     );
     // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-    Provider.of<MarkerProvider>(context, listen: false).setMarker({marker});
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers({marker});
+
+
   }
+
+  ////////////////////////////////////////////////////////////////////
+
+
+  Future<void> _loadBikeMarkers() async {
+    // 延迟执行以确保在构建完成后访问 context
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<MarkerProvider>(context, listen: false);
+
+      BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
+        ImageConfiguration(size: Size(8, 8)), // 调整大小
+        'assets/img/ubike_icon.png',
+      );
+
+      Set<Marker> markerCache = {};
+      List<youbike> clusterItems = [];
+
+      for (var station in youBikeStations.value) {
+        final lat = json.decode(station["StationPosition"])["PositionLat"];
+        final lon = json.decode(station["StationPosition"])["PositionLon"];
+        final stationId = station["StationUID"];
+        final stationName = json.decode(station["StationName"])["Zh_tw"];
+
+        final marker = Marker(
+          markerId: MarkerId(stationId),
+          icon: customIcon,
+          position: LatLng(lat, lon),
+          infoWindow: InfoWindow(
+            title: stationName,
+            snippet: "Capacity: ${station["BikesCapacity"]}",
+          ),
+        );
+        markerCache.add(marker);
+
+        clusterItems.add(youbike(stationId, LatLng(lat, lon)));
+      }
+
+      provider.setMarkers(markerCache);
+      provider.setItems(clusterItems);
+
+
+    });
+  }
+
+
+
+//////////////////////////////////////////////////////
   Future<void> _handleClick(String type) async {
     if (type == "bike") {
       _fetchData();
@@ -255,7 +307,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       _bottomSheetController!.closed.then((_) {
         // 这里可以处理 BottomSheet 关闭后的逻辑
         // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-        Provider.of<MarkerProvider>(context, listen: false).setMarker({});
+        Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
       });
     }
   }
@@ -533,12 +585,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   }
 
   Widget _buildPlaceDetails(dynamic place) {
-    final locationProvider = Provider.of<LocationProvider>(context);
+    // 定義一個狀態來控制運具模式和旅運模式的選擇
+
+
 
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) {
-          // 向左滑动
           setState(() {
             if (_indexNotifier.value > 0) {
               _indexNotifier.value--; // 返回上一页
@@ -762,13 +815,97 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                       ),
                     ),
                     const SizedBox(height: 30.0),
+                    // 隱藏的運具模式和旅運模式選擇
+                    ExpansionTile(
+                      title: Text(
+                        '選擇運具模式和旅運模式',
+                        style: TextStyle(
+                          fontSize: 16.0,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '運具模式 (可複選)',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              Wrap(
+                                children: ['高鐵', '台鐵', '公車', '捷運'].map((mode) {
+                                  return
+                                    ValueListenableBuilder<List<String>>(
+                                      valueListenable: selectedTransportModes,
+                                      builder: (context, modes, child) {
+                                        return FilterChip(
+                                          label: Text(mode),
+                                          selected: modes.contains(mode),
+                                          selectedColor: Colors.blue[200],
+                                          checkmarkColor: Colors.white,
+                                          onSelected: (selected) {
+                                            selectedTransportModes.value = List.from(modes); // 重新賦值，確保 UI 更新
+                                            if (selected) {
+                                              if (!selectedTransportModes.value.contains(mode)) {
+                                                selectedTransportModes.value.add(mode);
+                                              }
+                                            } else {
+                                              selectedTransportModes.value.remove(mode);
+                                            }
+                                            selectedTransportModes.notifyListeners(); // 手動通知 UI 更新
+                                          },
+                                        );
+                                      },
+                                    );
+
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 20.0),
+                              Text(
+                                '旅運模式',
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              Wrap(
+                                children: ['走路', '腳踏車', '開車', '共享單車'].map((currentMode) {
+                                  return ValueListenableBuilder<String>(
+                                    valueListenable: selectedTravelMode,
+                                    builder: (context, mode, child) {
+                                      return ChoiceChip(
+                                        label: Text(currentMode),
+                                        selected: mode == currentMode,
+                                        selectedColor: Colors.blue,
+                                        labelStyle: TextStyle(
+                                          color: mode == currentMode ? Colors.white : Colors.black,
+                                        ),
+                                        onSelected: (selected) {
+                                          selectedTravelMode.value = currentMode; // 直接更新 ValueNotifier
+                                        },
+                                      );
+                                    },
+                                  );
+
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20.0),
                     Center(
                       child: ElevatedButton(
                         onPressed: () {
-
-
-                            _indexNotifier.value = 3; // 切换到地点详细信息
-
+                          _indexNotifier.value = 3; // 切换到地点详细信息
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
@@ -879,6 +1016,42 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       },
     );
   }
+  List<String> getSelectedModes(List selection) {
+
+
+    List<String> result = [];
+
+    // 依據 TravelMode 選擇
+    if (selection == "高鐵") result.add("3");
+    if (selection == "台鐵") result.add("4");
+
+    // 依據 TransportModes 選擇
+    if (selection.contains("公車")) {
+      result.add("5");
+
+    }
+    if (selection.contains("捷運")) {
+      result.add("6");
+      result.add("7");
+    }
+
+    return result.toList();
+  }
+  int getTravelMode(String selectedTravelMode) {
+    switch (selectedTravelMode) {
+      case "走路":
+        return 0;
+      case "腳踏車":
+        return 1;
+      case "開車":
+        return 2;
+      case "共享單車":
+        return 3;
+      default:
+      // 如果 selectedTravelMode 不匹配任何條件，返回 -1 或其他錯誤碼
+        return 0;
+    }
+  }
 
   Widget _buildPlaceWays(dynamic place) {
     // 获取路线数据
@@ -891,7 +1064,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       return await getDirections(
         "${locationProvider.latitude}%2C${locationProvider.longitude}",
         "${destination?.latitude}%2C${destination?.longitude}",
-        dataFormat.format(_selectedTime!),
+        dataFormat.format(_selectedTime!),{"TravelMode":getTravelMode(selectedTravelMode.value),"TransportModes": getSelectedModes(selectedTransportModes.value)}
       );
     }
 
@@ -1047,8 +1220,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
       GestureDetector(
           onTap: () {
-            eventBus.fire(detailPageDataEvent(sections));
 
+            dataNotifier.value=sections;
             // 導航至詳細資訊頁面，並傳遞數據
 
              _indexNotifier.value++;
@@ -1144,7 +1317,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
 
         } else if (i["transport"]["mode"] == "MRT") {
-          print(i["transport"]);
+
           transportWidget = Container(
             decoration: BoxDecoration(
               color: MRTColor.getColorByLineName(i["transport"]["name"]), // 获取颜色
@@ -1184,6 +1357,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
               fit: BoxFit.contain, // 确保图片完整显示
             ),
           );
+        }else if (i["transport"]["mode"] == "cycle") {
+          transportWidget = Icon(Icons.directions_bike, color: Colors.black, size: 24);
+        }
+        else if ( i["type"] == "drive") {
+          transportWidget = Icon(Icons.drive_eta, color: Colors.black, size: 24);
         }
         else {
           transportWidget = Container(width: 0,);
@@ -1294,11 +1472,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   }
   Widget _buildDetailPage(){
 
-    eventBus.on<detailPageDataEvent>().listen((event) {
-      print( "event.message"); // 更新 UI
-    print( event.message); // 更新 UI
-      dataNotifier.value=event.message;
-    });
+    // eventBus.on<detailPageDataEvent>().listen((event) {
+    //   print( "event.message"); // 更新 UI
+    // print( event.message); // 更新 UI
+    //   dataNotifier.value=event.message;
+    // });
    return  DraggableScrollableSheet(
       initialChildSize: 0.33, // 初始大小
       minChildSize: _bottomSheetHeightMin, // 最小大小
@@ -1361,9 +1539,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   String _getStepTitle(Map<String, dynamic> step) {
     switch (step['type']) {
       case 'pedestrian':
-        return "步行 ${step['travelSummary']['length']?.toStringAsFixed(0) ?? ''}米";
+        return "步行 ${step['travelSummary']['length']?.toStringAsFixed(0) ?? ''}公尺";
       case 'transit':
-        return "${step['transport']['shortName']} · ${step['travelSummary']['duration']}分鐘";
+        return "${step['transport']['shortName']} · ${(step['travelSummary']['duration'] / 60).round()} 分鐘";
+
       default:
         return step['type'];
     }
@@ -1410,7 +1589,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
               Icon(Icons.directions_transit, size: 16, color: Colors.grey[600]),
               SizedBox(width: 8),
               Text(
-                "預計車程：${step['travelSummary']['duration']}分鐘",
+                "預計車程：${(step['travelSummary']['duration'] / 60).round()}分鐘",
                 style: TextStyle(color: Colors.grey[600]),
               ),
               Spacer(),
@@ -1455,7 +1634,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "站內換乘${step['travelSummary']['length']}米（約${step['travelSummary']['duration']}分鐘）",
+                    "站內換乘${step['travelSummary']['length']}米（約${(step['travelSummary']['duration']/ 60).round()}分鐘）",
                     style: TextStyle(color: Colors.blue[800]),
                   ),
                 ),
@@ -1548,7 +1727,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
               ),
             ),
             Text(
-              "$place · 約$duration分鐘",
+              "$place · 約${(duration / 60).round()}分鐘",
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],

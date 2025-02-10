@@ -12,6 +12,7 @@ Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
   int _trainNo=trainNo;
   var _date=dateFormat.format(date) ;
   var url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/TrainNo/$_trainNo/TrainDate/$_date?%24format=JSON";
+
   try {
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);
@@ -87,7 +88,7 @@ Future<List<dynamic>> fetchTrainRoute(departurePosition,destinationPosition,time
   String encodedTime = Uri.encodeComponent(time);
  // String url="https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/DailyTrainTimetable/OD/Inclusive/$departureID/to/$destinationID/$date?%24&%24format=JSON";
   String url="https://tdx.transportdata.tw/api/maas/routing?origin=$encodedDeparture&destination=$encodedDestination&gc=0.0&top=10&transit=4&transfer_time=5%2C60&depart=$encodedTime&first_mile_mode=0&last_mile_mode=0";
-print( Uri.parse(url));
+
   try {
 
 

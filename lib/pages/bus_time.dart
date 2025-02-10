@@ -156,7 +156,7 @@ void _scrollToIndex(int index) {
     }
   }
     setState(() {
-      Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
+      Provider.of<MarkerProvider>(context, listen: false).setMarkers(markers);
 
     });
 
@@ -466,7 +466,7 @@ void _scrollToIndex(int index) {
       canPop: false,
       onPopInvoked: ( bool didPop ){
         if ( didPop ) {
-          Provider.of<MarkerProvider>(context, listen: false).setMarker({});
+          Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
         }
                  // really exit
         else {

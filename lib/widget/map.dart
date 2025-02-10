@@ -9,21 +9,27 @@ class map extends StatefulWidget {
   final Set<Marker>? markers;
   final CameraPosition? initialCameraPosition;
   final Function(GoogleMapController)? onMapCreated;
+  final Function(CameraPosition)? onCameraMove;
+  final Function()? onCameraIdle;
   final bool myLocationEnabled;
-final LatLng? initialPosition;
+  final LatLng? initialPosition;
+
   const map({
     Key? key,
-     this.markers,
-     this.initialCameraPosition,
+    this.markers,
+    this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
-    this.initialPosition
+    this.initialPosition,
+    this.onCameraMove,
+    this.onCameraIdle,
   }) : super(key: key);
+
   @override
   State<map> createState() => _MapScreenState();
 }
-//with AutomaticKeepAliveClientMixin
-class _MapScreenState extends State<map>  {
+
+class _MapScreenState extends State<map> {
   final String _mapStyle = '''
   [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, 
   {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
@@ -31,9 +37,6 @@ class _MapScreenState extends State<map>  {
   {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
   {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}]
   ''';
-
-  // @override
-  // bool get wantKeepAlive => true;
 
   GoogleMapController? _mapController;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
@@ -50,7 +53,7 @@ class _MapScreenState extends State<map>  {
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
-print(position);
+      print(position);
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
       });
@@ -73,8 +76,6 @@ print(position);
 
   @override
   Widget build(BuildContext context) {
-
-    // super.build(context);
     return Consumer<MarkerProvider>(
       builder: (context, markerProvider, child) {
         return GoogleMap(
@@ -89,28 +90,10 @@ print(position);
             _getCurrentLocation(); // 地圖創建完成後再次定位並更新視角
           },
           onCameraMove: (CameraPosition position) {
-            // 限制地圖的邊界範圍
-            // if (!_taiwanBounds.contains(position.target)) {
-            //   LatLng target = position.target;
-            //   double lat = target.latitude;
-            //   double lng = target.longitude;
-            //
-            //   if (lat < _taiwanBounds.southwest.latitude) {
-            //     lat = _taiwanBounds.southwest.latitude;
-            //   } else if (lat > _taiwanBounds.northeast.latitude) {
-            //     lat = _taiwanBounds.northeast.latitude;
-            //   }
-            //
-            //   if (lng < _taiwanBounds.southwest.longitude) {
-            //     lng = _taiwanBounds.southwest.longitude;
-            //   } else if (lng > _taiwanBounds.northeast.longitude) {
-            //     lng = _taiwanBounds.northeast.longitude;
-            //   }
-            //
-            //   _mapController?.moveCamera(
-            //     CameraUpdate.newLatLng(LatLng(lat, lng)),
-            //   );
-            // }
+            widget.onCameraMove?.call(position);
+          },
+          onCameraIdle: () {
+            widget.onCameraIdle?.call(); // 呼叫 onCameraIdle 回调
           },
           markers: widget.markers ?? Set<Marker>.of(markerProvider.markers),
           myLocationEnabled: widget.myLocationEnabled,
@@ -119,5 +102,4 @@ print(position);
       },
     );
   }
-
 }

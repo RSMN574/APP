@@ -48,12 +48,15 @@ int id=await getInfo('routeID');
   }
 }
 Future<Map<String, dynamic>> getDirections(
-    String origin, String destination,time) async {
+    String origin, String destination,time,Map<String,dynamic> option) async {
+  List<String> transportModes = option["TransportModes"];  // 假設這是 List
 
-
+// 將 List 轉換為 String，並使用逗號分隔
+  String transit =  Uri.encodeComponent(transportModes.join(","));
+print(transit);
   final String url =
-      'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=3%2C4%2C5%2C6%2C7%2C8%2C9&transfer_time=5%2C60&depart=$time&first_mile_mode=0&first_mile_time=10&last_mile_mode=0&last_mile_time=10';
-print(url);
+      'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=$transit&transfer_time=5%2C60&depart=$time&first_mile_mode=${option["TravelMode"]}&first_mile_time=10&last_mile_mode=${option["TravelMode"]}&last_mile_time=10';
+  print(url);
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求
