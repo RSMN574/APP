@@ -284,16 +284,22 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                     int.parse(widget.controller.text),
                     selectedDate,
                   );
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => HSRSchedulePage(
-                        trainData: trainData,
-                        type: 'trainNo',
+                  if(trainData==null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('無此車次')),
+                    );
+                  }else{
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HSRSchedulePage(
+                          trainData: trainData,
+                          type: 'trainNo',
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
+
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,

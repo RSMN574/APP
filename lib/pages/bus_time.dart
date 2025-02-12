@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
@@ -539,10 +540,10 @@ void _scrollToIndex(int index) {
                         PopupMenuButton<String>(
                           iconColor:   Colors.white,
                           itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                            this.SelectView(Icons.info, '公車資訊', 'A'),
-                            this.SelectView(Icons.favorite, '加入收藏', 'B'),
-                            this.SelectView(Icons.location_on, '路線圖', 'C'),
-                            this.SelectView(Icons.schedule, '歷史公車時間', 'D'),
+                            SelectView(Icons.info, '公車資訊', 'A'),
+                            SelectView(Icons.favorite, '加入收藏', 'B'),
+                            SelectView(Icons.location_on, '路線圖', 'C'),
+                            SelectView(Icons.schedule, '歷史公車時間', 'D'),
                           ],
                           onSelected: (String action) async {
                             // 点击选项的时候
@@ -640,6 +641,15 @@ void _scrollToIndex(int index) {
                                           ),
                                         ),
                                       );});break;
+                              case 'D':
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                            builder: (context) => BusDetailPage(  routeId: (widget.routeID).toString(), city:widget.city ,),
+                            ),
+                            );
+
+                                break;
                             }
                           },
                         ),
@@ -1142,3 +1152,192 @@ padding: const EdgeInsets.only(bottom: 25),
     );
   }
 }
+
+
+
+
+class BusDetailPage extends StatefulWidget {
+  final String routeId;
+  final String city;
+
+  const BusDetailPage({
+    super.key,
+    required this.routeId,
+    required this.city,
+  });
+
+  @override
+  State<BusDetailPage> createState() => _BusDetailPageState();
+}
+
+class _BusDetailPageState extends State<BusDetailPage> {
+  List<Map<String, dynamic>>? allBuses; // 所有公車資料
+  List<Map<String, dynamic>>? filteredBuses; // 過濾後的公車資料
+  final TextEditingController searchController = TextEditingController(); // 搜尋框控制器
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      List<Map<String, dynamic>> data =
+      await getHistoryData(widget.city, widget.routeId, sum!)?? [];
+      setState(() {
+        allBuses = data;
+        filteredBuses = List.from(data); // 初始時顯示所有數據
+      });
+    } catch (e) {
+      setState(() {
+        allBuses = [];
+        filteredBuses = [];
+      });
+    }
+  }
+
+  // 搜尋功能
+  void search(String query) {
+    if (allBuses == null) return;
+
+    setState(() {
+      filteredBuses = allBuses!
+          .where((bus) => bus['StopName']['Zh_tw']
+          .toLowerCase()
+          .contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose(); // 釋放搜尋框控制器
+    super.dispose();
+  }
+
+  String formatTime(String gpsTime) {
+    try {
+      DateTime dateTime = DateTime.parse(gpsTime).toLocal(); // 解析並轉換為本地時間
+      return DateFormat('yyyy/MM/dd HH:mm:ss').format(dateTime); // 格式化輸出
+    } catch (e) {
+      return '時間格式錯誤';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('公車歷史資料'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+      ),
+      body: Column(
+        children: [
+          // 搜尋框
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: '搜尋站點名稱',
+                prefixIcon: const Icon(Icons.search, color: Colors.black54),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.grey.withOpacity(0.1),
+              ),
+              onChanged: search, // 輸入時觸發搜尋
+            ),
+          ),
+          // 資料列表
+          Expanded(
+            child: filteredBuses == null
+                ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+                : filteredBuses!.isEmpty
+                ? const Center(
+              child: Text(
+                '沒有符合的資料',
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            )
+                : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              itemCount: filteredBuses!.length,
+              itemBuilder: (context, index) {
+                final bus = filteredBuses![index];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6.0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '公車號碼: ${bus['PlateNumb']}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        Text(
+                          '路線: ${bus['RouteName']['Zh_tw']}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 4.0),
+                        Text(
+                          '站點: ${bus['StopName']['Zh_tw']}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 4.0),
+                        Text(
+                          '時間: ${formatTime(bus['GPSTime'])}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 4.0),
+                        Text(
+                          '方向: ${bus['Direction'] == 0 ? '去程' : '回程'}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

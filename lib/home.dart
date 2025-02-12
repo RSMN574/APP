@@ -149,9 +149,15 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     return WillPopScope(
       onWillPop: () async {
         if (_indexNotifier.value > 0) {
+          if (_indexNotifier.value == 2||_indexNotifier.value ==1){
+            print("setMarkers");
+            Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+
+          }
           _indexNotifier.value--; // 返回到上一个索引
           return false; // 阻止默认返回导航
         }
+
         return true; // 在索引为0时允许默认返回导航
       },
       child: Scaffold(
@@ -571,6 +577,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
                 splashRadius: 24,
                 onPressed: () {
+                  print("setMarkers");
+                  Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+
                   setState(() {
                     _indexNotifier.value = 0;
                     _searchFocusNode.unfocus();
@@ -586,9 +595,13 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
   Widget _buildPlaceDetails(dynamic place) {
     // 定義一個狀態來控制運具模式和旅運模式的選擇
+    Future<void> _init() async {
+      PlacesService placesService = PlacesService();
 
-
-
+      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
+      _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
+    }
+    _init();
     return GestureDetector(
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) {
@@ -1060,7 +1073,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       PlacesService placesService = PlacesService();
       final locationProvider = Provider.of<LocationProvider>(context, listen: false);
       LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
-      _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
+      // _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
       return await getDirections(
         "${locationProvider.latitude}%2C${locationProvider.longitude}",
         "${destination?.latitude}%2C${destination?.longitude}",
@@ -1111,9 +1124,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                       );
                     } else if (snapshot.hasError) {
                       return Center(child: Text('錯誤: ${snapshot.error}'));
-                    } else if (!snapshot.hasData || snapshot.data == null) {
+                    } else if (!snapshot.hasData || snapshot.data == null ) {
+                      return const Center(child: Text('沒有資料'));
+                    }else if (snapshot.hasData &&
+                        snapshot.data is Map<String, dynamic> &&
+                        snapshot.data?['result'] == 'success' &&
+                        snapshot.data?['data'] is Map<String, dynamic> &&
+                        (snapshot.data?['data']?['routes'] as List).isEmpty) {
                       return const Center(child: Text('沒有資料'));
                     }
+
 
                     final data = snapshot.data!;
                     final routes = data['data']['routes'] as List<dynamic>;
@@ -1593,15 +1613,30 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 style: TextStyle(color: Colors.grey[600]),
               ),
               Spacer(),
-              Text(
-                "${step['transport']['fare']}元",
-                style: TextStyle(
-                  color: Colors.red[600],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Row(
+                children: [
+                  Text(
+                    "${step['transport']['fare']}元",
+                    style: TextStyle(
+                      color: Colors.red[600],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () => _showFareInfoDialog(context),
+                    child: Icon(
+                      Icons.help_outline,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              )
+
             ],
-          ),
+          )
+
         ],
 
         // 卡路里消耗提示
@@ -1671,7 +1706,42 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ],
     );
   }
-
+  void _showFareInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("各縣市公車優惠方案"),
+        content: SingleChildScrollView(
+          child: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.black, fontSize: 14),
+              children: [
+                TextSpan(
+                  text: "不同縣市提供的公車票價優惠方案可能有所不同。\n\n",
+                ),
+                TextSpan(
+                  text: "以臺中市為例：",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                ),
+                TextSpan(
+                  text: " 持有綁定市民專屬優惠的電子票證，可享「10公里免費 + 超過10公里票價上限10元」的雙十優惠。\n\n",
+                ),
+                TextSpan(
+                  text: "其他縣市可能有不同的優惠標準，請參考當地政府公告或交通機構資訊。",
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("確定"),
+          ),
+        ],
+      ),
+    );
+  }
 // 其他工具函式
   String _formatTime(String isoTime) {
     final time = DateTime.parse(isoTime);

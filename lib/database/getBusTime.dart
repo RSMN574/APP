@@ -1,6 +1,7 @@
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 import '../Const/regularConst.dart';
 import '../models/Station.dart';
@@ -128,4 +129,42 @@ Future <List<Station>> getNearStation(
 
   print('JSON fetched successfully: $stations');
   return stations;
+}
+
+
+Future<List<Map<String, dynamic>>?> getHistoryData(
+    String city, String routeId, int sum) async {
+  final DateTime yesterday = DateTime.now().subtract(const Duration(days: 2));
+print(  DateFormat('yyyy-MM-dd').format(yesterday));
+
+  final String url =
+      "https://tdx.transportdata.tw/api/historical/v2/Historical/Bus/RealTimeNearStop/City/$city/Date/${  DateFormat('yyyy-MM-dd').format(yesterday)}/RouteID/$routeId?%24top=$sum&%24format=JSONL";
+
+  final tokenResponse = await http.get(tokenUri);
+
+  if (tokenResponse.statusCode != 200) {
+    throw HttpException('Failed to get token! status: ${tokenResponse.statusCode}');
+  }
+  final token = tokenResponse.body; // 你可能需要解析 token
+  final response = await http.get(
+    Uri.parse(url),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'accept': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw HttpException('HTTP error! status: ${response.statusCode}');
+
+  }
+
+  // 解析 JSONL（JSON Lines）格式，每行都是一個 JSON 物件
+  List<Map<String, dynamic>> data = response.body
+      .split('\n') // 按行分割
+      .where((line) => line.isNotEmpty) // 過濾空行
+      .map((line) => jsonDecode(line) as Map<String, dynamic>) // 解析 JSON
+      .toList();
+
+  return data;
 }

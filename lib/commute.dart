@@ -1,10 +1,6 @@
-
-import 'dart:convert';
-
 import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
-
 import 'Const/regularConst.dart';
 import 'database/getData.dart';
 import 'database/schedule.dart';
@@ -41,22 +37,58 @@ class _CommuteState extends State<Commute> {
   Widget _buildCommutePage(String category) {
     final filteredData = scheduleData.where((item) {
       return item["category"] == category;
-    }).toList();;
+    }).toList();
 
-    // final filteredData = scheduleData;
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      child: ListView.builder(
+      child: filteredData.isEmpty
+          ? _buildEmptyState() // 顯示美化的提示 UI
+          : ListView.builder(
         itemCount: filteredData.length,
         itemBuilder: (context, index) {
-
           final item = filteredData[index];
-
           return _buildScheduleCard(item);
         },
       ),
     );
   }
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.event_note, size: 80, color: Colors.grey[400]), // 行程 Icon
+            SizedBox(height: 16),
+            Text(
+              "還沒有規劃的行程",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+            SizedBox(height: 8),
+            Text(
+              "點擊下方按鈕來新增你的第一個行程吧！",
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                // TODO: 這裡加入導向新增行程的邏輯
+              },
+              icon: Icon(Icons.add),
+              label: Text("新增行程"),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _dialogBuilder(BuildContext context, Map<String, dynamic> data) {
     return showDialog(
       context: context,
