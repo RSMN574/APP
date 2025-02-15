@@ -11,7 +11,7 @@ class StationDialog {
 
   static Future<Map<String, dynamic>?> showStationDialog(context) async {
     // 獲取高鐵車站數據
-    List stationData = await mysqlSelect("SELECT StationID, StationName, StationPosition FROM HSR.HSR_Station;");
+    List stationData = await mysqlSelect("SELECT StationID, StationName, StationPosition,URL FROM HSR.HSR_Station;");
 
     // 轉換數據格式
     List<Map<String, dynamic>> stationDataMap = stationData.map((item) {
@@ -23,6 +23,7 @@ class StationDialog {
         },
         'StationID': item['StationID'],
         'StationPosition': item['StationPosition'],
+        'URL': item['URL']
       };
     }).toList();
 
@@ -63,16 +64,16 @@ class StationDialog {
                         // 頂部標題欄
                         Container(
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: primaryColor,
-                            borderRadius: const BorderRadius.only(
+                            borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(20),
                               topRight: Radius.circular(20),
                             ),
                           ),
-                          child: Row(
+                          child: const Row(
                             children: [
-                              const SizedBox(width: 12),
+                              SizedBox(width: 12),
                               Text('選擇高鐵車站',
                                 style: TextStyle(
                                   color: Colors.white,
@@ -121,7 +122,7 @@ class StationDialog {
                                       ),
                                       child: Text(
                                         stationName,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w500,
                                           color: textPrimary,
@@ -150,7 +151,7 @@ class StationDialog {
                                     side: BorderSide(color: textSecondary.withOpacity(0.3)),
                                   ),
                                   onPressed: () => Navigator.pop(context),
-                                  child: Text('取消',
+                                  child: const Text('取消',
                                     style: TextStyle(
                                       color: textSecondary,
                                       fontSize: 15,

@@ -325,16 +325,22 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                     int.parse(widget.controller.text),
                     selectedDate,
                   );
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TrainSchedulePage(
-                        trainData: trainData,
-                        type: 'trainNo',
+                  if(trainData==null){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('無此車次')),
+                    );
+                  }else{
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TrainSchedulePage(
+                          trainData: trainData,
+                          type: 'trainNo',
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
+
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
@@ -1323,12 +1329,13 @@ return
                   flex: 3,
                   child: Column(
                     children: transports.map((i) {
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                         child: Column(
                           children: [
                             Text(
-                              i['transport']["name"], // 车次名称
+                              "${i['transport']["name"]}", // 车次名称
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

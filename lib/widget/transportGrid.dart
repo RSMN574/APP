@@ -7,6 +7,8 @@ import 'package:com.rsmn574.app/bus.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../test.dart';
+
 class TransportGrid extends StatefulWidget {
   final Function(String) onClick;
 
@@ -34,6 +36,7 @@ class _TransportGridState extends State<TransportGrid> {
     {'icon': 'assets/icons/motorcycle.svg', 'text': '充電樁', 'route': 'EVCharging'},
     {'icon': 'assets/icons/motorcycle.svg', 'text': '路況', 'route': 'traffic'},
     {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
+    {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
   ];
 
   @override
@@ -170,6 +173,13 @@ class _TransportGridState extends State<TransportGrid> {
       );
     } else if (route == "bike") {
       widget.onClick("bike");
+    }else if (route == "test") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => test(),
+        ),
+      );
     } else {
       Navigator.pushNamed(context, route);
     }

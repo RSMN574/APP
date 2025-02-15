@@ -135,7 +135,7 @@ Future <List<Station>> getNearStation(
 Future<List<Map<String, dynamic>>?> getHistoryData(
     String city, String routeId, int sum) async {
   final DateTime yesterday = DateTime.now().subtract(const Duration(days: 2));
-print(  DateFormat('yyyy-MM-dd').format(yesterday));
+
 
   final String url =
       "https://tdx.transportdata.tw/api/historical/v2/Historical/Bus/RealTimeNearStop/City/$city/Date/${  DateFormat('yyyy-MM-dd').format(yesterday)}/RouteID/$routeId?%24top=$sum&%24format=JSONL";

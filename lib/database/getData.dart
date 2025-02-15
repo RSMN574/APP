@@ -128,7 +128,7 @@ Future<List<Map<String, dynamic>>> GetBusInfo({  required int routeid,required S
 
   await connMysql(); // 連接資料庫
 
-  var query = 'SELECT Stops FROM Bus.Bus_$city WHERE Routeid = $routeid';
+  var query = 'SELECT Stops FROM Bus.Bus_${city}_Route_Stop WHERE Routeid = $routeid';
   jsonData = await mysqlSelect(query);
 
   for (var i in jsonData) {

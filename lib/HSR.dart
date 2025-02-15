@@ -5,6 +5,7 @@ import 'package:com.rsmn574.app/pages/HSR/HSRSchedulePage.dart';
 import 'package:com.rsmn574.app/widget/HSR/StationDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'database/HSR/getHSR.dart';
 import 'database/getData.dart';
@@ -281,7 +282,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
               child: ElevatedButton(
                 onPressed: () async {
                   var trainData = await fetchHSR(
-                    int.parse(widget.controller.text),
+                    int.parse(widget.controller.text).toString().padLeft(4, '0'),
                     selectedDate,
                   );
                   if(trainData==null){
@@ -859,15 +860,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
               child: ElevatedButton(
                 onPressed: () {
                   if (selectedStation != null) {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => StationPage(
-                    //       stationName: selectedStation?['StationName']['Zh_tw'],
-                    //       stationID: selectedStation?["StationID"],
-                    //     ),
-                    //   ),
-                    // );
+                    openURL(selectedStation?["URL"], context);
+
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('請選擇車站')),
@@ -899,6 +893,22 @@ class _StationSearchPageState extends State<StationSearchPage> {
       ),
     );
   }
+  void openURL(String? url, BuildContext context) async {
+    if (url != null && url.isNotEmpty) {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('無法打開連結')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('無效的 URL')),
+      );
+    }
+  }
 }
 class RoutePage extends StatefulWidget {
   final Map<String, dynamic>  departure;
@@ -927,7 +937,7 @@ class _RoutePageState extends State<RoutePage> {
     String destinationPositionLat = destinationJsonData['PositionLat'].toString();
     String destinationPositionLon = destinationJsonData['PositionLon'].toString();
     final DateFormat dateFormatForRoutePage = DateFormat('yyyy-MM-ddTHH:mm:ss');
-
+    final DateFormat dateFormatForTrainNo = DateFormat('yyyy-MM-dd');
     return Scaffold(
       appBar: AppBar(
         title: Text("${widget.departure["StationName"]["Zh_tw"]}-${widget.destination["StationName"]["Zh_tw"]}"),
@@ -982,7 +992,7 @@ class _RoutePageState extends State<RoutePage> {
                     final end_time=dateFormat.format(DateTime.parse(transitSections[transitSections.length-1]["arrival"]["time"]));
                     bool trainSit=transports.length > 1 ? true : false;
                     // 输出结果
-                    print(trainSit);
+                    // print(trainSit);
                     return Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -1031,17 +1041,37 @@ class _RoutePageState extends State<RoutePage> {
                                 flex: 3,
                                 child: Column(
                                   children: transports.map((i) {
+
                                     return Padding(
                                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                                       child: Column(
                                         children: [
-                                          Text(
-                                            i['transport']["name"], // 车次名称
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                                          GestureDetector(
+                                            onTap: () async {
+                                              print( int.parse( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')));
+                                              var trainData = await fetchHSR(
+                                                  int.parse( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),
+                                                DateTime.parse(i["departure"]["time"] ),
+                                              );
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => HSRSchedulePage(
+                                                    trainData: trainData,
+                                                    type: 'trainNo',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            child: Text(
+                                              "  ${i['transport']["name"]}  ${i["transport"]["fare"]}元", // 车次名称
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
+
                                           const SizedBox(height: 4),
                                           Text(
                                             "${i['arrival']["place"]["name"]}   ${dateFormat.format(DateTime.parse(i['arrival']["time"]))}", // 到达地点和时间
@@ -1088,43 +1118,39 @@ class _RoutePageState extends State<RoutePage> {
                             color: Colors.grey,
                           ),
                           // 可选部分：票价信息 (如果需要)
-                          // Row(
-                          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          //   children: [
-                          //     Column(
-                          //       crossAxisAlignment: CrossAxisAlignment.start,
-                          //       children: [
-                          //         Text(
-                          //           "二等 ¥671", // 二等票信息
-                          //           style: const TextStyle(
-                          //             fontSize: 16,
-                          //             color: Colors.black87,
-                          //           ),
-                          //         ),
-                          //         const SizedBox(height: 4),
-                          //         Text(
-                          //           "一等 13张", // 一等票信息
-                          //           style: const TextStyle(
-                          //             fontSize: 14,
-                          //             color: Colors.black54,
-                          //           ),
-                          //         ),
-                          //       ],
-                          //     ),
-                          //     Column(
-                          //       crossAxisAlignment: CrossAxisAlignment.end,
-                          //       children: [
-                          //         Text(
-                          //           "商务 7张", // 商务票信息
-                          //           style: const TextStyle(
-                          //             fontSize: 14,
-                          //             color: Colors.black54,
-                          //           ),
-                          //         ),
-                          //       ],
-                          //     ),
-                          //   ],
-                          // ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              FutureBuilder<List<Widget>>(
+                                future: getTransportWidgets(transports),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return CircularProgressIndicator(); // 等待加载时显示
+                                  }
+                                  if (snapshot.hasError) {
+                                    print(snapshot.error);
+                                    return Text("加载出错: ${snapshot.error}");
+                                  }
+                                  return Column(
+                                    children: snapshot.data ?? [],
+                                  );
+                                },
+                              ),
+
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    "商务 7张", // 商务票信息
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     );
@@ -1133,6 +1159,7 @@ class _RoutePageState extends State<RoutePage> {
 
 
                   },
+
                 );
 
 
@@ -1142,4 +1169,66 @@ class _RoutePageState extends State<RoutePage> {
 
 
   }
+  Future<List<Widget>> getTransportWidgets(transports) async {
+    List<Future<Widget>> futures = transports.map<Future<Widget>>((i) async {
+      var d = await mysqlSelect(
+          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["departure"]["place"]["name"]}';");
+      var a = await mysqlSelect(
+          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["arrival"]["place"]["name"]}';");
+      DateTime dateTime = DateTime.parse(i["departure"]["time"]); // 解析 ISO 8601 日期
+      String formattedDate = DateFormat('yyyy-MM-dd').format(dateTime); // 转换格式
+      var data=await fetchAvailableSeatStatus(d[0]["StationID"],a[0]["StationID"],  ( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),formattedDate);
+      print(data["AvailableSeats"][0]["BusinessSeatStatus"]); print(data["AvailableSeats"][0]["StandardSeatStatus"]);
+
+
+      // print(i["departure"]["place"]["name"]);
+      // print(i["arrival"]["place"]["name"]);
+
+      return Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                "標準座艙：",
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54, // 标题使用默认的黑色
+                ),
+              ),
+              Text(
+                data["AvailableSeats"][0]["StandardSeatStatus"] == 'O' ? "有座" : "無座",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: data["AvailableSeats"][0]["StandardSeatStatus"] == 'O' ? Colors.green : Colors.red, // 只对有座/无座设置颜色
+                ),
+              ),
+            ],
+          ),
+        Row(children: [
+          Text(
+            "商務座艙：",
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.black54, // 标题使用默认的黑色
+            ),
+          ),
+          Text(
+            data["AvailableSeats"][0]["BusinessSeatStatus"] == 'O' ? "有座" : "無座",
+            style: TextStyle(
+              fontSize: 14,
+              color: data["AvailableSeats"][0]["BusinessSeatStatus"] == 'O' ? Colors.green : Colors.red, // 只对有座/无座设置颜色
+            ),
+          ),
+        ],)
+        ],
+      );
+
+
+
+    }).toList(); // 确保 `map` 返回 `List<Future<Widget>>`
+
+    return await Future.wait(futures);
+  }
+
+
 }

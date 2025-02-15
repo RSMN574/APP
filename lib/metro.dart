@@ -80,9 +80,9 @@ return ;
         PopupMenuButton<String>(
       iconColor:   Colors.black,
           itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-            this.SelectView(Icons.info, '捷運資訊', 'A'),
-            this.SelectView(Icons.airplane_ticket, '車票', 'B'),
-            this.SelectView(Icons.schedule, '發車時刻表', 'C'),
+            SelectView(Icons.info, '捷運資訊', 'A'),
+            SelectView(Icons.airplane_ticket, '車票', 'B'),
+            SelectView(Icons.schedule, '發車時刻表', 'C'),
           ],
           onSelected: (String action) async {
 
@@ -117,57 +117,6 @@ return ;
     );
   }
 
-  // Widget _buildTabItem(int index) {
-  //   return Column(
-  //     children: [
-  //       GestureDetector(
-  //         onTap: () {
-  //           setState(() {
-  //             current = index;
-  //           });
-  //           pageController.animateToPage(
-  //             current,
-  //             duration: const Duration(milliseconds: 200),
-  //             curve: Curves.ease,
-  //           );
-  //         },
-  //         child: AnimatedContainer(
-  //           duration: const Duration(milliseconds: 300),
-  //           margin: const EdgeInsets.all(5),
-  //           width: 100,
-  //           height: 55,
-  //           decoration: BoxDecoration(
-  //             color: current == index ? Colors.white70 : Colors.white54,
-  //             borderRadius: BorderRadius.circular(current == index ? 12 : 7),
-  //             border: current == index ? Border.all(color: busBlue, width: 2.5) : null,
-  //           ),
-  //           child: Center(
-  //             child: Column(
-  //               mainAxisAlignment: MainAxisAlignment.center,
-  //               children: [
-  //                 Icon(
-  //                   icons[index],
-  //                   size: current == index ? 23 : 20,
-  //                   color: current == index ? Colors.black : Colors.grey.shade400,
-  //                 ),
-  //                 Text(items[index]),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //       if (current == index)
-  //         Container(
-  //           width: 5,
-  //           height: 5,
-  //           decoration: const BoxDecoration(
-  //             color: busBlue,
-  //             shape: BoxShape.circle,
-  //           ),
-  //         ),
-  //     ],
-  //   );
-  // }
 
   Widget _buildPageView() {
     return Container(
@@ -700,5 +649,6 @@ class StationInfo {
 
   StationInfo(this.name, this.englishName);
 }
+
 
 
