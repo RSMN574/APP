@@ -100,12 +100,17 @@ class HSRSchedulePage extends StatelessWidget {
             const SizedBox(height: 20),
             _buildInfoItem(
               '列車種類',
-              trainData['DailyTrainInfo']['TrainTypeName']?['Zh_tw'] ?? '無資料',
+              trainData['DailyTrainInfo']['TrainTypeName']?['Zh_tw'] ?? '台灣高鐵700T',
             ),
-            const SizedBox(height: 8),
+            if (trainData['DailyTrainInfo']['Note']?['Zh_tw'] != null)
+              const SizedBox(height: 8),
             _buildInfoItem(
-              '備註',
-              trainData['DailyTrainInfo']['Note']?['Zh_tw'] ?? '無備註',
+              trainData['DailyTrainInfo']['Note']?['Zh_tw'] != null
+                  ? '備註: ${trainData['DailyTrainInfo']['Note']['Zh_tw']}'
+                  : '',
+
+
+              trainData['DailyTrainInfo']['Note']?['Zh_tw'] ?? '',
             ),
           ],
         ),

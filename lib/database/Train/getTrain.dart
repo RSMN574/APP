@@ -3,8 +3,8 @@ import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-import '../Const/regularConst.dart';
-import 'getData.dart'; // 用于网络请求
+import '../../Const/regularConst.dart';
+import '../getData.dart'; // 用于网络请求
 Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
 
 
@@ -43,11 +43,49 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
     print('Error occurred: $e');
   }
 }
-Future<List<dynamic>> fetchTrainStation(String station) async {
+// Future<List<dynamic>> fetchTrainStation(String station) async {
+//
+//
+//
+//   String url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/${station}?%24format=JSON";
+//   try {
+//     await  connMysql();
+//     final tokenResponse = await http.get(tokenUri);
+//     final token=tokenResponse.body;
+//     // 发起 GET 请求
+//     final response = await http.get(
+//       Uri.parse(url),
+//       headers: {
+//         'Authorization': 'Bearer $token',
+//         'accept': 'application/json',
+//       },
+//     );
+//
+//     // 检查响应状态
+//     if (response.statusCode != 200) {
+//       throw HttpException('HTTP error! status: ${response.statusCode}');
+//     }
+//
+//     // 解析 JSON 数据
+//     List<dynamic>  jsonData = await jsonDecode(response.body);
+// print(jsonData);
+//     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
+//     // 这里你可以根据你的需求来构建 SQL 语句，例如：
+//     // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
+//
+//     return jsonData;
+//   } catch (e) {
+//     print('Error occurred: $e');
+//   }
+//   return [];
+// }
+
+
+Future<List<dynamic>> fetchTrainStation(String stationID,String date) async {
 
 
 
-  String url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/${station}?%24format=JSON";
+  String url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/Station/$stationID/$date?%24format=JSON";
   try {
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);
@@ -68,7 +106,7 @@ Future<List<dynamic>> fetchTrainStation(String station) async {
 
     // 解析 JSON 数据
     List<dynamic>  jsonData = await jsonDecode(response.body);
-print(jsonData);
+    print(jsonData);
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
     // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
@@ -121,4 +159,40 @@ Future<List<dynamic>> fetchTrainRoute(departurePosition,destinationPosition,time
   }
   return [];
 }
+//取得列車即時準點/延誤時間資料。
+Future<List<dynamic>> fetchLiveTrainDelay(String trainNo) async {
 
+
+  String filter = Uri.encodeComponent("TrainNo eq '$trainNo'");
+  String url = "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveTrainDelay?\$filter=$filter&\$format=JSON";
+
+  try {
+    final tokenResponse = await http.get(tokenUri);
+    final token=tokenResponse.body;
+    // 发起 GET 请求
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'accept': 'application/json',
+      },
+    );
+
+    // 检查响应状态
+    if (response.statusCode != 200) {
+      throw HttpException('HTTP error! status: ${response.statusCode}');
+    }
+
+    // 解析 JSON 数据
+    List<dynamic> jsonData = await jsonDecode(response.body);
+
+    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
+    // 这里你可以根据你的需求来构建 SQL 语句，例如：
+    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
+    print(jsonData);
+    return jsonData;
+  } catch (e) {
+    print('Error occurred: $e');
+  }
+  return [];
+}

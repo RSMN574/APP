@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'database/HSR/getHSR.dart';
 import 'database/getData.dart';
-import 'database/getTrain.dart';
+import 'database/Train/getTrain.dart';
 // 高鐵主題色
  const Color primaryColor = Color(0xFFDC5321);     // 高鐵橘
  const Color surfaceColor = Color(0xFFF8F9FA);     // 背景色
@@ -1014,6 +1014,7 @@ class _RoutePageState extends State<RoutePage> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // 出发时间与地点
                               Expanded(
                                 flex: 2,
                                 child: Column(
@@ -1022,36 +1023,37 @@ class _RoutePageState extends State<RoutePage> {
                                     Text(
                                       start_time, // 出发时间
                                       style: const TextStyle(
-                                        fontSize: 24,
+                                        fontSize: 20, // 缩小字体
                                         fontWeight: FontWeight.bold,
+                                        color: Colors.black,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4), // 缩小间距
                                     Text(
                                       widget.departure["StationName"]["Zh_tw"], // 出发地点
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black54,
+                                      style: TextStyle(
+                                        fontSize: 14, // 缩小字体
+                                        color: Colors.grey[800],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                              // 车次信息
                               Expanded(
                                 flex: 3,
                                 child: Column(
                                   children: transports.map((i) {
-
                                     return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                      padding: const EdgeInsets.symmetric(vertical: 4.0), // 缩小间距
                                       child: Column(
                                         children: [
                                           GestureDetector(
                                             onTap: () async {
-                                              print( int.parse( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')));
+                                              print(int.parse(i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')));
                                               var trainData = await fetchHSR(
-                                                  int.parse( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),
-                                                DateTime.parse(i["departure"]["time"] ),
+                                                int.parse(i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),
+                                                DateTime.parse(i["departure"]["time"]),
                                               );
                                               Navigator.push(
                                                 context,
@@ -1063,30 +1065,56 @@ class _RoutePageState extends State<RoutePage> {
                                                 ),
                                               );
                                             },
-                                            child: Text(
-                                              "  ${i['transport']["name"]}  ${i["transport"]["fare"]}元", // 车次名称
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8), // 缩小 padding
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue[50],
+                                                borderRadius: BorderRadius.circular(6), // 缩小圆角
+                                              ),
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    i['transport']["name"], // 车次名称
+                                                    style: const TextStyle(
+                                                      fontSize: 14, // 缩小字体
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.blue,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2), // 缩小间距
+                                                  Text(
+                                                    "${i["transport"]["fare"]}元", // 票价
+                                                    style: const TextStyle(
+                                                      fontSize: 14, // 缩小字体
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.blue,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ),
-
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            "${i['arrival']["place"]["name"]}   ${dateFormat.format(DateTime.parse(i['arrival']["time"]))}", // 到达地点和时间
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.black54,
+                                          const SizedBox(height: 2), // 缩小间距
+                                          if (i['arrival']["place"]["name"] != null &&
+                                              widget.destination["StationName"]["Zh_tw"] != null &&
+                                              i['arrival']["place"]["name"] != widget.destination["StationName"]["Zh_tw"])
+                                            Text(
+                                              "${i['arrival']["place"]["name"]}   ${dateFormat.format(DateTime.parse(i['arrival']["time"]))}", // 到达地点和时间
+                                              style: TextStyle(
+                                                fontSize: 12, // 缩小字体
+                                                color: Colors.grey[600],
+                                              ),
+                                              textAlign: TextAlign.center,
                                             ),
-                                            textAlign: TextAlign.center,
-                                          ),
                                         ],
                                       ),
                                     );
                                   }).toList(),
                                 ),
                               ),
+                              // 到达时间与地点
                               Expanded(
                                 flex: 2,
                                 child: Column(
@@ -1095,16 +1123,17 @@ class _RoutePageState extends State<RoutePage> {
                                     Text(
                                       end_time, // 到达时间
                                       style: const TextStyle(
-                                        fontSize: 24,
+                                        fontSize: 20, // 缩小字体
                                         fontWeight: FontWeight.bold,
+                                        color: Colors.black,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 4), // 缩小间距
                                     Text(
                                       widget.destination["StationName"]["Zh_tw"], // 到达地点
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black54,
+                                      style: TextStyle(
+                                        fontSize: 14, // 缩小字体
+                                        color: Colors.grey[800],
                                       ),
                                     ),
                                   ],
@@ -1112,12 +1141,13 @@ class _RoutePageState extends State<RoutePage> {
                               ),
                             ],
                           ),
+                          // 分割线
                           const Divider(
-                            height: 24,
+                            height: 12, // 缩小高度
                             thickness: 1,
                             color: Colors.grey,
                           ),
-                          // 可选部分：票价信息 (如果需要)
+                          // 可选部分：票价信息
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1125,29 +1155,16 @@ class _RoutePageState extends State<RoutePage> {
                                 future: getTransportWidgets(transports),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return CircularProgressIndicator(); // 等待加载时显示
+                                    return  Container(); // 加载中显示进度条
                                   }
                                   if (snapshot.hasError) {
                                     print(snapshot.error);
-                                    return Text("加载出错: ${snapshot.error}");
+                                    return Container();
                                   }
                                   return Column(
                                     children: snapshot.data ?? [],
                                   );
                                 },
-                              ),
-
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    "商务 7张", // 商务票信息
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ),
@@ -1179,7 +1196,6 @@ class _RoutePageState extends State<RoutePage> {
       String formattedDate = DateFormat('yyyy-MM-dd').format(dateTime); // 转换格式
       var data=await fetchAvailableSeatStatus(d[0]["StationID"],a[0]["StationID"],  ( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),formattedDate);
       print(data["AvailableSeats"][0]["BusinessSeatStatus"]); print(data["AvailableSeats"][0]["StandardSeatStatus"]);
-
 
       // print(i["departure"]["place"]["name"]);
       // print(i["arrival"]["place"]["name"]);
