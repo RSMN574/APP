@@ -1500,7 +1500,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
    return  DraggableScrollableSheet(
       initialChildSize: 0.33, // 初始大小
       minChildSize: _bottomSheetHeightMin, // 最小大小
-      maxChildSize: 0.6, // 最大大小
+      maxChildSize: 1.0, // 最大大小
       builder: (BuildContext context, ScrollController scrollController) {
         return Container(
           decoration: BoxDecoration(
@@ -1510,7 +1510,33 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           child: SingleChildScrollView(
             controller: scrollController,
             child: Column(
-              children: _buildTravelSteps(),
+              children: [      if (_indexNotifier.value > 0)
+            Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Material(
+                borderRadius: BorderRadius.circular(24),
+                elevation: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                    splashRadius: 24,
+                    onPressed: () {
+                      setState(() {
+                        _indexNotifier.value--; // 返回上一页
+                        _searchFocusNode.unfocus(); // 隐藏键盘
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),..._buildTravelSteps(),]
             ),
           ),
         );
@@ -1590,6 +1616,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
 // 構建行程內容
   Widget _buildStepContent(Map<String, dynamic> step) {
+    print(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1597,7 +1624,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         _buildTimeBlock(
           icon: Icons.access_time,
           time: _formatTime(step['departure']['time']),
-          place: step['departure']['place']['name']??"未知地點",
+          departure: step['departure']['place']['name']??"未知地點",
+          arrival: step['arrival']['place']['name']??"未知地點",
           duration: step['travelSummary']['duration'],
         ),
 
@@ -1680,6 +1708,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
         // 實時公交信息
         if (step['type'] == 'transit') ...[
+
           SizedBox(height: 12),
           Container(
             padding: EdgeInsets.all(12),
@@ -1780,7 +1809,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ],
     );
   }
-  Widget _buildTimeBlock({required IconData icon, required String time, required String place, required int duration}) {
+  Widget _buildTimeBlock({required IconData icon, required String time, required String departure, required String arrival, required int duration}) {
     return Row(
       children: [
         Icon(icon, size: 16, color: Colors.grey[600]),
@@ -1796,13 +1825,21 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 color: Colors.grey[800],
               ),
             ),
-            Text(
-              "$place · 約${(duration / 60).round()}分鐘",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
+            if (arrival == "未知地點")
+              Text(
+                "到目的地 · 約${(duration / 60).round()}分鐘",
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              )
+            else if (departure == "未知地點")
+              Text(
+                "到$arrival · 約${(duration / 60).round()}分鐘",
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              )
+            else
+              Text(
+                "從$departure到$arrival · 約${(duration / 60).round()}分鐘",
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
-            ),
           ],
         ),
       ],

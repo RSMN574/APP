@@ -66,6 +66,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
+            // Tab(text: '首頁'),
             Tab(text: '按車次查詢'),
             Tab(text: '按出發地和目的地查詢'),
             Tab(text: '按車站查詢'),
@@ -187,6 +188,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
+          // TrainMainPage(),
           TripNumberSearchPage(controller: _trainNoController),
           RouteSearchPage(
             departureController: _departureController,
@@ -196,6 +198,19 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         ],
       ),
     );
+  }
+}
+class TrainMainPage extends StatefulWidget {
+  const TrainMainPage({super.key});
+
+  @override
+  State<TrainMainPage> createState() => _TrainMainPageState();
+}
+
+class _TrainMainPageState extends State<TrainMainPage> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
   }
 }
 

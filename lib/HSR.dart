@@ -1195,10 +1195,6 @@ class _RoutePageState extends State<RoutePage> {
       DateTime dateTime = DateTime.parse(i["departure"]["time"]); // 解析 ISO 8601 日期
       String formattedDate = DateFormat('yyyy-MM-dd').format(dateTime); // 转换格式
       var data=await fetchAvailableSeatStatus(d[0]["StationID"],a[0]["StationID"],  ( i['transport']["name"].replaceAll(RegExp(r'[^0-9]'), '')).toString().padLeft(4, '0'),formattedDate);
-      print(data["AvailableSeats"][0]["BusinessSeatStatus"]); print(data["AvailableSeats"][0]["StandardSeatStatus"]);
-
-      // print(i["departure"]["place"]["name"]);
-      // print(i["arrival"]["place"]["name"]);
 
       return Column(
         children: [

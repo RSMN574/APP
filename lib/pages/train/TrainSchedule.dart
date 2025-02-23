@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../database/Train/getTrain.dart';
+import '../../database/schedule.dart';
 import '../../widget/map.dart';
+import '../../widget/train/RoutePalnner.dart';
 
 class TrainSchedulePage extends StatelessWidget {
   // 顏色常數定義
@@ -51,6 +53,76 @@ class TrainSchedulePage extends StatelessWidget {
                   backgroundColor: Colors.white,
                   iconTheme: IconThemeData(color: textPrimary),
                   actions: [
+                    IconButton(onPressed: () async {
+
+// 提取 StationName (中文)
+// List<String> stationNamesZh = trainData["StopTimes"]
+//     .map((stop) => stop["StationName"]["Zh_tw"] as String)
+//     .toList();
+//
+// // 提取 StationName (英文)
+// List<String> stationNamesEn = trainData["StopTimes"]
+//     .map((stop) => stop["StationName"]["En"] as String)
+//     .toList();
+                      // 提取 StationName (英文)
+List<dynamic> stationNames = trainData["StopTimes"]
+    .map((stop) => stop["StationName"] as Map)
+    .toList();
+
+// 顯示彈窗並等待用戶輸入
+              final result = await showDialog(
+              context: context,
+              builder: (context) {
+              return StationSelectionDialog(stationNames:stationNames);
+              },
+              );
+
+              // 處理用戶選擇的結果
+              if (result != null) {
+              print('出發站: ${result['departure']}');
+              print('到達站: ${result['destination']}');
+              print('類型: ${result['category']}');
+              }
+
+                      String getCategory(String category) {
+                        switch (category) {
+                          case '上班通勤':
+                            return 'commute';
+                          case '旅行':
+                            return 'trip';
+                          default:
+                            return 'other';
+                        }
+                      }
+                      final schedule _schedule = schedule();
+                      final output = await _schedule.addSchedule(
+
+                          UserStartingStopName: result['departure'],
+                          UserDestinationStopName: result['destination'],
+                          StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          route: trainData['DailyTrainInfo']['TrainNo'], type: 'train',
+                          other:{"category":getCategory(result['category'])}
+                      );
+
+// 根据 addSchedule 方法返回的结果进行处理
+                      if (output == -1) {
+                        // 如果已经存在相同的记录，提示用户
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('該行程已經存在。'))
+                        );
+                      } else if (output == 100) {
+                        // 成功添加行程，提示用户
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('行程添加成功！'))
+                        );
+                      } else {
+                        // 添加行程失败，提示用户
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('添加行程失敗。'))
+                        );
+                      }
+                    }, icon: const Icon(Icons.add)),
                     IconButton(
                       onPressed: () {
                         showDialog(
@@ -115,32 +187,36 @@ class TrainSchedulePage extends StatelessWidget {
                   ),
                 ),
                 backgroundColor: Colors.white,
-                
+                bottomNavigationBar: FutureBuilder<Widget>(
+                  future: _buildDelayInfo(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Container(
+                        height: 10,
+                        color: Colors.white,
+                      );
+                    } else if (snapshot.hasError) {
+                      return Container(
+                        height: 10,
+                        color: Colors.red[100],
+                      );
+                    } else {
+                      return Container(
+                        constraints: BoxConstraints(
+                          maxHeight: 40,
+                        ),
+                        child: snapshot.data ?? SizedBox.shrink(),
+                      );
+                    }
+                  },
+                ),
               );
             },
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0, // 固定在底部
-            child: FutureBuilder<Widget>(
-              future: _buildDelayInfo(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Container(
 
-                  );
-                } else if (snapshot.hasError) {
-                  return Container(
 
-                  );
-                } else {
-                  return snapshot.data ?? Container(); // 顯示延遲資訊
-                }
-              },
-            ),
-          )
         ]);
+
   }
 
   Widget _buildTrainInfoCard() {
@@ -200,41 +276,92 @@ class TrainSchedulePage extends StatelessWidget {
     );
   }
   Future<Widget> _buildDelayInfo() async {
-    // 假設 fetchLiveTrainDelay 會回傳一個 Map 或延遲資訊資料
-    List<dynamic> delayData = await fetchLiveTrainDelay(trainData['DailyTrainInfo']['TrainNo']);
-print(delayData);
-    // 這裡建立一個 Container，並用 Align 固定在底部
+    final delayData = await fetchLiveTrainDelay(trainData['DailyTrainInfo']['TrainNo']);
+    final hasDelay = delayData.isNotEmpty == true && delayData[0]['DelayTime'] != null;
+    final delayMinutes = hasDelay ? delayData[0]['DelayTime'] as int : 0;
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         width: double.infinity,
-       height: 12,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // 極小padding
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
           boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 10.0),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 3,
+              offset: const Offset(0, -1),
+            ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            const Text(
-              '延遲資訊',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // 狀態標籤
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: hasDelay ? Colors.amber.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: hasDelay ? Colors.amber.withOpacity(0.3) : Colors.green.withOpacity(0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    hasDelay ? Icons.warning_amber_rounded : Icons.check_circle,
+                    size: 12, // 極小圖示
+                    color: hasDelay ? Colors.orange[600] : Colors.teal[600],
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    hasDelay ? '延誤 $delayMinutes 分鐘' : '準點',
+                    style: TextStyle(
+                      fontSize: 10, // 極小字體
+                      fontWeight: FontWeight.w500,
+                      color: hasDelay ? Colors.orange[600] : Colors.teal[600],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            // 假設 delayData 內含 'delay' 鍵
-            Text(
-              '延遲時間：${delayData != null && delayData[0]['DelayTime'] != null ? delayData[0]['DelayTime'] : '無延遲'}',
-              style: const TextStyle(fontSize: 16),
+            const Spacer(),
+            // 車次編號
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                  width: 0.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.train, size: 12, color: Colors.blue),
+                  const SizedBox(width: 4),
+                  Text(
+                    trainData['DailyTrainInfo']['TrainNo'],
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.blue,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            // 如果需要可以顯示更多延遲相關的資訊
           ],
         ),
       ),
     );
   }
-
   Widget _buildStationInfoRow({
     required IconData icon,
     required String label,

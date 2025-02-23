@@ -96,7 +96,7 @@ Future<dynamic> fetchAvailableSeatStatus(String departureID,String arrivalID,Str
 
 
   var url="https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/AvailableSeatStatus/Train/OD/$departureID/to/$arrivalID/TrainDate/$date/TrainNo/$TrainNo?%24&%24format=JSON";
-print(url);
+
   try {
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);

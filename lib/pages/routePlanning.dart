@@ -329,7 +329,7 @@ String? routeArrivalStation;
       "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
     var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.Bus_Taichung WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+      "SELECT Stops FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
     if(selectDirection=="arrival"){
 
@@ -456,7 +456,7 @@ String? routeArrivalStation;
       "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
     var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.Bus_Taichung WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+      "SELECT Stops FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
 
     // 路線方向信息
@@ -464,7 +464,7 @@ String? routeArrivalStation;
       routeQuery[0]["DepartureStopNameZh"],
       routeQuery[0]["DestinationStopNameZh"],
     ];
-
+print(stopsQuery);
     // 初始站點列表
     List<dynamic> departureStops = [];
     List<dynamic> arrivalStops = json.decode(stopsQuery[0]["Stops"]);
