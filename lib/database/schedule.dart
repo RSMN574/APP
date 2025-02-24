@@ -1,6 +1,8 @@
 
 
 
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -50,14 +52,14 @@ class schedule {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getSchedule(String key, String city) async {
+  Future<List<Map<String, dynamic>>> getSchedule(String key, [String? city]) async {
     final db = await database;
 
     // 添加搜索条件，查询符合城市条件的记录
     final results = await db.query(
       "schedule",
-      where: 'city = ?',
-      whereArgs: [city],
+      // where: 'city = ?',
+      // whereArgs: [city],
     );
 
 
@@ -100,6 +102,7 @@ class schedule {
           return -1;
         }
 
+            if(type=="train") {
         // 尝试插入新记录
         await db.insert(
           'schedule',
@@ -108,16 +111,36 @@ class schedule {
             'UserDestinationStopName': UserDestinationStopName,
             'StartingStopName': StartingStopName,
             'FinalStopName': FinalStopName,
-            'type':type,
+            'type': type,
             'Route': route,
-            'city': city,
-            'routeID':other?["routeID"],
-            'category':other?["category"]
+            'other': jsonEncode({
+              "DateTime": other?["DateTime"] ?? "",
+              "trainType": other?["trainType"] ?? ""
+            }), // 轉為 JSON 字串存入
+            'category': other?["category"]
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
+      }else{
+              // 尝试插入新记录
+              await db.insert(
+                'schedule',
+                {
+                  'UserStartingStopName': UserStartingStopName,
+                  'UserDestinationStopName': UserDestinationStopName,
+                  'StartingStopName': StartingStopName,
+                  'FinalStopName': FinalStopName,
+                  'type': type,
+                  'Route': route,
+                  'city': city,
+                  'routeID': other?["routeID"],
+                  'category': other?["category"]
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
 
-        // 插入成功返回 100
+      // 插入成功返回 100
         return 100;
       } catch (e) {
         // 插入失败返回 200
@@ -136,6 +159,7 @@ class schedule {
     final db = await database;
     // 尝试删除记录
     if(table=="schedule"){
+    if(type=="bus"){
       final rowsAffected = await db.delete(
         'schedule',
         where: 'Route = ? AND city = ? AND type = ? AND UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?', // 添加 city 条件
@@ -147,6 +171,19 @@ class schedule {
       } else {
         return 200; // 未找到匹配的记录，删除失败
       }
+    }else{
+      final rowsAffected = await db.delete(
+        'schedule',
+        where: 'Route = ?  AND type = ? AND UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?', // 去除 city 条件
+        whereArgs: [route,type,UserStartingStopName,UserDestinationStopName,StartingStopName,FinalStopName,], // 传递 routeName
+      );
+      // 根据删除结果返回不同值
+      if (rowsAffected > 0) {
+        return 100; // 成功删除
+      } else {
+        return 200; // 未找到匹配的记录，删除失败
+      }
+    }
     }else{
       return -1;
     }

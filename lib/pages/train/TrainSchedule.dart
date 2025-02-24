@@ -14,11 +14,12 @@ class TrainSchedulePage extends StatelessWidget {
 
   final Map<String, dynamic> trainData;
   final String type;
-
+  final DateTime time;
   const TrainSchedulePage({
     Key? key,
     required this.trainData,
     required this.type,
+    required this.time,
   }) : super(key: key);
 
   @override
@@ -94,6 +95,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                             return 'other';
                         }
                       }
+
                       final schedule _schedule = schedule();
                       final output = await _schedule.addSchedule(
 
@@ -102,7 +104,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                           StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
                           FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
                           route: trainData['DailyTrainInfo']['TrainNo'], type: 'train',
-                          other:{"category":getCategory(result['category'])}
+                          other:{"DateTime":  (time).toString(),"trainType":trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],"category":getCategory(result['category'])}
                       );
 
 // 根据 addSchedule 方法返回的结果进行处理

@@ -11,7 +11,7 @@ import 'HSR.dart';
 import 'commute.dart';
 import 'database/schedule.dart';
 import 'firebase/FCM.dart';
-import 'firebase_options.dart';
+import 'firebase/firebase_options.dart';
 import 'widget/geolocator.dart';
 import 'pages.dart';
 import 'home.dart';

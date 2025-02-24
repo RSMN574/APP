@@ -1,7 +1,12 @@
+import 'dart:convert';
+
 import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'Const/regularConst.dart';
+import 'database/Train/getTrain.dart';
 import 'database/getData.dart';
 import 'database/schedule.dart';
 
@@ -23,7 +28,7 @@ class _CommuteState extends State<Commute> {
 
   Future<void> fetchScheduleData() async {
     final db = schedule();
-    final data = await db.getSchedule("schedule", "臺中市");
+    final data = await db.getSchedule("schedule", );
     setState(() {
       scheduleData = data;
     });
@@ -47,7 +52,10 @@ class _CommuteState extends State<Commute> {
         itemCount: filteredData.length,
         itemBuilder: (context, index) {
           final item = filteredData[index];
-          return _buildScheduleCard(item);
+print(item);
+            return _buildScheduleCard(item);
+
+
         },
       ),
     );
@@ -135,8 +143,17 @@ class _CommuteState extends State<Commute> {
         // 处理对话框选项点击事件
         if(id=="remove"){
           final db = schedule();
-         int result=await  db.removeSchedule(city: other?['city'], type: other?['type'], table: 'schedule', UserStartingStopName: other?['UserStartingStopName'], UserDestinationStopName: other?['UserDestinationStopName']
-              , StartingStopName: other?['StartingStopName'], FinalStopName: other?['FinalStopName'], route: other?['Route']);
+          int result = await db.removeSchedule(
+            city: other?['type'] == "train" ? '' : (other?['city'] ?? ''),
+            type: other?['type'],
+            table: 'schedule',
+            UserStartingStopName: other?['UserStartingStopName'],
+            UserDestinationStopName: other?['UserDestinationStopName'],
+            StartingStopName: other?['StartingStopName'],
+            FinalStopName: other?['FinalStopName'],
+            route: other?['Route'],
+          );
+
           if (result == -1) {
             // 如果已经存在相同的记录，提示用户
             ScaffoldMessenger.of(context).showSnackBar(
@@ -232,27 +249,29 @@ class _CommuteState extends State<Commute> {
       ),
     );
   }
-  Widget _buildScheduleCard(Map<String, dynamic> data) {
+  Widget _buildBusCard(Map<String, dynamic> data) {
 
     return GestureDetector(
         onLongPress: () => _dialogBuilder(context,data), // 传递上下文和当前数据
         onTap: () async {
+if(data['type']=="bus"){
+  await GetBusInfo( routeid: data["routeID"], city: cityNameConverter( data['city']));
+  Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context,) => BusTime(
+      routeName:data['Route'],
+      departureStopName:data["StartingStopName"],
+      destinationStopName:data["FinalStopName"],
+      operators: "",
 
-          await GetBusInfo( routeid: data["routeID"], city: cityNameConverter( data['city']));
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context,) => BusTime(
-              routeName:data['Route'],
-              departureStopName:data["StartingStopName"],
-              destinationStopName:data["FinalStopName"],
-              operators: "",
-
-              city:   cityNameConverter( data['city']), routeID: data["routeID"],
+      city:   cityNameConverter( data['city']), routeID: data["routeID"],
 
 
 
-            )),
-          );
+    )),
+  );
+}
+
         },
     child:Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -327,6 +346,188 @@ class _CommuteState extends State<Commute> {
     )
     );
   }
+  Widget _buildScheduleCard(Map<String, dynamic> data) {
+// json.decode(data["other"]);
+    return GestureDetector(
+      onLongPress: () => _dialogBuilder(context, data),
+      onTap: () async {
+      if(data['type']=="bus"){
+        await GetBusInfo(routeid: data["routeID"], city: cityNameConverter(data['city']));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BusTime(
+              routeName: data['Route'],
+              departureStopName: data["StartingStopName"],
+              destinationStopName: data["FinalStopName"],
+              operators: "",
+              city: cityNameConverter(data['city']),
+              routeID: data["routeID"],
+            ),
+          ),
+        );
+      }else if(data['type']=="train"){
+        var fetchedTrainData = await fetchTrain(
+          int.parse(data['Route'].replaceAll(RegExp(r'[^0-9]'), '')),
+            (DateTime.parse(jsonDecode(data["other"])["DateTime"]))
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TrainSchedulePage(
+              trainData: fetchedTrainData,
+              type: 'trainNo', time: (DateTime.parse(jsonDecode(data["other"])["DateTime"])),
+            ),
+          ),
+        );
+      }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: data['type'] == 'train' ? Colors.blueGrey[800] : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          // 火車專用邊框樣式
+          border: data['type'] == 'train'
+              ? Border.all(color: Colors.orangeAccent, width: 2)
+              : null,
+        ),
+        child: data['type'] == 'train'
+            ? _buildTrainCard(data)  // 火車專用樣式
+            : _buildBusCard(data),  // 原始公車樣式
+      ),
+    );
+
+  }
+// 火車專用卡片組件
+  Widget _buildTrainCard(Map<String, dynamic> data) {
+    print(data);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 車次類型標籤
+        Row(
+          children: [
+            Icon(Icons.train, color: Colors.orangeAccent, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              '鐵路班次'.toUpperCase(),
+              style: TextStyle(
+                  color: Colors.orangeAccent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 主要車次資訊
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // 左側：車次資訊
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['Route'] ?? '車次資訊',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'RobotoMono'
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    json.decode(data["other"])["trainType"], // 可根據實際數據調整
+                    style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 右側：站點資訊
+            Expanded(
+              child: Column(
+                children: [
+                  _buildStationInfo('出發', data['UserStartingStopName']),
+                  const SizedBox(height: 8),
+                  Divider(color: Colors.grey[400], height: 1),
+                  const SizedBox(height: 8),
+                  _buildStationInfo('抵達', data['UserDestinationStopName']),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        // 底部城市資訊
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            children: [
+              Icon(Icons.access_time_filled_sharp, color: Colors.grey[400], size: 16),
+              const SizedBox(width: 4),
+              Text(
+                '時間：${DateFormat('yyyy-MM-dd').format(DateTime.parse(jsonDecode(data["other"])["DateTime"]))}',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
+
+            ],
+          ),
+        )
+      ],
+    );
+  }
+
+// 站點資訊組件
+  Widget _buildStationInfo(String type, String stationName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          type,
+          style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 12,
+              fontWeight: FontWeight.w300
+          ),
+        ),
+        Text(
+          stationName ?? '未設定',
+          style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        )
+      ],
+    );
+  }
+
+
+
 
   void _onTabTapped(int index) {
     setState(() {

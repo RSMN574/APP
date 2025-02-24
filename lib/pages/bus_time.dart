@@ -718,34 +718,39 @@ void _scrollToIndex(int index) {
                     child: ValueListenableBuilder<int>(
                       valueListenable: remainingSecondsNotifier, // 监听 remainingSecondsNotifier
                       builder: (context, remainingTime, child) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
-                          decoration: BoxDecoration(
-                            color: busBlue, // 使用 busBlue 作為背景色
-                            borderRadius: BorderRadius.circular(10), // 圓角設置
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4, // 輕微的模糊效果
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            border: Border.all(color: busBlue, width: 1.5),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-                            children: [
-                              Icon(Icons.refresh, color: Colors.white, size: 14), // 使用更新图标，颜色为白色
-                              SizedBox(width: 6), // 图标与文本间距
-                              Text(
-                                "剩餘時間: $remainingTime 秒", // 显示剩余时间
-                                style: const TextStyle(
-                                  fontSize: 12, // 字體較小
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white, // 字體顏色為白色
+                        return GestureDetector(
+                          onTap: (){
+
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
+                            decoration: BoxDecoration(
+                              color: busBlue, // 使用 busBlue 作為背景色
+                              borderRadius: BorderRadius.circular(10), // 圓角設置
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 4, // 輕微的模糊效果
+                                  offset: const Offset(0, 2),
                                 ),
-                              ),
-                            ],
+                              ],
+                              border: Border.all(color: busBlue, width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center, // 水平居中
+                              children: [
+                                Icon(Icons.refresh, color: Colors.white, size: 14), // 使用更新图标，颜色为白色
+                                SizedBox(width: 6), // 图标与文本间距
+                                Text(
+                                  "剩餘時間: $remainingTime 秒", // 显示剩余时间
+                                  style: const TextStyle(
+                                    fontSize: 12, // 字體較小
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white, // 字體顏色為白色
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       },
@@ -883,24 +888,7 @@ padding: const EdgeInsets.only(bottom: 25),
                             : Colors.black,
                       ),
                     ),
-                  if (stop["stopName"]!.contains("車站"))
-          Padding(
-            padding: const EdgeInsets.only(left: 6), // 添加左侧间距
-            child: SvgPicture.asset(
-              'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
-              width: 18, // 设置SVG图标的宽度
-              height: 18, // 设置SVG图标的高度
-            ),
-          )
-          else if (stop["stopName"]!.contains("捷運"))
-          Padding(
-          padding: const EdgeInsets.only(left: 6), // 添加左侧间距
-          child: SvgPicture.asset(
-          'assets/icons/tc_MRT.svg', // 自定义SVG路径
-          width: 18, // 设置SVG图标的宽度
-          height: 18, // 设置SVG图标的高度
-          ),
-          ),// 如果 stopName 包含 "火車站"，添加火车图标
+
                   ],
                 ),
 

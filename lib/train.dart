@@ -15,6 +15,8 @@ import 'database/Train/getTrain.dart';
  const Color textSecondary = Color(0xFF718096);
  const Color surfaceColor = Color(0xFFF3F5F7);
 class Train extends StatefulWidget {
+  const Train({super.key});
+
   @override
   _TrainState createState() => _TrainState();
 }
@@ -350,7 +352,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       MaterialPageRoute(
                         builder: (context) => TrainSchedulePage(
                           trainData: trainData,
-                          type: 'trainNo',
+                          type: 'trainNo', time: selectedDate,
                         ),
                       ),
                     );
@@ -449,7 +451,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         builder: (context, child) {
           return Theme(
             data: ThemeData.light().copyWith(
-              colorScheme: ColorScheme.light(
+              colorScheme: const ColorScheme.light(
                 primary: primaryColor,
                 onPrimary: Colors.white,
                 surface: surfaceColor,
@@ -590,7 +592,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 child: Text(
                   selectedDate == null
                       ? '選擇時間'
-                      : '已選擇：${dateFormat.format(selectedDate!)}',
+                      : '已選擇：${dateFormat.format(selectedDate)}',
                   style: TextStyle(
                     fontSize: 16,
                     color: textPrimary,
@@ -606,23 +608,17 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if(selectedDate != null){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoutePage(
-                            departure: departureSelectedStation,
-                            destination: destinationSelectedStation,
-                            date: selectedDate!
-                        ),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RoutePage(
+                          departure: departureSelectedStation,
+                          destination: destinationSelectedStation,
+                          date: selectedDate
                       ),
-                    );
-                  }else{
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('請選擇日期'))
-                    );
-                  }
-                },
+                    ),
+                  );
+                                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
@@ -654,7 +650,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 class StationSearchPage extends StatefulWidget {
   final TextEditingController controller;
 
-  const StationSearchPage({Key? key, required this.controller}) : super(key: key);
+  const StationSearchPage({super.key, required this.controller});
 
   @override
   _StationSearchPageState createState() => _StationSearchPageState();
@@ -694,7 +690,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: primaryColor,    // 主色調
               onPrimary: Colors.white,  // 主色調上的文字
               surface: surfaceColor,    // 對話框背景
@@ -719,7 +715,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
         builder: (context, child) {
           return Theme(
             data: ThemeData.light().copyWith(
-              colorScheme: ColorScheme.light(
+              colorScheme: const ColorScheme.light(
                 primary: primaryColor,
                 onPrimary: Colors.white,
                 surface: surfaceColor,
@@ -783,18 +779,18 @@ class _StationSearchPageState extends State<StationSearchPage> {
               readOnly: true,
               decoration: InputDecoration(
                 labelText: '輸入車站名稱',
-                labelStyle: TextStyle(color: textSecondary),
+                labelStyle: const TextStyle(color: textSecondary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: surfaceColor),
+                  borderSide: const BorderSide(color: surfaceColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor),
+                  borderSide: const BorderSide(color: primaryColor),
                 ),
                 filled: true,
                 fillColor: surfaceColor,
-                prefixIcon: Icon(Icons.train, color: textSecondary),
+                prefixIcon: const Icon(Icons.train, color: textSecondary),
                 contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               ),
               onTap: () async {
@@ -832,8 +828,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                 child: Text(
                   selectedDate == null
                       ? '選擇時間'
-                      : '已選擇：${dateFormat.format(selectedDate!)}',
-                  style: TextStyle(
+                      : '已選擇：${dateFormat.format(selectedDate)}',
+                  style: const TextStyle(
                     fontSize: 16,
                     color: textPrimary,
                     fontWeight: FontWeight.w500,
@@ -931,7 +927,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
       appBar: AppBar(
         title: Text(
           "${widget.stationName} 車站",
-          style: TextStyle(
+          style: const TextStyle(
             color: textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -1269,7 +1265,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                       MaterialPageRoute(
                         builder: (context) => TrainSchedulePage(
                           trainData: fetchedTrainData,
-                          type: 'trainNo',
+                          type: 'trainNo', time: widget.datetime,
                         ),
                       ),
                     );
@@ -1559,7 +1555,7 @@ return
                             MaterialPageRoute(
                               builder: (context) => TrainSchedulePage(
                                 trainData: trainData,
-                                type: 'trainNo',
+                                type: 'trainNo', time: DateTime.parse(i['arrival']["time"]),
                               ),
                             ),
                           );
