@@ -41,7 +41,8 @@ class schedule {
     other TEXT,                            -- 存储 JSON 字符串
     city TEXT ,
     routeID INTEGER,
-    category TEXT
+    category TEXT,
+    time TEXT
   )
 ''');
 
@@ -80,29 +81,54 @@ class schedule {
 
       try {
         final db = await database;
+        if(type=="train") {
+          // 检查是否已存在相同的记录
+          final existing = await db.query(
+            'schedule',
+            where:
+            'UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?  AND type = ? AND Route = ? AND time = ?',
+            whereArgs: [
+              UserStartingStopName,
+              UserDestinationStopName,
+              StartingStopName,
+              FinalStopName,
+              type,
+              route,
 
-        // 检查是否已存在相同的记录
-        final existing = await db.query(
-          'schedule',
-          where:
-          'UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?  AND type = ? AND Route = ? AND city = ?',
-          whereArgs: [
-            UserStartingStopName,
-            UserDestinationStopName,
-            StartingStopName,
-            FinalStopName,
-            type,
-            route,
-            city
-          ],
-        );
+            ],
+          );
 
-        // 如果记录已存在，返回 -1 表示重复
-        if (existing.isNotEmpty) {
-          return -1;
+          // 如果记录已存在，返回 -1 表示重复
+          if (existing.isNotEmpty) {
+            return -1;
+          }
+
+        }else{
+          // 检查是否已存在相同的记录
+          final existing = await db.query(
+            'schedule',
+            where:
+            'UserStartingStopName = ? AND UserDestinationStopName = ? AND StartingStopName = ? AND FinalStopName = ?  AND type = ? AND Route = ? AND city = ?',
+            whereArgs: [
+              UserStartingStopName,
+              UserDestinationStopName,
+              StartingStopName,
+              FinalStopName,
+              type,
+              route,
+              city,
+
+            ],
+          );
+
+          // 如果记录已存在，返回 -1 表示重复
+          if (existing.isNotEmpty) {
+            return -1;
+          }
         }
 
-            if(type=="train") {
+
+            if(type=="train" || type=="HSR" ) {
         // 尝试插入新记录
         await db.insert(
           'schedule',
@@ -114,10 +140,11 @@ class schedule {
             'type': type,
             'Route': route,
             'other': jsonEncode({
-              "DateTime": other?["DateTime"] ?? "",
+
               "trainType": other?["trainType"] ?? ""
             }), // 轉為 JSON 字串存入
-            'category': other?["category"]
+            'category': other?["category"],
+            'time':  other?["DateTime"] ,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );

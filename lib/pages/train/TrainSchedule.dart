@@ -78,6 +78,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
               },
               );
 
+
               // 處理用戶選擇的結果
               if (result != null) {
               print('出發站: ${result['departure']}');
@@ -265,8 +266,10 @@ List<dynamic> stationNames = trainData["StopTimes"]
             const SizedBox(height: 20),
             _buildInfoItem(
               '列車種類',
-              trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+              "${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}"
+                  "${[115, 121, 123, 125, 141, 144, 138, 150, 152, 114].contains( int.parse(trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
             ),
+
             const SizedBox(height: 8),
             _buildInfoItem(
               '備註',

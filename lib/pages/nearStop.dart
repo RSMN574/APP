@@ -63,11 +63,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     Set<Marker> markers = {};
 
     for (var station in stations) {
-      if (station.positionLat == null || station.positionLon == null) {
-        debugPrint('Invalid latitude or longitude for station: ${station.stationNameZh}');
-        continue;
-      }
-
       final marker = Marker(
         markerId: MarkerId(station.stationID),
         position: LatLng(
@@ -192,7 +187,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                         double delta = details.primaryDelta! / MediaQuery.of(context).size.height;
                         double currentSize = _scrollController.size ?? 0.1;
                         double newSize = (currentSize - delta).clamp(0.1, 0.96);
-                        _scrollController.animateTo(newSize, duration: Duration(milliseconds: 50), curve: Curves.easeInOut);
+                        _scrollController.animateTo(newSize, duration: const Duration(milliseconds: 50), curve: Curves.easeInOut);
                       },
                       child: Container(
                         width: 40,
@@ -219,9 +214,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               IndexedStack(
                   index: _indexNotifier.value ,
                   children: <Widget>[TabWidget(
-                    items: ["公車站", "捷運站", "火車站", "高鐵站"],
+                    items: const ["公車站", "捷運站", "火車站", "高鐵站"],
                     icons: [Icons.directions_bus, Icons.subway, Icons.train, Icons.directions_railway],
-                    id: ["bus", "metro", "train", "HSR"],
+                    id: const ["bus", "metro", "train", "HSR"],
                     buildPageView: (context, controller) {
                       return PageView.builder(
                         itemCount: 4,
@@ -236,13 +231,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                               return   // 滚动内容区域
 
 
-
-
                           SingleChildScrollView(
                           controller: scrollController,
                           child: FutureBuilder<List<Station>>(
                           future: getNearStation(
-                          "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                            Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
                           ),
                           builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -271,7 +264,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                     setState(() {
                                       // 重新觸發 FutureBuilder 的 future
                                       getNearMRTStation(
-                                        "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                        Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
                                       );
                                     });
                                   },
@@ -363,7 +356,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                         controller: scrollController,
                                         child: FutureBuilder<List<MRTStation>>(
                                           future: getNearMRTStation(
-                                            "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                            Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
                                           ),
                                           builder: (context, snapshot) {
                                             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -392,7 +385,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                         setState(() {
                                                           // 重新觸發 FutureBuilder 的 future
                                                           getNearMRTStation(
-                                                            "${locationProvider.latitude}%2C${locationProvider.longitude}",
+                                                            Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
                                                           );
                                                         });
                                                       },
@@ -507,11 +500,16 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             right: 20,
             child: GestureDetector(
               onTap: () async {
+                print( ("${locationProvider.latitude},${locationProvider.longitude}"));
                 // 重新加載附近站點數據
-                final stations = await getNearStation("${locationProvider.latitude}%2C${locationProvider.longitude}");
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _loadMarkers(context, stations);
-                });
+                final stations = await getNearStation( Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"));
+                  print(stations);
+                setState(() {
+                     WidgetsBinding.instance.addPostFrameCallback((_) {
+                   _loadMarkers(context, stations);
+
+                 });
+               });
               },
               child: Container(
                 padding: const EdgeInsets.all(12.0),
@@ -1226,21 +1224,7 @@ return data;
                               ],
                               bottom: _buildTabBar(snapshot.data!),
                             ),
-                            Positioned(
-                              top: 8, // 提示线距离顶部的位置
-                              left: 0,
-                              right: 0,
-                              child: Center(
-                                child: Container(
-                                  width: 40,
-                                  height: 5,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.withOpacity(0.5),
-                                    borderRadius: BorderRadius.circular(2.5),
-                                  ),
-                                ),
-                              ),
-                            ),
+
                           ],
                         ),
                       ),

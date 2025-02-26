@@ -295,7 +295,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       MaterialPageRoute(
                         builder: (context) => HSRSchedulePage(
                           trainData: trainData,
-                          type: 'trainNo',
+                          type: 'trainNo', time: selectedDate,
                         ),
                       ),
                     );
@@ -1060,7 +1060,7 @@ class _RoutePageState extends State<RoutePage> {
                                                 MaterialPageRoute(
                                                   builder: (context) => HSRSchedulePage(
                                                     trainData: trainData,
-                                                    type: 'trainNo',
+                                                    type: 'trainNo', time:     DateTime.parse(i["departure"]["time"]),
                                                   ),
                                                 ),
                                               );

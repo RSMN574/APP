@@ -145,7 +145,7 @@ class _NavigationExampleState extends State<NavigationExample> {
       case 1:
         return Commute();
       case 2:
-        return NearbyStationsPage();
+        return const NearbyStationsPage();
       case 3:
         return InfoPages();
       default:

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../database/schedule.dart';
+import '../../widget/train/RoutePalnner.dart';
+
 class HSRSchedulePage extends StatelessWidget {
   // 高鐵風格顏色定義
   static const Color primaryColor = Color(0xFFFF6600);     // 高鐵主色調
@@ -9,11 +12,12 @@ class HSRSchedulePage extends StatelessWidget {
 
   final Map<String, dynamic> trainData;
   final String type;
-
+  final DateTime time;
   const HSRSchedulePage({
     Key? key,
     required this.trainData,
     required this.type,
+    required this.time,
   }) : super(key: key);
 
   @override
@@ -27,10 +31,91 @@ class HSRSchedulePage extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
+
         centerTitle: true,
         elevation: 1,
         backgroundColor: Colors.white,
         iconTheme: IconThemeData(color: textPrimary),
+        actions: [
+          IconButton(onPressed: () async {
+
+// 提取 StationName (中文)
+// List<String> stationNamesZh = trainData["StopTimes"]
+//     .map((stop) => stop["StationName"]["Zh_tw"] as String)
+//     .toList();
+//
+// // 提取 StationName (英文)
+// List<String> stationNamesEn = trainData["StopTimes"]
+//     .map((stop) => stop["StationName"]["En"] as String)
+//     .toList();
+            // 提取 StationName (英文)
+            List<dynamic> stationNames = trainData["StopTimes"]
+                .map((stop) => stop["StationName"] as Map)
+                .toList();
+
+// 顯示彈窗並等待用戶輸入
+            final result = await showDialog(
+              context: context,
+              builder: (context) {
+                return StationSelectionDialog(stationNames:stationNames);
+              },
+            );
+
+
+            // 處理用戶選擇的結果
+            if (result != null) {
+              print('出發站: ${result['departure']}');
+              print('到達站: ${result['destination']}');
+              print('類型: ${result['category']}');
+            }
+
+            String getCategory(String category) {
+              switch (category) {
+                case '上班通勤':
+                  return 'commute';
+                case '旅行':
+                  return 'trip';
+                default:
+                  return 'other';
+              }
+            }
+            print(trainData);
+            final schedule _schedule = schedule();
+            final output = await _schedule.addSchedule(
+
+                UserStartingStopName: result['departure'],
+                UserDestinationStopName: result['destination'],
+                StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                route: trainData['DailyTrainInfo']['TrainNo'], type: 'HSR',
+                other:{"DateTime":  (time).toString(),"trainType":"台灣高鐵700T","category":getCategory(result['category'])}
+            );
+
+// 根据 addSchedule 方法返回的结果进行处理
+            if (output == -1) {
+              // 如果已经存在相同的记录，提示用户
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('該行程已經存在。'))
+              );
+            } else if (output == 100) {
+              // 成功添加行程，提示用户
+              ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('行程添加成功！'))
+              );
+            } else {
+              // 添加行程失败，提示用户
+              ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('添加行程失敗。'))
+              );
+            }
+          }, icon: const Icon(Icons.add)),
+          IconButton(
+            onPressed: () {
+
+            },
+            icon: Icon(Icons.info),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
@@ -56,6 +141,7 @@ class HSRSchedulePage extends StatelessWidget {
         ),
       ),
       backgroundColor: surfaceColor,
+
     );
   }
 

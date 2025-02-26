@@ -62,3 +62,29 @@ double calculateCornerRadius(BuildContext context,{double percentage = 0.02, dou
   // 限制圓角半徑的最小和最大值
   return cornerRadius.clamp(min, max);
 }
+String convertTrainType(String trainType) {
+  // 定義火車車種對應表（使用關鍵字匹配）
+  Map<String, String> trainTypeMapping = {
+    "EMU3000": "新自強",
+    "普悠瑪": "普悠瑪",
+    "太魯閣": "太魯閣",
+    "莒光": "莒光號",
+    "區間快": "區間快",
+    "區間": "區間車",
+    "普快":"普快",
+    "復興":"復興",
+    "柴聯": "柴聯自強",
+    "自強": "自強號",
+  };
+
+  // 遍歷對應表，檢查是否包含關鍵字
+  for (var key in trainTypeMapping.keys) {
+    if (trainType.contains(key)) {
+      return trainTypeMapping[key]!;
+    }
+  }
+
+  // 如果找不到則回傳原值
+  return trainType;
+}
+

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
+import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/SelectView.dart';
 import 'package:com.rsmn574.app/widget/train/StationDialog.dart';
 import 'package:flutter/material.dart';
@@ -426,7 +427,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: primaryColor,    // 主色調
               onPrimary: Colors.white,  // 主色調上的文字
               surface: surfaceColor,    // 對話框背景
@@ -593,7 +594,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   selectedDate == null
                       ? '選擇時間'
                       : '已選擇：${dateFormat.format(selectedDate)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     color: textPrimary,
                     fontWeight: FontWeight.w500,
@@ -982,7 +983,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
             ),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
+          return const Center(
             child: Text(
               '無車站資訊',
               style: TextStyle(fontSize: 16, color: textSecondary),
@@ -1025,14 +1026,14 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                           children: [
                             Text(
                               data[0]['StationNameZh_tw'] ?? '未知車站',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            const Text(
                               '車站地址',
                               style: TextStyle(
                                 fontSize: 14,
@@ -1041,13 +1042,13 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             ),
                             Text(
                               data[1]['StationAddress'] ?? '未知地址',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            const Text(
                               '車站等級',
                               style: TextStyle(
                                 fontSize: 14,
@@ -1056,13 +1057,13 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             ),
                             Text(
                               _getStationClass(data[1]['StationClass']),
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            const Text(
                               '車站電話',
                               style: TextStyle(
                                 fontSize: 14,
@@ -1071,13 +1072,13 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             ),
                             Text(
                               data[1]['StationPhone'] ?? '未知電話',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: textPrimary,
                               ),
                             ),
                             const SizedBox(height: 8),
-                            Text(
+                            const Text(
                               '車站ID',
                               style: TextStyle(
                                 fontSize: 14,
@@ -1086,7 +1087,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             ),
                             Text(
                               data[1]['StationID'] ?? '未知ID',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 color: textPrimary,
                               ),
@@ -1122,7 +1123,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             children: [
                               Text(
                                 facility['mapName']!,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: textPrimary,
@@ -1135,7 +1136,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                                   facility['mapURL']!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
-                                    return Text(
+                                    return const Text(
                                       '圖片載入失敗',
                                       style: TextStyle(
                                         fontSize: 14,
@@ -1152,7 +1153,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                         if (elevatorInfo != null)
                           Text(
                             "電梯資訊: $elevatorInfo",
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
                               color: textPrimary,
                             ),
@@ -1172,10 +1173,10 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
   Widget _buildTrainInfoPage() {
     late final ValueNotifier<double> itemHeightNotifier = ValueNotifier(12.0); // 初始高度
 
-    final ScrollController _scrollController = ScrollController();
+    final ScrollController scrollController = ScrollController();
     List<dynamic> trainData = []; // 這裡假設 trainData 已經載入
     /// 找出第一筆 DepartureTime 晚於 widget.datetime 的資料，並滾動到該項目
-    void _scrollToNearestTrain() {
+    void scrollToNearestTrain() {
       for (int i = 0; i < trainData.length; i++) {
 
         var train = trainData[i];
@@ -1203,7 +1204,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
            double itemHeight = 120.0+16; // 調整為你每個列表項目的高度
 
           double offset = i *  itemHeight;
-          _scrollController.animateTo(
+          scrollController.animateTo(
             offset,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeIn,
@@ -1217,7 +1218,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
       color: Colors.white,
       padding: const EdgeInsets.all(16),
       child: FutureBuilder<List<dynamic>>(
-        future: fetchTrainStation(widget.stationID, DateFormat('yyyy-MM-dd').format(widget.datetime)),
+        future: fetchTrainStation(widget.stationID, (widget.datetime)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator(color: primaryColor));
@@ -1229,7 +1230,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
               ),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
+            return const Center(
               child: Text(
                 '無列車資訊',
                 style: TextStyle(fontSize: 16, color: textSecondary),
@@ -1238,19 +1239,19 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
           } else {
             // 使用 addPostFrameCallback 確保 ListView 已經渲染完成
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _scrollToNearestTrain();
+              scrollToNearestTrain();
             });
            trainData = snapshot.data!;
             return ListView.builder(
-              controller: _scrollController,
+              controller: scrollController,
               itemCount: trainData.length,
               itemBuilder: (context, index) {
                 var train = trainData[index];
                 String stationName = train['StationName']['Zh_tw'] ?? '無車站';
-                String trainNo = train['TrainNo'] ?? '未知';
-                String trainType = train['TrainTypeName']['Zh_tw'] ?? '未知';
+                String trainNo = (train['TrainNo']) ?? '未知';
+                String trainType = convertTrainType(train['TrainTypeName']['Zh_tw']) ;
                 String DepartureTime = _formatTime(train['DepartureTime'] ?? '未知');
-                int delayTime = train['DelayTime'] ?? 0;
+                int delayTime = train['DelayTime'] ?? "";
                 String endingStation = train['EndingStationName']['Zh_tw'] ?? '未知';
 
                 return GestureDetector(
@@ -1295,7 +1296,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                             const SizedBox(width: 8),
                             Text(
                               stationName,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
@@ -1321,7 +1322,7 @@ class _StationPageState extends State<StationPage> with SingleTickerProviderStat
                                 _buildDivider(),
                                 _buildStatusIndicator('延誤 $delayTime分鐘', Colors.redAccent),
                               ]
-                              // else ...[
+                              // else if (delayTime == 0)  ...[
                               //   _buildDivider(),
                               //   _buildStatusIndicator('準點', Colors.green),
                               // ],

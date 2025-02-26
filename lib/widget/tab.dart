@@ -1,12 +1,7 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../Const/regularConst.dart';
 
 // 常量文件，包含颜色、图标和标签名称等
-
-
-
 class TabWidget extends StatefulWidget {
   const TabWidget({super.key, required this.items, required this.icons, required this.id, required this.buildPageView,});
   final Widget Function(BuildContext, PageController) buildPageView; // 外部传入的 PageView 构建函数
@@ -32,30 +27,57 @@ class _TabWidgetState extends State<TabWidget> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(5),
+      margin: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           _buildTabBar(), // 构建标签栏
-          Expanded(child: widget.buildPageView(context, pageController)), // 使用 Expanded 包裹 PageView
+          Expanded(
+            child: widget.buildPageView(context, pageController),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildTabBar() {
-    return SizedBox(
-      width: double.infinity,
-      height: 80,
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        itemCount: widget.items.length,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (ctx, index) => _buildTabItem(index),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 90,
+        child: ListView.builder(
+          physics: const BouncingScrollPhysics(),
+          itemCount: widget.items.length,
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (ctx, index) => _buildTabItem(index),
+        ),
       ),
     );
   }
 
   Widget _buildTabItem(int index) {
+    final bool isSelected = _current == index;
     return Column(
       children: [
         GestureDetector(
@@ -71,15 +93,36 @@ class _TabWidgetState extends State<TabWidget> {
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.all(5),
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             width: 100,
-            height: 55,
+            height: 60,
             decoration: BoxDecoration(
-              color: _current == index ? Colors.white70 : Colors.white54,
-              borderRadius: BorderRadius.circular(_current == index ? 12 : 7),
-              border: _current == index
-                  ? Border.all(color: busBlue, width: 2.5)
-                  : null,
+              gradient: isSelected
+                  ? LinearGradient(
+                colors: [
+                  busBlue.withOpacity(0.7),
+                  busBlue,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+                  : LinearGradient(
+                colors: [
+                  Colors.grey.shade200,
+                  Colors.grey.shade100,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(isSelected ? 16 : 10),
+              border: isSelected ? Border.all(color: busBlue, width: 2.5) : null,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(2, 2),
+                ),
+              ],
             ),
             child: Center(
               child: Column(
@@ -87,20 +130,28 @@ class _TabWidgetState extends State<TabWidget> {
                 children: [
                   Icon(
                     widget.icons[index],
-                    size: _current == index ? 23 : 20,
-                    color: _current == index ? Colors.black : Colors.grey.shade400,
+                    size: isSelected ? 26 : 22,
+                    color: isSelected ? Colors.white : Colors.grey.shade700,
                   ),
-                  Text(widget.items[index]),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.items[index],
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         ),
-        if (_current == index)
+        if (isSelected)
           Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
+            margin: const EdgeInsets.only(top: 4),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
               color: busBlue,
               shape: BoxShape.circle,
             ),
@@ -108,8 +159,6 @@ class _TabWidgetState extends State<TabWidget> {
       ],
     );
   }
-
-
-
 }
+
 

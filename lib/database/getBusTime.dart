@@ -1,5 +1,6 @@
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -13,8 +14,7 @@ Future<dynamic> fetchBusTime(routeName,city) async {
 
 int id=await getInfo('routeID');
   int? top=  await getInfo('sum');
-  //List BusInfo=await getInfo('routeInfo');
-  var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
+ var url="https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
 
   try {
 
@@ -54,7 +54,9 @@ Future<Map<String, dynamic>> getDirections(
 
 // 將 List 轉換為 String，並使用逗號分隔
   String transit =  Uri.encodeComponent(transportModes.join(","));
-print(transit);
+if (kDebugMode) {
+  print(transit);
+}
   final String url =
       'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=$transit&transfer_time=5%2C60&depart=$time&first_mile_mode=${option["TravelMode"]}&first_mile_time=10&last_mile_mode=${option["TravelMode"]}&last_mile_time=10';
   print(url);
@@ -117,13 +119,9 @@ Future <List<Station>> getNearStation(
     print('JSON 解析错误: $e');
   }
   print(stations is List<Station>); // 应该返回 true
-  if (stations is List) {
-    // 检查 List 的所有元素是否都是 Station 类型
-    bool allStations = jsonData.every((element) => element is Station);
-    print("jsonData is List<Station>: $allStations");
-  } else {
-    print("jsonData is not a List.");
-  }
+  // 检查 List 的所有元素是否都是 Station 类型
+  bool allStations = jsonData.every((element) => element is Station);
+  print("jsonData is List<Station>: $allStations");
 
 
 
