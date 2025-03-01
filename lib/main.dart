@@ -80,7 +80,12 @@ class NavigationBarApp extends StatelessWidget {
   Widget build(BuildContext context) {
 
 
-    return MaterialApp(
+    return  GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
+        child: MaterialApp(
       routes: {
         "plane": (BuildContext context) => plane(),
         "train": (BuildContext context) => Train(),
@@ -94,19 +99,19 @@ class NavigationBarApp extends StatelessWidget {
       },
       theme: appTheme,
       themeMode: ThemeMode.system,
-      home: const NavigationExample(),
-    );
+      home: const TaiwanPass(),
+    ));
   }
 }
 
-class NavigationExample extends StatefulWidget {
-  const NavigationExample({super.key});
+class TaiwanPass extends StatefulWidget {
+  const TaiwanPass({super.key});
 
   @override
-  State<NavigationExample> createState() => _NavigationExampleState();
+  State<TaiwanPass> createState() => _TaiwanPassState();
 }
 
-class _NavigationExampleState extends State<NavigationExample> {
+class _TaiwanPassState extends State<TaiwanPass> {
   int currentPageIndex = 0;
   String? selectedRegion;
   final PageController _pageController = PageController(); // 控制 PageView

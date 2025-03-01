@@ -11,7 +11,7 @@ class TrainSchedulePage extends StatelessWidget {
   static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
   static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
   static const Color textSecondary = Color(0xFF718096);    // 次要文字
-
+  static final List E500=[115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
   final Map<String, dynamic> trainData;
   final String type;
   final DateTime time;
@@ -186,6 +186,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                       ),
                       const SizedBox(height: 16),
                       _buildStopTimesList(),
+                      info()
                     ],
                   ),
                 ),
@@ -267,7 +268,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
             _buildInfoItem(
               '列車種類',
               "${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}"
-                  "${[115, 121, 123, 125, 141, 144, 138, 150, 152, 114].contains( int.parse(trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
+                  "${E500.contains( int.parse(trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
             ),
 
             const SizedBox(height: 8),
@@ -560,4 +561,159 @@ List<dynamic> stationNames = trainData["StopTimes"]
       },
     );
   }
+Widget info(){
+  Map<String,dynamic> trainInfo ;
+
+    List<Map<String,dynamic>> ListTrainInfo = [
+{
+        'TrainTypeName':'自強(推拉式自強號且無自行車車廂)',
+        'formation': '12節車廂（2M12T）',
+        'length': '278.02m',
+
+        'maxSpeed': '130km/h',
+        'nursingCar': '1、7',
+        'officeCar': '1、7',
+        'accessibleCar': '3、8',
+        'Parent-childCarriage': '12',
+
+      },{
+        'TrainTypeName':'自強(推拉式自強號且有自行車車廂)',
+        'formation': '12節車廂（2M12T）',
+        'length': '278.02m',
+        'maxSpeed': '130km/h',
+        'nursingCar': '1、7',
+        'officeCar': '1、7',
+        'accessibleCar': '3、8',
+        'bicycle': '12',
+
+      }
+      ,{
+        'TrainTypeName':'太魯閣(太魯閣)',
+        'formation': '8節車廂（4M4T）',
+        'length': '166.99m',
+        'maxSpeed': '130km/h',
+        'nursingCar': '1、8',
+        'officeCar': '1、8',
+        'accessibleCar': '1、8',
+
+
+      }
+    ];
+  trainInfo = ListTrainInfo.firstWhere(
+          (train) => train['TrainTypeName'] == trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+      orElse: () => {}  // 找不到就維持原本的 trainInfo
+  );
+// 如果 trainInfo 是空的，就不顯示
+  if (trainInfo.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return  Container(
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 4,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child:Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildInfoRow("列車编组", trainInfo['formation']),
+              _buildDivider(),
+              _buildInfoRow("列車長度",  E500.contains( int.parse(trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '285.14m' : trainInfo['length']),
+              // _buildDivider(),
+              // _buildInfoRow("列车定员", trainInfo['capacity']),
+              _buildDivider(),
+              _buildInfoRow("最高時速", trainInfo['maxSpeed'], isHighlighted: true),
+              _buildDivider(),
+
+
+              if (trainInfo['Parent-childCarriage'] != null || trainInfo['bicycle'] != null)
+                _buildCombinedRow([
+                  trainInfo['Parent-childCarriage'] == null
+                      ? _buildItem('自行車車廂', trainInfo['bicycle'])
+                      : _buildItem("親子車廂", trainInfo['Parent-childCarriage']),
+                  _buildItem("車長室", trainInfo['officeCar']),
+                ]),
+
+
+              _buildDivider(),
+              _buildCombinedRow([
+                _buildItem("無障礙車廂", trainInfo['accessibleCar']),
+                _buildItem("哺集乳室", trainInfo['nursingCar']),
+              ]),
+            ],
+          ),
+        ),
+      );
 }
+  Widget _buildInfoRow(String title, String value, {bool isHighlighted = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              )),
+          Text(value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: isHighlighted ? Colors.blue : Colors.black,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCombinedRow(List<Widget> children) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildItem(String title, String value) {
+    return Expanded(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              )),
+          Text(value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: Colors.grey[200],
+    );
+  }
+}
+
+
