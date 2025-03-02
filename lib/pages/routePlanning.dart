@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
-import '../database/schedule.dart';
+import '../database/SQL/schedule.dart';
 
 class RoutePlanner extends StatefulWidget {
   @override

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../database/schedule.dart';
+import '../../database/SQL/schedule.dart';
 import '../../widget/train/RoutePalnner.dart';
 
 class HSRSchedulePage extends StatelessWidget {

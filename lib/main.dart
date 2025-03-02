@@ -9,7 +9,7 @@ import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
 import 'HSR.dart';
 import 'commute.dart';
-import 'database/schedule.dart';
+import 'database/SQL/schedule.dart';
 import 'firebase/FCM.dart';
 import 'firebase/firebase_options.dart';
 import 'widget/geolocator.dart';

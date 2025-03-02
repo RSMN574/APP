@@ -10,7 +10,7 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
-import 'database/favorite_feature.dart';
+import 'database/SQL/favorite_feature.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 

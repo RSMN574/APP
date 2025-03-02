@@ -9,10 +9,10 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
 import '../database/MRT/getMRTInfo.dart';
-import '../database/favorite_feature.dart';
-import '../database/getBusTime.dart';
+import '../database/SQL/favorite_feature.dart';
+import '../database/bus/getBusTime.dart';
 import '../database/getData.dart';
-import '../database/getStationInfo.dart';
+import '../database/bus/getStationInfo.dart';
 import '../metro.dart';
 import '../models/MRTStation.dart';
 import '../models/Station.dart';
@@ -74,7 +74,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           snippet: station.stationID ?? 'Unknown',
         ),onTap: () async {
         List<Map<String, dynamic>> data=await GetBusStopInfo(station.stationNameZh,"Taichung");
-        print(data);
+        // print(data);
         // 使用 map 來提取 StationID 並轉換為字串
         List<String> stationIDs = data.map((station) {
           // 確保 StationID 存在並轉換為字串

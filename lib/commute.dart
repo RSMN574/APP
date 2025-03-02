@@ -10,7 +10,7 @@ import 'Const/regularConst.dart';
 import 'database/HSR/getHSR.dart';
 import 'database/Train/getTrain.dart';
 import 'database/getData.dart';
-import 'database/schedule.dart';
+import 'database/SQL/schedule.dart';
 
 class Commute extends StatefulWidget {
   @override

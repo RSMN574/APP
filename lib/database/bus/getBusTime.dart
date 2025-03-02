@@ -4,9 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-import '../Const/regularConst.dart';
-import '../models/Station.dart';
-import 'getData.dart'; // 用于网络请求
+import '../../Const/regularConst.dart';
+import '../../models/Station.dart';
+import '../getData.dart'; // 用于网络请求
 
 Future<dynamic> fetchBusTime(routeName, city) async {
   int id = await getInfo('routeID');
