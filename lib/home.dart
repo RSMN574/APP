@@ -130,7 +130,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
   }
 
-
+  bool _showMainContent = true;  // 預設顯示主內容
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +181,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 ),
               ),
             ),
-            ValueListenableBuilder<int>(
+            if (_showMainContent) ValueListenableBuilder<int>(
               valueListenable: _indexNotifier,
               builder: (context, index, child) {
                 return PageStorage(
@@ -300,16 +300,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 //////////////////////////////////////////////////////
   Future<void> _handleClick(String type) async {
     if (type == "bike") {
-      _fetchData();
 
+      setState(() {
+        _showMainContent = false;  // 隱藏主內容
+      });
+      _fetchData();
       // 显示第二个 BottomSheet
       _bottomSheetController = showBottomSheet(
         context: context,
         builder: (context) {
-          return SizedBox(
-              height: 300, // 设置您想要的高度
-              width: double.infinity, // 宽度填满
-              child: _buildBikeContent(context));
+          return  _buildBikeContent(context);
         },
       );
 
@@ -317,7 +317,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       _bottomSheetController!.closed.then((_) {
         // 这里可以处理 BottomSheet 关闭后的逻辑
         // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-        Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+         Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+        setState(() {
+          _showMainContent = true;  // 主內容
+        });
       });
     }
   }
@@ -984,230 +987,258 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         context: context,
         builder: (context) {
           return  _buildBikeContent(context);});
+    // 监听 BottomSheet 是否关闭
+    _bottomSheetController!.closed.then((_) {
+      // 这里可以处理 BottomSheet 关闭后的逻辑
+      // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+      Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+      setState(() {
+        _showMainContent = true;  // 主內容
+      });
+    });
 
   }
 
   Widget _buildBikeContent(BuildContext context) {
-    if (_selectedStation == null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        alignment: Alignment.center,
-        child: Text(
-          '請選擇站點',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Colors.grey[600],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            spreadRadius: 2,
           ),
-        ),
-      );
-    }
+        ],
+      ),
+      child: FutureBuilder<Map<String, dynamic>?>(
+        future: _selectedStation != null
+            ? getBikeAvailability("Taichung", _selectedStation!["StationID"])
+            : Future.value(null),
+        builder: (context, snapshot) {
+          if (_selectedStation == null) {
+            return _buildPlaceholder('請選擇站點', Icons.location_off_outlined);
+          }
 
-    final stationName = json.decode(_selectedStation!["StationName"])["Zh_tw"];
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildLoadingState(context);
+          }
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.33,
-      minChildSize: 0.2,
-      maxChildSize: 0.6,
-      builder: (BuildContext context, ScrollController scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 16,
-                spreadRadius: 2,
-              )
-            ],
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _buildPlaceholder(
+              snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
+              snapshot.hasError ? Icons.error_outline : Icons.info_outline,
+            );
+          }
+
+          final stationName = json.decode(_selectedStation!["StationName"])["Zh_tw"];
+          final data = snapshot.data!;
+
+          return _buildContentSection(context, stationName, data);
+        },
+      ),
+    );
+  }
+  /// Loading 狀態 widget
+  Widget _buildLoadingState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).primaryColor,
+            ),
           ),
-          child: FutureBuilder<Map<String, dynamic>>(
-            future: getBikeAvailability("Taichung", _selectedStation!["StationID"]),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).primaryColor,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Text('載入中...', style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                );
-              }
+          const SizedBox(height: 16),
+          Text(
+            '載入中...',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildContentSection(BuildContext context, String stationName, Map<String, dynamic> data) {
+    final rentDetails = data["AvailableRentBikesDetail"] ?? {"GeneralBikes": 0, "ElectricBikes": 0};
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline, color: Colors.red, size: 40),
-                      SizedBox(height: 16),
-                      Text('資料載入失敗', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                );
-              }
-
-              if (!snapshot.hasData) {
-                return Center(
-                  child: Text('暫無可用資料', style: TextStyle(color: Colors.grey)),
-                );
-              }
-
-              final availability = snapshot.data!;
-              final availableRent = availability["AvailableRentBikes"];
-              final availableReturn = availability["AvailableReturnBikes"];
-              final rentDetails = availability["AvailableRentBikesDetail"] ?? {
-                "GeneralBikes": 0,
-                "ElectricBikes": 0
-              };
-
-              return SingleChildScrollView(
-                controller: scrollController,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 站點名稱
-                      Row(
-                        children: [
-                          Icon(Icons.location_pin, color: Theme.of(context).primaryColor),
-                          SizedBox(width: 8),
-                          Text(
-                            stationName,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[800],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-
-                      // 即時數據卡片
-                      _buildDataCard(
-                        context,
-                        title: '即時車位資訊',
-                        children: [
-                          _buildInfoRow(
-                            icon: Icons.directions_bike,
-                            iconColor: Colors.green,
-                            label: '可租借車輛',
-                            value: availableRent.toString(),
-                          ),
-                          _buildInfoRow(
-                            icon: Icons.local_parking,
-                            iconColor: Colors.blue,
-                            label: '可歸還車位',
-                            value: availableReturn.toString(),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-
-                      // 車輛類型詳細資訊
-                      _buildDataCard(
-                        context,
-                        title: '車輛類型分布',
-                        children: [
-                          _buildBikeTypeRow(
-                            icon: Icons.directions_bike,
-                            iconColor: Colors.grey[600]!,
-                            label: '普通自行車',
-                            value: rentDetails["GeneralBikes"].toString(),
-                          ),
-                          _buildBikeTypeRow(
-                            icon: Icons.electric_bike,
-                            iconColor: Colors.blue[600]!,
-                            label: '電輔自行車',
-                            value: rentDetails["ElectricBikes"].toString(),
-                          ),
-                        ],
-                      ),
-                    ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 標題列
+          Row(
+            children: [
+              Icon(Icons.pin_drop, color: Theme.of(context).primaryColor, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  stationName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
                   ),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-        );
-      },
+          const SizedBox(height: 16),
+
+          // 主要數據卡片
+          _buildCompactDataGrid(
+            context,
+            rentBikes: data["AvailableRentBikes"]?.toString() ?? '0',
+            returnSpots: data["AvailableReturnBikes"]?.toString() ?? '0',
+            generalBikes: rentDetails["GeneralBikes"]?.toString() ?? '0',
+            electricBikes: rentDetails["ElectricBikes"]?.toString() ?? '0',
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildDataCard(BuildContext context, {required String title, required List<Widget> children}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCompactDataGrid(BuildContext context, {
+    required String rentBikes,
+    required String returnSpots,
+    required String generalBikes,
+    required String electricBikes,
+  }) {
+    return Column(
+      children: [
+        // 第一行：主要指標
+        Row(
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
+            _buildMetricTile(
+              context,
+              icon: Icons.pedal_bike,
+              color: Colors.green[600]!,
+              title: '可租借',
+              value: rentBikes,
+              widthFactor: 0.5,
             ),
-            SizedBox(height: 12),
-            Column(children: children),
+            const SizedBox(width: 8),
+            _buildMetricTile(
+              context,
+              icon: Icons.local_parking,
+              color: Colors.blue[600]!,
+              title: '可歸還',
+              value: returnSpots,
+              widthFactor: 0.5,
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // 第二行：車型分布
+        _buildBikeTypeRow(
+          context,
+          general: generalBikes,
+          electric: electricBikes,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricTile(BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+    double widthFactor = 1.0,
+  }) {
+    return Flexible(
+      flex: 2,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600])),
+                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow({required IconData icon, required Color iconColor, required String label, required String value}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-              Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
+  Widget _buildBikeTypeRow(BuildContext context, {required String general, required String electric}) {
+    return Row(
+      children: [
+        _buildTypeChip(
+          context,
+          icon: Icons.pedal_bike,
+          label: '普通車',
+          value: general,
+          color: Colors.grey[600]!,
+        ),
+        const SizedBox(width: 8),
+        _buildTypeChip(
+          context,
+          icon: Icons.electric_bike,
+          label: '電輔車',
+          value: electric,
+          color: Colors.blue[600]!,
+        ),
+      ],
     );
   }
 
-  Widget _buildBikeTypeRow({required IconData icon, required Color iconColor, required String label, required String value}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildTypeChip(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
       child: Row(
         children: [
-          Icon(icon, color: iconColor, size: 32),
-          SizedBox(width: 16),
-          Text(label, style: TextStyle(fontSize: 16, color: Colors.grey[700])),
-          Spacer(),
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 6),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: iconColor,
-            ),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color),
           ),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
         ],
       ),
     );
   }
 
+  Widget _buildPlaceholder(String text, IconData icon) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 32, color: Colors.grey[400]),
+          const SizedBox(height: 12),
+          Text(text, style: TextStyle(color: Colors.grey[500])),
+        ],
+      ),
+    );
+  }
   List<String> getSelectedModes(List selection) {
 
 

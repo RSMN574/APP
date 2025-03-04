@@ -23,10 +23,10 @@ Future<void> connMysql() async {
 
 
   // 如果連接已存在，則避免重複連接
-  if (conn != null) {
-
-    return;
-  }
+  // if (conn != null) {
+  //
+  //   return;
+  // }
 
   try {
     // 建立連接
