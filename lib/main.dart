@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -70,40 +72,143 @@ class SvgAssets {
   static const String navigate = 'assets/icons/navigate.svg';
   static const String personOutline = 'assets/icons/person-outline.svg';
   static const String person = 'assets/icons/person.svg';
+  static const String commuteOutlined = 'assets/icons/commute-outlined.svg';
 }
-
-class NavigationBarApp extends StatelessWidget {
+late AnimationController _animationController;
+class NavigationBarApp extends StatefulWidget {
   const NavigationBarApp({super.key});
 
+  @override
+  _NavigationBarAppState createState() => _NavigationBarAppState();
+}
+
+class _NavigationBarAppState extends State<NavigationBarApp>
+    with SingleTickerProviderStateMixin { // 使用 SingleTickerProviderStateMixin
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始化 AnimationController
+    _animationController = AnimationController(
+      vsync: this, // 使用 this 作為 TickerProvider
+      duration: const Duration(milliseconds: 1000),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose(); // 釋放資源
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-
-
-    return  GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          FocusManager.instance.primaryFocus?.unfocus();
-        },
-        child: MaterialApp(
-      routes: {
-        "plane": (BuildContext context) => plane(),
-        "train": (BuildContext context) => Train(),
-        "metro": (BuildContext context) => Metro(),
-        "bus": (BuildContext context) => const Bus(),
-        // "busTime": (BuildContext context) => BusTime(city: '',),
-        'notification': (BuildContext context) => NotificationPage(),
-        "home": (BuildContext context) => Home(),
-        "bike": (BuildContext context) => Bike(),
-        "HSR": (BuildContext context) => HSR(),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
       },
-      theme: appTheme,
-      themeMode: ThemeMode.system,
-      home: const TaiwanPass(),
-    ));
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            routes: {
+              "plane": (BuildContext context) => _buildAnimatedPage(Plane()),
+              "train": (BuildContext context) => _buildAnimatedPage(Train()),
+              "metro": (BuildContext context) => _buildAnimatedPage(Metro()),
+              "bus": (BuildContext context) => _buildAnimatedPage(const Bus()),
+              'notification': (BuildContext context) => _buildAnimatedPage(NotificationPage()),
+              "home": (BuildContext context) => _buildAnimatedPage(Home()),
+              "bike": (BuildContext context) => _buildAnimatedPage(Bike()),
+              "HSR": (BuildContext context) => _buildAnimatedPage(HSR()),
+            },
+            theme: appTheme,
+            themeMode: ThemeMode.system,
+            home: const TaiwanPass(),
+          );
+        },
+      ),
+    );
+  }
+  Widget _buildAnimatedPage(Widget page, {bool isReverse = false}) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 600),
+      switchInCurve: Curves.fastEaseInToSlowEaseOut,
+      switchOutCurve: Curves.fastEaseInToSlowEaseOut,
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        // 定義進出動畫方向
+        final Offset enterOffset = isReverse
+            ? const Offset(-0.1, 0)
+            : const Offset(0.1, 0);
+        final Offset exitOffset = isReverse
+            ? const Offset(0.1, 0)
+            : const Offset(-0.1, 0);
+
+        // 進入動畫
+        final Animation<Offset> enterAnimation = Tween<Offset>(
+          begin: enterOffset,
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Interval(0.0, 1.0, curve: Curves.easeOutCubic),
+        ));
+
+        // 退出動畫
+        final Animation<Offset> exitAnimation = Tween<Offset>(
+          begin: Offset.zero,
+          end: exitOffset,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Interval(0.0, 1.0, curve: Curves.easeInCubic),
+        ));
+
+        // 組合動畫
+        return Stack(
+          children: <Widget>[
+            // 退出頁面動畫
+            SlideTransition(
+              position: exitAnimation,
+              child: FadeTransition(
+                opacity: ReverseAnimation(animation),
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 1.0, end: 0.95).animate(
+                    CurvedAnimation(
+                      parent: ReverseAnimation(animation),
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+                  child: child,
+                ),
+              ),
+            ),
+            // 進入頁面動畫
+            SlideTransition(
+              position: enterAnimation,
+              child: FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(
+                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                    CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutBack,
+                    ),
+                  ),
+                  child: child,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(page.runtimeType),
+        child: page,
+      ),
+    );
   }
 }
-
 class TaiwanPass extends StatefulWidget {
   const TaiwanPass({super.key});
 
@@ -111,9 +216,13 @@ class TaiwanPass extends StatefulWidget {
   State<TaiwanPass> createState() => _TaiwanPassState();
 }
 
-class _TaiwanPassState extends State<TaiwanPass> {
+class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateMixin{
   int currentPageIndex = 0;
   String? selectedRegion;
+  // 在 State 類別新增動畫控制器
+  late AnimationController _navIconController;
+  final double _activeIconSize = 24;
+  final double _inactiveIconSize = 22;
   final PageController _pageController = PageController(); // 控制 PageView
   final List<String> regions = [
     '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣', '臺北市',
@@ -126,6 +235,13 @@ class _TaiwanPassState extends State<TaiwanPass> {
 
   @override
   void initState() {
+    // 在应用启动时获取定位信息
+
+    getLocation(context);
+    _navIconController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     super.initState();
     _pages.addAll([
       Home(),
@@ -137,11 +253,10 @@ class _TaiwanPassState extends State<TaiwanPass> {
     ]);
     final schedule _schedule = schedule();
     _schedule.initDatabase();
-    // 在应用启动时获取定位信息
 
-    getLocation(context);
     // 获取天气信息
     // getWeatherInfo(context);
+
   }
   Widget _buildPage(int index) {
     switch (index) {
@@ -159,11 +274,14 @@ class _TaiwanPassState extends State<TaiwanPass> {
   }
   @override
   Widget build(BuildContext context) {
+    // 在应用启动时获取定位信息
 
+    getLocation(context);
     final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
+    print(cityProvider.city);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('台灣通 交通聯合'),
+        title: const Text('台灣通'),
         actions: [
           // 下拉菜单
           Padding(
@@ -218,50 +336,121 @@ class _TaiwanPassState extends State<TaiwanPass> {
     );
   }
 
+
+
   Widget _buildNavigationBar() {
-    return NavigationBarTheme(
-      data: NavigationBarThemeData(
-        indicatorColor: Colors.white,
-        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-              (Set<WidgetState> states) {
-            if (states.contains(WidgetState.selected)) {
-              return const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold);
-            }
-            return const TextStyle(fontSize: 12, color: Colors.grey);
-          },
-        ),
-      ),
-      child: NavigationBar(
-        selectedIndex: currentPageIndex,
-        onDestinationSelected: (int index) {
-          _pageController.jumpToPage(index);
-        },
-        destinations: [
-          NavigationDestination(
-            icon: SvgPicture.asset(SvgAssets.homeOutline, width: 20, height: 20),
-            selectedIcon: SvgPicture.asset(SvgAssets.home, color: Colors.blue, width: 20, height: 20),
-            label: '首頁',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.commute_outlined),
-            selectedIcon:Icon(Icons.commute, color: Colors.blue, ),
-            label: '我的出行',
-          ),
-          NavigationDestination(
-            icon: SvgPicture.asset(SvgAssets.busStop, width: 20, height: 20),
-            selectedIcon: SvgPicture.asset(SvgAssets.busStop, color: Colors.blue, width: 20, height: 20),
-            label: '最近站牌',
-          ),
-          NavigationDestination(
-            icon: SvgPicture.asset(SvgAssets.personOutline, width: 20, height: 20),
-            selectedIcon: SvgPicture.asset(SvgAssets.person, color: Colors.blue, width: 20, height: 20),
-            label: '我的資料',
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          )
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              height: 64,
+              indicatorColor: Colors.white.withOpacity(0.5),
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
+                    (Set<WidgetState> states) {
+                  final isSelected = states.contains(WidgetState.selected);
+                  return TextStyle(
+                    fontSize: isSelected ? 12 : 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected ? Colors.blueAccent : Colors.grey[600],
+                    letterSpacing: 0.2,
+                  );
+                },
+              ),
+            ),
+            child: NavigationBar(
+              selectedIndex: currentPageIndex,
+              animationDuration: const Duration(milliseconds: 800),
+              onDestinationSelected: (int index) {
+                _navIconController.forward().then((_) => _navIconController.reverse());
+                _pageController.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeInOutCubic,
+                );
+              },
+              destinations: [
+                _buildAnimatedDestination(
+                  iconPath: SvgAssets.homeOutline,
+                  activeIconPath: SvgAssets.home,
+                  label: '首頁',
+                ),
+                _buildAnimatedDestination(
+                  iconPath: SvgAssets.commuteOutlined,
+                  activeIconPath: SvgAssets.commuteOutlined,
+                  label: '出行',
+                ),
+                _buildAnimatedDestination(
+                  iconPath: SvgAssets.busStop,
+                  activeIconPath: SvgAssets.busStop,
+                  label: '站牌',
+                ),
+                _buildAnimatedDestination(
+                  iconPath: SvgAssets.personOutline,
+                  activeIconPath: SvgAssets.person,
+                  label: '我的',
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
+  Widget _buildAnimatedDestination({
+    required String iconPath,
+    required String activeIconPath,
+    required String label,
+  }) {
+    return NavigationDestination(
+      label: label,
+      icon: TweenAnimationBuilder<double>(
+        tween: Tween(begin: _inactiveIconSize, end: _inactiveIconSize),
+        duration: const Duration(milliseconds: 300),
+        builder: (context, size, _) {
+          return SvgPicture.asset(
+            iconPath,
+            width: size,
+            height: size,
+            color: Colors.grey[600],
+          );
+        },
+      ),
+      selectedIcon: TweenAnimationBuilder<double>(
+        tween: Tween(begin: _inactiveIconSize, end: _activeIconSize),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.elasticOut,
+        builder: (context, size, _) {
+          return ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return const LinearGradient(
+                colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                stops: [0.3, 1.0],
+              ).createShader(bounds);
+            },
+            child: SvgPicture.asset(
+              activeIconPath,
+              width: size,
+              height: size,
+              color: Colors.white,
+            ),
+          );
+        },
+      ),
+    );
+  }
   // Widget _buildNavigationBar() {
   //   return NavigationBarTheme(
   //     data: NavigationBarThemeData(

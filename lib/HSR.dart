@@ -147,6 +147,9 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      selectedDate = DateTime.now();
+    });
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -345,8 +348,8 @@ class RouteSearchPage extends StatefulWidget {
 class _RouteSearchPageState extends State<RouteSearchPage> {
   // 定義縣市和站名選擇
   String? selectedCity;
-  late Map<String, dynamic> departureSelectedStation;
-  late Map<String, dynamic> destinationSelectedStation;
+   Map<String, dynamic> departureSelectedStation={};
+   Map<String, dynamic> destinationSelectedStation={};
   // 縣市和對應站名資料
   final Map<String, List<String>> stationData = {
     '台北市': ['台北車站', '松山車站', '板橋車站'],
@@ -368,7 +371,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: primaryColor,    // 主色調
               onPrimary: Colors.white,  // 主色調上的文字
               surface: surfaceColor,    // 對話框背景
@@ -445,6 +448,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      selectedDate = DateTime.now();
+    });
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -521,7 +527,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               onTap: () async {
 
                 departureSelectedStation = (await StationDialog.showStationDialog(context))!;
-                print(departureSelectedStation["StationID"]);
+
+
                 widget.departureController.text = departureSelectedStation['StationName']['Zh_tw'];
               },
             ),
@@ -659,23 +666,32 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  if(selectedDate != null){
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoutePage(
-                            departure: departureSelectedStation,
-                            destination: destinationSelectedStation,
-                            date: selectedDate!
-                        ),
-                      ),
-                    );
-                  }else{
+
+                  if (departureSelectedStation.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('請選擇日期'))
+                      const SnackBar(content: Text('請選擇出發地')),
                     );
+                    return;
                   }
-                },
+
+                  if (destinationSelectedStation.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請選擇目的地')),
+                    );
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RoutePage(
+                          departure: departureSelectedStation,
+                          destination: destinationSelectedStation,
+                          date: selectedDate
+                      ),
+                    ),
+                  );
+                                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   foregroundColor: Colors.white,

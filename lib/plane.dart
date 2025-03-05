@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-class plane extends StatefulWidget {
-  const plane({super.key});
+import 'package:intl/intl.dart';
+
+import 'database/flight/getFlight.dart';
+class Plane extends StatefulWidget {
+  const Plane({super.key});
 
   @override
-  State<plane> createState() => _planeState();
+  State<Plane> createState() => _PlaneState();
 }
 
-class _planeState extends State<plane> {
+class _PlaneState extends State<Plane> {
 // 假資料 - 航班列表
   final List<Map<String, String>> flights = [
     {
@@ -53,13 +56,25 @@ class _planeState extends State<plane> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('台中清泉崗 RMQ'),
+        title: const Text('桃園國際機場 TPE'),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. 航班資訊區
-            _buildFlightInfoSection(),
+            // 1. 航班資訊區 (改成FutureBuilder)
+            FutureBuilder<List<dynamic>>(
+              future: getAirportFIDSArrival(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('航班資料載入失敗: ${snapshot.error}'));
+                }
+                final flights = snapshot.data ?? [];
+                return FlightDashboard (flights: flights,);
+              },
+            ),
 
             // 2. 機場服務按鈕區 (網格狀)
             _buildServicesGrid(),
@@ -73,75 +88,6 @@ class _planeState extends State<plane> {
             const SizedBox(height: 16),
           ],
         ),
-      ),
-    );
-  }
-
-  // 航班資訊清單
-  Widget _buildFlightInfoSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 標題
-          const Text(
-            '進港航班',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          // 航班列表
-          Column(
-            children: flights.map((flight) {
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    // 航班號
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        flight['flightNo'] ?? '',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    // 出發地
-                    Expanded(
-                      flex: 2,
-                      child: Text(flight['origin'] ?? ''),
-                    ),
-                    // 時間
-                    Expanded(
-                      flex: 2,
-                      child: Text(flight['time'] ?? ''),
-                    ),
-                    // 航廈
-                    Expanded(
-                      flex: 1,
-                      child: Text(flight['terminal'] ?? ''),
-                    ),
-                    // 狀態
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        flight['status'] ?? '',
-                        style: TextStyle(color: Colors.green[700]),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ],
       ),
     );
   }
@@ -228,3 +174,221 @@ class _planeState extends State<plane> {
     );
   }
 }
+class FlightDashboard extends StatelessWidget {
+  final List<dynamic> flights;
+
+  const FlightDashboard({super.key, required this.flights});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8), // 整體縮小內邊距
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6), // 圓角再縮小
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildHeader(),
+          const SizedBox(height: 6),
+          ...flights.map((flight) => _buildFlightCard(flight)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        '入境航班',
+        style: TextStyle(
+          fontSize: 16, // 標題縮小
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A73E8),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlightCard(Map<String, dynamic> flight) {
+    final delayMinutes = _calculateDelayMinutes(flight);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6), // 縮小卡片間距
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8), // 縮小卡片內邊距
+        child: Column(
+          children: [
+            _buildFlightHeader(flight),
+            const SizedBox(height: 6),
+            _buildFlightDetails(flight, delayMinutes),
+            if (flight['ArrivalRemark'] != null) _buildRemark(flight),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlightHeader(Map<String, dynamic> flight) {
+    return Row(
+      children: [
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              flight['AirlineID'] + flight['FlightNumber'] ?? '--',
+              style: const TextStyle(
+                fontSize: 16, // 縮小航班號
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              _getAircraftType(flight['AcType']),
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+            ),
+          ],
+        ),
+        const Spacer(),
+        _buildStatusIndicator(flight['ArrivalRemark']),
+      ],
+    );
+  }
+
+  Widget _buildFlightDetails(Map<String, dynamic> flight, int delayMinutes) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildTimeItem('計劃', flight['ScheduleArrivalTime']),
+        _buildTimeItem('實際', flight['ActualArrivalTime'], isDelayed: delayMinutes > 0),
+        _buildDelayItem(delayMinutes),
+        _buildInfoItem('航廈', flight['Terminal'] ?? '--'),
+        if (!(flight['IsCargo'] ?? false))
+          _buildInfoItem('行李', flight['BaggageClaim'] ?? '--'),
+        _buildInfoItem('登機門', flight['Gate'] ?? '--'),
+      ],
+    );
+  }
+
+  Widget _buildTimeItem(String label, String? time, {bool isDelayed = false}) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        const SizedBox(height: 1),
+        Text(
+          _formatTime(time),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isDelayed ? Colors.red : Colors.black87,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDelayItem(int minutes) {
+    return Column(
+      children: [
+        const Text('延誤', style: TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 1),
+        Text(
+          '${minutes > 0 ? '+' : ''}$minutes',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: minutes > 0 ? Colors.red : Colors.green,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 1),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+
+  Widget _buildStatusIndicator(String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF52C41A).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF52C41A).withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.airplanemode_active, size: 12, color: Color(0xFF52C41A)),
+          const SizedBox(width: 4),
+          Text(
+            status,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF52C41A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRemark(Map<String, dynamic> flight) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.orange[600], size: 14),
+          const SizedBox(width: 3),
+          Flexible(
+            child: Text(
+              '${flight['ArrivalRemark']}',
+              style: TextStyle(color: Colors.orange[600], fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int _calculateDelayMinutes(Map<String, dynamic> flight) {
+    try {
+      final scheduled = DateTime.parse(flight['ScheduleArrivalTime']);
+      final actual = DateTime.parse(flight['ActualArrivalTime']);
+      return actual.difference(scheduled).inMinutes;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  String _getAircraftType(String? acType) {
+    return acType != null ? '$acType 客機' : '--';
+  }
+
+  String _formatTime(String? isoTime) {
+    if (isoTime == null) return '--:--';
+    final dt = DateTime.tryParse(isoTime);
+    return dt != null ? DateFormat.Hm().format(dt.toLocal()) : '--:--';
+  }
+}
+
+enum FlightStatus { onTime, delayed, canceled, landed }

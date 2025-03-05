@@ -120,6 +120,7 @@ flutter:
     - assets/img/ubike_icon.png
     - assets/icons/Taiwan_Railways_Logo.svg
     - assets/icons/tc_MRT.svg
+    - assets/icons/commute-outlined.svg
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

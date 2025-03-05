@@ -601,12 +601,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   }
 
   Widget _buildPlaceDetails(dynamic place) {
+
+
     // 定義一個狀態來控制運具模式和旅運模式的選擇
     Future<void> _init() async {
       PlacesService placesService = PlacesService();
 
       LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
       _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
+      setState(() {
+        _selectedTime = DateTime.now();
+      });
     }
     _init();
     return GestureDetector(
@@ -823,13 +828,14 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                             const Spacer(),
                             Text(
                               _selectedTime == null
-                                  ? '選擇時間'
-                                  : dateFormat.format(_selectedTime!),
+                                  ? '選擇時間（${dateFormat.format(DateTime.now())}）'
+                                  : dateFormat.format(_selectedTime),
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey[600],
                               ),
                             ),
+
                           ],
                         ),
                       ),

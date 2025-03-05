@@ -272,6 +272,9 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      selectedDate = DateTime.now();
+    });
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -338,7 +341,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
+
                 onPressed: () async {
+                  if(widget.controller.text==''){
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請輸入車次')),
+                    );
+                  }
                   var trainData = await fetchTrain(
                     int.parse(widget.controller.text),
                     selectedDate,
@@ -404,8 +413,8 @@ class RouteSearchPage extends StatefulWidget {
 class _RouteSearchPageState extends State<RouteSearchPage> {
   // 定義縣市和站名選擇
   String? selectedCity;
-  late Map<String, dynamic> departureSelectedStation;
-  late Map<String, dynamic> destinationSelectedStation;
+   Map<String, dynamic> departureSelectedStation={};
+   Map<String, dynamic> destinationSelectedStation={};
   // 縣市和對應站名資料
   final Map<String, List<String>> stationData = {
     '台北市': ['台北車站', '松山車站', '板橋車站'],
@@ -504,6 +513,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      selectedDate = DateTime.now();
+    });
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -609,6 +621,20 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
+                  if (departureSelectedStation.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請選擇出發地')),
+                    );
+                    return;
+                  }
+
+                  if (destinationSelectedStation.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('請選擇目的地')),
+                    );
+                    return;
+                  }
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -767,6 +793,9 @@ class _StationSearchPageState extends State<StationSearchPage> {
   }
   @override
   Widget build(BuildContext context) {
+    setState(() {
+      selectedDate = DateTime.now();
+    });
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

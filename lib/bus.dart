@@ -440,7 +440,7 @@ Future <List>_getData()async{
                       width: 100,
                       margin: const EdgeInsets.only(right: 10),
                       decoration: BoxDecoration(
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black12, // 陰影顏色
                             blurRadius: 6, // 陰影模糊半徑

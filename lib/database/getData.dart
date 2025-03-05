@@ -23,10 +23,10 @@ Future<void> connMysql() async {
 
 
   // 如果連接已存在，則避免重複連接
-  // if (conn != null) {
-  //
-  //   return;
-  // }
+  if (conn != null) {
+
+    return;
+  }
 
   try {
     // 建立連接
@@ -181,14 +181,17 @@ Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
   return jsonArray;
 }
 
-Future<void> checkConnection() async {
+Future<bool> checkConnection() async {
   try {
-    // 执行一个轻量级查询来验证连接
+    // 執行一個輕量級查詢來驗證連線
     await conn?.execute('SELECT 1');
+
   } catch (e) {
     print("Database connection lost, reconnecting...");
-    await connMysql();
+     await connMysql();  // 重新連線
+    return false;  // 連線失敗
   }
+  return true;  // 連線正常
 }
 
 
