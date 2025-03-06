@@ -57,10 +57,10 @@ Future <List<dynamic>> getAirportFIDS(
   return jsonData;
 }
 Future <List<dynamic>> getAirportFIDSDeparture(
-    String location) async {
+    ) async {
 
   const String url =
-      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/TPE?%24format=JSON';
+      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/TPE?%24top=70&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求

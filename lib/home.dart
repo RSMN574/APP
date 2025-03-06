@@ -1,14 +1,10 @@
 import 'dart:convert';
-
 import 'package:com.rsmn574.app/utils/MRTColor.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
-
-
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -22,24 +18,28 @@ import 'database/bus/getBusTime.dart';
 import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
 
-
 import 'widget/transportGrid.dart';
 import 'package:event_bus/event_bus.dart';
 
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
-class detailPageDataEvent {
-  final List message;
-  detailPageDataEvent(this.message);
-}
+
+// class detailPageDataEvent {
+//   final List message;
+//   detailPageDataEvent(this.message);
+// }
+
 class Home extends StatefulWidget {
   @override
   _HomeState createState() => _HomeState();
 }
-EventBus eventBus = EventBus(); // 全局事件總線
-class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , MRTColor{
+
+// EventBus eventBus = EventBus(); // 全局事件總線
+
+class _HomeState extends State<Home>
+    with AutomaticKeepAliveClientMixin<Home>, MRTColor {
   DateTime _selectedTime = DateTime.now().add(Duration(minutes: 1));
 
-  Map<String, dynamic>? _selectedStation;  // null 代表沒選任何站點
+  Map<String, dynamic>? _selectedStation; // null 代表沒選任何站點
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
   Future<void> _selectDateTime(BuildContext context) async {
     // 选择日期
@@ -71,6 +71,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       }
     }
   }
+
   @override
   bool get wantKeepAlive => true; // 返回 true，以保持状态
   final TextEditingController _routeController = TextEditingController();
@@ -87,7 +88,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   final ValueNotifier<List> dataNotifier = ValueNotifier<List>([]);
 
   final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
-  final ValueNotifier<List<String>> selectedTransportModes = ValueNotifier(['高鐵', '台鐵', '公車', '捷運']);
+  final ValueNotifier<List<String>> selectedTransportModes =
+      ValueNotifier(['高鐵', '台鐵', '公車', '捷運']);
   final ValueNotifier<String> selectedTravelMode = ValueNotifier('走路');
   // 获取当前位置
   void _getCurrentLocation() async {
@@ -126,15 +128,12 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     _searchFocusNode.unfocus();
 // 地图创建时调用获取当前定位
     _getCurrentLocation();
-
-
   }
 
-  bool _showMainContent = true;  // 預設顯示主內容
+  bool _showMainContent = true; // 預設顯示主內容
 
   @override
   Widget build(BuildContext context) {
-
     super.build(context);
     final PageStorageBucket _bucket = PageStorageBucket(); // 用於存儲頁面狀態
 
@@ -150,10 +149,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     return WillPopScope(
       onWillPop: () async {
         if (_indexNotifier.value > 0) {
-          if (_indexNotifier.value == 2||_indexNotifier.value ==1){
+          if (_indexNotifier.value == 2 || _indexNotifier.value == 1) {
             print("setMarkers");
             Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-
           }
           _indexNotifier.value--; // 返回到上一个索引
           return false; // 阻止默认返回导航
@@ -170,26 +168,22 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 child: map(
                   onMapCreated: (GoogleMapController controller) {
                     _mapController = controller;
-
                   },
-                  onCameraMove: (CameraPosition position) {
-
-                  },
-                  onCameraIdle: ()  {
-
-                  },
+                  onCameraMove: (CameraPosition position) {},
+                  onCameraIdle: () {},
                 ),
               ),
             ),
-            if (_showMainContent) ValueListenableBuilder<int>(
-              valueListenable: _indexNotifier,
-              builder: (context, index, child) {
-                return PageStorage(
-                  bucket: _bucket,
-                  child: _buildCurrentPage(index),
-                );
-              },
-            ),
+            if (_showMainContent)
+              ValueListenableBuilder<int>(
+                valueListenable: _indexNotifier,
+                builder: (context, index, child) {
+                  return PageStorage(
+                    bucket: _bucket,
+                    child: _buildCurrentPage(index),
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -214,7 +208,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     }
   }
 
-
   Future<void> _fetchData() async {
     youBikeStations.value =
         await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
@@ -222,17 +215,15 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     _loadBikeMarkers(); // 更新標記
   }
 
-
-
 //路線marker
-  Future<void> _loadMarkers(PositionLat,PositionLon,MarkerID) async {
+  Future<void> _loadMarkers(PositionLat, PositionLon, MarkerID) async {
     // BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
     //   ImageConfiguration(size: Size(8, 8)), // 調整大小
     //   'assets/img/ubike_icon.png',
     // );
 
     final marker = Marker(
-      markerId:MarkerId(MarkerID),
+      markerId: MarkerId(MarkerID),
       // icon: customIcon,
       position: LatLng(
         PositionLat,
@@ -245,12 +236,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
     // 获取 MarkerProvider 的实例，并调用 setMarker 方法
     Provider.of<MarkerProvider>(context, listen: false).setMarkers({marker});
-
-
   }
 
   ////////////////////////////////////////////////////////////////////
-
 
   Future<void> _loadBikeMarkers() async {
     // 延迟执行以确保在构建完成后访问 context
@@ -280,7 +268,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             snippet: "Capacity: ${station["BikesCapacity"]}",
           ),
           onTap: () {
-            _onBikeMarkerTapped(station);  // 這個函數用來記錄目前選中的站點，並打開下方的資訊面板
+            _updateSelectedStation(station); // 這個函數用來記錄目前選中的站點，並打開下方的資訊面板
           },
         );
         markerCache.add(marker);
@@ -290,26 +278,21 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
       provider.setMarkers(markerCache);
       provider.setItems(clusterItems);
-
-
     });
   }
-
-
 
 //////////////////////////////////////////////////////
   Future<void> _handleClick(String type) async {
     if (type == "bike") {
-
       setState(() {
-        _showMainContent = false;  // 隱藏主內容
+        _showMainContent = false; // 隱藏主內容
       });
       _fetchData();
       // 显示第二个 BottomSheet
       _bottomSheetController = showBottomSheet(
         context: context,
         builder: (context) {
-          return  _buildBikeContent(context);
+          return _buildBikeContent(context);
         },
       );
 
@@ -317,9 +300,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       _bottomSheetController!.closed.then((_) {
         // 这里可以处理 BottomSheet 关闭后的逻辑
         // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-         Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+        Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
         setState(() {
-          _showMainContent = true;  // 主內容
+          _showMainContent = true; // 主內容
         });
       });
     }
@@ -415,7 +398,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             return Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
@@ -443,7 +427,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 8.0),
                       child: TextField(
                         controller: _routeController,
                         focusNode: _searchFocusNode,
@@ -462,7 +447,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 16.0, horizontal: 20.0),
-                          prefixIcon: Icon(Icons.search, color: Colors.blue[300]),
+                          prefixIcon:
+                              Icon(Icons.search, color: Colors.blue[300]),
                           suffixIcon: Container(
                             margin: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
@@ -470,7 +456,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.search, color: Colors.white),
+                              icon:
+                                  const Icon(Icons.search, color: Colors.white),
                               onPressed: () {
                                 _loadPredictions();
                                 FocusScope.of(context).unfocus();
@@ -478,7 +465,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                             ),
                           ),
                         ),
-                        onChanged: (value) => setState(() => _placePredictions.clear()),
+                        onChanged: (value) =>
+                            setState(() => _placePredictions.clear()),
                         onSubmitted: (value) {
                           _loadPredictions();
                           FocusScope.of(context).unfocus();
@@ -498,17 +486,23 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: SingleChildScrollView(
-                              physics: const NeverScrollableScrollPhysics(), // 禁止內部滾動
+                              physics:
+                                  const NeverScrollableScrollPhysics(), // 禁止內部滾動
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: _placePredictions.map((prediction) {
-                                  final mainText = prediction['structured_formatting']['main_text'];
-                                  final secondaryText = prediction['structured_formatting']['secondary_text'];
+                                  final mainText =
+                                      prediction['structured_formatting']
+                                          ['main_text'];
+                                  final secondaryText =
+                                      prediction['structured_formatting']
+                                          ['secondary_text'];
 
                                   return Column(
                                     children: [
                                       ListTile(
-                                        contentPadding: const EdgeInsets.symmetric(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
                                           horizontal: 20,
                                           vertical: 8,
                                         ),
@@ -534,21 +528,23 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                             )),
                                         onTap: () {
                                           final locationProvider =
-                                          Provider.of<LocationProvider>(context,
-                                              listen: false);
+                                              Provider.of<LocationProvider>(
+                                                  context,
+                                                  listen: false);
                                           String origin =
                                               '${locationProvider.latitude},${locationProvider.longitude}';
 
-
                                           setState(() {
                                             _destinationController.text =
-                                            prediction["description"];
+                                                prediction["description"];
                                             _placePrediction = prediction;
-                                            _indexNotifier.value = 2; // 切换到地点详细信息
+                                            _indexNotifier.value =
+                                                2; // 切换到地点详细信息
                                           });
                                         },
                                       ),
-                                      if (_placePredictions.indexOf(prediction) !=
+                                      if (_placePredictions
+                                              .indexOf(prediction) !=
                                           _placePredictions.length - 1)
                                         Divider(
                                           height: 1,
@@ -585,7 +581,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 splashRadius: 24,
                 onPressed: () {
                   print("setMarkers");
-                  Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+                  Provider.of<MarkerProvider>(context, listen: false)
+                      .setMarkers({});
 
                   setState(() {
                     _indexNotifier.value = 0;
@@ -601,18 +598,19 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
   }
 
   Widget _buildPlaceDetails(dynamic place) {
-
-
     // 定義一個狀態來控制運具模式和旅運模式的選擇
     Future<void> _init() async {
       PlacesService placesService = PlacesService();
 
-      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
-      _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
+      LatLng? destination =
+          await placesService.getLatLngFromPlaceId(place["place_id"]);
+      _loadMarkers(
+          destination?.latitude, destination?.longitude, place["place_id"]);
       setState(() {
         _selectedTime = DateTime.now();
       });
     }
+
     _init();
     return GestureDetector(
       onHorizontalDragEnd: (details) {
@@ -632,7 +630,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           return Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -671,7 +670,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
-                              icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                              icon: Icon(Icons.arrow_back,
+                                  color: Colors.blue[700]),
                               splashRadius: 24,
                               onPressed: () {
                                 setState(() {
@@ -686,7 +686,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                     ),
                   if (place != null) ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 8.0),
                       child: Row(
                         children: [
                           Text(
@@ -700,7 +701,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12.0),
@@ -724,7 +726,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: IconButton(
-                                      icon: const Icon(Icons.search, color: Colors.white),
+                                      icon: const Icon(Icons.search,
+                                          color: Colors.white),
                                       onPressed: () {
                                         _loadPredictions();
                                         FocusScope.of(context).unfocus();
@@ -745,7 +748,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                     ),
                     const SizedBox(height: 15.0),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 8.0),
                       child: Row(
                         children: [
                           Text(
@@ -759,7 +763,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                           const SizedBox(width: 10.0),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10.0),
                               decoration: BoxDecoration(
                                 color: Colors.grey[100],
                                 borderRadius: BorderRadius.circular(12.0),
@@ -783,7 +788,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: IconButton(
-                                      icon: const Icon(Icons.search, color: Colors.white),
+                                      icon: const Icon(Icons.search,
+                                          color: Colors.white),
                                       onPressed: () {
                                         _loadPredictions();
                                         FocusScope.of(context).unfocus();
@@ -808,8 +814,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                         await _selectDateTime(context);
                       },
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 24.0, vertical: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16.0, horizontal: 20.0),
                         decoration: BoxDecoration(
                           color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(12.0),
@@ -835,7 +843,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                 color: Colors.grey[600],
                               ),
                             ),
-
                           ],
                         ),
                       ),
@@ -866,30 +873,33 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                               ),
                               Wrap(
                                 children: ['高鐵', '台鐵', '公車', '捷運'].map((mode) {
-                                  return
-                                    ValueListenableBuilder<List<String>>(
-                                      valueListenable: selectedTransportModes,
-                                      builder: (context, modes, child) {
-                                        return FilterChip(
-                                          label: Text(mode),
-                                          selected: modes.contains(mode),
-                                          selectedColor: Colors.blue[200],
-                                          checkmarkColor: Colors.white,
-                                          onSelected: (selected) {
-                                            selectedTransportModes.value = List.from(modes); // 重新賦值，確保 UI 更新
-                                            if (selected) {
-                                              if (!selectedTransportModes.value.contains(mode)) {
-                                                selectedTransportModes.value.add(mode);
-                                              }
-                                            } else {
-                                              selectedTransportModes.value.remove(mode);
+                                  return ValueListenableBuilder<List<String>>(
+                                    valueListenable: selectedTransportModes,
+                                    builder: (context, modes, child) {
+                                      return FilterChip(
+                                        label: Text(mode),
+                                        selected: modes.contains(mode),
+                                        selectedColor: Colors.blue[200],
+                                        checkmarkColor: Colors.white,
+                                        onSelected: (selected) {
+                                          selectedTransportModes.value =
+                                              List.from(modes); // 重新賦值，確保 UI 更新
+                                          if (selected) {
+                                            if (!selectedTransportModes.value
+                                                .contains(mode)) {
+                                              selectedTransportModes.value
+                                                  .add(mode);
                                             }
-                                            selectedTransportModes.notifyListeners(); // 手動通知 UI 更新
-                                          },
-                                        );
-                                      },
-                                    );
-
+                                          } else {
+                                            selectedTransportModes.value
+                                                .remove(mode);
+                                          }
+                                          selectedTransportModes
+                                              .notifyListeners(); // 手動通知 UI 更新
+                                        },
+                                      );
+                                    },
+                                  );
                                 }).toList(),
                               ),
                               const SizedBox(height: 20.0),
@@ -902,7 +912,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                 ),
                               ),
                               Wrap(
-                                children: ['走路', '腳踏車', '開車', '共享單車'].map((currentMode) {
+                                children: ['走路', '腳踏車', '開車', '共享單車']
+                                    .map((currentMode) {
                                   return ValueListenableBuilder<String>(
                                     valueListenable: selectedTravelMode,
                                     builder: (context, mode, child) {
@@ -911,15 +922,17 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                                         selected: mode == currentMode,
                                         selectedColor: Colors.blue,
                                         labelStyle: TextStyle(
-                                          color: mode == currentMode ? Colors.white : Colors.black,
+                                          color: mode == currentMode
+                                              ? Colors.white
+                                              : Colors.black,
                                         ),
                                         onSelected: (selected) {
-                                          selectedTravelMode.value = currentMode; // 直接更新 ValueNotifier
+                                          selectedTravelMode.value =
+                                              currentMode; // 直接更新 ValueNotifier
                                         },
                                       );
                                     },
                                   );
-
                                 }).toList(),
                               ),
                             ],
@@ -984,25 +997,50 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       print('Error: $e');
     }
   }
+
   void _onBikeMarkerTapped(Map<String, dynamic> station) {
     setState(() {
       _selectedStation = station;
     });
     // 這裡可以控制 bottom sheet 彈出
-    _bottomSheetController=showBottomSheet(
+    _bottomSheetController = showBottomSheet(
         context: context,
         builder: (context) {
-          return  _buildBikeContent(context);});
+          return _buildBikeContent(context);
+        });
     // 监听 BottomSheet 是否关闭
     _bottomSheetController!.closed.then((_) {
       // 这里可以处理 BottomSheet 关闭后的逻辑
       // 获取 MarkerProvider 的实例，并调用 setMarker 方法
       Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
       setState(() {
-        _showMainContent = true;  // 主內容
+        _showMainContent = true; // 主內容
       });
     });
+  }
 
+  Future<Map<String, dynamic>?>? _bikeAvailabilityFuture;
+
+  void _updateSelectedStation(Map<String, dynamic> station) {
+    setState(() {
+      _selectedStation = station;
+      _bikeAvailabilityFuture = getBikeAvailability("Taichung", station["StationID"]);
+    });
+    // 這裡可以控制 bottom sheet 彈出
+    _bottomSheetController = showBottomSheet(
+        context: context,
+        builder: (context) {
+          return _buildBikeContent(context);
+        });
+    // 监听 BottomSheet 是否关闭
+    _bottomSheetController!.closed.then((_) {
+      // 这里可以处理 BottomSheet 关闭后的逻辑
+      // 获取 MarkerProvider 的实例，并调用 setMarker 方法
+      Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+      setState(() {
+        _showMainContent = true; // 主內容
+      });
+    });
   }
 
   Widget _buildBikeContent(BuildContext context) {
@@ -1018,15 +1056,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           ),
         ],
       ),
-      child: FutureBuilder<Map<String, dynamic>?>(
-        future: _selectedStation != null
-            ? getBikeAvailability("Taichung", _selectedStation!["StationID"])
-            : Future.value(null),
+      child: _selectedStation == null
+          ? _buildPlaceholder('請選擇站點', Icons.location_off_outlined)
+          : FutureBuilder<Map<String, dynamic>?>(
+        future: _bikeAvailabilityFuture,
         builder: (context, snapshot) {
-          if (_selectedStation == null) {
-            return _buildPlaceholder('請選擇站點', Icons.location_off_outlined);
-          }
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoadingState(context);
           }
@@ -1046,6 +1080,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ),
     );
   }
+
   /// Loading 狀態 widget
   Widget _buildLoadingState(BuildContext context) {
     return Center(
@@ -1067,8 +1102,11 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ),
     );
   }
-  Widget _buildContentSection(BuildContext context, String stationName, Map<String, dynamic> data) {
-    final rentDetails = data["AvailableRentBikesDetail"] ?? {"GeneralBikes": 0, "ElectricBikes": 0};
+
+  Widget _buildContentSection(
+      BuildContext context, String stationName, Map<String, dynamic> data) {
+    final rentDetails = data["AvailableRentBikesDetail"] ??
+        {"GeneralBikes": 0, "ElectricBikes": 0};
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1078,15 +1116,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           // 標題列
           Row(
             children: [
-              Icon(Icons.pin_drop, color: Theme.of(context).primaryColor, size: 22),
+              Icon(Icons.pin_drop,
+                  color: Theme.of(context).primaryColor, size: 22),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   stationName,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[800],
-                  ),
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
                 ),
               ),
             ],
@@ -1106,7 +1145,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-  Widget _buildCompactDataGrid(BuildContext context, {
+  Widget _buildCompactDataGrid(
+    BuildContext context, {
     required String rentBikes,
     required String returnSpots,
     required String generalBikes,
@@ -1148,7 +1188,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-  Widget _buildMetricTile(BuildContext context, {
+  Widget _buildMetricTile(
+    BuildContext context, {
     required IconData icon,
     required Color color,
     required String title,
@@ -1171,8 +1212,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.grey[600])),
-                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: color)),
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: Colors.grey[600])),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: color)),
               ],
             ),
           ],
@@ -1181,7 +1230,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-  Widget _buildBikeTypeRow(BuildContext context, {required String general, required String electric}) {
+  Widget _buildBikeTypeRow(BuildContext context,
+      {required String general, required String electric}) {
     return Row(
       children: [
         _buildTypeChip(
@@ -1203,7 +1253,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-  Widget _buildTypeChip(BuildContext context, {
+  Widget _buildTypeChip(
+    BuildContext context, {
     required IconData icon,
     required String label,
     required String value,
@@ -1222,7 +1273,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           const SizedBox(width: 6),
           Text(
             value,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: color),
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.w600, color: color),
           ),
           const SizedBox(width: 4),
           Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
@@ -1245,9 +1297,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ),
     );
   }
+
   List<String> getSelectedModes(List selection) {
-
-
     List<String> result = [];
 
     // 依據 TravelMode 選擇
@@ -1257,7 +1308,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     // 依據 TransportModes 選擇
     if (selection.contains("公車")) {
       result.add("5");
-
     }
     if (selection.contains("捷運")) {
       result.add("6");
@@ -1266,6 +1316,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
     return result.toList();
   }
+
   int getTravelMode(String selectedTravelMode) {
     switch (selectedTravelMode) {
       case "走路":
@@ -1277,7 +1328,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       case "共享單車":
         return 3;
       default:
-      // 如果 selectedTravelMode 不匹配任何條件，返回 -1 或其他錯誤碼
+        // 如果 selectedTravelMode 不匹配任何條件，返回 -1 或其他錯誤碼
         return 0;
     }
   }
@@ -1287,14 +1338,18 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     Future<Map<String, dynamic>> _getDirections() async {
       DateFormat dataFormat = DateFormat("yyyy-MM-ddTHH:mm:ss");
       PlacesService placesService = PlacesService();
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      LatLng? destination = await placesService.getLatLngFromPlaceId(place["place_id"]);
+      final locationProvider =
+          Provider.of<LocationProvider>(context, listen: false);
+      LatLng? destination =
+          await placesService.getLatLngFromPlaceId(place["place_id"]);
       // _loadMarkers(destination?.latitude, destination?.longitude, place["place_id"]);
       return await getDirections(
-        "${locationProvider.latitude}%2C${locationProvider.longitude}",
-        "${destination?.latitude}%2C${destination?.longitude}",
-        dataFormat.format(_selectedTime!),{"TravelMode":getTravelMode(selectedTravelMode.value),"TransportModes": getSelectedModes(selectedTransportModes.value)}
-      );
+          "${locationProvider.latitude}%2C${locationProvider.longitude}",
+          "${destination?.latitude}%2C${destination?.longitude}",
+          dataFormat.format(_selectedTime!), {
+        "TravelMode": getTravelMode(selectedTravelMode.value),
+        "TransportModes": getSelectedModes(selectedTransportModes.value)
+      });
     }
 
     return GestureDetector(
@@ -1302,10 +1357,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         if (details.velocity.pixelsPerSecond.dx < -200) {
           // 向左滑动
 
-            if (_indexNotifier.value > 0) {
-              _indexNotifier.value--; // 返回上一页
-            }
-
+          if (_indexNotifier.value > 0) {
+            _indexNotifier.value--; // 返回上一页
+          }
         }
       },
       child: DraggableScrollableSheet(
@@ -1314,7 +1368,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         maxChildSize: 1.0,
         builder: (BuildContext context, ScrollController scrollController) {
           return Container(
-
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -1340,9 +1393,9 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                       );
                     } else if (snapshot.hasError) {
                       return Center(child: Text('錯誤: ${snapshot.error}'));
-                    } else if (!snapshot.hasData || snapshot.data == null ) {
+                    } else if (!snapshot.hasData || snapshot.data == null) {
                       return const Center(child: Text('沒有資料'));
-                    }else if (snapshot.hasData &&
+                    } else if (snapshot.hasData &&
                         snapshot.data is Map<String, dynamic> &&
                         snapshot.data?['result'] == 'success' &&
                         snapshot.data?['data'] is Map<String, dynamic> &&
@@ -1350,12 +1403,10 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                       return const Center(child: Text('沒有資料'));
                     }
 
-
                     final data = snapshot.data!;
                     final routes = data['data']['routes'] as List<dynamic>;
 
                     return SafeArea(
-
                       child: Padding(
                         padding: EdgeInsets.only(top: 25), // 确保底部不被遮挡
                         child: ListView.builder(
@@ -1370,31 +1421,38 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                             List<Map<String, dynamic>> mergedJourney = [];
                             for (var segment in sections) {
                               if (mergedJourney.isNotEmpty &&
-                                  mergedJourney.last['type'] == segment['type']) {
-                                mergedJourney.last['travelSummary']['duration'] +=
-                                segment['travelSummary']['duration'];
+                                  mergedJourney.last['type'] ==
+                                      segment['type']) {
+                                mergedJourney.last['travelSummary']
+                                        ['duration'] +=
+                                    segment['travelSummary']['duration'];
                                 mergedJourney.last['travelSummary']['length'] +=
-                                segment['travelSummary']['length'];
+                                    segment['travelSummary']['length'];
 
                                 if (segment.containsKey('intermediateStops')) {
-                                  mergedJourney.last['intermediateStops'] ??= [];
+                                  mergedJourney.last['intermediateStops'] ??=
+                                      [];
                                   mergedJourney.last['intermediateStops']
                                       .addAll(segment['intermediateStops']);
                                 }
 
-                                mergedJourney.last['arrival'] = segment['arrival'];
+                                mergedJourney.last['arrival'] =
+                                    segment['arrival'];
                               } else {
                                 mergedJourney.add(segment);
                               }
                             }
 
-                            mergedJourney.removeWhere((segment) => segment['type'] == 'waiting');
-                            mergedJourney.removeWhere((segment) => segment['type'] == 'pedestrian-station');
+                            mergedJourney.removeWhere(
+                                (segment) => segment['type'] == 'waiting');
+                            mergedJourney.removeWhere((segment) =>
+                                segment['type'] == 'pedestrian-station');
 
                             return Column(
                               children: [
                                 const SizedBox(height: 20),
-                                _buildSectionCard(mergedJourney, route['travel_time']),
+                                _buildSectionCard(
+                                    mergedJourney, route['travel_time']),
                               ],
                             );
                           },
@@ -1444,248 +1502,247 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
     );
   }
 
-
-
-
-  Widget _buildSectionCard(List<dynamic> sections, travelTime ){
+  Widget _buildSectionCard(List<dynamic> sections, travelTime) {
     double screenWidth = MediaQuery.of(context).size.width;
     double iconSize = screenWidth > 600 ? 32 : 27;
     // 調用方法計算圓角半徑
     double radius = calculateCornerRadius(context);
     return // Generated code for this Row Widget...
 
-      GestureDetector(
-          onTap: () {
+        GestureDetector(
+            onTap: () {
+              dataNotifier.value = sections;
+              // 導航至詳細資訊頁面，並傳遞數據
 
-            dataNotifier.value=sections;
-            // 導航至詳細資訊頁面，並傳遞數據
-
-             _indexNotifier.value++;
-
-          },
-          child:  Container(
-
-        width: MediaQuery.of(context).size.width * 0.94,
-        padding: EdgeInsets.all(12), // 为内容添加适当的内边距
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-
-          mainAxisSize: MainAxisSize.min, // 根据内容动态调整高度
-          children: [
-            Align(
-              alignment: AlignmentDirectional(-1, -1),
-              child: Text(
-                _formatDuration(travelTime) ,
-                style: TextStyle(
-                  fontSize: 18.5,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.black
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: 8), // 上方间距
-              child:ConstrainedBox(
-    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width)*0.94,
-    child:  Align(
-      alignment: Alignment.centerLeft, // 靠左對齊
-      child:  Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center, // 確保換行時內容仍然對齊
-      spacing: 4, // 子组件之间的水平间距
-      runSpacing: 6, // 子组件之间的垂直间距
-      alignment: WrapAlignment.start, // 左对齐
-
-    children: sections.asMap().entries.map((entry) {
-        int index = entry.key; // 当前索引
-        var i = entry.value; // 当前元素
-
-        // 根据 transport.mode 构建组件
-        Widget transportWidget;
-        if (i["transport"]["mode"] == "pedestrian" && i["type"] != "pedestrian-station") {
-
-          transportWidget =Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [ Icon(Icons.directions_walk, color: Colors.grey[600], size: 24),Text(style: TextStyle(
-
-                color: Colors.grey[600],
-              ), _formatDurationMin(i["travelSummary"]["duration"]))]);
-
-
-        } else if (i["transport"]["mode"] == "Bus") {
-          transportWidget = Container(
-
-            decoration: BoxDecoration(
-
-              borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: Color(0xFF01BC9F), width: 2), // 邊框顏色加粗
-            ),
-            padding: EdgeInsets.symmetric(horizontal:8 ,vertical:3 ),
-
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center, // 讓 Icon 與 Text 對齊
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Icon(Icons.directions_bus, color: Color(0xFF01BC9F), size: 24), // Icon 顏色
-                // SizedBox(width: 4),
-                Text(
-                  i["transport"]["name"],
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold, // 字體加粗
-                    color: Color(0xFF01BC9F), // 文字顏色
-                    fontSize: 16, // 適當調整字體大小
-                  ),
-                ),
-              ],
-            ),
-          );
-
-
-        } else if (i["transport"]["mode"] == "MRT") {
-
-          transportWidget = Container(
-            decoration: BoxDecoration(
-              color: MRTColor.getColorByLineName(i["transport"]["name"]), // 获取颜色
-              borderRadius: BorderRadius.circular(radius),
-            ),
-            padding: EdgeInsets.symmetric(horizontal:8 ,vertical:3 ),
-            child: Text(
-
-              i["transport"]["name"],
-              style: TextStyle(
-
+              _indexNotifier.value++;
+            },
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.94,
+              padding: EdgeInsets.all(12), // 为内容添加适当的内边距
+              decoration: BoxDecoration(
                 color: Colors.white,
-                letterSpacing: 0.2,
-                fontWeight: FontWeight.w700,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ),
-          );
-        }  else if (i["transport"]["mode"] == "HSR") {
-          print(i["transport"]["mode"] );
-          transportWidget = SizedBox(
-            width: 24,
-            height: 24,
-            child: Image.network(
-              "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/HSR-logo.png",
-              fit: BoxFit.contain, // 确保图片完整显示
-            ),
-          );
-        } else if (i["transport"]["mode"] == "HighwayBus") {
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // 根据内容动态调整高度
+                children: [
+                  Align(
+                    alignment: AlignmentDirectional(-1, -1),
+                    child: Text(
+                      _formatDuration(travelTime),
+                      style: TextStyle(
+                          fontSize: 18.5,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black),
+                    ),
+                  ),
+                  Padding(
+                      padding: EdgeInsets.only(top: 8), // 上方间距
+                      child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                                  maxWidth: MediaQuery.of(context).size.width) *
+                              0.94,
+                          child: Align(
+                            alignment: Alignment.centerLeft, // 靠左對齊
+                            child: Wrap(
+                              crossAxisAlignment:
+                                  WrapCrossAlignment.center, // 確保換行時內容仍然對齊
+                              spacing: 4, // 子组件之间的水平间距
+                              runSpacing: 6, // 子组件之间的垂直间距
+                              alignment: WrapAlignment.start, // 左对齐
 
-          transportWidget = Icon(Icons.directions_bus, color: Colors.black, size: 24);
-        }else if (i["transport"]["mode"] == "TRA") {
-          transportWidget = SizedBox(
-            width: 24,
-            height: 24,
-            child: Image.network(
-              "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/TRA-logo.png",
-              fit: BoxFit.contain, // 确保图片完整显示
-            ),
-          );
-        }else if (i["transport"]["mode"] == "cycle") {
-          transportWidget = Icon(Icons.directions_bike, color: Colors.black, size: 24);
-        }
-        else if ( i["type"] == "drive") {
-          transportWidget = Icon(Icons.drive_eta, color: Colors.black, size: 24);
-        }
-        else {
-          transportWidget = Container(width: 0,);
+                              children: sections.asMap().entries.map((entry) {
+                                int index = entry.key; // 当前索引
+                                var i = entry.value; // 当前元素
 
-        }
+                                // 根据 transport.mode 构建组件
+                                Widget transportWidget;
+                                if (i["transport"]["mode"] == "pedestrian" &&
+                                    i["type"] != "pedestrian-station") {
+                                  transportWidget = Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.directions_walk,
+                                            color: Colors.grey[600], size: 24),
+                                        Text(
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
+                                            _formatDurationMin(
+                                                i["travelSummary"]["duration"]))
+                                      ]);
+                                } else if (i["transport"]["mode"] == "Bus") {
+                                  transportWidget = Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(radius),
+                                      border: Border.all(
+                                          color: Color(0xFF01BC9F),
+                                          width: 2), // 邊框顏色加粗
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment
+                                          .center, // 讓 Icon 與 Text 對齊
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Icon(Icons.directions_bus, color: Color(0xFF01BC9F), size: 24), // Icon 顏色
+                                        // SizedBox(width: 4),
+                                        Text(
+                                          i["transport"]["name"],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold, // 字體加粗
+                                            color: Color(0xFF01BC9F), // 文字顏色
+                                            fontSize: 16, // 適當調整字體大小
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else if (i["transport"]["mode"] == "MRT") {
+                                  transportWidget = Container(
+                                    decoration: BoxDecoration(
+                                      color: MRTColor.getColorByLineName(
+                                          i["transport"]["name"]), // 获取颜色
+                                      borderRadius:
+                                          BorderRadius.circular(radius),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    child: Text(
+                                      i["transport"]["name"],
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        letterSpacing: 0.2,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  );
+                                } else if (i["transport"]["mode"] == "HSR") {
+                                  print(i["transport"]["mode"]);
+                                  transportWidget = SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Image.network(
+                                      "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/HSR-logo.png",
+                                      fit: BoxFit.contain, // 确保图片完整显示
+                                    ),
+                                  );
+                                } else if (i["transport"]["mode"] ==
+                                    "HighwayBus") {
+                                  transportWidget = Icon(Icons.directions_bus,
+                                      color: Colors.black, size: 24);
+                                } else if (i["transport"]["mode"] == "TRA") {
+                                  transportWidget = SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Image.network(
+                                      "https://raw.githubusercontent.com/RSMN574/assets/refs/heads/main/logo/TRA-logo.png",
+                                      fit: BoxFit.contain, // 确保图片完整显示
+                                    ),
+                                  );
+                                } else if (i["transport"]["mode"] == "cycle") {
+                                  transportWidget = Icon(Icons.directions_bike,
+                                      color: Colors.black, size: 24);
+                                } else if (i["type"] == "drive") {
+                                  transportWidget = Icon(Icons.drive_eta,
+                                      color: Colors.black, size: 24);
+                                } else {
+                                  transportWidget = Container(
+                                    width: 0,
+                                  );
+                                }
 
-        // 添加箭头图标
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            transportWidget,
-            if (index < sections.length - 1)
-              Icon(Icons.arrow_right_rounded,      color: Colors.grey[600], size: 24),
-          ],
-        );
-      }).toList(),
-    ),
-              ))
-
-            ),
-
-            Padding(
-              padding: EdgeInsets.only(top: 8), // 行间距
-              child: Wrap(
-
-                children: sections.asMap().entries.map((entry) {
-                  int index = entry.key; // 当前索引
-                  var i = entry.value; // 当前元素
-               if (i["transport"]["mode"] == "Bus") {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-
-                        SizedBox(width: 4),
-                        Text(
-                          i["departure"]["place"]["name"]+"-"+i["arrival"]["place"]["name"],
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
-                          Icon(
-                            Icons.arrow_right_rounded,
-                            color: Colors.black,
-                            size: 24,
-                          ),
-                      ],
-                    );
-
-                  } else if(i["transport"]["mode"]=="MRT"){
-
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-
-                        SizedBox(width: 4),
-                        Text(
-                          i["departure"]["place"]["name"]+"-"+i["arrival"]["place"]["name"],
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (index < sections.length - 1) // Adjust the condition to avoid showing arrow on the last element
-                          Icon(
-                            Icons.arrow_right_rounded,
-                            color: Colors.black,
-                            size: 24,
-                          ),
-                      ],
-                    );
-                  }
-                  else
-                  {
-                    return  Container(width: 1,);
-                  }
-                }).toList(),
-              )
-            ),
-          ],
-        ),
-      ));
-
-
-
-
-
+                                // 添加箭头图标
+                                return Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    transportWidget,
+                                    if (index < sections.length - 1)
+                                      Icon(Icons.arrow_right_rounded,
+                                          color: Colors.grey[600], size: 24),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ))),
+                  Padding(
+                      padding: EdgeInsets.only(top: 8), // 行间距
+                      child: Wrap(
+                        children: sections.asMap().entries.map((entry) {
+                          int index = entry.key; // 当前索引
+                          var i = entry.value; // 当前元素
+                          if (i["transport"]["mode"] == "Bus") {
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(width: 4),
+                                Text(
+                                  i["departure"]["place"]["name"] +
+                                      "-" +
+                                      i["arrival"]["place"]["name"],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (index <
+                                    sections.length -
+                                        1) // Adjust the condition to avoid showing arrow on the last element
+                                  Icon(
+                                    Icons.arrow_right_rounded,
+                                    color: Colors.black,
+                                    size: 24,
+                                  ),
+                              ],
+                            );
+                          } else if (i["transport"]["mode"] == "MRT") {
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(width: 4),
+                                Text(
+                                  i["departure"]["place"]["name"] +
+                                      "-" +
+                                      i["arrival"]["place"]["name"],
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (index <
+                                    sections.length -
+                                        1) // Adjust the condition to avoid showing arrow on the last element
+                                  Icon(
+                                    Icons.arrow_right_rounded,
+                                    color: Colors.black,
+                                    size: 24,
+                                  ),
+                              ],
+                            );
+                          } else {
+                            return Container(
+                              width: 1,
+                            );
+                          }
+                        }).toList(),
+                      )),
+                ],
+              ),
+            ));
   }
+
   String _formatDuration(int seconds) {
     final hours = seconds ~/ 3600; // 计算小时
     final minutes = (seconds % 3600) ~/ 60; // 剩余部分计算分钟
@@ -1697,23 +1754,22 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       return '$minutes 分';
     }
   }
+
   String _formatDurationMin(int seconds) {
     final hours = seconds ~/ 3600; // 计算小时
     final minutes = (seconds % 3600) ~/ 60; // 剩余部分计算分钟
     final remainingSeconds = ((seconds % 3600) % 60).round(); // 秒数四舍五入
 
-
-      return '$minutes ';
-
+    return '$minutes ';
   }
-  Widget _buildDetailPage(){
 
+  Widget _buildDetailPage() {
     // eventBus.on<detailPageDataEvent>().listen((event) {
     //   print( "event.message"); // 更新 UI
     // print( event.message); // 更新 UI
     //   dataNotifier.value=event.message;
     // });
-   return  DraggableScrollableSheet(
+    return DraggableScrollableSheet(
       initialChildSize: 0.33, // 初始大小
       minChildSize: _bottomSheetHeightMin, // 最小大小
       maxChildSize: 1.0, // 最大大小
@@ -1725,41 +1781,42 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           ),
           child: SingleChildScrollView(
             controller: scrollController,
-            child: Column(
-              children: [      if (_indexNotifier.value > 0)
-            Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Material(
-                borderRadius: BorderRadius.circular(24),
-                elevation: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
-                    splashRadius: 24,
-                    onPressed: () {
-                      setState(() {
-                        _indexNotifier.value--; // 返回上一页
-                        _searchFocusNode.unfocus(); // 隐藏键盘
-                      });
-                    },
+            child: Column(children: [
+              if (_indexNotifier.value > 0)
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Material(
+                      borderRadius: BorderRadius.circular(24),
+                      elevation: 2,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                          splashRadius: 24,
+                          onPressed: () {
+                            setState(() {
+                              _indexNotifier.value--; // 返回上一页
+                              _searchFocusNode.unfocus(); // 隐藏键盘
+                            });
+                          },
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),..._buildTravelSteps(),]
-            ),
+              ..._buildTravelSteps(),
+            ]),
           ),
         );
       },
     );
-
   }
+
 // 行程步驟 UI（完整美化版）
   List<Widget> _buildTravelSteps() {
     return dataNotifier.value.map((step) {
@@ -1816,13 +1873,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       case 'pedestrian':
         return TextButton.icon(
           icon: Icon(Icons.directions, size: 18, color: Colors.blue),
-          label: Text("步行導航", style: TextStyle(color: Colors.blue)), onPressed: () {  },
+          label: Text("步行導航", style: TextStyle(color: Colors.blue)),
+          onPressed: () {},
           // onPressed: () => _startNavigation(step),
         );
       case 'transit':
         return TextButton.icon(
-          icon: Icon(Icons.notifications_active, size: 18, color: Colors.orange),
-          label: Text("關注路線", style: TextStyle(color: Colors.orange)), onPressed: () {  },
+          icon:
+              Icon(Icons.notifications_active, size: 18, color: Colors.orange),
+          label: Text("關注路線", style: TextStyle(color: Colors.orange)),
+          onPressed: () {},
           // onPressed: () => _followRoute(step),
         );
       default:
@@ -1840,8 +1900,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
         _buildTimeBlock(
           icon: Icons.access_time,
           time: _formatTime(step['departure']['time']),
-          departure: step['departure']['place']['name']??"未知地點",
-          arrival: step['arrival']['place']['name']??"未知地點",
+          departure: step['departure']['place']['name'] ?? "未知地點",
+          arrival: step['arrival']['place']['name'] ?? "未知地點",
           duration: step['travelSummary']['duration'],
         ),
 
@@ -1877,10 +1937,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                   ),
                 ],
               )
-
             ],
           )
-
         ],
 
         // 卡路里消耗提示
@@ -1913,7 +1971,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "站內換乘${step['travelSummary']['length']}米（約${(step['travelSummary']['duration']/ 60).round()}分鐘）",
+                    "站內換乘${step['travelSummary']['length']}米（約${(step['travelSummary']['duration'] / 60).round()}分鐘）",
                     style: TextStyle(color: Colors.blue[800]),
                   ),
                 ),
@@ -1924,7 +1982,6 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
 
         // 實時公交信息
         if (step['type'] == 'transit') ...[
-
           SizedBox(height: 12),
           Container(
             padding: EdgeInsets.all(12),
@@ -1951,6 +2008,7 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ],
     );
   }
+
   void _showFareInfoDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -1966,7 +2024,8 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
                 ),
                 TextSpan(
                   text: "以臺中市為例：",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.blue),
                 ),
                 TextSpan(
                   text: " 持有綁定市民專屬優惠的電子票證，可享「10公里免費 + 超過10公里票價上限10元」的雙十優惠。\n\n",
@@ -1987,19 +2046,21 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
       ),
     );
   }
+
 // 其他工具函式
   String _formatTime(String isoTime) {
     final time = DateTime.parse(isoTime);
     return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
   }
 
-  int _calculateCalories(Map<String, dynamic> step, { double weight = 60}) {
+  int _calculateCalories(Map<String, dynamic> step, {double weight = 60}) {
     final duration = step['travelSummary']['duration'] ?? 0;
     final metValue = 3.5;
     final timeInHours = duration / 60;
     final calories = metValue * weight * timeInHours;
     return calories.toInt();
   }
+
   Widget _buildRealTimeInfo(Map<String, dynamic> step) {
     // 模擬實時數據
     final nextDeparture = step['intermediateStops'].isNotEmpty
@@ -2019,13 +2080,20 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin<Home> , 
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green[50],
             foregroundColor: Colors.green[800],
-          ), onPressed: () {  },
+          ),
+          onPressed: () {},
           // onPressed: () => _refreshRealTime(step),
         ),
       ],
     );
   }
-  Widget _buildTimeBlock({required IconData icon, required String time, required String departure, required String arrival, required int duration}) {
+
+  Widget _buildTimeBlock(
+      {required IconData icon,
+      required String time,
+      required String departure,
+      required String arrival,
+      required int duration}) {
     return Row(
       children: [
         Icon(icon, size: 16, color: Colors.grey[600]),

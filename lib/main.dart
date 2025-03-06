@@ -93,7 +93,11 @@ class _NavigationBarAppState extends State<NavigationBarApp>
     _animationController = AnimationController(
       vsync: this, // 使用 this 作為 TickerProvider
       duration: const Duration(milliseconds: 1000),
+
     );
+    // 在应用启动时获取定位信息
+
+    getLocation(context);
   }
 
   @override
@@ -104,6 +108,9 @@ class _NavigationBarAppState extends State<NavigationBarApp>
 
   @override
   Widget build(BuildContext context) {
+    // 在应用启动时获取定位信息
+
+    getLocation(context);
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -274,9 +281,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
   }
   @override
   Widget build(BuildContext context) {
-    // 在应用启动时获取定位信息
 
-    getLocation(context);
     final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
     print(cityProvider.city);
     return Scaffold(
