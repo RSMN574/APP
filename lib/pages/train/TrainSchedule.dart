@@ -105,7 +105,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                           StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
                           FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
                           route: trainData['DailyTrainInfo']['TrainNo'], type: 'train',
-                          other:{"DateTime":  (time).toString(),"trainType":trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],"category":getCategory(result['category'])}
+                          other:{"DateTime":  (time).toString(),"trainType":trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],"category":getCategory(result['category']),"seatNumber":result["_seatNumber"]}
                       );
 
 // 根据 addSchedule 方法返回的结果进行处理

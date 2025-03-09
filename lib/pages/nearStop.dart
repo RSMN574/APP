@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -16,6 +17,8 @@ import '../database/bus/getStationInfo.dart';
 import '../metro.dart';
 import '../models/MRTStation.dart';
 import '../models/Station.dart';
+import '../train.dart';
+import '../utils/convert.dart';
 import '../widget/bubble.dart';
 import '../widget/error.dart';
 import '../widget/map.dart';
@@ -54,7 +57,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     _markerProvider?.setMarkers({});
   }
   // 加载标记
-  Future<void> _loadMarkers(BuildContext context, List<Station>? stations) async {
+  Future<void> _loadBusMarkers(BuildContext context, List<Station>? stations) async {
     if (stations == null || stations.isEmpty) {
       debugPrint('Stations data is empty.');
       return;
@@ -107,6 +110,60 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     debugPrint('Markers loaded: ${markers.length}');
   }
+  Future<void> _loadMarkers(BuildContext context, List<Station>? stations) async {
+    if (stations == null || stations.isEmpty) {
+      debugPrint('Stations data is empty.');
+      return;
+    }
+
+    Set<Marker> markers = {};
+
+    for (var station in stations) {
+      final marker = Marker(
+          markerId: MarkerId(station.stationID),
+          position: LatLng(
+            station.positionLat,
+            station.positionLon,
+          ),
+          infoWindow: InfoWindow(
+            title: station.stationNameZh ?? 'Unknown',
+            snippet: station.stationID ?? 'Unknown',
+          ),onTap: () async {
+        List<Map<String, dynamic>> data=await GetBusStopInfo(station.stationNameZh,"Taichung");
+        // print(data);
+        // 使用 map 來提取 StationID 並轉換為字串
+        List<String> stationIDs = data.map((station) {
+          // 確保 StationID 存在並轉換為字串
+          if (station.containsKey('StationID')) {
+            return station['StationID'].toString();
+          }
+          return '';
+        })
+        // 過濾掉空字串
+            .where((id) => id.isNotEmpty)
+            .toList();
+        _stationIDs.value=stationIDs;
+        _stopName.value=station.stationNameZh;
+        _selectStationID.value=station.stationID;
+
+
+        _indexNotifier.value  = 1; // 切换到搜索内容
+
+
+
+      }
+      );
+      markers.add(marker);
+    }
+    _markers.value=markers;  // 添加新标记
+    _markers.notifyListeners();  // 通知监听器更新 UI
+
+
+    // Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
+
+    debugPrint('Markers loaded: ${markers.length}');
+  }
+
   static void _updateMarkerStyle([String? selectedIndex]) {
    // String selectedStationID = _stationIDs.value[selectedIndex];
 
@@ -217,6 +274,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     items: const ["公車站", "捷運站", "火車站", "高鐵站"],
                     icons: [Icons.directions_bus, Icons.subway, Icons.train, Icons.directions_railway],
                     id: const ["bus", "metro", "train", "HSR"],
+
                     buildPageView: (context, controller) {
                       return PageView.builder(
                         itemCount: 4,
@@ -317,7 +375,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
                           // 加载标记
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                          _loadMarkers(context, snapshot.data!);
+                            _loadBusMarkers(context, snapshot.data!);
                           });
 
                           return Padding(
@@ -349,6 +407,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
                             case 1:
                               _tabSelect.value="metro";
+///////////////////////////////////////////////////////
+                                _markers.value={};
+
                               return
 
 
@@ -467,8 +528,162 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                       );
 
                             case 2:
+
+                                _markers.value={};
+
+
                               _tabSelect.value="train";
-                              return const Center(child: Text("這是火車站的內容"));
+                              return    SingleChildScrollView(
+                                controller: scrollController,
+                                child: FutureBuilder<List<Map<String, dynamic>>>(
+                                  future: getNearTrainStation(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return Center(
+                                        child: LoadingAnimationWidget.stretchedDots(
+                                          color: Colors.black,
+                                          size: 40,
+                                        ),
+                                      );
+                                    } else if (snapshot.hasError) {
+                                      return Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              "找不到附近的站牌",
+                                              style: TextStyle(
+                                                color: Colors.black54,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            ElevatedButton.icon(
+                                              onPressed: () {
+                                                setState(() {
+                                                  getNearTrainStation();
+                                                });
+                                              },
+                                              icon: const Icon(Icons.refresh, color: Colors.black),
+                                              label: const Text(
+                                                "重試",
+                                                style: TextStyle(color: Colors.black, fontSize: 14),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.white,
+                                                foregroundColor: Colors.black,
+                                                elevation: 3,
+                                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                shadowColor: Colors.grey[300],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    } else if (snapshot.hasData) {
+                                      List<Map<String, dynamic>> findNearestStations(
+                                          List<Map<String, dynamic>> stations, double userLat, double userLon,
+                                          {int count = 5}) {
+                                        List<Map<String, dynamic>> sortedStations = List.from(stations)
+                                          ..sort((a, b) {
+                                            double distanceA = calculateEuclideanDistance(
+                                              userLat,
+                                              userLon,
+                                              json.decode(a["StationPosition"])["PositionLat"],
+                                              json.decode(a["StationPosition"])["PositionLon"],
+                                            );
+                                            double distanceB = calculateEuclideanDistance(
+                                              userLat,
+                                              userLon,
+                                              json.decode(b["StationPosition"])["PositionLat"],
+                                              json.decode(b["StationPosition"])["PositionLon"],
+                                            );
+                                            return distanceA.compareTo(distanceB);
+                                          });
+                                        return sortedStations.take(count).toList();
+                                      }
+
+                                      List<dynamic> nearestStations = findNearestStations(
+                                        snapshot.data!,
+                                        locationProvider.latitude,
+                                        locationProvider.longitude,
+                                        count: 5,
+                                      );
+
+                                      return Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          children: List.generate(
+                                            nearestStations.length,
+                                                (index) {
+                                              final station =nearestStations[index] ;
+                                              print(station);
+                                              return  GestureDetector(
+                                                  onTap: () {
+                                                    // 跳转到 StationPage 并传递选中的车站名称
+                                                    DateTime today = DateTime.now();
+                                                    print(today); // 输出当前的日期和时间
+
+// 如果你只需要日期部分（没有时间）
+                                                    DateTime todayDate = DateTime(today.year, today.month, today.day);
+                                                    print(todayDate); // 输出当前的日期，不包含时间部分
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder: (context) => StationPage(
+                                                          stationName: json.decode(station["StationName"])["Zh_tw"], stationID: (station["StationID"]), datetime:
+                                                        todayDate, // 将选中的车站名称传递给 StationPage
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+
+                                                  child:  Container(
+                                                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withOpacity(0.05),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(0, 4),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      json.decode(station["StationName"])["Zh_tw"],
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w400,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Divider(color: Colors.grey[300], thickness: 0.5),
+                                                  ],
+                                                ),
+                                              )
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    return Container();
+                                  },
+                                ),
+                              );
+
+
                             case 3:
                               _tabSelect.value="HSR";
                               return const Center(child: Text("這是高鐵站的內容"));
@@ -506,7 +721,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   print(stations);
                 setState(() {
                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                   _loadMarkers(context, stations);
+                      if( _tabSelect.value=="bus"){
+                        _loadBusMarkers(context, stations);
+                      }
+
+
 
                  });
                });

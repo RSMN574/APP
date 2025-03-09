@@ -79,6 +79,7 @@ class _HomeState extends State<Home>
   final TextEditingController _destinationController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   List<dynamic> _placePredictions = [];
+  String _intelligentSearch = "";
   var _placePrediction;
   double _bottomSheetHeightMin = 0.2;
   GoogleMapController? _mapController;
@@ -357,27 +358,37 @@ class _HomeState extends State<Home>
         FocusScope.of(context).requestFocus(_searchFocusNode);
       },
       child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16.0),
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Color(0x19000000),
-              blurRadius: 25,
-              offset: Offset(0, 0),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
               spreadRadius: 0,
             )
           ],
-          borderRadius: BorderRadius.all(Radius.circular(30.0)),
+          borderRadius: BorderRadius.circular(30.0),
         ),
         child: TextField(
           enabled: false,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
-            hintText: '搜尋',
-            prefixIcon: Icon(Icons.search, color: Colors.grey[700]),
-            contentPadding: EdgeInsets.symmetric(vertical: 10.0),
+            hintText: '搜尋目的地...',
+            hintStyle: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+            ),
+            prefixIcon: Icon(Icons.search, color: Colors.blue[400], size: 22),
+            contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
             border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(30.0),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30.0),
               borderSide: BorderSide.none,
             ),
@@ -399,12 +410,12 @@ class _HomeState extends State<Home>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
+                    const BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 15,
-                    spreadRadius: 2,
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 20,
+                    spreadRadius: 0,
                   ),
                 ],
               ),
@@ -417,7 +428,7 @@ class _HomeState extends State<Home>
                     // 拖拽手柄
                     Center(
                       child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        margin: const EdgeInsets.symmetric(vertical: 12),
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
@@ -442,22 +453,29 @@ class _HomeState extends State<Home>
                           hintText: '輸入目的地...',
                           hintStyle: TextStyle(color: Colors.grey[500]),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 16.0, horizontal: 20.0),
                           prefixIcon:
-                              Icon(Icons.search, color: Colors.blue[300]),
+                              Icon(Icons.search, color: Colors.blue[400]),
                           suffixIcon: Container(
-                            margin: const EdgeInsets.all(4),
+                            margin: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: Colors.blue,
-                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.blue[500],
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blue.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: IconButton(
-                              icon:
-                                  const Icon(Icons.search, color: Colors.white),
+                              icon: const Icon(Icons.search,
+                                  color: Colors.white, size: 20),
                               onPressed: () {
                                 _loadPredictions();
                                 FocusScope.of(context).unfocus();
@@ -465,29 +483,88 @@ class _HomeState extends State<Home>
                             ),
                           ),
                         ),
-                        onChanged: (value) =>
-                            setState(() => _placePredictions.clear()),
+                        onChanged: (value) {
+                          setState(() {
+                            _placePredictions.clear();
+                            _intelligentSearch = "";
+                          });
+                        },
                         onSubmitted: (value) {
                           _loadPredictions();
                           FocusScope.of(context).unfocus();
                         },
                       ),
                     ),
-                    const SizedBox(height: 12.0),
-                    if (_placePredictions.isNotEmpty)
+                    const SizedBox(height: 16.0),
+                    if (_intelligentSearch.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: Material(
                           elevation: 2,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
+                          child: Container(
+                            padding: const EdgeInsets.all(16.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Colors.blue.shade50, Colors.white],
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.help_outline_rounded,
+                                  color: Colors.blue.shade600,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _intelligentSearch,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _intelligentSearch = "";
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      color: Colors.grey.shade600,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_placePredictions.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Material(
+                          elevation: 2,
+                          borderRadius: BorderRadius.circular(16),
+                          color: Colors.white,
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: SingleChildScrollView(
-                              physics:
-                                  const NeverScrollableScrollPhysics(), // 禁止內部滾動
+                              physics: const NeverScrollableScrollPhysics(),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: _placePredictions.map((prediction) {
@@ -504,28 +581,33 @@ class _HomeState extends State<Home>
                                         contentPadding:
                                             const EdgeInsets.symmetric(
                                           horizontal: 20,
-                                          vertical: 8,
+                                          vertical: 10,
                                         ),
                                         leading: Container(
-                                          padding: const EdgeInsets.all(6),
+                                          padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
                                             color: Colors.blue.withOpacity(0.1),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(Icons.location_on,
-                                              color: Colors.blue[700]),
+                                              color: Colors.blue[600],
+                                              size: 22),
                                         ),
-                                        title: Text(mainText,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.grey[800],
-                                              fontSize: 15,
-                                            )),
-                                        subtitle: Text(secondaryText,
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                              fontSize: 13,
-                                            )),
+                                        title: Text(
+                                          mainText,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.grey[800],
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          secondaryText,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 13,
+                                          ),
+                                        ),
                                         onTap: () {
                                           final locationProvider =
                                               Provider.of<LocationProvider>(
@@ -549,7 +631,8 @@ class _HomeState extends State<Home>
                                         Divider(
                                           height: 1,
                                           color: Colors.grey[200],
-                                          indent: 16,
+                                          indent: 20,
+                                          endIndent: 20,
                                         ),
                                     ],
                                   );
@@ -557,6 +640,97 @@ class _HomeState extends State<Home>
                               ),
                             ),
                           ),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0, vertical: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  left: 8.0, bottom: 20.0),
+                              child: Text(
+                                '交通方式',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildTransportOption(
+                                  icon: Icons.flight,
+                                  color: Colors.blue[500]!,
+                                  label: '航班',
+                                  onTap: () {
+                                    // 航班搜尋功能
+                                  },
+                                ),
+                                _buildTransportOption(
+                                  icon: Icons.train,
+                                  color: Colors.orange[500]!,
+                                  label: '火車',
+                                  onTap: () {
+                                    // 火車搜尋功能
+                                  },
+                                ),
+                                _buildTransportOption(
+                                  icon: Icons.directions_railway,
+                                  color: const Color(0xFFDC5321), // 高鐵橘色
+                                  label: '高鐵',
+                                  onTap: () {
+                                    // 高鐵搜尋功能
+                                  },
+                                ),
+                                _buildTransportOption(
+                                  icon: Icons.directions_bus,
+                                  color: Colors.green[500]!,
+                                  label: '公車',
+                                  onTap: () {
+                                    // 公車搜尋功能
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 36.0),
+                            Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 8.0),
+                              padding: const EdgeInsets.all(20.0),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                    color: Colors.blue.withOpacity(0.1)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Colors.blue[600],
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Text(
+                                      '輸入目的地或選擇交通方式開始規劃您的行程',
+                                      style: TextStyle(
+                                        color: Colors.grey[700],
+                                        fontSize: 14,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
@@ -569,18 +743,24 @@ class _HomeState extends State<Home>
           top: MediaQuery.of(context).padding.top + 10,
           left: 16,
           child: Material(
-            borderRadius: BorderRadius.circular(24),
-            elevation: 2,
+            borderRadius: BorderRadius.circular(30),
+            elevation: 4,
+            color: Colors.white,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
               child: IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.blue[700]),
+                icon: Icon(Icons.arrow_back, color: Colors.blue[600]),
                 splashRadius: 24,
                 onPressed: () {
-                  print("setMarkers");
                   Provider.of<MarkerProvider>(context, listen: false)
                       .setMarkers({});
 
@@ -597,6 +777,51 @@ class _HomeState extends State<Home>
     );
   }
 
+  Widget _buildTransportOption({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 30,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[800],
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPlaceDetails(dynamic place) {
     // 定義一個狀態來控制運具模式和旅運模式的選擇
     Future<void> _init() async {
@@ -606,9 +831,6 @@ class _HomeState extends State<Home>
           await placesService.getLatLngFromPlaceId(place["place_id"]);
       _loadMarkers(
           destination?.latitude, destination?.longitude, place["place_id"]);
-      setState(() {
-        _selectedTime = DateTime.now();
-      });
     }
 
     _init();
@@ -987,36 +1209,65 @@ class _HomeState extends State<Home>
 
   void _loadPredictions() async {
     PlacesService placesService = PlacesService();
-    try {
-      List<dynamic> predictions = await placesService.getPlaceAutocomplete(
-          _routeController.text, context);
+    String input = _routeController.text;
+    // 移除多餘空格和特殊符號
+    input = input.trim();
+
+    // 正則表達式定義
+    final RegExp flightRegex = RegExp(
+      r'^([A-Z]{2}|B7|CI|BR|GE|JL|KE|MF|MU|NX|OZ|SQ|TG|UA|ZH)\s?\d{2,4}[A-Z]?$',
+      caseSensitive: false,
+    );
+
+    final RegExp railRegex = RegExp(
+      r'^\d{3,4}$', // 3-4位數：火車或高鐵
+    );
+
+    final RegExp busRegex = RegExp(
+      r'^(?:\d{1,3}|[紅藍綠棕橘]\d{1,2}|[A-Za-z]\d{1,2})$', // 公車
+    );
+
+    // 優先檢查航班、高鐵、公車
+    if (flightRegex.hasMatch(input)) {
+      // 處理航班號
+      _intelligentSearch = "搜尋航班號嗎";
+    } else if (railRegex.hasMatch(input)) {
+      // 處理高鐵或火車
+      _intelligentSearch = "搜尋高鐵或火車嗎";
+    } else if (busRegex.hasMatch(input)) {
+      // 處理公車號
+      _intelligentSearch = "搜尋公車嗎";
+    } else {
+      // 如果都不匹配，則進行地點預測
+      List<dynamic> predictions =
+          await placesService.getPlaceAutocomplete(input, context);
+      print(predictions);
       setState(() {
+        _intelligentSearch = "";
         _placePredictions = predictions;
       });
-    } catch (e) {
-      print('Error: $e');
     }
   }
 
-  void _onBikeMarkerTapped(Map<String, dynamic> station) {
-    setState(() {
-      _selectedStation = station;
-    });
-    // 這裡可以控制 bottom sheet 彈出
-    _bottomSheetController = showBottomSheet(
-        context: context,
-        builder: (context) {
-          return _buildBikeContent(context);
-        });
-    // 监听 BottomSheet 是否关闭
-    _bottomSheetController!.closed.then((_) {
-      // 这里可以处理 BottomSheet 关闭后的逻辑
-      // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-      Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-      setState(() {
-        _showMainContent = true; // 主內容
-      });
-    });
+// 彈窗方法
+  void _showDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('確定'),
+              onPressed: () {
+                Navigator.of(context).pop(); // 關閉彈窗
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<Map<String, dynamic>?>? _bikeAvailabilityFuture;
@@ -1024,7 +1275,8 @@ class _HomeState extends State<Home>
   void _updateSelectedStation(Map<String, dynamic> station) {
     setState(() {
       _selectedStation = station;
-      _bikeAvailabilityFuture = getBikeAvailability("Taichung", station["StationID"]);
+      _bikeAvailabilityFuture =
+          getBikeAvailability("Taichung", station["StationID"]);
     });
     // 這裡可以控制 bottom sheet 彈出
     _bottomSheetController = showBottomSheet(
@@ -1059,25 +1311,28 @@ class _HomeState extends State<Home>
       child: _selectedStation == null
           ? _buildPlaceholder('請選擇站點', Icons.location_off_outlined)
           : FutureBuilder<Map<String, dynamic>?>(
-        future: _bikeAvailabilityFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingState(context);
-          }
+              future: _bikeAvailabilityFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildLoadingState(context);
+                }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _buildPlaceholder(
-              snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
-              snapshot.hasError ? Icons.error_outline : Icons.info_outline,
-            );
-          }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return _buildPlaceholder(
+                    snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
+                    snapshot.hasError
+                        ? Icons.error_outline
+                        : Icons.info_outline,
+                  );
+                }
 
-          final stationName = json.decode(_selectedStation!["StationName"])["Zh_tw"];
-          final data = snapshot.data!;
+                final stationName =
+                    json.decode(_selectedStation!["StationName"])["Zh_tw"];
+                final data = snapshot.data!;
 
-          return _buildContentSection(context, stationName, data);
-        },
-      ),
+                return _buildContentSection(context, stationName, data);
+              },
+            ),
     );
   }
 
@@ -1109,28 +1364,48 @@ class _HomeState extends State<Home>
         {"GeneralBikes": 0, "ElectricBikes": 0};
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 標題列
-          Row(
-            children: [
-              Icon(Icons.pin_drop,
-                  color: Theme.of(context).primaryColor, size: 22),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  stationName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
-                ),
+          // 站點標題
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom:
+                    BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
               ),
-            ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Icon(
+                    Icons.pin_drop,
+                    color: Theme.of(context).primaryColor,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    stationName,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                          fontSize: 14,
+                        ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // 主要數據卡片
           _buildCompactDataGrid(
@@ -1153,6 +1428,7 @@ class _HomeState extends State<Home>
     required String electricBikes,
   }) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // 第一行：主要指標
         Row(
@@ -1176,13 +1452,41 @@ class _HomeState extends State<Home>
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
 
         // 第二行：車型分布
-        _buildBikeTypeRow(
-          context,
-          general: generalBikes,
-          electric: electricBikes,
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 5,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '車輛類型',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildBikeTypeRow(
+                context,
+                general: generalBikes,
+                electric: electricBikes,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1196,33 +1500,52 @@ class _HomeState extends State<Home>
     required String value,
     double widthFactor = 1.0,
   }) {
-    return Flexible(
-      flex: 2,
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Text(title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(color: Colors.grey[600])),
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: color)),
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, color: color, size: 14),
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
             ),
           ],
         ),
@@ -1239,7 +1562,7 @@ class _HomeState extends State<Home>
           icon: Icons.pedal_bike,
           label: '普通車',
           value: general,
-          color: Colors.grey[600]!,
+          color: Colors.grey[700]!,
         ),
         const SizedBox(width: 8),
         _buildTypeChip(
@@ -1260,25 +1583,54 @@ class _HomeState extends State<Home>
     required String value,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w600, color: color),
-          ),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-        ],
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 3,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Icon(icon, size: 12, color: color),
+            ),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

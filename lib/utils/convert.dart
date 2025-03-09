@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 String cityNameConverter(String inputCity) {
@@ -88,3 +90,8 @@ String convertTrainType(String trainType) {
   return trainType;
 }
 
+double calculateEuclideanDistance(double lat1, double lon1, double lat2, double lon2) {
+  double dLat = lat2 - lat1;
+  double dLon = lon2 - lon1;
+  return sqrt(dLat * dLat + dLon * dLon); // 直接計算歐幾里得距離
+}

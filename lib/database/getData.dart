@@ -322,3 +322,29 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
     return [];
   }
 }
+Future<List<Map<String, dynamic>>> getNearTrainStation() async {
+  try {
+    // 连接数据库
+    await connMysql();
+
+
+    String queryNearStation = "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
+
+    // 查询设施数据
+    List<Map<String, dynamic>> nearStation = await mysqlSelect(queryNearStation);
+
+
+
+    // 重置闲置计时器
+    _startIdleTimer();
+    print("nearStation $nearStation");
+    return nearStation;
+  } catch (e, stackTrace) {
+    // 捕获并记录错误
+    print("Error fetching station facilities: $e");
+    print(stackTrace);
+
+    // 返回空列表以防止程序崩溃
+    return [];
+  }
+}

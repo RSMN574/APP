@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'database/flight/getFlight.dart';
+
 class Plane extends StatefulWidget {
   const Plane({super.key});
 
@@ -74,9 +75,11 @@ class _PlaneState extends State<Plane> {
                 final flights = snapshot.data ?? [];
                 return SizedBox(
                   height: 500, // 假設最大高度
-                  child: FlightDashboard(flights: flights, type: 'Arrival',),
-                )
-                ;
+                  child: FlightDashboard(
+                    flights: flights,
+                    type: 'Arrival',
+                  ),
+                );
               },
             ),
             // 1. 航班資訊區 (改成FutureBuilder)出境
@@ -92,9 +95,11 @@ class _PlaneState extends State<Plane> {
                 final flights = snapshot.data ?? [];
                 return SizedBox(
                   height: 500, // 假設最大高度
-                  child: FlightDashboard(flights: flights, type: 'Departure',),
-                )
-                ;
+                  child: FlightDashboard(
+                    flights: flights,
+                    type: 'Departure',
+                  ),
+                );
               },
             ),
             // 2. 機場服務按鈕區 (網格狀)
@@ -195,6 +200,7 @@ class _PlaneState extends State<Plane> {
     );
   }
 }
+
 class FlightDashboard extends StatefulWidget {
   final String type;
   final List<dynamic> flights;
@@ -211,19 +217,31 @@ class _FlightDashboardState extends State<FlightDashboard> {
   @override
   Widget build(BuildContext context) {
     final totalPages = (widget.flights.length / 10).ceil();
-    final pageFlights = widget.flights.skip(_currentPage * 10).take(10).toList();
+    final pageFlights =
+        widget.flights.skip(_currentPage * 10).take(10).toList();
 
     return Column(
       children: [
         _buildHeader(),
         Expanded(
-
           child: ListView(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             children: [
-
               const SizedBox(height: 6),
               ...pageFlights.map((flight) => _buildFlightCard(flight)),
+              if (pageFlights.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      '暫無航班資訊',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -233,36 +251,93 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildPaginationControls(int totalPages) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: _currentPage > 0 ? () {
-            setState(() => _currentPage--);
-          } : null,
-        ),
-        Text('第 ${_currentPage + 1} 頁 / 共 $totalPages 頁', style: const TextStyle(fontSize: 14)),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: _currentPage < totalPages - 1 ? () {
-            setState(() => _currentPage++);
-          } : null,
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            color: _currentPage > 0 ? const Color(0xFF1A73E8) : Colors.grey,
+            onPressed: _currentPage > 0
+                ? () {
+                    setState(() => _currentPage--);
+                  }
+                : null,
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3FB),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              '第 ${_currentPage + 1} 頁 / 共 $totalPages 頁',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF1A73E8),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            color: _currentPage < totalPages - 1
+                ? const Color(0xFF1A73E8)
+                : Colors.grey,
+            onPressed: _currentPage < totalPages - 1
+                ? () {
+                    setState(() => _currentPage++);
+                  }
+                : null,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: Text(
-        widget.type=="Departure" ?"出境航班":"入境航班",
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF1A73E8),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            widget.type == "Departure"
+                ? Icons.flight_takeoff
+                : Icons.flight_land,
+            color: const Color(0xFF1A73E8),
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            widget.type == "Departure" ? "出境航班" : "入境航班",
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -271,19 +346,27 @@ class _FlightDashboardState extends State<FlightDashboard> {
     final delayMinutes = _calculateDelayMinutes(flight);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6), // 縮小卡片間距
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(5),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8), // 縮小卡片內邊距
+        padding: const EdgeInsets.all(10),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildFlightHeader(flight),
-            const SizedBox(height: 6),
+            const Divider(height: 12, thickness: 0.8),
             _buildFlightDetails(flight, delayMinutes),
-            // if (flight['ArrivalRemark'] != null) _buildRemark(flight),
+
           ],
         ),
       ),
@@ -293,53 +376,70 @@ class _FlightDashboardState extends State<FlightDashboard> {
   Widget _buildFlightHeader(Map<String, dynamic> flight) {
     return Row(
       children: [
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEF3FB),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            flight['IsCargo'] == 'true'
+                ? Icons.airplanemode_active
+                : Icons.airplanemode_active,
+            color: const Color(0xFF1A73E8),
+            size: 16,
+          ),
+        ),
+        const SizedBox(width: 10),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               flight['AirlineID'] + flight['FlightNumber'] ?? '--',
               style: const TextStyle(
-                fontSize: 16, // 縮小航班號
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
               ),
             ),
             Text(
-            (flight['IsCargo'] == 'true'?"貨機":"客機"),
-
-    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              (flight['IsCargo'] == 'true' ? "貨機" : "客機"),
+              style: TextStyle(color: Colors.grey[600], fontSize: 11),
             ),
           ],
         ),
         const Spacer(),
-        _buildStatusIndicator(
-            widget.type == 'Departure'
-                ? flight['DepartureRemark']
-                : flight['ArrivalRemark']
-        ),
-
+        _buildStatusIndicator(widget.type == 'Departure'
+            ? flight['DepartureRemark']
+            : flight['ArrivalRemark']),
       ],
     );
   }
 
   Widget _buildFlightDetails(Map<String, dynamic> flight, int delayMinutes) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        _buildTimeItem('計劃',  widget.type == 'Departure'
-        ? flight['ScheduleDepartureTime']
-            : flight['ScheduleArrivalTime']
-        ),
-        _buildTimeItem('實際',  widget.type == 'Departure'
-        ? flight['ActualDepartureTime']
-            : flight['ActualArrivalTime']
-            , isDelayed: delayMinutes > 0),
-        _buildDelayItem(delayMinutes),
-        _buildInfoItem('航廈', flight['Terminal'] ?? '--'),
-        if (!(flight['IsCargo'] ?? false))
-          _buildInfoItem('行李', flight['BaggageClaim'] ?? '--'),
-        _buildInfoItem('登機門', flight['Gate'] ?? '--'),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildTimeItem(
+              '計劃',
+              widget.type == 'Departure'
+                  ? flight['ScheduleDepartureTime']
+                  : flight['ScheduleArrivalTime']),
+          _buildTimeItem(
+              '實際',
+              widget.type == 'Departure'
+                  ? flight['ActualDepartureTime']
+                  : flight['ActualArrivalTime'],
+              isDelayed: delayMinutes > 0),
+          _buildDelayItem(delayMinutes),
+          _buildInfoItem('航廈', flight['Terminal'] ?? '--'),
+          if (!(flight['IsCargo'] ?? false))
+            _buildInfoItem('行李', flight['BaggageClaim'] ?? '--'),
+          _buildInfoItem('登機門', flight['Gate'] ?? '--'),
+        ],
+      ),
     );
   }
 
@@ -347,11 +447,11 @@ class _FlightDashboardState extends State<FlightDashboard> {
     return Column(
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-        const SizedBox(height: 1),
+        const SizedBox(height: 3),
         Text(
           _formatTime(time),
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: isDelayed ? Colors.red : Colors.black87,
           ),
@@ -361,16 +461,29 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildDelayItem(int minutes) {
+    final Color textColor = minutes > 0
+        ? Colors.red
+        : minutes < 0
+            ? Colors.green
+            : Colors.grey[700]!;
+
     return Column(
       children: [
         const Text('延誤', style: TextStyle(fontSize: 10, color: Colors.grey)),
-        const SizedBox(height: 1),
-        Text(
-          '${minutes > 0 ? '+' : ''}$minutes',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: minutes > 0 ? Colors.red : Colors.green,
+        const SizedBox(height: 3),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: textColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${minutes > 0 ? '+' : ''}$minutes',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
           ),
         ),
       ],
@@ -380,9 +493,19 @@ class _FlightDashboardState extends State<FlightDashboard> {
   Widget _buildInfoItem(String label, String value) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey)),
-        const SizedBox(height: 1),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        const SizedBox(height: 3),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
       ],
     );
   }
@@ -391,21 +514,22 @@ class _FlightDashboardState extends State<FlightDashboard> {
     final indicatorStyle = _getStatusStyle(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: indicatorStyle['backgroundColor'],
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: indicatorStyle['borderColor']),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(indicatorStyle['icon'], size: 12, color: indicatorStyle['textColor']),
-          const SizedBox(width: 4),
+          Icon(indicatorStyle['icon'],
+              size: 10, color: indicatorStyle['textColor']),
+          const SizedBox(width: 2),
           Text(
             status,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w600,
               color: indicatorStyle['textColor'],
             ),
@@ -455,18 +579,26 @@ class _FlightDashboardState extends State<FlightDashboard> {
     }
   }
 
-
   Widget _buildRemark(Map<String, dynamic> flight) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.orange[600], size: 14),
-          const SizedBox(width: 3),
+          Icon(Icons.info_outline, color: Colors.orange[700], size: 14),
+          const SizedBox(width: 4),
           Flexible(
             child: Text(
               '${flight['ArrivalRemark']}',
-              style: TextStyle(color: Colors.orange[600], fontSize: 11),
+              style: TextStyle(
+                  color: Colors.orange[700],
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -476,21 +608,17 @@ class _FlightDashboardState extends State<FlightDashboard> {
 
   int _calculateDelayMinutes(Map<String, dynamic> flight) {
     try {
-      final scheduled = DateTime.parse( widget.type == 'Departure'
-      ? flight['ScheduleDepartureTime']
-          : flight['ScheduleArrivalTime']
-      );
+      final scheduled = DateTime.parse(widget.type == 'Departure'
+          ? flight['ScheduleDepartureTime']
+          : flight['ScheduleArrivalTime']);
       final actual = DateTime.parse(widget.type == 'Departure'
-      ? flight['ActualDepartureTime']
-          : flight['ActualArrivalTime']
-      );
+          ? flight['ActualDepartureTime']
+          : flight['ActualArrivalTime']);
       return actual.difference(scheduled).inMinutes;
     } catch (e) {
       return 0;
     }
   }
-
-
 
   String _formatTime(String? isoTime) {
     if (isoTime == null) return '--:--';

@@ -18,7 +18,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
   String? _departure;
   String? _destination;
   String? _category;
-
+ String? _seatNumber;
   // 車站選項
   List<String> stations = ['台北', '台中', '高雄', '台南', '新竹'];
   final List<String> category = ['上班通勤', '旅行', ];
@@ -29,8 +29,9 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
     List<String> stationNames = widget.stationNames
         .map((stop) => stop["Zh_tw"] as String)
         .toList();
-    stations=stationNames;
+    stations = stationNames;
     print(stationNames);
+
     return AlertDialog(
       title: const Text('選擇車站'),
       content: Form(
@@ -111,6 +112,26 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                   return null;
                 },
               ),
+
+              const SizedBox(height: 16),
+
+              // 座位號碼輸入框
+              TextFormField(
+                decoration: const InputDecoration(labelText: '座位號碼'),
+                maxLength: 10, // 限制最多 10 個字
+                onChanged: (value) {
+                  setState(() {
+                    _seatNumber = value;
+                  });
+                },
+                validator: (value) {
+
+                  if (value!.length > 10) {
+                    return '座位號碼最多 10 個字';
+                  }
+                  return null;
+                },
+              ),
             ],
           ),
         ),
@@ -130,6 +151,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                 'departure': _departure,
                 'destination': _destination,
                 'category': _category,
+                'seatNumber': _seatNumber, // 加入座位號碼
               });
             }
           },
@@ -138,4 +160,5 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
       ],
     );
   }
+
 }

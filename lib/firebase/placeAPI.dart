@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../Const/regularClass.dart';
+import '../utils/convert.dart';
 
 class PlacesService {
   final String apiKey = 'AIzaSyB2rwLvaJa9EC52izD0DXJLiJK2EW-6LjI';
@@ -50,7 +51,7 @@ class PlacesService {
       final detail = await _fetchPlaceDetail(placeId);
 
       if (detail != null) {
-        final double distance = _calculateDistance(
+        final double distance = calculateEuclideanDistance(
           locationProvider.latitude,
           locationProvider.longitude,
           detail['lat'],
@@ -70,12 +71,6 @@ class PlacesService {
     return placesWithDistance.map((e) => e['prediction']).toList();
   }
 
-// 簡單距離計算 (Haversine formula)
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    double latDiff = (lat1 - lat2).abs();
-    double lonDiff = (lon1 - lon2).abs();
-    return latDiff + lonDiff; // 這只是簡單估算，數字越小代表越近
-  }
 
 
 // 取得地點的詳細資訊（主要是為了拿經緯度）

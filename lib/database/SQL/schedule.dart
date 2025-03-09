@@ -25,33 +25,37 @@ class schedule {
 
     return await openDatabase(
       path,
-      version: 6, // 提升版本号以触发升级
+      version: 7, // 提升版本號
       onCreate: (db, version) async {
-        // 创建 FavoritesRoute 表
-
+        // 創建 schedule 表
         await db.execute('''
-  CREATE TABLE IF NOT EXISTS schedule (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,
-    Route TEXT NOT NULL,
-    StartingStopName TEXT NOT NULL,         -- 新增路線起始站
-    UserStartingStopName TEXT,             -- 新增用戶上車站
-    FinalStopName TEXT NOT NULL,           -- 路線終點站
-    UserDestinationStopName TEXT,          -- 用戶目的站
-    other TEXT,                            -- 存储 JSON 字符串
-    city TEXT ,
-    routeID INTEGER,
-    category TEXT,
-    time TEXT
-  )
-''');
-
-
-
+        CREATE TABLE IF NOT EXISTS schedule (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          type TEXT NOT NULL,
+          Route TEXT NOT NULL,
+          StartingStopName TEXT NOT NULL,   -- 新增路線起始站
+          UserStartingStopName TEXT,        -- 新增用戶上車站
+          FinalStopName TEXT NOT NULL,      -- 路線終點站
+          UserDestinationStopName TEXT,     -- 用戶目的站
+          other TEXT,                       -- 存儲 JSON 字符串
+          city TEXT,
+          routeID INTEGER,
+          category TEXT,
+          time TEXT,
+          seatNumber TEXT                   -- 新增座位號碼
+        )
+      ''');
       },
 
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 7) {
+          // 確保舊版本升級到 6，添加 seatNumber 欄位
+          await db.execute('ALTER TABLE schedule ADD COLUMN seatNumber TEXT');
+        }
+      },
     );
   }
+
 
   Future<List<Map<String, dynamic>>> getSchedule(String key, [String? city]) async {
     final db = await database;
@@ -145,6 +149,7 @@ class schedule {
             }), // 轉為 JSON 字串存入
             'category': other?["category"],
             'time':  other?["DateTime"] ,
+            'seatNumber':other?["seatNumber"]
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -228,4 +233,95 @@ class schedule {
     );
     return result.isNotEmpty;
   }
+  Future<int> updateSchedule({
+    required int id,
+    String? UserStartingStopName,
+    String? UserDestinationStopName,
+    String? StartingStopName,
+    String? FinalStopName,
+    String? route,
+    Map<String, dynamic>? other,
+    String? type, // 改為非必填，僅更新時傳入
+    String? city,
+  }) async {
+    try {
+      final db = await database;
+      Map<String, dynamic> updatedData = {};
+
+      // 只更新傳入的非 null 值
+      if (UserStartingStopName != null) {
+        updatedData['UserStartingStopName'] = UserStartingStopName;
+      }
+      if (UserDestinationStopName != null) {
+        updatedData['UserDestinationStopName'] = UserDestinationStopName;
+      }
+      if (StartingStopName != null) {
+        updatedData['StartingStopName'] = StartingStopName;
+      }
+      if (FinalStopName != null) {
+        updatedData['FinalStopName'] = FinalStopName;
+      }
+      if (route != null) {
+        updatedData['Route'] = route;
+      }
+      if (type != null) {
+        updatedData['type'] = type;
+        // 根據 type 判斷其他欄位
+        if (type == "train" || type == "HSR") {
+          if (other != null) {
+            if (other.containsKey("trainType")) {
+              updatedData['other'] = jsonEncode({"trainType": other["trainType"]});
+            }
+            if (other.containsKey("category")) {
+              updatedData['category'] = other["category"];
+            }
+            if (other.containsKey("DateTime")) {
+              updatedData['time'] = other["DateTime"];
+            }
+            if (other.containsKey("seatNumber")) {
+              updatedData['seatNumber'] = other["seatNumber"];
+            }
+          }
+        } else {
+          if (city != null) {
+            updatedData['city'] = city;
+          }
+          if (other != null) {
+            if (other.containsKey("routeID")) {
+              updatedData['routeID'] = other["routeID"];
+            }
+            if (other.containsKey("category")) {
+              updatedData['category'] = other["category"];
+            }
+          }
+        }
+      } else {
+        // 若 type 沒有更新，但可能還有其他欄位
+        if (city != null) {
+          updatedData['city'] = city;
+        }
+        if (other != null) {
+          if (other.containsKey("routeID")) {
+            updatedData['routeID'] = other["routeID"];
+          }
+          if (other.containsKey("category")) {
+            updatedData['category'] = other["category"];
+          }
+        }
+      }
+
+      int result = await db.update(
+        'schedule',
+        updatedData,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return result > 0 ? 100 : -1; // 100 表示成功，-1 表示未更新到資料（找不到記錄）
+    } catch (e) {
+      print("更新失敗: $e");
+      return 200; // 200 表示發生錯誤
+    }
+  }
+
+
 }
