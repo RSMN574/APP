@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:google_maps_cluster_manager/google_maps_cluster_manager.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LocationProvider with ChangeNotifier {
@@ -35,7 +34,7 @@ class CityProvider with ChangeNotifier {
 //     notifyListeners(); // 通知监听者状态已更新
 //   }
 // }
-class youbike with ClusterItem {
+class youbike  {
   final String name;
   final LatLng latLng;
 

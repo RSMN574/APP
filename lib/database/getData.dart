@@ -5,30 +5,88 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:com.rsmn574.app/bus.dart';
-
 import '../Const/regularConst.dart';
-final GlobalKey<BusState> _key = GlobalKey<BusState>();
+import '../secure_storage/secure_storage.dart';
+import 'package:mysql1/mysql1.dart';
+
+import '../utils/convert.dart';
+
 Timer? _idleTimer;
 const int idleTimeout = 30; // 30秒無操作超時
 var result;
 MySQLConnection? conn;
 var busid;
- List busName=[];
-int? sum=0;
-List jsonData=[];
-int routeID=0;
-String busCurrentCity='Taichung';
+List busName = [];
+int? sum = 0;
+List jsonData = [];
+int routeID = 0;
+String busCurrentCity = 'Taichung';
+
+// 全局連接池
+late ConnectionPool connectionPool;
+bool isPoolInitialized = false;
+
+// 初始化連接池
+Future<void> initConnectionPool() async {
+  if (isPoolInitialized) return;
+
+  final settings = ConnectionSettings(
+    host: "hidden.rsmn574.com",
+    port: 3306,
+    user: "onlyForApiRead",
+    password: "@Nick0319Lucas0221",
+    db: "Bus",
+  );
+
+  connectionPool = ConnectionPool(settings, 5); // 5個連接的池
+  isPoolInitialized = true;
+}
+
+class ConnectionPool {
+  final List<MySqlConnection> _pool = [];
+  final int _maxPoolSize;
+  final ConnectionSettings _settings;
+
+  ConnectionPool(this._settings, this._maxPoolSize);
+
+  Future<MySqlConnection> getConnection() async {
+    if (_pool.isNotEmpty) {
+      return _pool.removeLast();
+    }
+
+    if (_pool.length < _maxPoolSize) {
+      return await MySqlConnection.connect(_settings);
+    }
+
+    throw Exception("Connection pool is full");
+  }
+
+  void releaseConnection(MySqlConnection conn) {
+    if (_pool.length < _maxPoolSize) {
+      _pool.add(conn);
+    } else {
+      conn.close();
+    }
+  }
+
+  Future<void> closeAllConnections() async {
+    for (var conn in _pool) {
+      await conn.close();
+    }
+    _pool.clear();
+  }
+}
+
 Future<void> connMysql() async {
-
-
   // 如果連接已存在，則避免重複連接
-  if (conn != null) {
-
+  if (conn != null && await checkConnection()) {
     return;
   }
 
   try {
+    // 確保連接池已初始化
+    await initConnectionPool();
+
     // 建立連接
     conn = await MySQLConnection.createConnection(
       host: "hidden.rsmn574.com",
@@ -36,10 +94,10 @@ Future<void> connMysql() async {
       userName: "onlyForApiRead",
       password: "@Nick0319Lucas0221",
       databaseName: "Bus",
-    ) ;
+    );
     await conn!.connect();
 
-    // 启动閒置計時器
+    // 重置閒置計時器
     _startIdleTimer();
   } catch (e) {
     print("Connection error: $e");
@@ -52,190 +110,251 @@ Future<void> connMysql() async {
       textColor: Colors.white,
       fontSize: 16.0,
     );
-  }
-}
 
-Future<List> GetBus(String city ) async {
-
-    await connMysql(); // 連接資料庫
-
-
-  // 使用參數化查詢以避免 SQL 注入
-  String query2 =
-      "SELECT * FROM Bus.Bus_${city}_Route";
-  if(city=="all"){
-     query2 =
-        """
-        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-FROM Bus.Bus_Taipei_Route
-UNION ALL
-SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-FROM Bus.Bus_Taichung_Route;
- """;
-  }
-  List data=[];
-
-  try {
-    data.clear();
-    result =await conn?.execute(query2);
-    // List<Map<String, dynamic>> queryResults = [];
-
-    // 迭代結果並將其儲存到 list 中
-    for (final row in result.rows) {
-       //print(row.colAt(0));
-       //print(row.colByName("Zh_tw"));
-
-      // print all rows as Map<String, String>
-      data.add(row.assoc());
-
-
-
+    // 連接失敗後等待短暫時間再重試
+    await Future.delayed(Duration(seconds: 2));
+    if (conn == null) {
+      await connMysql(); // 重試連接
     }
-
-    // 打印結果，方便調試
-
-
-
-  } catch (e) {
-    print("Query error: $e");
-    Fluttertoast.showToast(
-      msg: "查詢失敗: $e",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      timeInSecForIosWeb: 1,
-      backgroundColor: Colors.black45,
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
-  } finally {
-    // print("Query completed. ${data}");
-    // 重置閒置計時器
-    _startIdleTimer();
-    return data;
-
   }
-
-}
-Future<List<Map<String, dynamic>>> GetBusInfo({  required int routeid,required String city,} ) async {
-   sum = 0;
-  List<Map<String, dynamic>> routeName = [];
-
-     routeID = routeid;
-
-
-
-
-
-  await connMysql(); // 連接資料庫
-
-  var query = 'SELECT Stops FROM Bus.Bus_${city}_Route_Stop WHERE Routeid = $routeid';
-  jsonData = await mysqlSelect(query);
-
-  for (var i in jsonData) {
-
-    sum=(sum!+json.decode(i['Stops']).length) as int?;
-    routeName.add(i);
-  }
-
-  // 重置閒置計時器
-  _startIdleTimer();
-
-  return routeName;
 }
 
-Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
-  List<Map<String, dynamic>> jsonArray = [];
+// 改進的查詢執行函數，包含重試邏輯
+Future<IResultSet> executeQueryWithRetry(String query,
+    {int maxRetries = 3}) async {
+  int attempts = 0;
 
-  try {
-    // 确保数据库连接
-    await connMysql(); // 連接資料庫
-
-    // 执行查询
-    var result = await conn!.execute(query);
-
-    // 处理查询结果
-    for (final row in result.rows) {
-      jsonArray.add(row.assoc());
-    }
-  } catch (e) {
-    print("Error during mysqlSelect: $e");
-
-    // 如果连接关闭，则尝试重连并重试查询
-    if (e.toString().contains("connection closed")) {
-      print("Reconnecting to database...");
-      await connMysql();
-      try {
-        var result = await conn!.execute(query);
-        for (final row in result.rows) {
-          jsonArray.add(row.assoc());
-        }
-      } catch (innerError) {
-        print("Failed to execute query after reconnection: $innerError");
+  while (attempts < maxRetries) {
+    try {
+      // 確保連接存在且有效
+      if (conn == null || !(await checkConnection())) {
+        await disconnect(); // 確保舊連接已關閉
+        await connMysql(); // 重新連接
       }
+
+      // 執行查詢
+      var result = await conn!.execute(query);
+      _startIdleTimer(); // 重置閒置計時器
+      return result;
+    } catch (e) {
+      attempts++;
+      print("Query error (attempt $attempts): $e");
+
+      // 如果是連接問題，嘗試重新連接
+      if (e.toString().contains("connection closed")) {
+        await disconnect();
+        await connMysql();
+      }
+
+      // 如果已達到最大重試次數，拋出異常
+      if (attempts >= maxRetries) {
+        throw Exception(
+            "Failed to execute query after $maxRetries attempts: $e");
+      }
+
+      // 等待短暫時間後重試
+      await Future.delayed(Duration(milliseconds: 500 * attempts));
     }
-  } finally {
-    // 重置闲置计时器
-    _startIdleTimer();
   }
 
-  return jsonArray;
+  throw Exception("Unexpected error in executeQueryWithRetry");
 }
 
 Future<bool> checkConnection() async {
   try {
     // 執行一個輕量級查詢來驗證連線
     await conn?.execute('SELECT 1');
-
+    return true; // 連線正常
   } catch (e) {
-    print("Database connection lost, reconnecting...");
-     await connMysql();  // 重新連線
-    return false;  // 連線失敗
+    print("Database connection check failed: $e");
+    return false; // 連線失敗
   }
-  return true;  // 連線正常
 }
 
+// 改進的 mysqlSelect 函數
+Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
+  List<Map<String, dynamic>> jsonArray = [];
 
-getInfo(data){
- if(data=='sum'){
-   return sum;
- }else if(data=='routeInfo'){
-   return jsonData;
- }else if(data=='routeID'){
-   return routeID;
- }
+  try {
+    // 使用改進的查詢執行函數
+    var result = await executeQueryWithRetry(query);
+
+    // 處理查詢結果
+    for (final row in result.rows) {
+      jsonArray.add(row.assoc());
+    }
+  } catch (e) {
+    print("Error during mysqlSelect: $e");
+    Fluttertoast.showToast(
+      msg: "查詢失敗，請稍後再試",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
+  }
+
+  return jsonArray;
 }
 
-Future<List<Map<String, dynamic>>> GetBusStopInfo(String stopName ,String city,) async {
+/// 關閉連接
+Future<void> disconnect() async {
+  _idleTimer?.cancel(); // 取消計時器
 
+  if (conn != null) {
+    try {
+      await conn!.close();
+    } catch (e) {
+      print('Error closing connection: $e');
+    } finally {
+      conn = null;
+    }
+  }
+}
+
+// 啟動閒置計時器
+void _startIdleTimer() {
+  // 如果已有計時器，則取消
+  _idleTimer?.cancel();
+
+  // 設置計時器，每30秒沒有操作時斷開連接
+  _idleTimer = Timer(Duration(seconds: idleTimeout), () {
+    disconnect();
+  });
+}
+
+Future<List> GetBus(String city) async {
+  List data = [];
+
+  try {
+    // 構建查詢
+    String query2 = "SELECT * FROM Bus.Bus_${city}_Route";
+    if (city == "all") {
+      query2 = """
+        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+FROM Bus.Bus_Taipei_Route
+UNION ALL
+SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+FROM Bus.Bus_Taichung_Route;
+ """;
+    }
+
+    data.clear();
+    // 使用改進的查詢執行函數
+    var result = await executeQueryWithRetry(query2);
+
+    // 迭代結果並將其儲存到 list 中
+    for (final row in result.rows) {
+      data.add(row.assoc());
+    }
+  } catch (e) {
+    print("GetBus error: $e");
+    Fluttertoast.showToast(
+      msg: "獲取公車資料失敗，請稍後再試",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
+  }
+
+  return data;
+}
+
+Future<List<Map<String, dynamic>>> GetBusInfo({
+  required int routeid,
+  required String city,
+}) async {
+  sum = 0;
+  List<Map<String, dynamic>> routeName = [];
+
+  routeID = routeid;
+
+  try {
+    await connMysql(); // 連接資料庫
+
+    // 使用參數化查詢防止SQL注入
+    var query =
+        'SELECT Stops FROM Bus.Bus_${city}_Route_Stop WHERE Routeid = $routeid';
+
+    // 使用改進的查詢執行函數，包含重試邏輯
+    var result = await executeQueryWithRetry(query);
+
+    // 清空舊數據
+    jsonData = [];
+
+    // 處理查詢結果
+    for (final row in result.rows) {
+      var rowData = row.assoc();
+      jsonData.add(rowData);
+
+      // 安全解析JSON並計算總和
+      try {
+        var stopsData = json.decode(rowData['Stops']!);
+        sum = (sum ?? 0) + (stopsData is List ? stopsData.length : 0);
+      } catch (e) {
+        print("JSON解析錯誤: $e");
+      }
+
+      routeName.add(rowData);
+    }
+
+    // 重置閒置計時器
+    _startIdleTimer();
+
+    return routeName;
+  } catch (e) {
+    print("GetBusInfo error: $e");
+    Fluttertoast.showToast(
+      msg: "獲取公車路線資料失敗，請稍後再試",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
+    return [];
+  }
+}
+
+getInfo(data) {
+  if (data == 'sum') {
+    return sum;
+  } else if (data == 'routeInfo') {
+    return jsonData;
+  } else if (data == 'routeID') {
+    return routeID;
+  }
+}
+
+Future<List<Map<String, dynamic>>> GetBusStopInfo(
+  String stopName,
+  String city,
+) async {
   await connMysql(); // 連接資料庫
 
+  var query =
+      "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
+  List<Map<String, dynamic>> stopInfo = [];
 
-  var query =  "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
-  List<Map<String, dynamic>> stopInfo=[];
+  jsonData = await mysqlSelect(query);
+  List<dynamic> data = await mysqlSelect(query);
 
-  jsonData=await mysqlSelect(query);
-  List<dynamic>data=await mysqlSelect(query);
-
-  for(var i in data){
+  for (var i in data) {
     stopInfo.add(i);
   }
 
   // 重置閒置計時器
   _startIdleTimer();
 
-
-  return stopInfo ;
+  return stopInfo;
 }
 
-
 Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
-
-
   // var url="https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON";
   try {
     await connMysql(); // 連接資料庫
     final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = tokenResponse.body;
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -251,7 +370,7 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
     }
 
     // 解析 JSON 数据
-   final jsonData = await jsonDecode(response.body);
+    final jsonData = await jsonDecode(response.body);
 
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
@@ -260,39 +379,22 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
     return jsonData;
   } catch (e) {
     print('Error occurred: $e');
-  }finally{
-
+  } finally {
     // 重置閒置計時器
     _startIdleTimer();
   }
 }
-/// 關閉連接
-Future<void> disconnect() async {
 
-  if (conn != null) {
-    await conn!.close();
-    conn = null;
-    // print('MySQL 連接已關閉');
-  }
-}// 啟動閒置計時器
-void _startIdleTimer() {
-  // 如果已有計時器，則取消
-  _idleTimer?.cancel();
-
-  // 設置計時器，每30秒沒有操作時斷開連接
-  _idleTimer = Timer(Duration(seconds: idleTimeout), () {
-    disconnect();
-  });
-}
-
-Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) async {
+Future<List<Map<String, dynamic>>> fetchTrainStationFacility(
+    String stationID) async {
   try {
     // 连接数据库
     await connMysql();
 
-
-    String queryFacility = "SELECT * FROM Train.Station_StationFacility WHERE StationID = $stationID;";
-    String queryStation = "SELECT * FROM Train.Train_Station WHERE StationID = $stationID;";
+    String queryFacility =
+        "SELECT * FROM Train.Station_StationFacility WHERE StationID = $stationID;";
+    String queryStation =
+        "SELECT * FROM Train.Train_Station WHERE StationID = $stationID;";
     // 查询设施数据
     List<Map<String, dynamic>> facilityData = await mysqlSelect(queryFacility);
 
@@ -300,8 +402,6 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
     List<Map<String, dynamic>> stationData = await mysqlSelect(queryStation);
 
     // 打印调试信息
-
-
 
     // 合并两个查询结果
     List<Map<String, dynamic>> combinedData = [
@@ -322,23 +422,58 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
     return [];
   }
 }
-Future<List<Map<String, dynamic>>> getNearTrainStation() async {
+
+Future<List> getNearTrainStation(double latitude,double longitude) async {
   try {
     // 连接数据库
     await connMysql();
 
-
-    String queryNearStation = "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
+    String queryNearStation =
+        "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
 
     // 查询设施数据
-    List<Map<String, dynamic>> nearStation = await mysqlSelect(queryNearStation);
-
-
+    List<Map<String, dynamic>> nearStation =
+        await mysqlSelect(queryNearStation);
 
     // 重置闲置计时器
     _startIdleTimer();
     print("nearStation $nearStation");
-    return nearStation;
+
+    List<Map<String, dynamic>> findNearestStations(
+        List<Map<String, dynamic>> stations,
+        double userLat,
+        double userLon, {
+          int count = 5,
+        }) {
+      List<Map<String, dynamic>> sortedStations = List.from(stations)
+        ..sort((a, b) {
+          double distanceA = calculateEuclideanDistance(
+            userLat,
+            userLon,
+            json.decode(a["StationPosition"])["PositionLat"],
+            json.decode(a["StationPosition"])["PositionLon"],
+          );
+          double distanceB = calculateEuclideanDistance(
+            userLat,
+            userLon,
+            json.decode(b["StationPosition"])["PositionLat"],
+            json.decode(b["StationPosition"])["PositionLon"],
+          );
+          return distanceA.compareTo(distanceB);
+        });
+
+      return sortedStations.take(count).toList();
+    }
+
+// 呼叫函式
+    List<dynamic> nearestStations = findNearestStations(
+      nearStation,
+      latitude,
+      longitude,
+      count: 5,
+    );
+
+    return nearestStations;
   } catch (e, stackTrace) {
     // 捕获并记录错误
     print("Error fetching station facilities: $e");
@@ -347,4 +482,52 @@ Future<List<Map<String, dynamic>>> getNearTrainStation() async {
     // 返回空列表以防止程序崩溃
     return [];
   }
+}
+
+Future<String> getToken() async {
+  String token = "";
+  try {
+    // 取得當前時間戳記（ISO 8601 格式）
+    String timestamp = DateTime.now().toUtc().toIso8601String();
+    String? apiKey = await SecureStorage.getApiKey();
+
+    if (apiKey == null) {
+      // 如果 apiKey 為 null，則儲存新的 apiKey
+      await SecureStorage.saveApiKey(
+          'PgRQhSulFPbmnccET+l8ykLC1s2k8IAvpAb3NFFwIXA=');
+      print('API Key 儲存成功');
+    } else {
+      print('已存在 API Key: $apiKey');
+    }
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json', // 指定 JSON 格式
+      'Authorization': 'Bearer ${await SecureStorage.getApiKey()}', // API 金鑰
+      'X-Timestamp': timestamp, // 加入時間戳記
+    };
+
+    final response = await http
+        .post(
+          tokens,
+          headers: headers,
+        )
+        .timeout(Duration(seconds: 30)); // 設置請求超時（例如 30 秒）
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      // 確保 API 回應的 key 是 "token"
+      if (data.containsKey('token')) {
+        token = data['token'];
+        print('Token 儲存成功: $token');
+      } else {
+        throw Exception('回應中未包含 token');
+      }
+    } else {
+      throw Exception('取得 Token 失敗，HTTP 狀態碼: ${response.statusCode}');
+    }
+  } catch (e) {
+    print('請求 Token 時發生錯誤: $e');
+    // 可以根據需要返回錯誤訊息
+  }
+  return token;
 }

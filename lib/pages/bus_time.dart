@@ -361,7 +361,7 @@ void _scrollToIndex(int index) {
           String plateNumb = a[0]["PlateNumb"] ?? "";
           isTimerOn.value=true;
           return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"],
-            "StopPosition":a[0]["StopPosition"].toString(),
+            "StopPosition":a[0]["StopPosition"]?? "" .toString(),
             "StopUID":a[0]['StopUID']};
         } else {
           int result = (a[0]["EstimateTime"] / 60).floor();
@@ -373,7 +373,7 @@ void _scrollToIndex(int index) {
               "color": result < 3 ? "2" : "min",
               "PlateNumb": result < 3 ?  a[0]["PlateNumb"] : "",
               "Estimates": a[0]["Estimates"],
-              "StopPosition":a[0]["StopPosition"],
+              "StopPosition":a[0]["StopPosition"]?? "",
               "StopUID":a[0]['StopUID']
             };
 
@@ -398,7 +398,7 @@ void _scrollToIndex(int index) {
                 "color": '2',
                 "PlateNumb": a[0]["PlateNumb"],
                 "Estimates": a[0]["Estimates"],
-                "StopPosition":a[0]["StopPosition"],
+                "StopPosition":a[0]["StopPosition"]?? "",
                 "StopUID":a[0]['StopUID']
               };
 
@@ -417,7 +417,7 @@ void _scrollToIndex(int index) {
               "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
             "PlateNumb": "",
               "Estimates": a[0]["Estimates"],
-              "StopPosition":a[0]["StopPosition"],
+              "StopPosition":a[0]["StopPosition"]?? "",
               "StopUID":a[0]['StopUID']
             };
           }
@@ -430,19 +430,19 @@ void _scrollToIndex(int index) {
             "PlateNumb": "",
             "Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
 
-            "StopPosition":a[0]["StopPosition"],
+            "StopPosition":a[0]["StopPosition"]?? "",
             "StopUID":a[0]['StopUID']
           };
         }
       } else {
         return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
-          "StopPosition":a[0]["StopPosition"],"StopUID":a[0]['StopUID']
+          "StopPosition":a[0]["StopPosition"]?? "","StopUID":a[0]['StopUID']
 };
       }
     }
-    return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
+    return {"time": "error", "color": "班次結束", "PlateNumb": "","Estimates":  "",
 
-      "StopPosition":a[0]["StopPosition"],"StopUID":a[0]['StopUID']
+      "StopPosition": "", "StopUID":''
 };
   }
 // 返回每个隐藏的菜单项

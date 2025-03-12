@@ -38,6 +38,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
   void _loadNotifications() async {
     final List<Map<String, dynamic>> maps = await _database!.query('notifications');
+    print(maps);
     setState(() {
       notifications.clear(); // 清空旧通知
       notifications.addAll(maps.map((map) => {
@@ -64,7 +65,6 @@ class _NotificationPageState extends State<NotificationPage> {
   void _setupFirebaseMessaging() async {
     NotificationSettings settings = await _firebaseMessaging.requestPermission();
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('用户授權接收通知');
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (message.notification != null) {
@@ -90,7 +90,7 @@ class _NotificationPageState extends State<NotificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('通知'),
+        title: const Text('通知'),
       ),
       body: notifications.isEmpty
           ? const Center(child: Text('當前沒有通知'))

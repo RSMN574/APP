@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:com.rsmn574.app/pages/EV_station.dart';
+import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -12,6 +14,7 @@ import 'Const/regularConst.dart';
 import 'HSR.dart';
 import 'commute.dart';
 import 'database/SQL/schedule.dart';
+import 'database/SQL/sqlite.dart';
 import 'firebase/FCM.dart';
 import 'firebase/firebase_options.dart';
 import 'widget/geolocator.dart';
@@ -27,7 +30,8 @@ import 'bus.dart';
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized(); // 確保初始化順序正確
+  await SecureStorage.initializeApiKey(); // 確保首次啟動時儲存 API 金鑰
   try {
     // 初始化 Firebase
     await Firebase.initializeApp(
@@ -130,6 +134,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
               "home": (BuildContext context) => _buildAnimatedPage(Home()),
               "bike": (BuildContext context) => _buildAnimatedPage(Bike()),
               "HSR": (BuildContext context) => _buildAnimatedPage(HSR()),
+              "EVStation": (BuildContext context) => _buildAnimatedPage(EVStation()),
             },
             theme: appTheme,
             themeMode: ThemeMode.system,

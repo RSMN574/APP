@@ -33,7 +33,7 @@ class _TransportGridState extends State<TransportGrid> {
     {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'Intercity Bus'},
     // 添加更多項目測試分頁
     {'icon': 'assets/icons/ship.svg', 'text': '停車資訊', 'route': 'parking'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': '充電樁', 'route': 'EVCharging'},
+    {'icon': 'assets/icons/ev-station.svg', 'text': '充電樁', 'route': 'EVStation'},
     {'icon': 'assets/icons/motorcycle.svg', 'text': '路況', 'route': 'traffic'},
     {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
     {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},

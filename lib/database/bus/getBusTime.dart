@@ -13,11 +13,11 @@ Future<dynamic> fetchBusTime(routeName, city) async {
   int? top = await getInfo('sum');
   var url =
       "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
-
+  final token =await  getToken();
+  print(token);
   try {
     await connMysql();
-    final tokenResponse = await http.get(tokenUri);
-    final token = tokenResponse.body;
+
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -57,9 +57,7 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination,
   }
   final String url =
       'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=$transit&transfer_time=5%2C60&depart=$time&first_mile_mode=${option["TravelMode"]}&first_mile_time=10&last_mile_mode=${option["TravelMode"]}&last_mile_time=10';
-  print(url);
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
+  final token =await  getToken();
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -87,7 +85,7 @@ Future<List<Station>> getNearStation(String location) async {
   final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
+  final token =await  getToken();
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -132,7 +130,7 @@ Future<List<Map<String, dynamic>>?> getHistoryData(
     throw HttpException(
         'Failed to get token! status: ${tokenResponse.statusCode}');
   }
-  final token = tokenResponse.body; // 你可能需要解析 token
+  final token =await  getToken();
   final response = await http.get(
     Uri.parse(url),
     headers: {

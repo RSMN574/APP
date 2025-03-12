@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -16,6 +19,29 @@ Future<void> initializeNotifications() async {
   InitializationSettings(android: initializationSettingsAndroid);
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+}
+StreamSubscription<RemoteMessage>? _onMessageSubscription;
+
+void setupForegroundMessageHandler() {
+  // 先取消已有的监听器，避免重复触发
+  _onMessageSubscription?.cancel();
+
+  print("前台消息处理已启动");
+  _onMessageSubscription = FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    if (message.notification != null) {
+      final notification = {
+        'title': message.notification!.title ?? '無標題',
+        'description': message.notification!.body ?? '無内容',
+        'time': DateTime.now().toString(),
+      };
+
+      // 保存到数据库
+      DatabaseHelper().insertNotification(notification);
+
+      // 只显示一次通知
+      showFlutterNotification(message);
+    }
+  });
 }
 
 // 显示通知
@@ -58,27 +84,6 @@ Future<void> requestPermission() async {
   }
 }
 
-// 处理前台消息
-void setupForegroundMessageHandler() {
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    if (message.notification != null) {
-      final notification = {
-        'title': message.notification!.title ?? '无标题',
-        'description': message.notification!.body ?? '无内容',
-        'time': DateTime.now().toString(),
-      };
-
-      // 保存到数据库
-      DatabaseHelper().insertNotification(notification); // 确保使用实例访问
-
-      // print('Message Title: ${message.notification!.title}');
-      // print('Message Body: ${message.notification!.body}');
-
-      // 手动显示通知
-      showFlutterNotification(message);
-    }
-  });
-}
 
 // 初始化 Firebase Messaging 并获取设备令牌
 Future<void> setupFirebaseMessaging() async {
@@ -107,8 +112,42 @@ Future<void> setupFirebaseMessaging() async {
   });
 }
 
-// 处理后台消息的顶级函数
+@pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Handling a background message: ${message.messageId}');
-  // 你可以在这里处理后台消息的逻辑，比如存储消息到本地数据库或显示通知
+
+  // 初始化 Firebase (必須在後台處理程序中初始化)
+  await Firebase.initializeApp();
+
+  // 初始化本地通知插件
+  final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings =
+  InitializationSettings(android: initializationSettingsAndroid);
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // 發送本地通知
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+  AndroidNotificationDetails(
+    'high_importance_channel',
+    'High Importance Notifications',
+    channelDescription: 'This channel is used for important notifications.',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+  NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  await flutterLocalNotificationsPlugin.show(
+    0, // 通知 ID
+    message.notification?.title, // 通知标题
+    message.notification?.body, // 通知内容
+    platformChannelSpecifics,
+  );
+  
+  // 注意：後台通知無法直接保存到數據庫
+  // 可以考慮使用 shared_preferences 或其他輕量級存儲方式
+  // 或者在應用程序下次啟動時從 FCM 獲取未讀通知
 }

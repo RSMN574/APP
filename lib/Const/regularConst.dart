@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 final   tokenUri=Uri.parse('http://hidden.rsmn574.com:3920/token') ;
+final   tokens=Uri.parse('https://rsmn574.com/tokens') ;
 const Color primary=Color.fromRGBO(0,125,254, 1);
 const Color secondary=Color.fromRGBO(38,38,38, 1);
 const Color blue=Color.fromRGBO(36,137,243, 1);

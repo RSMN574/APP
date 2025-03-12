@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -42,11 +44,6 @@ class _MapScreenState extends State<map> {
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
 
-  // 台湾的地理边界
-  static final LatLngBounds _taiwanBounds = LatLngBounds(
-    southwest: const LatLng(20.0, 116.0), // 台湾西南边界
-    northeast: const LatLng(26.0, 123.0), // 台湾东北边界
-  );
 
   Future<void> _getCurrentLocation() async {
     try {
@@ -79,6 +76,9 @@ class _MapScreenState extends State<map> {
     return Consumer<MarkerProvider>(
       builder: (context, markerProvider, child) {
         return GoogleMap(
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
+          },
           initialCameraPosition: CameraPosition(
             target: _currentPosition,
             zoom: 15,
