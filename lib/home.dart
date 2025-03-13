@@ -304,6 +304,7 @@ class _HomeState extends State<Home>
         Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
         setState(() {
           _showMainContent = true; // 主內容
+          _selectedStation = null;
         });
       });
     }

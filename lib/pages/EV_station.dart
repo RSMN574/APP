@@ -1,10 +1,10 @@
-import 'dart:convert';
 
 import 'package:com.rsmn574.app/database/getData.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../Const/regularClass.dart';
+import '../database/EV_station/EV_station.dart';
 import '../utils/convert.dart';
 
 class EVStation extends StatefulWidget {
@@ -141,41 +141,12 @@ class _EVStationState extends State<EVStation> {
   }
 
 
-// 新增的搜尋指示器
-  Widget _buildSearchIndicator() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: _isSearching
-          ? IconButton(
-        icon: Icon(Icons.close, color: Colors.red[400]),
-        onPressed: () {
-          _searchController.clear();
-          FocusScope.of(context).unfocus();
-        },
-      )
-          : Icon(Icons.electric_bolt, color: Colors.amber[600]),
-    );
-  }
+
 
 // 分離的列表建構方法
   Widget _buildStationList(List<dynamic> nearestStations) {
     if (nearestStations.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              '找不到符合的充電站',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-      );
+      return _buildEmptySearchState();
     }
 
     return ListView.builder(
@@ -183,137 +154,169 @@ class _EVStationState extends State<EVStation> {
       itemCount: nearestStations.length,
       itemBuilder: (context, index) {
         final station = nearestStations[index];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            // onTap: () => _onStationSelected(station),
-            splashColor: Colors.green.withOpacity(0.1),
-            highlightColor: Colors.transparent,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.green[50]!,
-                    Colors.blueGrey[50]!,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.green.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(2, 4),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(20),
-                leading: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(2, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.charging_station_rounded,
-                      color: Colors.green[800], size: 28),
-                ),
-                title: AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    color: Colors.green[900],
-                    letterSpacing: 0.8,
-                  ),
-                  child: Text(
-                    station['StationNameZh_tw'] ?? '未命名充電站',
-                  ),
-                ),
-                subtitle: _buildModernInfoSection(station),
-                trailing: RotationTransition(
-                  turns: _searchFocusNode.hasFocus
-                      ? const AlwaysStoppedAnimation(0.25)
-                      : const AlwaysStoppedAnimation(0.0),
-                  child: Icon(Icons.arrow_forward_ios_rounded,
-                      color: Colors.green[400], size: 20),
-                ),
-              ),
+        return _buildModernStationCard(station);
+      },
+    );
+  }
+// 空狀態顯示
+  Widget _buildEmptySearchState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+         Icon(Icons.hourglass_empty),
+          const SizedBox(height: 24),
+          Text(
+            '找不到符合條件的充電站',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
           ),
-        );
-      },
-    );   // ... 保持之前的列表項建構邏輯
-      }
-
-// 現代化資訊區塊建構方法
-  Widget _buildModernInfoSection(Map<String, dynamic> station) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        _buildModernInfoItem(
-          icon: Icons.pin_drop_rounded,
-          text: '${station['LocationCityRoadCity']} ${station['LocationCityRoadTown']}',
-          color: Colors.teal[700]!,
+          const SizedBox(height: 8),
+          Text(
+            '請嘗試不同的搜尋關鍵字',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+/// 現代化充電站卡片
+  Widget _buildModernStationCard(Map<String, dynamic> station) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () =>  Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StationDetailPage(station: station),
+          ),
         ),
-        _buildModernDivider(),
-        if (station['ChargingRate'] != null)
-          _buildModernInfoItem(
-            icon: Icons.bolt_rounded,
-            text: '充電: ${station['ChargingRate']}',
-            color: Colors.amber[700]!,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.green[50]!.withOpacity(0.6),
+                Colors.blueGrey[50]!.withOpacity(0.4),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green[100]!.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(2, 4),
+              ),
+            ],
           ),
-        if (station['ParkingRate'] != null)
-          _buildModernInfoItem(
-            icon: Icons.local_parking_rounded,
-            text: '停車: ${station['ParkingRate']}',
-            color: Colors.blue[700]!,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 標題列
+                Row(
+                  children: [
+                    _buildStatusIndicator(station),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStationTitle(station),
+                          const SizedBox(height: 4),
+                          _buildStationSubtitle(station),
+                        ],
+                      ),
+                    ),
+                    _buildNavigationArrow(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildModernInfoGrid(station),
+                const SizedBox(height: 12),
+                _buildActionChips(station),
+              ],
+            ),
           ),
-        if (station['PositionLat'] != null)
-          _buildModernInfoItem(
-            icon: Icons.explore_rounded,
-            text: '座標: ${station['PositionLat']}, ${station['PositionLon']}',
-            color: Colors.brown[600]!,
+        ),
+      ),
+    );
+  }
+
+// 充電站標題
+  Widget _buildStationTitle(Map<String, dynamic> station) {
+    return Row(
+      children: [
+        Icon(Icons.ev_station, size: 20, color: Colors.green[700]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            station['StationNameZh_tw'] ?? '未命名充電站',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.green[900],
+              letterSpacing: 0.5,
+            ),
           ),
-        const SizedBox(height: 12),
-        if (station['Telephone'] != null)
-          _buildActionChip(
-            icon: Icons.phone_rounded,
-            label: station['Telephone'],
-            // onTap: () => _callStation(station),
-          ),
+        ),
       ],
     );
   }
 
-  Widget _buildModernInfoItem({required IconData icon, required String text, required Color color}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+// 充電站副標題
+  Widget _buildStationSubtitle(Map<String, dynamic> station) {
+    return Row(
+      children: [
+        Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            '${station['LocationCityRoadCity']} ${station['LocationCityRoadTown']}',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  // 狀態指示器
+  Widget _buildStatusIndicator(Map<String, dynamic> station) {
+    final isAvailable = station['Available'] == 'true';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isAvailable ? Colors.green[50] : Colors.orange[50],
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[800],
-                height: 1.5,
-                fontWeight: FontWeight.w500,
-              ),
+          Icon(
+            isAvailable ? Icons.check_circle : Icons.error_outline,
+            size: 16,
+            color: isAvailable ? Colors.green[700] : Colors.orange[700],
+          ),
+          const SizedBox(width: 6),
+          Text(
+            isAvailable ? '營運中' : '暫停服務',
+            style: TextStyle(
+              color: isAvailable ? Colors.green[700] : Colors.orange[700],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -321,30 +324,624 @@ class _EVStationState extends State<EVStation> {
     );
   }
 
-  Widget _buildModernDivider() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Divider(
-        height: 1,
-        color: Colors.green[100]!.withOpacity(0.5),
-        thickness: 1,
+// 現代化資訊網格
+  Widget _buildModernInfoGrid(Map<String, dynamic> station) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildGridItem(Icons.bolt, '充電費率', station['ChargingRate']),
+            VerticalDivider(width: 1, color: Colors.grey[200]),
+            _buildGridItem(Icons.local_parking, '停車費率', station['ParkingRate']),
+            VerticalDivider(width: 1, color: Colors.grey[200]),
+            _buildGridItem(Icons.speed, '最大功率', '${station['MaxPower']} kW'),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildActionChip({required IconData icon, required String label, VoidCallback? onTap}) {
+  Widget _buildGridItem(IconData icon, String title, String value) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: ActionChip(
-        avatar: Icon(icon, size: 18, color: Colors.green[800]),
-        label: Text(label),
-        backgroundColor: Colors.green[50],
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        onPressed: onTap,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: Colors.green[700]),
+          const SizedBox(height: 8),
+          Text(value ?? '-',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
       ),
     );
   }
+
+// 操作按鈕區
+  Widget _buildActionChips(Map<String, dynamic> station) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        if (station['Telephone'] != null)
+          _buildActionButton(
+            icon: Icons.phone_in_talk_rounded,
+            label: '聯絡',
+            color: Colors.blue[100]!,
+            onTap: () => print(station) //_callStation(station),
+          ),
+        _buildActionButton(
+          icon: Icons.directions_rounded,
+          label: '導航',
+          color: Colors.green[100]!,
+          onTap: () =>  print(station) //_navigateToStation(station),
+        ),
+        _buildActionButton(
+          icon: Icons.share_rounded,
+          label: '分享',
+          color: Colors.purple[100]!,
+          onTap: () =>  print(station) //_shareStation(station),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: Colors.grey[700]),
+            const SizedBox(width: 6),
+            Text(label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// 導航箭頭
+  Widget _buildNavigationArrow() {
+    return RotationTransition(
+      turns: _searchFocusNode.hasFocus
+          ? const AlwaysStoppedAnimation(0.25)
+          : const AlwaysStoppedAnimation(0.0),
+      child: Icon(
+        Icons.arrow_forward_ios_rounded,
+        color: Colors.green[400],
+        size: 20,
+      ),
+    );
+  }
+}
+class StationDetailPage extends StatefulWidget {
+  final Map<String, dynamic> station;
+
+  const StationDetailPage({Key? key, required this.station}) : super(key: key);
+
+  @override
+  _StationDetailPageState createState() => _StationDetailPageState();
+}
+
+class _StationDetailPageState extends State<StationDetailPage> {
+  // 新增合併資料結構
+  List<MergedConnector> _mergedConnectors = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchChargingPoints().then((points) {
+      _mergeConnectors(points);
+    });
+  }
+
+  // 合併充電接口核心邏輯
+  Future<void> _mergeConnectors(List<Map<String, dynamic>> points) async {
+    final connectorMap = <String, MergedConnector>{};
+
+    for (final point in points) {
+      for (int i = 0; i < 3; i++) {
+        final type = point['Connectors${i}Type'];
+        if (type == null) continue;
+
+        // 建立合併識別碼
+        final key = [
+          type,
+          point['Connectors${i}Type'],
+          point['ChargingRate'],
+          point['Floor'],
+        ].join('|');
+
+        final connector = MergedConnector(
+          type: type,
+          power: point['Connectors${i}Type'],
+          rate: point['ChargingRate'],
+          floor: point['Floor'],
+          quantity: int.tryParse(point['Connectors${i}Quantity'] ?? '0') ?? 0,
+          points: [point['ChargingPointID']],
+        );
+
+        if (connectorMap.containsKey(key)) {
+          connectorMap[key] = connectorMap[key]!.mergeWith(connector);
+        } else {
+          connectorMap[key] = connector;
+        }
+      }
+    }
+    List<dynamic> connectorLiveStatus=(await fetchConnectorLiveStatus(widget.station["StationID"]));
+
+
+// 合併邏輯
+    final mergedList = connectorLiveStatus.map(( status) {
+      final connectorType = status["ConnectorType"];
+
+      // 檢查 connectorType 是否有效
+      if (connectorType == null || !connectorMap.containsKey(connectorType)) {
+        return status; // 返回原始狀態，不進行合併
+      }
+
+      // 從 connectorMap 中獲取匹配的項目
+      final matchedItem = connectorMap[connectorType];
+
+      // 合併狀態和匹配的項目
+      return {
+        ...status,
+        'matchedItem': matchedItem,
+      };
+    }).toList();
+
+// 輸出結果
+    print(mergedList);
+
+    setState(() {
+      _mergedConnectors = connectorMap.values.toList();
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchChargingPoints() async {
+    try {
+      List<Map<String, dynamic>> chargingPoint = await mysqlSelect(
+        "SELECT * FROM EV_Charging.EV_ChargingPoint WHERE StationID='${widget.station["StationID"]}';",
+      ) ??
+          [];
+
+
+      return chargingPoint;
+    } catch (e) {
+      print("錯誤: $e");
+      return [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.station['StationNameZh_tw'] ?? '充電站詳情',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
+        backgroundColor: Colors.green[800],
+        elevation: 0,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green[800]!, Colors.green[700]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.green[50]!.withOpacity(0.3),
+              Colors.green[50]!.withOpacity(0.1),
+              Colors.white,
+            ],
+          ),
+        ),
+        child: _mergedConnectors.isEmpty
+            ? _buildEmptyState()
+            : CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildModernConnectorCard(_mergedConnectors[index]),
+                  childCount: _mergedConnectors.length,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernConnectorCard(MergedConnector connector) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Material(
+          color: Colors.white,
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            leading: _buildConnectorBadge(connector.type),
+            title: _buildConnectorTitle(connector),
+            subtitle: _buildConnectorSubtitle(connector),
+            trailing: _buildStatusIndicator(connector.points),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                child: Column(
+                  children: [
+                    _buildInfoGrid(connector),
+                    const SizedBox(height: 16),
+                    _buildDistributionList(connector.points),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectorBadge(String type) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _getColor(type).withOpacity(0.2),
+            _getColor(type).withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Icon(
+          _getIcon(type),
+          size: 28,
+          color: _getColor(type),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConnectorTitle(MergedConnector connector) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _getTypeName(connector.type),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey[900],
+            letterSpacing: 0.5,
+          ),
+        ),
+        Text(
+          '${connector.power}kW • ${connector.rate}',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildConnectorSubtitle(MergedConnector connector) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          _buildInfoChip(
+            icon: Icons.layers,
+            label: connector.floor,
+            color: Colors.blue[100]!,
+          ),
+          _buildInfoChip(
+            icon: Icons.electrical_services,
+            label: '${connector.quantity} 個接口',
+            color: Colors.green[100]!,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicator(List<String> points) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green[50],
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            '${points.length} 個分佈點',
+            style: TextStyle(
+              color: Colors.green[800],
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Icon(
+          Icons.expand_more,
+          color: Colors.grey[500],
+          size: 20,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoGrid(MergedConnector connector) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildGridItem('最大功率', '${connector.power}kW', Icons.bolt),
+            const VerticalDivider(thickness: 1, width: 32),
+            _buildGridItem('充電費率', connector.rate, Icons.attach_money),
+            const VerticalDivider(thickness: 1, width: 32),
+            _buildGridItem('可用接口', '${connector.quantity}', Icons.power),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridItem(String title, String value, IconData icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 20, color: Colors.green[700]),
+        const SizedBox(height: 8),
+        Text(value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDistributionList(List<String> points) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('分佈位置',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...points.map((point) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.location_pin, size: 18, color: Colors.red[400]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('充電點 ID: $point',
+                    style: TextStyle(color: Colors.grey[700])),
+              ),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[700]),
+          const SizedBox(width: 6),
+          Text(label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[800],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ==== 新增類型名稱映射方法 ====
+  String _getTypeName(String type) {
+    const typeNames = {
+      '1': 'Type 1 (J1772)',
+      '2': 'Type 2 (Mennekes)',
+      '3': 'CHAdeMO',
+      '4': 'CCS1',
+      '5': 'CCS2',
+      '6': 'Tesla Supercharger',
+    };
+    return typeNames[type] ?? '未知類型';
+  }
+
+  // ==== 新增圖示映射方法 ====
+  IconData _getIcon(String type) {
+    const icons = {
+      '1': Icons.ev_station, // Type 1
+      '2': Icons.bolt,       // Type 2
+      '3': Icons.flash_on,   // CHAdeMO
+      '4': Icons.electric_car, // CCS1
+      '5': Icons.electric_car, // CCS2
+      '6': Icons.battery_charging_full, // Tesla
+    };
+    return icons[type] ?? Icons.power;
+  }
+
+  // ==== 新增顏色映射方法 ====
+  Color _getColor(String type) {
+    const colors = {
+      '1': Colors.blue,      // Type 1
+      '2': Colors.green,     // Type 2
+      '3': Colors.orange,    // CHAdeMO
+      '4': Colors.purple,    // CCS1
+      '5': Colors.indigo,    // CCS2
+      '6': Colors.red,       // Tesla
+    };
+    return colors[type] ?? Colors.grey;
+  }
+
+  // ==== 空狀態顯示 ====
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.ev_station, size: 64, color: Colors.grey[400]),
+          SizedBox(height: 16),
+          Text(
+            '沒有可用的充電接口',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// **通用資訊行**
+
+
+}
+// ==== 資料模型 ====
+class MergedConnector {
+  final String type;
+  final String power;
+  final String rate;
+  final String floor;
+  final int quantity;
+  final List<String> points;
+
+  MergedConnector({
+    required this.type,
+    required this.power,
+    required this.rate,
+    required this.floor,
+    required this.quantity,
+    required this.points,
+  });
+
+  MergedConnector mergeWith(MergedConnector other) {
+    return MergedConnector(
+      type: type,
+      power: power,
+      rate: rate,
+      floor: floor,
+      quantity: quantity + other.quantity,
+      points: [...points, ...other.points],
+    );
+  }
+  get _type => type;
+
 }
