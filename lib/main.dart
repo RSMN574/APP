@@ -15,6 +15,7 @@ import 'HSR.dart';
 import 'commute.dart';
 import 'database/SQL/schedule.dart';
 import 'database/SQL/sqlite.dart';
+import 'database/getData.dart';
 import 'firebase/FCM.dart';
 import 'firebase/firebase_options.dart';
 import 'widget/geolocator.dart';
@@ -108,6 +109,12 @@ class _NavigationBarAppState extends State<NavigationBarApp>
   void dispose() {
     _animationController.dispose(); // 釋放資源
     super.dispose();
+  }
+  // 監聽應用的生命周期變化
+  void didChangeLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      connMysql();
+    }
   }
 
   @override

@@ -105,7 +105,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
             locationProvider.latitude,locationProvider.longitude
       );
-      print(stations);
+
       if (mounted) {
 
         _loadMarkers(

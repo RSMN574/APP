@@ -4,7 +4,7 @@ import 'package:com.rsmn574.app/widget/bubble.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
-import 'package:flutter_svg/svg.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -57,7 +57,6 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   late final  TabController _tabController;
   final Set<Marker> markers = {};
   Timer? _timer;
-  late Future<Map<String, dynamic>> _dataFuture;
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
   ValueNotifier<bool> isTimerOn = ValueNotifier(false);
   @override
@@ -187,105 +186,99 @@ void _scrollToIndex(int index) {
   }
 
   // 加载数据，包括站名和 NextBusTime
-  Future<void> _loadData() async { //stop data
-    List<Map<String, dynamic>> data =await GetBusInfo( city: widget.city, routeid: (widget.routeID), );
+  Future<void> _loadData() async {
+    // 1. 取得基本資料
+    final List<Map<String, dynamic>> data = await GetBusInfo(
+      city: widget.city,
+      routeid: widget.routeID,
+    );
+    final routeInfo = [
+      widget.routeName,
+      widget.departureStopName,
+      widget.destinationStopName
+    ];
 
-    final routeInfo = [widget.routeName, widget.departureStopName, widget.destinationStopName];
+    // 2. 取得班次時間資料
     final busTimeData = await fetchBusTime(widget.routeName, widget.city);
 
-    try {
-     stopNamesWithTime1  = await fetchStopNamesWithTime(
-          1,
-          busTimeData.where((stop) => stop['Direction'] == 1).toList(),data
-      );
-
-    }catch (e) {
-
-      stopNamesWithTime1  = await fetchStopNamesWithTime(
-          0,
-          busTimeData.where((stop) => stop['Direction'] == 0).toList(),data
-      );
-
-      // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
+    // 3. 共用函數：根據指定方向優先取得站點與時間資料，失敗時使用備用方向
+    Future<List<dynamic>> fetchStopNamesWithFallback(
+        int primaryDirection, int fallbackDirection) async {
+      try {
+        return await fetchStopNamesWithTime(
+          primaryDirection,
+          busTimeData
+              .where((stop) => stop['Direction'] == primaryDirection)
+              .toList(),
+          data,
+        );
+      } catch (e) {
+        return await fetchStopNamesWithTime(
+          fallbackDirection,
+          busTimeData
+              .where((stop) => stop['Direction'] == fallbackDirection)
+              .toList(),
+          data,
+        );
+      }
     }
 
+    // 4. 取得兩個方向的站點資料
+    stopNamesWithTime1 = await fetchStopNamesWithFallback(1, 0);
+    stopNamesWithTime2 = await fetchStopNamesWithFallback(0, 1);
 
-    try {
-    // final stopNamesWithTime1 = await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList());
-     stopNamesWithTime2 = await fetchStopNamesWithTime(0, busTimeData.where((stop) => stop['Direction'] == 0).toList(),data);
+    // 5. 根據 widget.mark.direction 與 highlight 資料，滾動到指定站點
+    if (widget.mark?.highlight != null && widget.mark!.highlight!.isNotEmpty) {
+      // 使用第一個 highlight 作為目標站名
+      final String highlightStation = widget.mark!.highlight?.first;
+      int highlightedStationIndex = -1;
 
-
-    }catch (e) {
-
-    stopNamesWithTime2=await fetchStopNamesWithTime(1, busTimeData.where((stop) => stop['Direction'] == 1).toList(),data);
-
-
-    // 可以根据需要进一步处理异常，例如返回默认值或显示错误提示
-    }
-    // 根據 mark.direction 設定 _tabController 的 index
-    if (widget.mark?.direction == 0) {
-      List<dynamic> stopNames = stopNamesWithTime2.map((item) => item["stopName"] as String).toList();
-      // 找出 highlight 的站
-      List? highlightedStations = widget.mark?.highlight;
-
-
-      // 找到第一個 isHighlighted 為 true 的站
-      int highlightedStation =  stopNames.indexOf(highlightedStations?[0]);
-
-      // 如果找到 highlightedStation，取得其 stopName
-      if (highlightedStation != -1) {
-
-
-
-        _scrollToIndex(highlightedStation);
-      } else {
-        print("No highlighted station found.");
+      if (widget.mark?.direction == 0) {
+        final List<String> stopNames = stopNamesWithTime2
+            .map((item) => item["stopName"] as String)
+            .toList();
+        highlightedStationIndex = stopNames.indexOf(highlightStation);
+      } else if (widget.mark?.direction == 1) {
+        final List<String> stopNames = stopNamesWithTime1
+            .map((item) => item["stopName"] as String)
+            .toList();
+        highlightedStationIndex = stopNames.indexOf(highlightStation);
       }
 
-
-    } else if (widget.mark?.direction == 1) {
-      List<dynamic> stopNames = stopNamesWithTime1.map((item) => item["stopName"] as String).toList();
-      // 找出 highlight 的站
-      List? highlightedStations = widget.mark?.highlight;
-
-
-      // 找到第一個 isHighlighted 為 true 的站
-      int highlightedStation =  stopNames.indexOf(highlightedStations?[0]);
-
-      // 如果找到 highlightedStation，取得其 stopName
-      if (highlightedStation != -1) {
-
-
-
-        _scrollToIndex(highlightedStation);
+      if (highlightedStationIndex != -1) {
+        _scrollToIndex(highlightedStationIndex);
       } else {
-        print("No highlighted station found.");
+        if (kDebugMode) {
+          print("No highlighted station found.");
+        }
       }
-
-
-
     }
-    // 提取所有 stopName
 
+    // 6. 啟動定時更新 (若已啟用)
+    if (isTimerOn.value) {
+      _startAutoReload();
+      if (kDebugMode) {
+        print("定時更新啟動");
+      }
+    } else {
+      if (kDebugMode) {
+        print("定時更新不啟動");
+      }
+    }
 
-    if(isTimerOn.value){
-     _startAutoReload();
-     if (kDebugMode) {
-       print("定時更新啟動");
-     }
-   }else{
-     if (kDebugMode) {
-       print("定時更新不啟動");
-     }
-   }
-     _loadMarkers("stopNamesWithTime1");
-    // 更新数据时只更新 ValueNotifier
+    // 7. 更新地圖標記
+    _loadMarkers("stopNamesWithTime1");
+if(stopNamesWithTime1==null){
+
+}
+    // 8. 更新 ValueNotifier 中的資料
     _dataNotifier.value = {
       'routeInfo': routeInfo,
       'stopNamesWithTime1': stopNamesWithTime1,
       'stopNamesWithTime2': stopNamesWithTime2,
     };
   }
+
 
   // 获取每个站的站名和 NextBusTime
   Future<List<Map<String, dynamic>>> fetchStopNamesWithTime(int tabIndex, List<dynamic> busTimeData, List<Map<String, dynamic>> data) async {
@@ -665,12 +658,12 @@ void _scrollToIndex(int index) {
                           child: TabBarView(
                             controller: _tabController,
                             children: [
-
-                              _buildTabContent(stopNamesWithTime1), // Tab for direction 0
-                              _buildTabContent(stopNamesWithTime2), // Tab for direction 1
+                              if (stopNamesWithTime1.isEmpty==false) _buildTabContent(stopNamesWithTime1),
+                              if (stopNamesWithTime2.isEmpty==false) _buildTabContent(stopNamesWithTime2),
                             ],
                           ),
-                       ),
+
+      ),
                       if (isTimerOn.value == false)
                     Positioned(
                     bottom: 0,
@@ -774,15 +767,22 @@ void _scrollToIndex(int index) {
     ));
   }
 
-  // 构建 TabBar
   PreferredSize _buildTabBar(List routeInfo) {
+    List<Tab> tabs = [];
+print(stopNamesWithTime1);
+    if (stopNamesWithTime1.isEmpty==false) {
+      tabs.add(Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]));
+    }
+    if (stopNamesWithTime2.isEmpty==false) {
+      tabs.add(Tab(icon: const Icon(Icons.swap_horiz), text: routeInfo[2]));
+    }
+
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
       child: Container(
         color: Colors.white,
         child: TabBar(
           controller: _tabController,
-          // controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,
           unselectedLabelColor: Colors.grey,
@@ -790,10 +790,7 @@ void _scrollToIndex(int index) {
           indicatorSize: TabBarIndicatorSize.label,
           labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 16),
-          tabs: [
-            Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]),
-            Tab(icon: const Icon(Icons.swap_horiz), text: routeInfo[2]),
-          ],
+          tabs: tabs,
         ),
       ),
     );

@@ -45,6 +45,7 @@ class schedule {
           seatNumber TEXT                   -- 新增座位號碼
         )
       ''');
+
       },
 
       onUpgrade: (db, oldVersion, newVersion) async {
@@ -321,6 +322,12 @@ class schedule {
       print("更新失敗: $e");
       return 200; // 200 表示發生錯誤
     }
+  }
+  Future<void> deleteExpiredSchedules( ) async {
+    final db = await database;
+    await db.execute('''
+    DELETE FROM schedule WHERE time < datetime('now')
+  ''');
   }
 
 

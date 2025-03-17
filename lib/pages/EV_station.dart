@@ -1,4 +1,6 @@
 
+import 'dart:ui';
+
 import 'package:com.rsmn574.app/database/getData.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../Const/regularClass.dart';
 import '../database/EV_station/EV_station.dart';
 import '../utils/convert.dart';
+import '../widget/map.dart';
 
 class EVStation extends StatefulWidget {
   const EVStation({super.key});
@@ -107,7 +110,6 @@ class _EVStationState extends State<EVStation> {
   }
 
 
-
   @override
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
@@ -119,21 +121,73 @@ class _EVStationState extends State<EVStation> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '搜尋站點名稱或地址',
-                prefixIcon: const Icon(Icons.search, color: Colors.black54),
-              ),
-              onChanged: _filterStations,
-            ),
-          ),
-          Expanded(
-            child: _buildStationList(_filteredStations),
+          // 地圖元件放在背景中
+          map(),
+          // DraggableScrollableSheet 實現可拖曳、調整高度的面板
+          DraggableScrollableSheet(
+            initialChildSize: 0.3, // 初始高度佔螢幕比例
+            minChildSize: 0.3, // 最小高度
+            maxChildSize: 0.8, // 最大高度
+            builder: (BuildContext context, ScrollController scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 10,
+                      color: Colors.black26,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // 拖曳指示條，帶有模糊效果
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                          child: Container(
+                            width: 40,
+                            height: 5,
+                            color: Colors.grey.withOpacity(0.2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // 搜尋輸入框
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0, vertical: 12.0),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: '搜尋站點名稱或地址',
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        onChanged: _filterStations,
+                      ),
+                    ),
+                    // 站點列表，使用 DraggableScrollableSheet 提供的 scrollController
+                    Expanded(
+                      child: _buildStationList(
+                        _filteredStations,
+                        scrollController,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -142,14 +196,14 @@ class _EVStationState extends State<EVStation> {
 
 
 
-
 // 分離的列表建構方法
-  Widget _buildStationList(List<dynamic> nearestStations) {
+  Widget _buildStationList(List<dynamic> nearestStations ,scrollController) {
     if (nearestStations.isEmpty) {
       return _buildEmptySearchState();
     }
 
     return ListView.builder(
+      controller: scrollController, // 確保使用提供的controller
       physics: const BouncingScrollPhysics(),
       itemCount: nearestStations.length,
       itemBuilder: (context, index) {
@@ -227,8 +281,8 @@ class _EVStationState extends State<EVStation> {
                 // 標題列
                 Row(
                   children: [
-                    _buildStatusIndicator(station),
-                    const SizedBox(width: 16),
+                    // _buildStatusIndicator(station),
+                    // const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,6 +380,7 @@ class _EVStationState extends State<EVStation> {
 
 // 現代化資訊網格
   Widget _buildModernInfoGrid(Map<String, dynamic> station) {
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -346,8 +401,8 @@ class _EVStationState extends State<EVStation> {
             _buildGridItem(Icons.bolt, '充電費率', station['ChargingRate']),
             VerticalDivider(width: 1, color: Colors.grey[200]),
             _buildGridItem(Icons.local_parking, '停車費率', station['ParkingRate']),
-            VerticalDivider(width: 1, color: Colors.grey[200]),
-            _buildGridItem(Icons.speed, '最大功率', '${station['MaxPower']} kW'),
+            // VerticalDivider(width: 1, color: Colors.grey[200]),
+            // _buildGridItem(Icons.speed, '最大功率', '${station['MaxPower']} kW'),
           ],
         ),
       ),
@@ -355,25 +410,48 @@ class _EVStationState extends State<EVStation> {
   }
 
   Widget _buildGridItem(IconData icon, String title, String value) {
+    // 限制文字最大長度
+    final maxLength = 10; // 最大顯示字數
+    final truncatedValue = value.length > maxLength
+        ? '${value.substring(0, maxLength)}...' // 超出部分顯示省略號
+        : value ?? '-';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 圖示
           Icon(icon, size: 20, color: Colors.green[700]),
           const SizedBox(height: 8),
-          Text(value ?? '-',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
+          // 值（充電費率）
+          Tooltip(
+            message: value, // 懸停時顯示完整內容
+            child: Text(
+              truncatedValue,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[800],
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis, // 文字過長時顯示省略號
+              maxLines: 1, // 限制為一行
             ),
           ),
           const SizedBox(height: 4),
-          Text(title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+          // 標題
+          Tooltip(
+            message: title, // 懸停時顯示完整內容
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis, // 文字過長時顯示省略號
+              maxLines: 1, // 限制為一行
             ),
           ),
         ],
@@ -479,7 +557,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
   // 合併充電接口核心邏輯
   Future<void> _mergeConnectors(List<Map<String, dynamic>> points) async {
-    final connectorMap = <String, MergedConnector>{};
+    var connectorMap = <String, MergedConnector>{};
 
     for (final point in points) {
       for (int i = 0; i < 3; i++) {
@@ -513,31 +591,58 @@ class _StationDetailPageState extends State<StationDetailPage> {
     List<dynamic> connectorLiveStatus=(await fetchConnectorLiveStatus(widget.station["StationID"]));
 
 
-// 合併邏輯
-    final mergedList = connectorLiveStatus.map(( status) {
+    final mergedConnectors = connectorLiveStatus.map((status) {
       final connectorType = status["ConnectorType"];
 
-      // 檢查 connectorType 是否有效
-      if (connectorType == null || !connectorMap.containsKey(connectorType)) {
-        return status; // 返回原始狀態，不進行合併
-      }
+      // 若 `connectorType` 無效，則跳過
+      // if (connectorType == null || !connectorMap.containsKey(connectorType)) {
+      //   return null;
+      // }
+      print("connectorMap Keys: ${connectorMap.keys.toList()}");
+      print("Looking for ConnectorType: '$connectorType'");
 
-      // 從 connectorMap 中獲取匹配的項目
-      final matchedItem = connectorMap[connectorType];
+// 使用模糊匹配查找
+      final matchedItem = connectorMap.entries.firstWhere(
+            (entry) => entry.key.startsWith("$connectorType|"),
+          orElse: () => MapEntry("", MergedConnector(
+            type: "",
+            power: "",
+            rate: "",
+            floor: "",
+            quantity: 0,
+            points: [],
+            ConnectorStatus: (status["ConnectorStatus"] ?? 0).toString(),
+          )), // 确保返回一个 MergedConnector
+      ).value;
 
-      // 合併狀態和匹配的項目
-      return {
-        ...status,
-        'matchedItem': matchedItem,
-      };
-    }).toList();
+      print("Matched Connector: $matchedItem");
+
+
+      return MergedConnector(
+        type: matchedItem.type, // 使用 matchedItem 的 type
+        power: matchedItem.power, // 可能需要转换格式
+        rate: matchedItem.rate,
+        floor: matchedItem.floor,
+        quantity: matchedItem.quantity,
+        points: matchedItem.points,
+        ConnectorStatus: (status["ConnectorStatus"])  .toString(),
+
+        // 來自 `connectorLiveStatus`
+      );
+    }).whereType<MergedConnector>().toList(); // 過濾掉 null 項
 
 // 輸出結果
-    print(mergedList);
+    print(mergedConnectors);
+if(mergedConnectors.isNotEmpty){
+  setState(() {
+    _mergedConnectors = mergedConnectors;
+  });
+}else{
+  setState(() {
+    _mergedConnectors = connectorMap.values.toList();
+  });
+}
 
-    setState(() {
-      _mergedConnectors = connectorMap.values.toList();
-    });
   }
 
   Future<List<Map<String, dynamic>>> _fetchChargingPoints() async {
@@ -678,18 +783,60 @@ class _StationDetailPageState extends State<StationDetailPage> {
   }
 
   Widget _buildConnectorTitle(MergedConnector connector) {
+
+    final status = _getConnectorStatus(int.tryParse(connector.ConnectorStatus.toString()) ?? 0);
+    final statusText = status['text'];
+    final statusColor = status['color'];
+    final statusIcon = status['icon'];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _getTypeName(connector.type),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.grey[900],
-            letterSpacing: 0.5,
+        Row(
+          children: [
+            // 狀態圖示
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Icon(
+                statusIcon,
+                key: ValueKey(statusIcon), // 確保動畫觸發
+                size: 18,
+                color: statusColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            // 標題文字
+            Text(
+              _getTypeName(connector.type),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey[900],
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        // 狀態標籤
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            statusText,
+            style: TextStyle(
+              fontSize: 12,
+              color: statusColor,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
+        const SizedBox(height: 8),
+        // 功率和費率
         Text(
           '${connector.power}kW • ${connector.rate}',
           style: TextStyle(
@@ -700,6 +847,36 @@ class _StationDetailPageState extends State<StationDetailPage> {
         ),
       ],
     );
+  }
+
+// 獲取狀態資訊
+  Map<String, dynamic> _getConnectorStatus(int status) {
+    switch (status) {
+      case 1:
+        return {
+          'text': '可用',
+          'color': Colors.green[700]!,
+          'icon': Icons.check_circle,
+        };
+      case 2:
+        return {
+          'text': '已滿',
+          'color': Colors.orange[700]!,
+          'icon': Icons.build,
+        };
+      case 3:
+        return {
+          'text': '維護中',
+          'color': Colors.blue[700]!,
+          'icon': Icons.bolt,
+        };
+      default:
+        return {
+          'text': '未知',
+          'color': Colors.grey[700]!,
+          'icon': Icons.error_outline,
+        };
+    }
   }
 
   Widget _buildConnectorSubtitle(MergedConnector connector) {
@@ -923,6 +1100,7 @@ class MergedConnector {
   final int quantity;
   final List<String> points;
 
+final String? ConnectorStatus;
   MergedConnector({
     required this.type,
     required this.power,
@@ -930,6 +1108,8 @@ class MergedConnector {
     required this.floor,
     required this.quantity,
     required this.points,
+
+    this.ConnectorStatus
   });
 
   MergedConnector mergeWith(MergedConnector other) {
@@ -940,6 +1120,9 @@ class MergedConnector {
       floor: floor,
       quantity: quantity + other.quantity,
       points: [...points, ...other.points],
+
+        ConnectorStatus:ConnectorStatus
+
     );
   }
   get _type => type;

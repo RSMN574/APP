@@ -498,7 +498,16 @@ class _HomeState extends State<Home>
                     ),
                     const SizedBox(height: 16.0),
                     if (_intelligentSearch.isNotEmpty)
-                      Padding(
+                      InkWell(
+                          onTap: () {
+                            // 跳轉到新的畫面，例如 SearchResultPage
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => SearchResultPage(query: _intelligentSearch)),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
                         child: Material(
                           elevation: 2,
@@ -552,7 +561,7 @@ class _HomeState extends State<Home>
                             ),
                           ),
                         ),
-                      ),
+                      )),
                     if (_placePredictions.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -1220,24 +1229,18 @@ class _HomeState extends State<Home>
       caseSensitive: false,
     );
 
-    final RegExp railRegex = RegExp(
-      r'^\d{3,4}$', // 3-4位數：火車或高鐵
+    final RegExp transportRegex = RegExp(
+      r'^\d{3,4}$|^(?:\d{1,3}|[紅藍綠棕橘]\d{1,2}|[A-Za-z]\d{1,2})$',
     );
 
-    final RegExp busRegex = RegExp(
-      r'^(?:\d{1,3}|[紅藍綠棕橘]\d{1,2}|[A-Za-z]\d{1,2})$', // 公車
-    );
 
     // 優先檢查航班、高鐵、公車
     if (flightRegex.hasMatch(input)) {
       // 處理航班號
       _intelligentSearch = "搜尋航班號嗎";
-    } else if (railRegex.hasMatch(input)) {
+    } else if (transportRegex.hasMatch(input)) {
       // 處理高鐵或火車
-      _intelligentSearch = "搜尋高鐵或火車嗎";
-    } else if (busRegex.hasMatch(input)) {
-      // 處理公車號
-      _intelligentSearch = "搜尋公車嗎";
+      _intelligentSearch = "搜尋車次或公車路線嗎";
     } else {
       // 如果都不匹配，則進行地點預測
       List<dynamic> predictions =
@@ -2480,6 +2483,21 @@ class _HomeState extends State<Home>
           ],
         ),
       ],
+    );
+  }
+}
+class SearchResultPage extends StatelessWidget {
+  final String query;
+
+  const SearchResultPage({super.key, required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("搜尋結果")),
+      body: Center(
+        child: Text("搜尋內容：$query"),
+      ),
     );
   }
 }

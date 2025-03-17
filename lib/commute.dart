@@ -25,11 +25,13 @@ class _CommuteState extends State<Commute> {
   @override
   void initState() {
     super.initState();
+
     fetchScheduleData(); // 初始化时获取数据
   }
 
   Future<void> fetchScheduleData() async {
     final db = schedule();
+    await db.deleteExpiredSchedules( );
     final data = await db.getSchedule(
       "schedule",
     );
@@ -498,9 +500,9 @@ class _CommuteState extends State<Commute> {
               color: Colors.blue.withOpacity(0.1), // 背景色
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
+            child: const Text(
               '類型: 公車',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.blue, // 文字顏色
@@ -577,6 +579,144 @@ class _CommuteState extends State<Commute> {
           ),
         ],
       ),
+    );
+  }
+  void _editSeatNumber(BuildContext context, TextEditingController controller, Map<String, dynamic> data,String type) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF5F9FF)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.1),
+                  blurRadius: 15,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "輸入座位號",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: busBlue,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: controller,
+                  maxLength: 10,
+                  decoration: InputDecoration(
+                    hintText: "請輸入座位號",
+                    counterText: "",
+                    filled: true,
+                    fillColor: Colors.grey.withOpacity(0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          foregroundColor: Colors.black87,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          '取消',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          String newSeatNumber = controller.text.trim();
+                          if (newSeatNumber.isNotEmpty) {
+                            // 更新座位號碼
+                            final schedule _schedule = schedule();
+                            final output = await _schedule.updateSchedule(
+                                id: data["id"],
+                                type: type,
+                                other: {"seatNumber": newSeatNumber});
+                            // 根据 updateSchedule 方法返回的结果进行处理
+                            if (output == -1) {
+                              // 如果已经存在相同的记录，提示用户
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('更新失敗。')));
+                            } else if (output == 100) {
+                              // 成功添加行程，提示用户
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('更新成功！')));
+                            } else {
+                              // 添加行程失败，提示用户
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('更新失敗。')));
+                            }
+                          }
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: busBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: const Text(
+                          '確認',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -675,7 +815,7 @@ class _CommuteState extends State<Commute> {
             const Icon(Icons.train, color: Colors.orangeAccent, size: 20),
             const SizedBox(width: 8),
             Text(
-              '鐵路班次'.toUpperCase(),
+              '台鐵'.toUpperCase(),
               style: const TextStyle(
                   color: Colors.orangeAccent,
                   fontSize: 12,
@@ -739,7 +879,131 @@ class _CommuteState extends State<Commute> {
                   color: Colors.grey[400], size: 16),
               const SizedBox(width: 4),
               Text(
-                '時間：${DateFormat('yyyy-MM-dd').format(DateTime.parse(data["time"]))}',
+                DateFormat('yyyy/MM/dd ')
+                    .format(DateTime.parse(data["time"])),
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 16),
+              if ( convertTrainType(json.decode(data["other"])["trainType"]) != "區間車" &&  convertTrainType(json.decode(data["other"])["trainType"]) != "區間快")
+              // 座位號顯示（可點擊修改）
+              GestureDetector(
+                onTap: () {
+                  _editSeatNumber(context, seatController, data,"train");
+                },
+                child: Row(
+                  children: [
+                    Icon(Icons.event_seat, color: Colors.grey[400], size: 16),
+                    const SizedBox(width: 4),
+
+                      Text(
+                        seatNumber.isEmpty ? '點擊輸入座位號' : '座位號: $seatNumber',
+                        style: TextStyle(
+                          color: seatNumber.isEmpty ? Colors.redAccent : Colors.grey[400],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                )
+
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+// 高鐵專用卡片組件
+  Widget _buildHSRCard(Map<String, dynamic> data) {
+    String seatNumber = data['seatNumber'] ?? ''; // 取得座位號碼
+    TextEditingController seatController =
+    TextEditingController(text: seatNumber);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 高鐵標題列
+        Row(
+          children: [
+            Icon(Icons.directions_railway_filled,
+                color: Colors.grey[800], size: 24),
+            const SizedBox(width: 10),
+            Text(
+              '台灣高鐵'.toUpperCase(),
+              style: TextStyle(
+                color: Colors.grey[800],
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // 主要資訊區
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 左側：班次資訊
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['Route'] ?? '--',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontFamily: 'RobotoCondensed',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    convertTrainType(json.decode(data["other"])["trainType"]),
+                    style: TextStyle(
+                      color: Colors.blueGrey[600],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 右側：站點時間
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Column(
+                  children: [
+                    _buildHSRStation('出發', data['UserStartingStopName']),
+                    const SizedBox(height: 12),
+                    Divider(height: 1, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    _buildHSRStation('抵達', data['UserDestinationStopName']),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // 底部資訊（時間 + 座位號）
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Row(
+            children: [
+              Icon(Icons.access_time_filled_sharp,
+                  color: Colors.grey[400], size: 16),
+              const SizedBox(width: 4),
+              Text(
+                DateFormat('yyyy/MM/dd ')
+                    .format(DateTime.parse(data["time"])),
                 style: TextStyle(
                   color: Colors.grey[400],
                   fontSize: 12,
@@ -750,7 +1014,7 @@ class _CommuteState extends State<Commute> {
               // 座位號顯示（可點擊修改）
               GestureDetector(
                 onTap: () {
-                  _editSeatNumber(context, seatController, data);
+                  _editSeatNumber(context, seatController, data,"HSR");
                 },
                 child: Row(
                   children: [
@@ -776,143 +1040,31 @@ class _CommuteState extends State<Commute> {
     );
   }
 
-  void _editSeatNumber(BuildContext context, TextEditingController controller,
-      Map<String, dynamic> data) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+// 高鐵站點組件
+  Widget _buildHSRStation(String type, String stationName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          type,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
           ),
-          elevation: 8,
-          backgroundColor: Colors.white,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, Color(0xFFF5F9FF)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.1),
-                  blurRadius: 15,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  "輸入座位號",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: busBlue,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: controller,
-                  maxLength: 10,
-                  decoration: InputDecoration(
-                    hintText: "請輸入座位號",
-                    counterText: "",
-                    filled: true,
-                    fillColor: Colors.grey.withOpacity(0.1),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          '取消',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          String newSeatNumber = controller.text.trim();
-                          if (newSeatNumber.isNotEmpty) {
-                            // 更新座位號碼
-                            final schedule _schedule = schedule();
-                            final output = await _schedule.updateSchedule(
-                                id: data["id"],
-                                type: 'train',
-                                other: {"seatNumber": newSeatNumber});
-                            // 根据 updateSchedule 方法返回的结果进行处理
-                            if (output == -1) {
-                              // 如果已经存在相同的记录，提示用户
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新失敗。')));
-                            } else if (output == 100) {
-                              // 成功添加行程，提示用户
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新成功！')));
-                            } else {
-                              // 添加行程失败，提示用户
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新失敗。')));
-                            }
-                          }
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: busBlue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: const Text(
-                          '確認',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          stationName,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
-        );
-      },
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        )
+      ],
     );
   }
 
@@ -1076,146 +1228,4 @@ class CustomBottomNavigationBar extends StatelessWidget {
   }
 }
 
-// 高鐵專用卡片組件
-Widget _buildHSRCard(Map<String, dynamic> data) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // 高鐵標題列
-      Row(
-        children: [
-          Icon(Icons.directions_railway_filled,
-              color: Colors.grey[800], size: 24),
-          const SizedBox(width: 10),
-          Text(
-            '台灣高鐵'.toUpperCase(),
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 16),
 
-      // 主要資訊區
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 左側：班次資訊
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data['Route'] ?? '--',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                    fontFamily: 'RobotoCondensed',
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  convertTrainType(json.decode(data["other"])["trainType"]),
-                  style: TextStyle(
-                    color: Colors.blueGrey[600],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 右側：站點時間
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Column(
-                children: [
-                  _buildHSRStation('出發', data['UserStartingStopName']),
-                  const SizedBox(height: 12),
-                  Divider(height: 1, color: Colors.grey[300]),
-                  const SizedBox(height: 12),
-                  _buildHSRStation('抵達', data['UserDestinationStopName']),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-
-      // 時間與城市資訊
-      Padding(
-        padding: const EdgeInsets.only(top: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.pin_drop_outlined,
-                    color: Colors.blueGrey[600], size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '城市：${data['city']}',
-                  style: TextStyle(
-                    color: Colors.blueGrey[600],
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Icon(Icons.access_time, color: Colors.blueGrey[600], size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  DateFormat('yyyy/MM/dd HH:mm')
-                      .format(DateTime.parse(data["time"])),
-                  style: TextStyle(
-                    color: Colors.blueGrey[800],
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      )
-    ],
-  );
-}
-
-// 高鐵站點組件
-Widget _buildHSRStation(String type, String stationName) {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        type,
-        style: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        stationName,
-        style: const TextStyle(
-          color: Colors.black87,
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      )
-    ],
-  );
-}

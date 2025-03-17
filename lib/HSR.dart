@@ -112,7 +112,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime(2024),
+      firstDate:  DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -181,7 +181,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                 fillColor: surfaceColor.withOpacity(0.6), // 半透明淺灰背景
                 prefixIcon: Container(
                   margin: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(
+                  child: const Icon(
                     Icons.directions_railway_filled, // 高鐵專用圖標
                     color: primaryColor,
                     size: 28,
@@ -197,7 +197,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.check,
                       color: primaryColor,
                       size: 16,
@@ -217,7 +217,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                   letterSpacing: 1.1,
                 ),
               ),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: textPrimary,
                 fontWeight: FontWeight.w500,
@@ -254,7 +254,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.calendar_today, // 日曆圖標
                       color: primaryColor,
                       size: 20,
@@ -262,7 +262,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                     const SizedBox(width: 12),
                     Text(
                       '選擇日期: ${dateFormat.format(selectedDate)}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         color: textPrimary,
                         fontWeight: FontWeight.w500,
@@ -363,7 +363,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate:  DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -393,7 +393,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         builder: (context, child) {
           return Theme(
             data: ThemeData.light().copyWith(
-              colorScheme: ColorScheme.light(
+              colorScheme: const ColorScheme.light(
                 primary: primaryColor,
                 onPrimary: Colors.white,
                 surface: surfaceColor,
@@ -458,12 +458,12 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               controller: widget.departureController,
               decoration: InputDecoration(
                 labelText: '出發地',
-                labelStyle: TextStyle(
+                labelStyle: const TextStyle(
                   color: textSecondary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
-                floatingLabelStyle: TextStyle(
+                floatingLabelStyle: const TextStyle(
                   color: primaryColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -483,7 +483,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 fillColor: surfaceColor.withOpacity(0.6), // 半透明淺灰背景
                 prefixIcon: Container(
                   margin: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(
+                  child: const Icon(
                     Icons.directions_railway_filled,
                     color: primaryColor,
                     size: 28,
@@ -738,7 +738,7 @@ class StationSearchPage extends StatefulWidget {
 }
 
 class _StationSearchPageState extends State<StationSearchPage> {
-  DateTime? selectedDate;
+
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
   final TextEditingController _controller = TextEditingController();
   final Map<String, List<String>> stations = {
@@ -767,12 +767,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
               readOnly: true,
               decoration: InputDecoration(
                 labelText: '選擇高鐵車站',
-                labelStyle: TextStyle(
+                labelStyle: const TextStyle(
                   color: textSecondary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
                 ),
-                floatingLabelStyle: TextStyle(
+                floatingLabelStyle: const TextStyle(
                   color: primaryColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -792,7 +792,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                 fillColor: surfaceColor.withOpacity(0.6), // 半透明淺灰背景
                 prefixIcon: Container(
                   margin: const EdgeInsets.only(left: 16, right: 12),
-                  child: Icon(
+                  child: const Icon(
                     Icons.train, // 車站專用圖標
                     color: primaryColor,
                     size: 28,
@@ -808,7 +808,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                       color: primaryColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.check,
                       color: primaryColor,
                       size: 16,
@@ -829,7 +829,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   letterSpacing: 1.1,
                 ),
               ),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: textPrimary,
                 fontWeight: FontWeight.w500,
@@ -848,9 +848,14 @@ class _StationSearchPageState extends State<StationSearchPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  if (selectedStation != null) {
-                    openURL(selectedStation?["URL"], context);
+                onPressed: () async {
+                  if (selectedStation != null && selectedStation?["URL"] != null) {
+                    final url = selectedStation!["URL"];
+                    if (!await launchUrl(Uri.parse(url))) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('無法打開網址：$url')),
+                      );
+                    }
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('請選擇車站')),
@@ -875,7 +880,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                     letterSpacing: 1.2,
                   ),
                 ),
-              ),
+              )
+
             ),
           ],
         ),
@@ -884,21 +890,30 @@ class _StationSearchPageState extends State<StationSearchPage> {
   }
 
   void openURL(String? url, BuildContext context) async {
-    if (url != null && url.isNotEmpty) {
-      final Uri uri = Uri.parse(url);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('無法打開連結')),
-        );
-      }
-    } else {
+    if (url == null || url.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('無效的 URL')),
       );
+      return;
+    }
+
+    final String encodedUrl = Uri.encodeFull(url);
+    final Uri uri = Uri.parse(encodedUrl);
+
+    bool canOpen = await canLaunchUrl(uri);
+    print("🚀 測試網址: $encodedUrl");
+    print("✅ canLaunchUrl: $canOpen");
+
+    if (canOpen) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('無法打開連結')),
+      );
     }
   }
+
+
 }
 
 class RoutePage extends StatefulWidget {
@@ -981,7 +996,6 @@ class _RoutePageState extends State<RoutePage> {
                 itemBuilder: (context, index) {
                   final section = data[index];
                   final DateFormat dateFormat = DateFormat('HH:mm');
-                  final travel_time = section["travel_time"];
                   final sections = section["sections"];
 
                   // 过滤出 type 为 "transit" 的段

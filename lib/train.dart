@@ -1,13 +1,10 @@
 import 'dart:convert';
-
 import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/SelectView.dart';
 import 'package:com.rsmn574.app/widget/train/StationDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-import 'Const/regularConst.dart';
 import 'database/getData.dart';
 import 'database/Train/getTrain.dart';
 
@@ -67,7 +64,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         ),
         backgroundColor: Colors.white,
         elevation: 2,
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: const IconThemeData(color: textPrimary),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -131,7 +128,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                               );
                             } else if (!snapshot.hasData ||
                                 (snapshot.data as List).isEmpty) {
-                              return Center(
+                              return const Center(
                                 child: Text(
                                   "沒有數據",
                                   style: TextStyle(
@@ -255,23 +252,22 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate: DateTime(2000),
+      firstDate:  DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: primaryColor,
               onPrimary: Colors.white,
               surface: surfaceColor,
               onSurface: textPrimary,
             ),
-            dialogBackgroundColor: surfaceColor,
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: primaryColor,
               ),
-            ),
+            ), dialogTheme: const DialogThemeData(backgroundColor: surfaceColor),
           ),
           child: child!,
         );
@@ -439,7 +435,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate:  DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -534,18 +530,18 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               controller: widget.departureController,
               decoration: InputDecoration(
                 labelText: '出發地',
-                labelStyle: TextStyle(color: textSecondary),
+                labelStyle: const TextStyle(color: textSecondary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: surfaceColor),
+                  borderSide: const BorderSide(color: surfaceColor),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor),
+                  borderSide: const BorderSide(color: primaryColor),
                 ),
                 filled: true,
                 fillColor: surfaceColor,
-                prefixIcon: Icon(Icons.train, color: textSecondary),
+                prefixIcon: const Icon(Icons.train, color: textSecondary),
               ),
               onTap: () async {
                 departureSelectedStation =
@@ -726,7 +722,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate:  DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
@@ -736,13 +732,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
               onPrimary: Colors.white, // 主色調上的文字
               surface: surfaceColor, // 對話框背景
               onSurface: textPrimary, // 對話框文字
-            ),
-            dialogBackgroundColor: surfaceColor, // 背景色
+            ), // 背景色
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: primaryColor, // 按鈕文字
               ),
-            ),
+            ), dialogTheme: const DialogThemeData(backgroundColor: surfaceColor),
           ),
           child: child!,
         );
@@ -1582,12 +1577,16 @@ final todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
 // 將時間字串轉換為 DateTime 物件
 final startDateTime = DateTime.parse('$todayDate $start_time');
-final endDateTime = DateTime.parse('$todayDate $end_time');
+var endDateTime = DateTime.parse('$todayDate $end_time');
 
-// 計算總旅程時間
-final duration = endDateTime.difference(startDateTime);
-final hours = duration.inHours;
-final minutes = duration.inMinutes.remainder(60);
+// 如果 endDateTime 早於 startDateTime，表示跨日，需補一天
+                  if (endDateTime.isBefore(startDateTime)) {
+                    endDateTime = endDateTime.add(const Duration(days: 1));
+                  }
+
+                  final duration = endDateTime.difference(startDateTime);
+                  final hours = duration.inHours;
+                  final minutes = duration.inMinutes.remainder(60);
 
                   // print(trainSit);
                   return Container(

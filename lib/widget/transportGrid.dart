@@ -32,11 +32,11 @@ class _TransportGridState extends State<TransportGrid> {
     {'icon': 'assets/icons/car.svg', 'text': '計程車', 'route': 'taxi'},
     {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'Intercity Bus'},
     // 添加更多項目測試分頁
-    {'icon': 'assets/icons/ship.svg', 'text': '停車資訊', 'route': 'parking'},
+    {'icon': 'assets/icons/parking.svg', 'text': '停車資訊', 'route': 'parking'},
     {'icon': 'assets/icons/ev-station.svg', 'text': '充電樁', 'route': 'EVStation'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': '路況', 'route': 'traffic'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': '路況', 'route': 'traffic'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
   ];
 
   @override
@@ -64,7 +64,7 @@ class _TransportGridState extends State<TransportGrid> {
         child: Column(
           children: [
             SizedBox(
-              height: 200,
+              height: 230, // 調高以容納 GridView 內的所有項目
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (int page) {
@@ -80,13 +80,15 @@ class _TransportGridState extends State<TransportGrid> {
                       : start + itemsPerPage;
                   final subList = transportOptions.sublist(start, end);
 
-                  return GridView.builder(
+                  return  GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true, // 確保 GridView 不會試圖填滿無限空間
                     itemCount: subList.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
                       crossAxisSpacing: crossAxisSpacing,
                       mainAxisSpacing: mainAxisSpacing,
+                      childAspectRatio: 0.7, // 調整此比例（根據實際需求微調）
                     ),
                     itemBuilder: (context, index) {
                       final option = subList[index];
@@ -99,10 +101,11 @@ class _TransportGridState extends State<TransportGrid> {
                       );
                     },
                   );
+                  ;
                 },
               ),
             ),
-            const SizedBox(height: 10),
+
             _buildPageIndicator(totalPages),
           ],
         ),
@@ -113,31 +116,58 @@ class _TransportGridState extends State<TransportGrid> {
   Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => _onTransportTap(context, route, text),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOutQuad,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.withOpacity(0.15),
+            width: 1.2,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SvgPicture.asset(
-                icon,
-                width: iconSize,
-                height: iconSize,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _onTransportTap(context, route, text),
+            splashColor: Colors.blue[100],
+            highlightColor: Colors.blue[50],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: iconSize + 14,
+                    height: iconSize + 14,
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: SvgPicture.asset(
+                        icon,
+                        width: iconSize,
+                        height: iconSize,
+                        color: Colors.blue[800],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[800],
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 7),
-              Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -149,13 +179,17 @@ class _TransportGridState extends State<TransportGrid> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         totalPages,
-            (index) => Container(
-          width: 8,
+            (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.fastOutSlowIn,
+          width: _currentPage == index ? 22 : 8,  // 當前頁面指示器加寬
           height: 8,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _currentPage == index ? Colors.blue : Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),  // 圓角實現膠囊效果
+            color: _currentPage == index
+                ? Colors.blue[700]!.withOpacity(0.9)
+                : Colors.grey[300]!,
           ),
         ),
       ),

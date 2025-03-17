@@ -1,4 +1,3 @@
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 final   tokenUri=Uri.parse('http://hidden.rsmn574.com:3920/token') ;
@@ -13,12 +12,10 @@ final Color bgColor =Color.fromRGBO(245,245,245,1);
 final Color bgColorWhite =Colors.white;
 final ThemeData appTheme = ThemeData(
  useMaterial3: true,
- fontFamily: 'MiSans-Normal', // 全局字体
  colorScheme: ColorScheme.fromSwatch(
   primarySwatch: Colors.blue,
  ).copyWith(
-  surface: Colors.white, // 组件表面颜色
-  background: Colors.white, // 背景颜色
+  surface: Colors.white, // 背景颜色
   onSurface: Colors.black, // 文字颜色
  ),
  scaffoldBackgroundColor: Colors.white,
@@ -54,7 +51,7 @@ final ThemeData appTheme = ThemeData(
    borderRadius: BorderRadius.circular(10),
    borderSide: BorderSide.none,
   ),
-  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
  ),
 
  // 文本样式
