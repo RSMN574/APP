@@ -1280,7 +1280,7 @@ class _StationPageState extends State<StationPage>
         future: fetchTrainStation(widget.stationID, (widget.datetime)),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
+            return const Center(
                 child: CircularProgressIndicator(color: primaryColor));
           } else if (snapshot.hasError) {
             return Center(
@@ -1302,6 +1302,7 @@ class _StationPageState extends State<StationPage>
               scrollToNearestTrain();
             });
             trainData = snapshot.data!;
+            print(trainData);
             return ListView.builder(
               controller: scrollController,
               itemCount: trainData.length,
@@ -1313,10 +1314,10 @@ class _StationPageState extends State<StationPage>
                     convertTrainType(train['TrainTypeName']['Zh_tw']);
                 String DepartureTime =
                     _formatTime(train['DepartureTime'] ?? '未知');
-                int delayTime = train['DelayTime'] ?? "";
+                int? delayTime = train['DelayTime'];
                 String endingStation =
                     train['EndingStationName']['Zh_tw'] ?? '未知';
-
+print(delayTime);
                 return GestureDetector(
                   onTap: () async {
                     // 這裡根據需要實作點擊後的行為
@@ -1337,7 +1338,7 @@ class _StationPageState extends State<StationPage>
                     );
                   },
                   child: Container(
-                    height: 120,
+
                     margin:
                         const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                     padding: const EdgeInsets.all(16),
@@ -1352,52 +1353,41 @@ class _StationPageState extends State<StationPage>
                         ),
                       ],
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 站名標題
-                        Row(
-                          children: [
-                            Icon(Icons.train,
-                                color: Colors.blue[600], size: 20),
-                            const SizedBox(width: 8),
-                            Text(
-                              stationName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // 主要資訊橫向排列
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
+                    child:    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildHorizontalItem('車次', trainNo),
+                          _buildDivider(),
+
+                          // 发车时间与延误组合
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildHorizontalItem('車次', trainNo),
-                              _buildDivider(),
                               _buildHorizontalItem('發車', DepartureTime),
-                              _buildDivider(),
-                              _buildHorizontalItem('車種', trainType),
-                              _buildDivider(),
-                              _buildHorizontalItem('終點', endingStation),
-                              if (delayTime > 0) ...[
-                                _buildDivider(),
-                                _buildStatusIndicator(
-                                    '延誤 $delayTime分鐘', Colors.redAccent),
-                              ]
-                              // else if (delayTime == 0)  ...[
-                              //   _buildDivider(),
-                              //   _buildStatusIndicator('準點', Colors.green),
-                              // ],
+                              if (delayTime != null )
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: _buildDelayStatus(delayTime),
+                                ),
                             ],
                           ),
-                        ),
-                      ],
+                          _buildDivider(),
+                          _buildHorizontalItem('車種', trainType),
+                          _buildDivider(),
+                          _buildHorizontalItem('終點', endingStation),
+                          if (delayTime !=null) ...[
+                            _buildDivider(),
+                            _buildStatusIndicator(
+                                '延誤 $delayTime分鐘', Colors.redAccent),
+                          ]
+                          // else if (delayTime == 0)  ...[
+                          //   _buildDivider(),
+                          //   _buildStatusIndicator('準點', Colors.green),
+                          // ],
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -1447,6 +1437,56 @@ class _StationPageState extends State<StationPage>
     );
   }
 
+// 修改後的延誤狀態元件
+  Widget _buildDelayStatus(int delay) {
+    if (delay == 0) {
+      return Row(
+        children: [
+          Icon(
+            Icons.check_circle_outline,
+            color: Colors.green[600],
+            size: 14,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '準點',
+            style: TextStyle(
+              color: Colors.green[600],
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    } else if (delay > 0) {
+      return Row(
+        children: [
+          Icon(
+            Icons.access_time,
+            color: _getDelayColor(delay),
+            size: 14,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '延誤 $delay分鐘',
+            style: TextStyle(
+              color: _getDelayColor(delay),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink(); // 處理負數等異常情況
+  }
+
+// 顏色判斷函式
+  Color _getDelayColor(int delay) {
+    if (delay <= 5) return Colors.orange;
+    if (delay <= 15) return Colors.redAccent;
+    return Colors.red[800]!;
+  }
 // 狀態指示器
   Widget _buildStatusIndicator(String text, Color color) {
     return Container(

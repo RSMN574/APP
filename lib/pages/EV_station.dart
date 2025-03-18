@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:com.rsmn574.app/database/getData.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../Const/regularClass.dart';
@@ -75,6 +76,7 @@ class _EVStationState extends State<EVStation> {
         _filteredStations = List.from(nearestStations); // 初始時顯示所有數據
         _isLoading = false;
       });
+      _loadMarkers();
     } catch (e) {
       setState(() {
         allEV = [];
@@ -82,23 +84,55 @@ class _EVStationState extends State<EVStation> {
         _isLoading = false;
       });
     }
+    _loadMarkers();
   }
+  Future<void> _loadMarkers() async {
+    // BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
+    //   ImageConfiguration(size: Size(8, 8)), // 調整大小
+    //   'assets/img/ubike_icon.png',
+    // );
+    Set<Marker> markerCache = {};
+    print('allEV');
 
+    for (var i in _filteredStations) {
+      final marker = Marker(
+        markerId: MarkerId(i["StationID"]),
+        // icon: customIcon,
+        position: LatLng(
+          double.parse(i["PositionLat"]),
+          double.parse(i["PositionLon"]),
+        ),
+        // infoWindow: InfoWindow(
+        //   title: json.decode(station["StationName"])["Zh_tw"],
+        //   snippet: "Capacity: ${station["BikesCapacity"]}",
+        // ),
+      );
+      // 获取 MarkerProvider 的实例，并调用 setMarker 方法
 
+      markerCache.add(marker);
+    }
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers(markerCache);
+  }
   void _handleSearch() {
     final query = _searchController.text.toLowerCase();
     setState(() {
       _isSearching = query.isNotEmpty;
     });
   }
+  @override
+  void dispose() {
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+    super.dispose();
+  }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+  }
 
 
   void _filterStations(String query) {
     query = query.trim().toLowerCase();
-    // if (query.isEmpty) {
-    //   setState(() => _filteredStations = List.from(allEV));
-    //   return;
-    // }
 
     final filtered = allEV?.where((station) {
       final name = station['StationNameZh_tw']?.toString().toLowerCase() ?? '';
@@ -107,6 +141,7 @@ class _EVStationState extends State<EVStation> {
     }).toList();
 
     setState(() => _filteredStations = filtered!);
+    _loadMarkers();
   }
 
 
@@ -114,7 +149,12 @@ class _EVStationState extends State<EVStation> {
   Widget build(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
 
-    return Scaffold(
+    return WillPopScope(
+        onWillPop: () async {
+          Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+          return true; // 允許頁面返回
+        },
+        child:Scaffold(
       appBar: AppBar(
         title: const Text('充電樁資訊'),
         backgroundColor: Colors.green,
@@ -191,7 +231,7 @@ class _EVStationState extends State<EVStation> {
           ),
         ],
       ),
-    );
+    ));
   }
 
 

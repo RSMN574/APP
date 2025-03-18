@@ -27,10 +27,17 @@ import 'plane.dart';
 import 'metro.dart';
 import 'train.dart';
 import 'bus.dart';
-
+import 'package:logging/logging.dart';
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
 Future<void> main() async {
+  Logger.root.level = Level.ALL; // 設定最低日誌等級
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
+  final log = Logger('MyApp');
+  log.info('應用程式啟動');
   WidgetsFlutterBinding.ensureInitialized(); // 確保初始化順序正確
   await SecureStorage.initializeApiKey(); // 確保首次啟動時儲存 API 金鑰
   try {

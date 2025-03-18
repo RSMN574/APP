@@ -234,13 +234,13 @@ void _scrollToIndex(int index) {
       int highlightedStationIndex = -1;
 
       if (widget.mark?.direction == 0) {
-        final List<String> stopNames = stopNamesWithTime2
-            .map((item) => item["stopName"] as String)
+        final List<dynamic> stopNames = stopNamesWithTime2
+            .map((item) => item["stopName"] )
             .toList();
         highlightedStationIndex = stopNames.indexOf(highlightStation);
       } else if (widget.mark?.direction == 1) {
-        final List<String> stopNames = stopNamesWithTime1
-            .map((item) => item["stopName"] as String)
+        final List<dynamic> stopNames = stopNamesWithTime1
+            .map((item) => item["stopName"])
             .toList();
         highlightedStationIndex = stopNames.indexOf(highlightStation);
       }
