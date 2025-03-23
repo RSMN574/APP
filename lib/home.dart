@@ -2175,9 +2175,10 @@ class _HomeState extends State<Home>
 
 // 行程步驟 UI（完整美化版）
   List<Widget> _buildTravelSteps() {
+
     return dataNotifier.value.map((step) {
       return Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2199,13 +2200,25 @@ class _HomeState extends State<Home>
             ),
             SizedBox(height: 12),
 
-            // 詳細行程內容
-            _buildStepContent(step),
+            // 使用 FutureBuilder 來處理異步內容
+            FutureBuilder<Widget>(
+              future: _buildStepContent(step),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator()); // 顯示載入中
+                } else if (snapshot.hasError) {
+                  return Text("載入失敗: ${snapshot.error}");
+                } else {
+                  return snapshot.data ?? SizedBox(); // 顯示內容
+                }
+              },
+            ),
 
             // 分隔線
             Divider(height: 24, thickness: 1, color: Colors.grey[300]),
           ],
-        ),
+        )
+        ,
       );
     }).toList();
   }
@@ -2216,6 +2229,7 @@ class _HomeState extends State<Home>
       case 'pedestrian':
         return "步行 ${step['travelSummary']['length']?.toStringAsFixed(0) ?? ''}公尺";
       case 'transit':
+        print(step['transport']['shortName']);
         return "${step['transport']['shortName']} · ${(step['travelSummary']['duration'] / 60).round()} 分鐘";
 
       default:
@@ -2247,8 +2261,10 @@ class _HomeState extends State<Home>
   }
 
 // 構建行程內容
-  Widget _buildStepContent(Map<String, dynamic> step) {
-    print(step);
+  Future<Widget> _buildStepContent(Map<String, dynamic> step) async {
+    if (step['type'] == 'transit') {
+      print(await getRouteStopsAndDirection(step['transport']['shortName'],step['departure']['place']['name'],step['arrival']['place']['name']));
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2263,7 +2279,8 @@ class _HomeState extends State<Home>
 
         // 交通資訊區塊
         if (step['type'] == 'transit') ...[
-          SizedBox(height: 8),
+
+           SizedBox(height: 8),
           Row(
             children: [
               Icon(Icons.directions_transit, size: 16, color: Colors.grey[600]),

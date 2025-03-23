@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../Const/regularConst.dart';
 import '../../models/Station.dart';
+import '../../utils/convert.dart';
 import '../getData.dart'; // 用于网络请求
 
 Future<dynamic> fetchBusTime(routeName, city) async {
@@ -80,13 +81,11 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination,
 }
 
 Future<List<Station>> getNearStation(String location) async {
-  const String testurl =
-      "https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24spatialFilter=nearby%2824.150784%2C%20120.646877%2C1000%29&%24format=JSON";
   final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token =await  getToken();
-  // 发起 GET 请求
+
+  final token = await getToken();
+
   final response = await http.get(
     Uri.parse(url),
     headers: {
@@ -95,30 +94,41 @@ Future<List<Station>> getNearStation(String location) async {
     },
   );
 
-  // 检查响应状态
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List rawData = json.decode(response.body);
 
+  final List rawData = json.decode(response.body);
   late final List<Station> stations;
   try {
     stations = rawData.map((e) => Station.fromJson(e)).toList();
-    // 使用 Set 去重
   } catch (e) {
-    print('JSON 解析错误: $e');
+    print('JSON 解析錯誤: $e');
+    stations = [];
   }
-  print(stations is List<Station>); // 应该返回 true
-  // 检查 List 的所有元素是否都是 Station 类型
-  bool allStations = jsonData.every((element) => element is Station);
-  print("jsonData is List<Station>: $allStations");
 
-  print('JSON fetched successfully: $stations');
+  // 解析 location
+  final decodedLocation = Uri.decodeComponent(location);
+  final parts = decodedLocation.split(',');
+  if (parts.length < 2) {
+    throw FormatException("Location 格式錯誤，必須為 'latitude,longitude'");
+  }
+  final double userLat = double.parse(parts[0].trim());
+  final double userLon = double.parse(parts[1].trim());
+
+  // 使用 `calculateApproxDistance` 來排序
+  stations.sort((a, b) {
+    double distanceA = calculateApproxDistance(
+        userLat, userLon, a.positionLat, a.positionLon);
+    double distanceB = calculateApproxDistance(
+        userLat, userLon, b.positionLat, b.positionLon);
+    return distanceA.compareTo(distanceB);
+  });
+
+  print('排序後的站牌: $stations');
   return stations;
 }
-
-Future<List<Map<String, dynamic>>?> getHistoryData(
-    String city, String routeId, int sum) async {
+Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, int sum) async {
   final DateTime yesterday = DateTime.now().subtract(const Duration(days: 2));
 
   final String url =

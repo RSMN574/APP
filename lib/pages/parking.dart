@@ -40,13 +40,13 @@ class _ParkingState extends State<Parking> {
           }) {
         List<Map<String, dynamic>> sortedStations = List.from(stations)
           ..sort((a, b) {
-            double distanceA = calculateEuclideanDistance(
+            double distanceA = calculateApproxDistance(
               userLat,
               userLon,
               double.parse( a["PositionLat"]),
               double.parse( a["PositionLon"]),
             );
-            double distanceB = calculateEuclideanDistance(
+            double distanceB = calculateApproxDistance(
               userLat,
               userLon,
               double.parse ( b["PositionLat"]),

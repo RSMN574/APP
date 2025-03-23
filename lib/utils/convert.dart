@@ -90,8 +90,11 @@ String convertTrainType(String trainType) {
   return trainType;
 }
 
-double calculateEuclideanDistance(double lat1, double lon1, double lat2, double lon2) {
-  double dLat = lat2 - lat1;
-  double dLon = lon2 - lon1;
-  return sqrt(dLat * dLat + dLon * dLon); // 直接計算歐幾里得距離
+
+/// 計算兩個座標之間的近似距離（單位：公尺）
+double calculateApproxDistance(double lat1, double lon1, double lat2, double lon2) {
+  const double meterPerDegree = 111000; // 1° 緯度 ≈ 111,000 公尺
+  double latDiff = (lat2 - lat1) * meterPerDegree;
+  double lonDiff = (lon2 - lon1) * meterPerDegree * cos(lat1 * pi / 180);
+  return sqrt(latDiff * latDiff + lonDiff * lonDiff);
 }

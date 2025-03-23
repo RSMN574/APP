@@ -51,7 +51,7 @@ class PlacesService {
       final detail = await _fetchPlaceDetail(placeId);
 
       if (detail != null) {
-        final double distance = calculateEuclideanDistance(
+        final double distance = calculateApproxDistance(
           locationProvider.latitude,
           locationProvider.longitude,
           detail['lat'],

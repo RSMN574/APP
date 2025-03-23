@@ -7,6 +7,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:synchronized/synchronized.dart';
 import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
 import '../database/MRT/getMRTInfo.dart';
@@ -40,19 +41,29 @@ class NearbyStationsPage extends StatefulWidget {
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
   final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
-
+  Future<List<Station>>? _futureNearStations;
   MarkerProvider? _markerProvider;
+  void _updateFutureNearStations() {
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    setState(() {
+      _futureNearStations = getNearStation(Uri.encodeComponent(
+          "${locationProvider.latitude},${locationProvider.longitude}"));
+    });
+  }
 
   @override
   void initState() {
-    super.initState();
 
+    super.initState();
+    final locationProvider =
+    Provider.of<LocationProvider>(context, listen: false);
+    _futureNearStations = getNearStation(Uri.encodeComponent(
+        "${locationProvider.latitude},${locationProvider.longitude}"));
     // 添加對 _tabSelect 的監聽
     _tabSelect.addListener(_handleTabSelectChange);
   }
 
-  List<Map<String, dynamic>> convertStations(
-      type,List<dynamic> stations) {
+  List<Map<String, dynamic>> convertStations(type,List<dynamic> stations) {
    if(type=="metro"){
      return stations.map((station) {
        return {
@@ -82,13 +93,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         Provider.of<LocationProvider>(context, listen: false);
 
     if (_tabSelect.value == "bus") {
-      final stations = await getNearStation(
-        Uri.encodeComponent(
-            "${locationProvider.latitude},${locationProvider.longitude}"),
-      );
-      if (mounted) {
-        _loadBusMarkers(context, stations);
-      }
+      _updateFutureNearStations();
+      // final stations = await _futureNearStations;
+      // if (mounted) {
+      //   _loadBusMarkers(context, stations);
+      // }
     } else if (_tabSelect.value == "metro") {
       final stations = await getNearMRTStation(
         Uri.encodeComponent(
@@ -132,8 +141,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   // 加载标记
-  Future<void> _loadBusMarkers(
-      BuildContext context, List<Station>? stations) async {
+  Future<void> _loadBusMarkers(BuildContext context, List<Station>? stations) async {
     if (stations == null || stations.isEmpty) {
       debugPrint('Stations data is empty.');
       return;
@@ -153,9 +161,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             snippet: station.stationID ?? 'Unknown',
           ),
           onTap: () async {
-            List<Map<String, dynamic>> data =
-                await GetBusStopInfo(station.stationNameZh, "Taichung");
-            // print(data);
+            BusStopCache  cache = BusStopCache();
+            List<Map<String, dynamic>> data =await cache.getBusStopInfo(station.stationNameZh);
+                // await getBusStopInfo(station.stationNameZh, "Taichung");
+             print(data);
             // 使用 map 來提取 StationID 並轉換為字串
             List<String> stationIDs = data
                 .map((station) {
@@ -182,8 +191,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     // Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
   }
 
-  Future<void> _loadMarkers(
-      BuildContext context, List<dynamic>? stations) async {
+  Future<void> _loadMarkers(BuildContext context, List<dynamic>? stations) async {
     if (stations == null || stations.isEmpty) {
       debugPrint('Stations data is empty.');
       return;
@@ -368,12 +376,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                       SingleChildScrollView(
                                                     controller:
                                                         scrollController,
-                                                    child: FutureBuilder<
-                                                        List<Station>>(
-                                                      future: getNearStation(
-                                                        Uri.encodeComponent(
-                                                            "${locationProvider.latitude},${locationProvider.longitude}"),
-                                                      ),
+                                                    child: FutureBuilder<List<Station>>(
+                                                      future: _futureNearStations,
                                                       builder:
                                                           (context, snapshot) {
                                                         if (snapshot.connectionState ==
@@ -997,8 +1001,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 right: 20,
                 child: GestureDetector(
                   onTap: () async {
-                    print(
-                        "${locationProvider.latitude},${locationProvider.longitude}");
+
                     // 直接調用監聽器方法來重新加載
                     _handleTabSelectChange();
                   },
@@ -1140,8 +1143,7 @@ class BusStopList extends StatefulWidget {
   }
 }
 
-class _BusStopListState extends State<BusStopList>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
+class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
   final StreamController<List<Map<String, dynamic>>> _streamController =
       StreamController();
 
@@ -1237,8 +1239,7 @@ class _BusStopListState extends State<BusStopList>
     return data;
   }
 
-  Future<Widget> _buildTabContent(
-      String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
+  Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime
         .where((item) => item["Direction"] == direction)
         .toList();
@@ -1497,20 +1498,19 @@ class _BusStopListState extends State<BusStopList>
 
   // 获取公交站信息的异步方法
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
-    List<dynamic> info = await GetBusStopInfo(widget.stop, "Taichung");
+     List<dynamic> info = await StopInfoCache().getStopInfo(widget.stop, "Taichung");
+    // List<dynamic> info = await GetBusStopInfo(widget.stop, "Taichung");
     List<Map<String, dynamic>> tempData = [];
 
-    if (info != null) {
-      for (var i in info) {
-        var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
-        for (var stop in stationInfo) {
-          var timeData = await getTimeList(stop);
-          stop["time"] = timeData["time"];
-          stop["isRed"] = timeData["isRed"];
-          stop["color"] = timeData["color"];
-        }
-        tempData.addAll(stationInfo);
+    for (var i in info) {
+      var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
+      for (var stop in stationInfo) {
+        var timeData = await getTimeList(stop);
+        stop["time"] = timeData["time"];
+        stop["isRed"] = timeData["isRed"];
+        stop["color"] = timeData["color"];
       }
+      tempData.addAll(stationInfo);
     }
 
     return tempData;
@@ -1681,7 +1681,7 @@ class _BusStopListState extends State<BusStopList>
                               elevation: 0,
                               // 移除默认阴影
                               title: Text(
-                                widget.stop,
+                                _stopName.value,
                                 style: TextStyle(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
@@ -1816,5 +1816,208 @@ class _MRTStationListState extends State<MRTStationList> {
         child: SingleChildScrollView(
           child: buildStationInfo(widget.station),
         ));
+  }
+}
+class BusStopCache {
+  // 單例實例
+  static final BusStopCache _instance = BusStopCache._internal();
+  factory BusStopCache() => _instance;
+
+  // 快取存儲結構：鍵為 "城市_站點名"，值為 CachedData<List<Map<String, dynamic>>>
+  final Map<String, CachedData<List<Map<String, dynamic>>>> _cache = {};
+  // 線程安全鎖
+  final Lock _lock = Lock();
+  // 緩存配置
+  int _maxSize = 10;
+  String _currentCity = 'Taichung';
+  // LRU 用的快取訪問記錄
+  final List<String> _accessRecords = [];
+  // 預設快取有效期
+  static const Duration _defaultExpiry = Duration(minutes: 5);
+
+  // 私有構造函數
+  BusStopCache._internal();
+
+  /// 配置緩存參數
+  void config({int? maxSize, String? city}) {
+    _lock.synchronized(() {
+      if (maxSize != null && maxSize > 0) {
+        _maxSize = maxSize;
+        _cleanup(); // 調整大小後立即清理
+      }
+      if (city != null) {
+        _currentCity = city;
+      }
+    });
+  }
+
+  /// 获取站点信息（带缓存）
+  Future<List<Map<String, dynamic>>> getBusStopInfo(String stationName) async {
+    final cacheKey = _generateKey(stationName);
+
+    return await _lock.synchronized(() async {
+      // 嘗試從快取中取得，並檢查是否過期
+      if (_cache.containsKey(cacheKey)) {
+        final cached = _cache[cacheKey]!;
+        if (cached.expiry.isAfter(DateTime.now())) {
+          _recordAccess(cacheKey);
+          print('[Cache] 命中快取 $cacheKey');
+          return cached.data;
+        } else {
+          // 過期則清除
+          _cache.remove(cacheKey);
+          _accessRecords.removeWhere((k) => k == cacheKey);
+        }
+      }
+
+      // 快取未命中時，取得遠端資料
+      print('[Cache] 請求遠程數據 $cacheKey');
+      final data = await _fetchData(stationName);
+      _updateCache(cacheKey, data);
+      return data;
+    });
+  }
+
+  // 生成快取鍵（格式：城市_站點名）
+  String _generateKey(String stationName) => '${_currentCity}_$stationName';
+
+  // 實際數據獲取方法（此處應調用實際 API，示例中用 GetBusStopInfo）
+  Future<List<Map<String, dynamic>>> _fetchData(String stationName) async {
+    return await GetBusStopInfo(stationName, _currentCity);
+  }
+
+  // 更新快取（並透過 LRU 機制管理）
+  void _updateCache(String key, List<Map<String, dynamic>> data) {
+    _lock.synchronized(() {
+      // 移除舊記錄
+      if (_cache.containsKey(key)) {
+        _accessRecords.removeWhere((k) => k == key);
+      }
+      // 添加新資料，並設定快取過期時間
+      _cache[key] = CachedData<List<Map<String, dynamic>>>(
+        data: data,
+        expiry: DateTime.now().add(_defaultExpiry),
+      );
+      _accessRecords.add(key);
+      // 清理超出上限的快取
+      _cleanup();
+    });
+  }
+
+  // 快取清理邏輯（基於 LRU，移除最久未訪問的記錄）
+  void _cleanup() {
+    while (_cache.length > _maxSize) {
+      final oldestKey = _accessRecords.first;
+      _cache.remove(oldestKey);
+      _accessRecords.removeAt(0);
+      print('[Cache] 移除最舊快取 $oldestKey');
+    }
+  }
+
+  // 記錄快取訪問（用於 LRU 管理）
+  void _recordAccess(String key) {
+    _lock.synchronized(() {
+      _accessRecords.removeWhere((k) => k == key);
+      _accessRecords.add(key);
+    });
+  }
+
+  /// 清空全部快取
+  void clear() {
+    _lock.synchronized(() {
+      _cache.clear();
+      _accessRecords.clear();
+      print('[Cache] 已清空全部快取');
+    });
+  }
+
+  /// 移除特定快取
+  void remove(String stationName) {
+    final key = _generateKey(stationName);
+    _lock.synchronized(() {
+      _cache.remove(key);
+      _accessRecords.removeWhere((k) => k == key);
+      print('[Cache] 已移除快取 $key');
+    });
+  }
+}
+
+
+// 在全局或缓存类中添加以下内容
+// 定義泛型快取類別
+class CachedData<T> {
+  final T data;
+  final DateTime expiry;
+  CachedData({required this.data, required this.expiry});
+}
+class StopInfoCache {
+  // 單例實例
+  static final StopInfoCache _instance = StopInfoCache._internal();
+  factory StopInfoCache() => _instance;
+
+  // 快取存儲結構：鍵為 "city-stop"，值為 CachedData<List<dynamic>>
+  final Map<String, CachedData<List<dynamic>>> _cache = {};
+  // LRU 訪問記錄（儲存鍵）
+  final List<String> _recentKeys = [];
+  // 最大快取筆數
+  final int _maxCacheSize = 10;
+  // 預設快取有效期
+  final Duration _cacheExpiry = Duration(minutes: 5);
+
+  StopInfoCache._internal();
+
+  /// 取得站點資料（若相同 city 與 stop 在最近 10 筆中且快取未過期則使用快取）
+  Future<List<dynamic>> getStopInfo(String stop, String city) async {
+    final key = '$city-$stop';
+
+    // 檢查快取是否存在且資料未過期
+    if (_cache.containsKey(key)) {
+      final cachedData = _cache[key]!;
+      if (cachedData.expiry.isAfter(DateTime.now())) {
+        _recordAccess(key);
+        print('[Cache] 命中快取 $key');
+        return cachedData.data;
+      } else {
+        // 資料過期則移除快取
+        _cache.remove(key);
+        _recentKeys.remove(key);
+      }
+    }
+
+    // 快取未命中或資料過期，呼叫 API 取得新資料
+    print('[Cache] 快取未命中或過期，請求遠端資料 $key');
+    List<dynamic> info = await GetBusStopInfo(stop, city);
+    _updateCache(key, info);
+    return info;
+  }
+
+  // 更新快取，並根據 LRU 機制管理大小
+  void _updateCache(String key, List<dynamic> data) {
+    if (_cache.containsKey(key)) {
+      _recentKeys.remove(key);
+    }
+    _cache[key] = CachedData<List<dynamic>>(
+      data: data,
+      expiry: DateTime.now().add(_cacheExpiry),
+    );
+    _recentKeys.add(key);
+    // 超出最大筆數則移除最舊快取
+    if (_recentKeys.length > _maxCacheSize) {
+      final oldestKey = _recentKeys.removeAt(0);
+      _cache.remove(oldestKey);
+      print('[Cache] 移除最舊快取 $oldestKey');
+    }
+  }
+
+  // 更新快取訪問記錄
+  void _recordAccess(String key) {
+    _recentKeys.remove(key);
+    _recentKeys.add(key);
+  }
+
+  /// 清空所有快取（如有需要）
+  void clear() {
+    _cache.clear();
+    _recentKeys.clear();
   }
 }

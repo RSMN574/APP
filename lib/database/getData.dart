@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../Const/regularConst.dart';
+import '../models/Station.dart';
 import '../secure_storage/secure_storage.dart';
 import 'package:mysql1/mysql1.dart';
 
@@ -120,8 +121,7 @@ Future<void> connMysql() async {
 }
 
 // 改進的查詢執行函數，包含重試邏輯
-Future<IResultSet> executeQueryWithRetry(String query,
-    {int maxRetries = 3}) async {
+Future<IResultSet> executeQueryWithRetry(String query, {int maxRetries = 3}) async {
   int attempts = 0;
 
   while (attempts < maxRetries) {
@@ -261,10 +261,7 @@ FROM Bus.Bus_Taichung_Route;
   return data;
 }
 
-Future<List<Map<String, dynamic>>> GetBusInfo({
-  required int routeid,
-  required String city,
-}) async {
+Future<List<Map<String, dynamic>>> GetBusInfo({required int routeid, required String city,}) async {
   sum = 0;
   List<Map<String, dynamic>> routeName = [];
 
@@ -326,10 +323,7 @@ getInfo(data) {
   }
 }
 
-Future<List<Map<String, dynamic>>> GetBusStopInfo(
-  String stopName,
-  String city,
-) async {
+Future<List<Map<String, dynamic>>> GetBusStopInfo(String stopName, String city,) async {
   await connMysql(); // 連接資料庫
 
   var query =
@@ -385,8 +379,7 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
   }
 }
 
-Future<List<Map<String, dynamic>>> fetchTrainStationFacility(
-    String stationID) async {
+Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) async {
   try {
     // 连接数据库
     await connMysql();
@@ -437,7 +430,6 @@ Future<List> getNearTrainStation(double latitude,double longitude) async {
 
     // 重置闲置计时器
     _startIdleTimer();
-    print("nearStation $nearStation");
 
     List<Map<String, dynamic>> findNearestStations(
         List<Map<String, dynamic>> stations,
@@ -447,13 +439,13 @@ Future<List> getNearTrainStation(double latitude,double longitude) async {
         }) {
       List<Map<String, dynamic>> sortedStations = List.from(stations)
         ..sort((a, b) {
-          double distanceA = calculateEuclideanDistance(
+          double distanceA = calculateApproxDistance(
             userLat,
             userLon,
             json.decode(a["StationPosition"])["PositionLat"],
             json.decode(a["StationPosition"])["PositionLon"],
           );
-          double distanceB = calculateEuclideanDistance(
+          double distanceB = calculateApproxDistance(
             userLat,
             userLon,
             json.decode(b["StationPosition"])["PositionLat"],
@@ -483,6 +475,70 @@ Future<List> getNearTrainStation(double latitude,double longitude) async {
     return [];
   }
 }
+// Future<List<dynamic>> getNearBusStation(double latitude, double longitude) async {
+//   try {
+//     // 連接資料庫
+//     await connMysql();
+//
+//     String queryNearStation = "SELECT * FROM Bus.Bus_Taichung_Stop";
+//     // 查詢所有站牌資料
+//     List<Map<String, dynamic>> nearStation = await mysqlSelect(queryNearStation);
+//
+//     // 重置閒置計時器（視情況使用）
+//     _startIdleTimer();
+//
+//
+//     // 過濾出 500m 範圍內的站牌，並根據距離排序
+//     List<Map<String, dynamic>> findNearbyStations(
+//         List<Map<String, dynamic>> stations,
+//         double userLat,
+//         double userLon,
+//         ) {
+//       // 過濾符合距離條件的站牌
+//       List<Map<String, dynamic>> filteredStations = stations.where((station) {
+//         // 假設 StationPosition 是以 JSON 字串儲存，解碼後取得緯度與經度
+//         final pos = json.decode(station["StationPosition"]);
+//         double stationLat = pos["PositionLat"];
+//         double stationLon = pos["PositionLon"];
+//         double distance = calculateApproxDistance(userLat, userLon, stationLat, stationLon);
+//         return distance <= 500;
+//       }).toList();
+//
+//       // 根據距離排序（最近的排在前面）
+//       filteredStations.sort((a, b) {
+//         final posA = json.decode(a["StationPosition"]);
+//         final posB = json.decode(b["StationPosition"]);
+//         double distanceA = calculateApproxDistance(
+//           userLat,
+//           userLon,
+//           posA["PositionLat"],
+//           posA["PositionLon"],
+//         );
+//         double distanceB = calculateApproxDistance(
+//           userLat,
+//           userLon,
+//           posB["PositionLat"],
+//           posB["PositionLon"],
+//         );
+//         return distanceA.compareTo(distanceB);
+//       });
+//       return filteredStations;
+//     }
+//
+//     // 呼叫函式取得 500m 範圍內的所有站牌
+//     List<dynamic> nearestStations = findNearbyStations(nearStation, latitude, longitude);
+//     print("附近 500m 內的站牌: $nearestStations");
+//
+//
+//     return nearestStations;
+//   } catch (e, stackTrace) {
+//     // 捕獲錯誤並輸出
+//     print("Error fetching station facilities: $e");
+//     print(stackTrace);
+//     // 若發生錯誤，返回空列表以防止應用程式崩潰
+//     return [];
+//   }
+// }
 
 Future<String> getToken() async {
   String token = "";
@@ -531,3 +587,175 @@ Future<String> getToken() async {
   }
   return token;
 }
+enum RouteDirection { directionOne, directionTwo, none }
+
+/// 根據兩個方向的站牌資料，及給定的起點與終點，判斷哪個方向符合「起點到終點」的順序
+Future<Map<String, dynamic>?> getRouteStopsAndDirection(
+    String routeName,
+    String originName,
+    String destinationName,
+    ) async {
+  try {
+    // 1. 獲取兩個方向的站點數據
+    print("正在獲取方向0的站點數據...");
+    Map<dynamic, dynamic> directionOneStops = await getRouteStops(routeName, '0');
+    print("方向0的站點數據: ${directionOneStops}");
+
+    print("正在獲取方向1的站點數據...");
+    Map<dynamic, dynamic> directionTwoStops = await getRouteStops(routeName, '1');
+    print("方向1的站點數據: ${directionTwoStops}");
+
+    // 2. 解析 Stops 字段的 JSON 字符串
+    print("正在解析方向0的 Stops...");
+    List<Map<String, dynamic>> dir0Stops = List<Map<String, dynamic>>.from(
+      json.decode(directionOneStops["Stops"]),
+    );
+    print("方向0的 Stops 解析結果: ${dir0Stops}");
+
+    print("正在解析方向1的 Stops...");
+    List<Map<String, dynamic>> dir1Stops = List<Map<String, dynamic>>.from(
+      json.decode(directionTwoStops["Stops"]),
+    );
+    print("方向1的 Stops 解析結果: ${dir1Stops}");
+
+    // 3. 獲取起點與終點的順序及 StopID
+    print("正在查找方向0的起點與終點...");
+    Map<String, dynamic>? seqOriginDir1 = getSequence(dir0Stops, originName);
+    Map<String, dynamic>? seqDestDir1 = getSequence(dir0Stops, destinationName);
+    print("方向0的起點: $seqOriginDir1, 終點: $seqDestDir1");
+
+    print("正在查找方向1的起點與終點...");
+    Map<String, dynamic>? seqOriginDir2 = getSequence(dir1Stops, originName);
+    Map<String, dynamic>? seqDestDir2 = getSequence(dir1Stops, destinationName);
+    print("方向1的起點: $seqOriginDir2, 終點: $seqDestDir2");
+
+    // 4. 判斷方向
+    if (seqOriginDir1 != null &&
+        seqDestDir1 != null &&
+        seqOriginDir1["sequence"] < seqDestDir1["sequence"]) {
+      print("方向0符合條件，返回結果...");
+      return {
+        "direction": 0,
+        "originID": seqOriginDir1["StopID"],
+        "destinationID": seqDestDir1["StopID"],
+      };
+    } else if (seqOriginDir2 != null &&
+        seqDestDir2 != null &&
+        seqOriginDir2["sequence"] < seqDestDir2["sequence"]) {
+      print("方向1符合條件，返回結果...");
+      return {
+        "direction": 1,
+        "originID": seqOriginDir2["StopID"],
+        "destinationID": seqDestDir2["StopID"],
+      };
+    }
+
+    print("無法判斷方向，返回 null");
+    return null; // 無法判斷方向時返回 null
+  } catch (e) {
+    print("發生錯誤: $e");
+    return null;
+  }
+}
+
+/// 從站點列表中查找站名對應的 StopID 與順序
+Map<String, dynamic>? getSequence(List<Map<String, dynamic>> stops, String stopName) {
+  for (var stop in stops) {
+    try {
+      // 1. 檢查 StopName 是否存在
+      if (stop["StopName"] == null) {
+        print("發現 StopName 為 null 的站點: ${stop}");
+        continue;
+      }
+
+      // 2. 解析 StopName（假設 StopName 是 JSON 字符串或已解析的 Map）
+      Map<String, dynamic> stopNameMap;
+      if (stop["StopName"] is String) {
+        stopNameMap = json.decode(stop["StopName"] as String);
+      } else {
+        stopNameMap = stop["StopName"] as Map<String, dynamic>;
+      }
+
+      // 3. 提取中文站名並標準化
+      String? zhTwName = stopNameMap["Zh_tw"]?.toString().trim().toLowerCase();
+      String processedInput = stopName.trim().toLowerCase();
+
+      // 4. 比對站名
+      if (zhTwName == processedInput) {
+        return {
+          "StopID": stop["StopID"]?.toString(), // 返回 StopID
+          "sequence": stop["StopSequence"] as int, // 返回順序
+        };
+      }
+    } catch (e) {
+      print("解析站點失敗: ${stop}, 錯誤: $e");
+    }
+  }
+  return null; // 找不到時返回 null
+}
+Future<Map<String, dynamic>> getRouteStops(String routeName,String direction) async {
+  // SQL 查詢，根據站牌名稱過濾
+  var query = "SELECT * FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND Direction=$direction ;";
+
+  // 從資料庫取得資料
+  List<Map<String, dynamic>> stopsList = await mysqlSelect(query); // 先等待 Future 完成
+  Map<String, dynamic> stops ={} ;
+  if (stopsList.isNotEmpty) {
+    stops = stopsList[0]; // 取第一個元素
+  } else {
+    // stopsList 為空時的處理方式
+  }
+
+
+
+  // 若只有一個方向，另一個列表會是空的
+  return stops;
+}
+// Map? getSequence(List< dynamic> stops, String stopName) {
+//
+//   for (var stop in stops) {
+//     // 跳过 StopName 为空的情况
+//     if (stop["StopName"] == null) {
+//       print("发现 StopName 为 null 的站点");
+//       continue;
+//     }
+//
+//     // 解析 StopName
+//     Map<String, dynamic> stopNameMap;
+//     try {
+//       stopNameMap = (stop["StopName"] is String)
+//           ? json.decode(stop["StopName"])
+//           : stop["StopName"] as Map<String, dynamic>;
+//     } catch (e) {
+//       print("JSON 解析失败: ${stop["StopName"]}");
+//       continue;
+//     }
+//
+//     // 提取中文站名并标准化
+//     String? zhTwName = stopNameMap["Zh_tw"]?.toString().trim().toLowerCase();
+//     String processedInput = stopName.trim().toLowerCase();
+//
+//     // 输出比對日誌
+//     // print("比對站點: 數據庫='$zhTwName' vs 輸入='$processedInput'");
+//
+//     // 比對站名
+//     if (zhTwName == processedInput) {
+//
+//       // 處理 StopSequence 類型
+//       dynamic sequence = stop["StopSequence"];
+//       if (sequence is String) {
+//         return  {
+//           "sequence":int.tryParse(sequence),
+//           "StopID":stop["StopID"]
+//         };
+//       } else {
+//         return {
+//           "sequence":sequence as int,
+//           "StopID":stop["StopID"]
+//         };
+//       }
+//     }
+//   }
+//
+//   return {};
+// }
