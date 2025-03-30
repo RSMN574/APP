@@ -879,7 +879,7 @@ void updatedCorrespondingID(){
   // 获取 _listID 中对应的值
 
       correspondingIDNotifier.value = _listID[index];
-print( currentCityNotifier.value);
+
 
   } else {
   print('City not found in the list');
@@ -890,9 +890,10 @@ print( currentCityNotifier.value);
   Widget _buildRouteListItem( route) {
 
     return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
-print(route);
+
       await GetBusInfo( routeid: route["routeID"], city: correspondingIDNotifier.value);
       List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context,) => BusTime(
@@ -903,8 +904,11 @@ print(route);
           routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
           city:  correspondingIDNotifier.value, routeID: (route["routeID"]),
 
+
         )),
       );
+
+
     });
   }
 

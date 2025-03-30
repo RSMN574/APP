@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:com.rsmn574.app/utils/MRTColor.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
@@ -22,6 +23,7 @@ import 'widget/transportGrid.dart';
 import 'package:event_bus/event_bus.dart';
 
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
+// final ValueNotifier<String> routeName = ValueNotifier<String>("");
 
 // class detailPageDataEvent {
 //   final List message;
@@ -2200,19 +2202,8 @@ class _HomeState extends State<Home>
             ),
             SizedBox(height: 12),
 
-            // 使用 FutureBuilder 來處理異步內容
-            FutureBuilder<Widget>(
-              future: _buildStepContent(step),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator()); // 顯示載入中
-                } else if (snapshot.hasError) {
-                  return Text("載入失敗: ${snapshot.error}");
-                } else {
-                  return snapshot.data ?? SizedBox(); // 顯示內容
-                }
-              },
-            ),
+
+            _buildStepContent(step),
 
             // 分隔線
             Divider(height: 24, thickness: 1, color: Colors.grey[300]),
@@ -2229,7 +2220,8 @@ class _HomeState extends State<Home>
       case 'pedestrian':
         return "步行 ${step['travelSummary']['length']?.toStringAsFixed(0) ?? ''}公尺";
       case 'transit':
-        print(step['transport']['shortName']);
+
+
         return "${step['transport']['shortName']} · ${(step['travelSummary']['duration'] / 60).round()} 分鐘";
 
       default:
@@ -2261,10 +2253,8 @@ class _HomeState extends State<Home>
   }
 
 // 構建行程內容
-  Future<Widget> _buildStepContent(Map<String, dynamic> step) async {
-    if (step['type'] == 'transit') {
-      print(await getRouteStopsAndDirection(step['transport']['shortName'],step['departure']['place']['name'],step['arrival']['place']['name']));
-    }
+Widget _buildStepContent(Map<String, dynamic> step)  {
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2362,22 +2352,13 @@ class _HomeState extends State<Home>
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "實時信息",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                SizedBox(height: 8),
-                _buildRealTimeInfo(step),
-              ],
-            ),
+            child:
+
+                RealTimeTransportCard ( step: step)
+
           ),
         ],
+
       ],
     );
   }
@@ -2433,33 +2414,212 @@ class _HomeState extends State<Home>
     final calories = metValue * weight * timeInHours;
     return calories.toInt();
   }
+  // 在 StatefulWidget 的 State 類別中加入以下內容
+  Future<Map<String, dynamic>>? _realTimeDataFuture;
+  bool _isRefreshing = false;
 
-  Widget _buildRealTimeInfo(Map<String, dynamic> step) {
-    // 模擬實時數據
-    final nextDeparture = step['intermediateStops'].isNotEmpty
-        ? _formatTime(step['intermediateStops'].first['departure']['time'])
-        : "06:00";
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("下一班車：$nextDeparture 發出"),
-        SizedBox(height: 4),
-        Text("預計到達：${_formatTime(step['arrival']['time'])}"),
-        SizedBox(height: 8),
-        ElevatedButton.icon(
-          icon: Icon(Icons.refresh, size: 18),
-          label: Text("刷新實時信息"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green[50],
-            foregroundColor: Colors.green[800],
-          ),
-          onPressed: () {},
-          // onPressed: () => _refreshRealTime(step),
-        ),
-      ],
-    );
-  }
+  // void _refreshRealTimeData(Map<String, dynamic> step) {
+  //   setState(() {
+  //     _isRefreshing = true;
+  //     _realTimeDataFuture = _fetchRealTimeData(step).whenComplete(() {
+  //       setState(() => _isRefreshing = false);
+  //     });
+  //   });
+  // }
+  //
+  //
+  // Future<Widget> _buildRealTimeInfo(Map<String, dynamic> step) async {
+  //   try {
+  //     // 取得下一班車發出時間，並做 null 檢查
+  //     final List<dynamic>? intermediateStops = step['intermediateStops'];
+  //     final String nextDeparture = (intermediateStops != null && intermediateStops.isNotEmpty)
+  //         ? _formatTime(intermediateStops.first['departure']?['time'] ?? "06:00")
+  //         : "06:00";
+  //
+  //     // 取得路線方向與站點資料
+  //     final Map<String, dynamic>? routeData = await getRouteStopsAndDirection(
+  //       step['transport']['shortName'],
+  //       step['departure']['place']['name'],
+  //       step['arrival']['place']['name'],
+  //     );
+  //     print(routeData);
+  //     if (routeData == null || routeData["originStopID"] == null) {
+  //       throw Exception("無法獲取正確的路線方向資料");
+  //     }
+  //     final String originStopID = routeData["originStopID"];
+  //     final String direction = routeData["direction"];
+  //
+  //     // 取得即時到站資訊（假設 fetchBusTimeWithStopID 回傳 List<dynamic>）
+  //     final dynamic busTimeData = await fetchBusTimeWithStopID(
+  //       step['transport']['shortName'],
+  //       "Taichung",
+  //       originStopID,
+  //         direction
+  //     );
+  //
+  //     // 計算預計到站時間，使用我們自定義的 computeEstimatedArrival()
+  //     String estimatedArrival = "資料暫無";
+  //     if (busTimeData is List && busTimeData.isNotEmpty) {
+  //       // 以第一筆數據作為預估依據
+  //       estimatedArrival = computeEstimatedArrival(busTimeData.first);
+  //     }
+  //
+  //     // 確保 arrival time 有效
+  //     final String arrivalTime = _formatTime(step['arrival']?['time'] ?? "無資料");
+  //
+  //     // 建立美化後的 UI
+  //     return Container(
+  //       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+  //       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+  //       decoration: BoxDecoration(
+  //         color: Colors.white,
+  //         borderRadius: BorderRadius.circular(16),
+  //         boxShadow: [
+  //           BoxShadow(
+  //             color: Colors.blueGrey.withOpacity(0.1),
+  //             blurRadius: 12,
+  //             spreadRadius: 2,
+  //             offset: const Offset(0, 4),
+  //           )
+  //         ],
+  //       ),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           Row(
+  //             children: [
+  //               Icon(Icons.directions_train_rounded,
+  //                   size: 22,
+  //                   color: Colors.blueGrey[800]),
+  //               const SizedBox(width: 8),
+  //               Text(
+  //                 "即時動態",
+  //                 style: TextStyle(
+  //                   fontSize: 20,
+  //                   fontWeight: FontWeight.w700,
+  //                   color: Colors.blueGrey[900],
+  //                   letterSpacing: 0.8,
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 14),
+  //           Divider(
+  //             height: 1,
+  //             thickness: 1.2,
+  //             color: Colors.blueGrey.withOpacity(0.15),
+  //           ),
+  //           const SizedBox(height: 18),
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //             children: [
+  //               // 下一班車區塊
+  //               Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.start,
+  //                 children: [
+  //                   Row(
+  //                     mainAxisSize: MainAxisSize.min,
+  //                     children: [
+  //                       Icon(Icons.schedule_rounded,
+  //                           size: 16,
+  //                           color: Colors.blueGrey[400]),
+  //                       const SizedBox(width: 6),
+  //                       Text(
+  //                         "下一班車",
+  //                         style: TextStyle(
+  //                             fontSize: 14,
+  //                             color: Colors.blueGrey[500],
+  //                             fontWeight: FontWeight.w500
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                   const SizedBox(height: 8),
+  //                   Text(
+  //                     "$nextDeparture 發出",
+  //                     style: TextStyle(
+  //                         fontSize: 17,
+  //                         fontWeight: FontWeight.w700,
+  //                         color: Colors.blueGrey[800],
+  //                         letterSpacing: -0.2
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //               // 預計到站區塊
+  //               Column(
+  //                 crossAxisAlignment: CrossAxisAlignment.end,
+  //                 children: [
+  //                   Row(
+  //                     mainAxisSize: MainAxisSize.min,
+  //                     children: [
+  //                       Icon(Icons.pin_drop_rounded,
+  //                           size: 16,
+  //                           color: Colors.blueGrey[400]),
+  //                       const SizedBox(width: 6),
+  //                       Text(
+  //                         "預計到站",
+  //                         style: TextStyle(
+  //                             fontSize: 14,
+  //                             color: Colors.blueGrey[500],
+  //                             fontWeight: FontWeight.w500
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                   const SizedBox(height: 8),
+  //                   Text(
+  //                     estimatedArrival,
+  //                     style: TextStyle(
+  //                         fontSize: 17,
+  //                         fontWeight: FontWeight.w700,
+  //                         color: Colors.teal[700],
+  //                         letterSpacing: -0.2
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 20),
+  //           SizedBox(
+  //             width: double.infinity,
+  //             child: FilledButton.icon(
+  //               icon: const Icon(Icons.refresh_rounded, size: 20),
+  //               label: const Text("更新即時動態",
+  //                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+  //               style: FilledButton.styleFrom(
+  //                   backgroundColor: Colors.teal[50],
+  //                   foregroundColor: Colors.teal[800],
+  //                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+  //                   shape: RoundedRectangleBorder(
+  //                     borderRadius: BorderRadius.circular(12),
+  //                   ),
+  //                   elevation: 0,
+  //                   side: BorderSide(
+  //                       color: Colors.teal.withOpacity(0.2),
+  //                       width: 1.2
+  //                   )
+  //               ),
+  //               onPressed: () {},
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //     );
+  //   } catch (e, stackTrace) {
+  //     print("即時動態構建錯誤: $e");
+  //     print(stackTrace);
+  //     return Container(
+  //       padding: EdgeInsets.all(16),
+  //       child: Text("無法獲取即時動態", style: TextStyle(color: Colors.red)),
+  //     );
+  //   }
+  // }
+  /// 計算預計到站時間的函式
+  /// 1. 如果 EstimateTime 存在，則利用 UpdateTime 計算數據延遲，並調整預計到站秒數
+  /// 2. 若 EstimateTime 不存在，但 NextBusTime 存在，則使用 NextBusTime 與目前時間差
+  /// 3. 若兩者都無，返回 "資料暫無"
 
   Widget _buildTimeBlock(
       {required IconData icon,
@@ -2518,3 +2678,425 @@ class SearchResultPage extends StatelessWidget {
     );
   }
 }
+
+class RealTimeTransportCard extends StatefulWidget {
+  final Map<String, dynamic> step;
+
+  const RealTimeTransportCard({Key? key, required this.step}) : super(key: key);
+
+  @override
+  _RealTimeTransportCardState createState() => _RealTimeTransportCardState();
+}
+
+class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
+  Future<Map<String, dynamic>>? _realTimeDataFuture;
+  bool _isRefreshing = false;
+  Timer? _refreshDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _refreshDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _loadInitialData() {
+    setState(() {
+      _realTimeDataFuture = _fetchRealTimeData(widget.step);
+    });
+  }
+
+  void _refreshData() {
+    if (_isRefreshing) return;
+
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 300), () {
+      setState(() {
+        _isRefreshing = true;
+        _realTimeDataFuture = _fetchRealTimeData(widget.step).whenComplete(() {
+          setState(() => _isRefreshing = false);
+        });
+      });
+    });
+  }
+  String _formatTime(String time) {
+    try {
+      // 處理 "HH:MM:SS" 或 "HH:MM" 格式
+      final parts = time.split(':');
+      if (parts.length >= 2) {
+        final hours = parts[0].padLeft(2, '0');
+        final minutes = parts[1].padLeft(2, '0');
+        return '$hours:$minutes';
+      }
+      return '--:--'; // 格式錯誤時回傳預設值
+    } catch (e) {
+      return '--:--';
+    }
+  }
+  Future<Map<String, dynamic>> _fetchRealTimeData(Map<String, dynamic> step) async {
+    try {
+      // 1. 獲取下一班車時間
+      final List<dynamic>? intermediateStops = step['intermediateStops'];
+      final String nextDeparture = (intermediateStops != null && intermediateStops.isNotEmpty)
+          ? _formatTime(intermediateStops.first['departure']?['time'] ?? "--:--")
+          : "--:--"; // 預設值改為 --:--
+
+      // 2. 獲取路線資料
+      final Map<String, dynamic>? routeData = await getRouteStopsAndDirection(
+        step['transport']['shortName'],
+        step['departure']['place']['name'],
+        step['arrival']['place']['name'],
+      );
+
+      if (routeData == null || routeData["originStopID"] == null) {
+        throw Exception("無法獲取路線資料");
+      }
+
+      // 3. 獲取即時到站資訊
+      final dynamic busTimeData = await fetchBusTimeWithStopID(
+        step['transport']['shortName'],
+        "Taichung",
+        routeData["originStopID"],
+        routeData["direction"],
+      );
+
+      // 4. 計算預計到站時間
+      String estimatedArrival = "資料暫無";
+      if (busTimeData is List && busTimeData.isNotEmpty) {
+        estimatedArrival = computeEstimatedArrival(busTimeData.first);
+      }
+
+      return {
+        'nextDeparture': nextDeparture,
+        'estimatedArrival': estimatedArrival,
+        'status': 'success',
+      };
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': e.toString(),
+      };
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _realTimeDataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting && !_isRefreshing) {
+          return _buildLoadingCard();
+        }
+
+        if (snapshot.hasError || snapshot.data?['status'] == 'error') {
+          return _buildErrorCard(snapshot.error?.toString() ?? snapshot.data?['message'] ?? '未知錯誤');
+        }
+
+        final data = snapshot.data!;
+        return _buildRealTimeCard(
+          nextDeparture: data['nextDeparture'] ?? '--:--',
+          estimatedArrival: data['estimatedArrival'] ?? '資料暫無',
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.1),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: const Column(
+        children: [
+          SizedBox(height: 20),
+          Center(child: CircularProgressIndicator()),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorCard(String error) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.1),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red[400], size: 22),
+              const SizedBox(width: 8),
+              Text(
+                "資料載入失敗",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.red[600],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            error,
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              icon: const Icon(Icons.refresh, size: 20),
+              label: const Text("重新載入"),
+              onPressed: _refreshData,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red[50],
+                foregroundColor: Colors.red[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRealTimeCard({
+    required String nextDeparture,
+    required String estimatedArrival,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blueGrey.withOpacity(0.1),
+            blurRadius: 12,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.directions_train_rounded,
+                  size: 22,
+                  color: Colors.blueGrey[800]),
+              const SizedBox(width: 8),
+              Text(
+                "即時動態",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.blueGrey[900],
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Divider(
+            height: 1,
+            thickness: 1.2,
+            color: Colors.blueGrey.withOpacity(0.15),
+          ),
+          const SizedBox(height: 18),
+          // 條件顯示邏輯
+          estimatedArrival == "--:--" || estimatedArrival == "資料暫無"
+              ? _buildNextDepartureSection(nextDeparture)  // 只顯示下一班車
+              : _buildEstimatedArrivalSection(estimatedArrival),  // 只顯示預計到站
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              icon: _isRefreshing
+                  ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.teal[800],
+                ),
+              )
+                  : Icon(Icons.refresh_rounded, size: 20),
+              label: Text(
+                _isRefreshing ? "更新中..." : "更新即時動態",
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+              style: FilledButton.styleFrom(
+                  backgroundColor: Colors.teal[50],
+                  foregroundColor: Colors.teal[800],
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                  side: BorderSide(
+                      color: Colors.teal.withOpacity(0.2),
+                      width: 1.2)),
+              onPressed: _isRefreshing ? null : _refreshData,
+            ),
+          ),
+        ],
+      ),
+    );;
+  }
+// 下一班車區塊 (獨立方法)
+  Widget _buildNextDepartureSection(String nextDeparture) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.schedule_rounded,
+                    size: 16,
+                    color: Colors.blueGrey[400]),
+                const SizedBox(width: 6),
+                Text(
+                  "下一班車",
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.blueGrey[500],
+                      fontWeight: FontWeight.w500
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "$nextDeparture 發出",
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.blueGrey[800],
+                  letterSpacing: -0.2
+              ),
+            ),
+          ],
+        ),
+        // 右側留空保持對稱
+        const SizedBox(width: 40),
+      ],
+    );
+  }
+
+// 預計到站區塊 (獨立方法)
+  Widget _buildEstimatedArrivalSection(String estimatedArrival) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // 左側留空保持對稱
+        const SizedBox(width: 40),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.pin_drop_rounded,
+                    size: 16,
+                    color: Colors.blueGrey[400]),
+                const SizedBox(width: 6),
+                Text(
+                  "預計到站",
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.blueGrey[500],
+                      fontWeight: FontWeight.w500
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              estimatedArrival,
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: _getArrivalTextColor(estimatedArrival),
+                  letterSpacing: -0.2
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+  Color _getArrivalTextColor(String text) {
+    if (text.contains("分")) {
+      final minutes = int.tryParse(text.replaceAll("分鐘", "")) ?? 0;
+      if (minutes <= 2) return Colors.red[700]!;
+      if (minutes <= 5) return Colors.orange[700]!;
+    }
+    else if (text.contains(":")) {
+      return Colors.blueGrey[800]!; // 固定時間用深灰色
+    }
+    return Colors.teal[700]!; // 預設顏色
+  }
+  String computeEstimatedArrival(Map<String, dynamic> record) {
+    final now = DateTime.now();
+
+    if (record["EstimateTime"] != null) {
+      int estimateTimeSec = record["EstimateTime"];
+      DateTime updateTime = DateTime.tryParse(record["UpdateTime"] ?? "") ?? now;
+      Duration latency = now.difference(updateTime);
+      int adjustedSec = estimateTimeSec - latency.inSeconds;
+      adjustedSec = adjustedSec.clamp(0, adjustedSec); // 確保非負
+
+      // 只顯示分鐘，若小於1分鐘顯示「即將到站」
+      int minutes = (adjustedSec / 60).ceil();
+      return minutes > 0 ? "$minutes分鐘" : "即將到站";
+    }
+    else if (record["NextBusTime"] != null) {
+      DateTime nextBusTime = DateTime.tryParse(record["NextBusTime"] ?? "") ?? now;
+      Duration diff = nextBusTime.difference(now);
+      diff = diff.isNegative ? Duration.zero : diff;
+
+      // 轉換成 HH:MM 格式
+      String hours = nextBusTime.hour.toString().padLeft(2, '0');
+      String minutes = nextBusTime.minute.toString().padLeft(2, '0');
+      return "$hours:$minutes";
+    }
+    return "--:--";
+  }
+
+}
+

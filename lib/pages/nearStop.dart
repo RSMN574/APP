@@ -94,10 +94,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     if (_tabSelect.value == "bus") {
       _updateFutureNearStations();
-      // final stations = await _futureNearStations;
-      // if (mounted) {
-      //   _loadBusMarkers(context, stations);
-      // }
+      final stations = await _futureNearStations;
+      if (mounted) {
+        _loadBusMarkers(context, stations);
+      }
     } else if (_tabSelect.value == "metro") {
       final stations = await getNearMRTStation(
         Uri.encodeComponent(

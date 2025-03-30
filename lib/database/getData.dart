@@ -589,110 +589,69 @@ Future<String> getToken() async {
 }
 enum RouteDirection { directionOne, directionTwo, none }
 
-/// 根據兩個方向的站牌資料，及給定的起點與終點，判斷哪個方向符合「起點到終點」的順序
 Future<Map<String, dynamic>?> getRouteStopsAndDirection(
     String routeName,
     String originName,
     String destinationName,
     ) async {
   try {
-    // 1. 獲取兩個方向的站點數據
-    print("正在獲取方向0的站點數據...");
-    Map<dynamic, dynamic> directionOneStops = await getRouteStops(routeName, '0');
-    print("方向0的站點數據: ${directionOneStops}");
+    // 取得兩個方向的站牌資料
+    final direction0 = await getRouteStops(routeName, '0');
+    final direction1 = await getRouteStops(routeName, '1');
 
-    print("正在獲取方向1的站點數據...");
-    Map<dynamic, dynamic> directionTwoStops = await getRouteStops(routeName, '1');
-    print("方向1的站點數據: ${directionTwoStops}");
+    // 建立驗證器
+    final validator0 = RouteValidator.fromDirectionMap(direction0);
+    final validator1 = RouteValidator.fromDirectionMap(direction1);
 
-    // 2. 解析 Stops 字段的 JSON 字符串
-    print("正在解析方向0的 Stops...");
-    List<Map<String, dynamic>> dir0Stops = List<Map<String, dynamic>>.from(
-      json.decode(directionOneStops["Stops"]),
-    );
-    print("方向0的 Stops 解析結果: ${dir0Stops}");
+    // 驗證雙向路線
+    final result0 = validator0.validateRoute(originName, destinationName);
+    final result1 = validator1.validateRoute(originName, destinationName);
 
-    print("正在解析方向1的 Stops...");
-    List<Map<String, dynamic>> dir1Stops = List<Map<String, dynamic>>.from(
-      json.decode(directionTwoStops["Stops"]),
-    );
-    print("方向1的 Stops 解析結果: ${dir1Stops}");
+    // 處理驗證結果
+    final results = {
+      'direction_0': result0,
+      'direction_1': result1,
+    };
 
-    // 3. 獲取起點與終點的順序及 StopID
-    print("正在查找方向0的起點與終點...");
-    Map<String, dynamic>? seqOriginDir1 = getSequence(dir0Stops, originName);
-    Map<String, dynamic>? seqDestDir1 = getSequence(dir0Stops, destinationName);
-    print("方向0的起點: $seqOriginDir1, 終點: $seqDestDir1");
+    // 判斷有效路線方向
+    final validDirections = results.entries
+        .where((e) => e.value['isValid'] == true)
+        .toList();
 
-    print("正在查找方向1的起點與終點...");
-    Map<String, dynamic>? seqOriginDir2 = getSequence(dir1Stops, originName);
-    Map<String, dynamic>? seqDestDir2 = getSequence(dir1Stops, destinationName);
-    print("方向1的起點: $seqOriginDir2, 終點: $seqDestDir2");
-
-    // 4. 判斷方向
-    if (seqOriginDir1 != null &&
-        seqDestDir1 != null &&
-        seqOriginDir1["sequence"] < seqDestDir1["sequence"]) {
-      print("方向0符合條件，返回結果...");
+    if (validDirections.isEmpty) {
       return {
-        "direction": 0,
-        "originID": seqOriginDir1["StopID"],
-        "destinationID": seqDestDir1["StopID"],
-      };
-    } else if (seqOriginDir2 != null &&
-        seqDestDir2 != null &&
-        seqOriginDir2["sequence"] < seqDestDir2["sequence"]) {
-      print("方向1符合條件，返回結果...");
-      return {
-        "direction": 1,
-        "originID": seqOriginDir2["StopID"],
-        "destinationID": seqDestDir2["StopID"],
+        'status': 'error',
+        'message': '沒有符合的行車方向',
+        'details': results,
       };
     }
 
-    print("無法判斷方向，返回 null");
-    return null; // 無法判斷方向時返回 null
+    if (validDirections.length > 1) {
+      return {
+        'status': 'warning',
+        'message': '多個方向符合路線',
+        'details': results,
+      };
+    }
+
+    final validDirection = validDirections.first;
+    return {
+      'status': 'success',
+      'direction': validDirection.key.split('_').last,
+      'originStopID': validDirection.value['originStopID'],
+      'destStopID': validDirection.value['destStopID'],
+      'details': results,
+    };
   } catch (e) {
-    print("發生錯誤: $e");
-    return null;
+    return {
+      'status': 'error',
+      'message': '發生例外錯誤: ${e.toString()}',
+      'details': null,
+    };
   }
 }
 
-/// 從站點列表中查找站名對應的 StopID 與順序
-Map<String, dynamic>? getSequence(List<Map<String, dynamic>> stops, String stopName) {
-  for (var stop in stops) {
-    try {
-      // 1. 檢查 StopName 是否存在
-      if (stop["StopName"] == null) {
-        print("發現 StopName 為 null 的站點: ${stop}");
-        continue;
-      }
 
-      // 2. 解析 StopName（假設 StopName 是 JSON 字符串或已解析的 Map）
-      Map<String, dynamic> stopNameMap;
-      if (stop["StopName"] is String) {
-        stopNameMap = json.decode(stop["StopName"] as String);
-      } else {
-        stopNameMap = stop["StopName"] as Map<String, dynamic>;
-      }
-
-      // 3. 提取中文站名並標準化
-      String? zhTwName = stopNameMap["Zh_tw"]?.toString().trim().toLowerCase();
-      String processedInput = stopName.trim().toLowerCase();
-
-      // 4. 比對站名
-      if (zhTwName == processedInput) {
-        return {
-          "StopID": stop["StopID"]?.toString(), // 返回 StopID
-          "sequence": stop["StopSequence"] as int, // 返回順序
-        };
-      }
-    } catch (e) {
-      print("解析站點失敗: ${stop}, 錯誤: $e");
-    }
-  }
-  return null; // 找不到時返回 null
-}
 Future<Map<String, dynamic>> getRouteStops(String routeName,String direction) async {
   // SQL 查詢，根據站牌名稱過濾
   var query = "SELECT * FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND Direction=$direction ;";
@@ -711,51 +670,127 @@ Future<Map<String, dynamic>> getRouteStops(String routeName,String direction) as
   // 若只有一個方向，另一個列表會是空的
   return stops;
 }
-// Map? getSequence(List< dynamic> stops, String stopName) {
-//
-//   for (var stop in stops) {
-//     // 跳过 StopName 为空的情况
-//     if (stop["StopName"] == null) {
-//       print("发现 StopName 为 null 的站点");
-//       continue;
-//     }
-//
-//     // 解析 StopName
-//     Map<String, dynamic> stopNameMap;
-//     try {
-//       stopNameMap = (stop["StopName"] is String)
-//           ? json.decode(stop["StopName"])
-//           : stop["StopName"] as Map<String, dynamic>;
-//     } catch (e) {
-//       print("JSON 解析失败: ${stop["StopName"]}");
-//       continue;
-//     }
-//
-//     // 提取中文站名并标准化
-//     String? zhTwName = stopNameMap["Zh_tw"]?.toString().trim().toLowerCase();
-//     String processedInput = stopName.trim().toLowerCase();
-//
-//     // 输出比對日誌
-//     // print("比對站點: 數據庫='$zhTwName' vs 輸入='$processedInput'");
-//
-//     // 比對站名
-//     if (zhTwName == processedInput) {
-//
-//       // 處理 StopSequence 類型
-//       dynamic sequence = stop["StopSequence"];
-//       if (sequence is String) {
-//         return  {
-//           "sequence":int.tryParse(sequence),
-//           "StopID":stop["StopID"]
-//         };
-//       } else {
-//         return {
-//           "sequence":sequence as int,
-//           "StopID":stop["StopID"]
-//         };
-//       }
-//     }
-//   }
-//
-//   return {};
-// }
+
+class RouteValidator {
+  late final List<Map<String, dynamic>> _stops;
+  bool _initialized = false;
+
+  RouteValidator.fromDirectionMap(Map<dynamic, dynamic> directionMap) {
+    try {
+      dynamic stopsData = directionMap['Stops'];
+
+      // 处理 JSON 字符串输入
+      if (stopsData is String) {
+        print("[DEBUG] Parsing JSON string for stops...");
+        stopsData = json.decode(stopsData);
+      }
+
+      // 类型安全检查
+      if (stopsData is! List) {
+        throw FormatException("Invalid stops data type: ${stopsData.runtimeType}");
+      }
+
+      // 深度验证数据结构
+      _stops = stopsData.map((dynamic item) {
+        if (item is! Map) {
+          throw FormatException("Stop item is not a Map: $item");
+        }
+
+        final stop = Map<String, dynamic>.from(item);
+
+        // 验证必要字段
+        if (!stop.containsKey('StopID')) {
+          throw FormatException("Missing StopID in stop: $stop");
+        }
+
+        if (!stop.containsKey('StopName') ||
+            stop['StopName'] is! Map<String, dynamic> ||
+            !(stop['StopName'] as Map<String, dynamic>).containsKey('Zh_tw')) {
+          throw FormatException("Invalid StopName format in stop: $stop");
+        }
+
+        if (!stop.containsKey('StopSequence') ||
+            stop['StopSequence'] is! int) {
+          throw FormatException("Invalid StopSequence in stop: $stop");
+        }
+
+        return stop;
+      }).toList();
+
+      // 排序并验证顺序
+      _stops.sort((a, b) => (a['StopSequence'] as int).compareTo(b['StopSequence'] as int));
+      _validateSequence();
+
+      _initialized = true;
+      print("[INFO] Validator initialized with ${_stops.length} stops");
+    } catch (e) {
+      _initialized = false;
+      print("[ERROR] Initialization failed: $e");
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> validateRoute(String originZhName, String destZhName) {
+    if (!_initialized) {
+      return _errorResponse("Validator not initialized");
+    }
+
+    try {
+      // 输入验证
+      if (originZhName.isEmpty || destZhName.isEmpty) {
+        throw ArgumentError("Station names cannot be empty");
+      }
+
+      // 查找站点信息
+      final origin = _findStop(originZhName);
+      final destination = _findStop(destZhName);
+
+      // 构建结果
+      return {
+        'isValid': origin['index'] < destination['index'],
+        'originStopID': origin['stopID'],
+        'destStopID': destination['stopID'],
+        'error': null,
+      };
+    } catch (e) {
+      return _errorResponse(e.toString());
+    }
+  }
+
+  Map<String, dynamic> _findStop(String zhName) {
+    final index = _stops.indexWhere((stop) =>
+    (stop['StopName']['Zh_tw'] as String) == zhName
+    );
+
+    if (index == -1) {
+      throw ("Station '$zhName' not found");
+    }
+
+    return {
+      'index': index,
+      'stopID': _stops[index]['StopID'] as String,
+    };
+  }
+
+  void _validateSequence() {
+    final sequences = _stops.map((s) => s['StopSequence'] as int).toList();
+    if (sequences.toSet().length != sequences.length) {
+      throw FormatException("Duplicate StopSequence found");
+    }
+
+    for (int i = 1; i < sequences.length; i++) {
+      if (sequences[i] <= sequences[i-1]) {
+        throw FormatException("Invalid StopSequence order at index $i");
+      }
+    }
+  }
+
+  Map<String, dynamic> _errorResponse(String message) {
+    return {
+      'isValid': false,
+      'originStopID': null,
+      'destStopID': null,
+      'error': message,
+    };
+  }
+}

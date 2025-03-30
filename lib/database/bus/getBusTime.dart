@@ -15,7 +15,7 @@ Future<dynamic> fetchBusTime(routeName, city) async {
   var url =
       "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
   final token =await  getToken();
-  print(token);
+
   try {
     await connMysql();
 
@@ -47,8 +47,7 @@ Future<dynamic> fetchBusTime(routeName, city) async {
   }
 }
 
-Future<Map<String, dynamic>> getDirections(String origin, String destination,
-    time, Map<String, dynamic> option) async {
+Future<Map<String, dynamic>> getDirections(String origin, String destination, time, Map<String, dynamic> option) async {
   List<String> transportModes = option["TransportModes"]; // 假設這是 List
 
 // 將 List 轉換為 String，並使用逗號分隔
@@ -161,4 +160,50 @@ Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, 
       .toList();
 
   return data;
+}
+
+Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
+    String routeName, String city, String stopID ,String direction ) async {
+  try {
+    final token = await getToken(); // 獲取 Token
+    await connMysql(); // 連接 MySQL（如果必要）
+
+    // 使用 Uri 構建 URL
+    final url = Uri.https(
+      "tdx.transportdata.tw",
+      "/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName",
+      {
+        "\$filter": "StopID eq '$stopID' and Direction eq $direction",
+        "\$format": "JSON",
+      },
+    );
+print(url);
+    // 發起 GET 請求
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    // 檢查 HTTP 狀態碼
+    if (response.statusCode != 200) {
+      throw HttpException(
+          'HTTP error! status: ${response.statusCode}, body: ${response.body}');
+    }
+
+    // 解析 JSON 數據
+    final List<dynamic> jsonData = json.decode(response.body);
+
+    // 轉換為 List<Map<String, dynamic>>
+    final result = List<Map<String, dynamic>>.from(jsonData);
+
+    // print('✅ JSON fetched successfully: ${result.length} records');
+    return result;
+  } catch (e, stackTrace) {
+    print('❌ Error occurred in fetchBusTimeWithStopID: $e');
+    print(stackTrace); // 印出詳細的錯誤堆疊，方便 Debug
+    return []; // 返回空列表，而不是 null，避免影響調用方
+  }
 }

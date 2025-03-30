@@ -119,13 +119,9 @@ class _TransportGridState extends State<TransportGrid> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOutQuad,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.withOpacity(0.15),
-            width: 1.2,
-          ),
+
         ),
         child: Material(
           color: Colors.transparent,

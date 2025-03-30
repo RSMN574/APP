@@ -92,7 +92,6 @@ class _EVStationState extends State<EVStation> {
     //   'assets/img/ubike_icon.png',
     // );
     Set<Marker> markerCache = {};
-    print('allEV');
 
     for (var i in _filteredStations) {
       final marker = Marker(
@@ -102,10 +101,15 @@ class _EVStationState extends State<EVStation> {
           double.parse(i["PositionLat"]),
           double.parse(i["PositionLon"]),
         ),
-        // infoWindow: InfoWindow(
-        //   title: json.decode(station["StationName"])["Zh_tw"],
-        //   snippet: "Capacity: ${station["BikesCapacity"]}",
-        // ),
+        infoWindow: InfoWindow(
+          title: i["StationNameZh_tw"],
+          snippet: i["StationID"],
+        ),onTap: (){
+      setState(() {
+        _searchController.text=i["StationNameZh_tw"];
+        _filterStations(_searchController.text);
+      });
+      }
       );
       // 获取 MarkerProvider 的实例，并调用 setMarker 方法
 

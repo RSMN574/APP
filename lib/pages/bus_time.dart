@@ -769,7 +769,7 @@ if(stopNamesWithTime1==null){
 
   PreferredSize _buildTabBar(List routeInfo) {
     List<Tab> tabs = [];
-print(stopNamesWithTime1);
+
     if (stopNamesWithTime1.isEmpty==false) {
       tabs.add(Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]));
     }
@@ -826,21 +826,15 @@ padding: const EdgeInsets.only(bottom: 25),
 
           return Container(
               margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
-              decoration: stop["isHighlighted"] == true
-                  ? BoxDecoration(
+              decoration:
+                 BoxDecoration(
                 border: Border.all(
-                  width: 1.6, // 邊框粗細
-                  color: Colors.blue, // 高亮時邊框顏色
+                  width: 2,
+                  color: Colors.transparent,
                 ),
-                borderRadius: BorderRadius.circular(10), // 圓角
-              )
-                  : BoxDecoration(
-                border: Border.all(
-                  width: 2, // 邊框粗細
-                  color: Colors.transparent, // 非高亮時邊框為透明
-                ),
-                borderRadius: BorderRadius.circular(10), // 圓角
+                borderRadius: BorderRadius.circular(10),
               ),
+
               height: 54.5, // 設置每個項目的固定高度
               child:ListTile(
 
@@ -878,15 +872,32 @@ padding: const EdgeInsets.only(bottom: 25),
                     Text(
                       stop["stopName"]!,
                       style: TextStyle(
-                        fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
-                        fontSize: 17,
-                        color: stop["color"] == "班次結束"
+                        fontFamily: 'MiSans',
+                        fontSize: stop["isHighlighted"] == true ? 18 : 17,
+                        fontWeight: stop["isHighlighted"] == true
+                            ? FontWeight.w900
+                            : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
+                        color: stop["isHighlighted"] == true
+                            ? Colors.blue[800]
+                            : (stop["color"] == "班次結束"
                             ? const Color.fromRGBO(136, 136, 136, 1)
-                            : Colors.black,
+                            : Colors.black),
+                        letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
+                        shadows: stop["isHighlighted"] == true
+                            ? [
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 2.0,
+                            color: Colors.blue.withOpacity(0.5),
+                          )
+                        ]
+                            : [],
                       ),
                     ),
 
+
                   ],
+
                 ),
 
                 trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,

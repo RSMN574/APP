@@ -192,6 +192,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                   child: ListTile(
                     onTap: () async {
                       await GetBusInfo( routeid: int.parse(stop["RouteID"]), city: widget.city);
+                      print(stop);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -201,8 +202,13 @@ class _BusStopInfoState extends State<BusStopInfo> {
                             destinationStopName:  stop["DestinationStopName"],
                             operators: "",
                             routeMapImageUrl: "",
-                            city: widget.city, routeID: stop["RouteID"],
-
+                            city: widget.city, routeID: int.parse(stop["RouteID"]),
+                            mark: Mark.fromMap({
+                              "highlight": [
+                                widget.stop
+                              ],
+                              "direction": stop["Direction"],
+                            }),
                           ),
                         ),
                       );
