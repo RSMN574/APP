@@ -514,7 +514,32 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       }
     }
   }
+  void _swapStations() {
+    // 檢查是否有選擇車站
+    if (departureSelectedStation.isEmpty && destinationSelectedStation.isEmpty) {
+      return;
+    }
 
+    setState(() {
+      // 交換控制器內容
+      final tempController = TextEditingController();
+      tempController.text = widget.departureController.text;
+      widget.departureController.text = widget.destinationController.text;
+      widget.destinationController.text = tempController.text;
+
+      // 交換車站資料
+      final tempStation = departureSelectedStation;
+      departureSelectedStation = destinationSelectedStation;
+      destinationSelectedStation = tempStation;
+
+      // 檢查是否相同
+      if (widget.departureController.text == widget.destinationController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('出發地和目的地不能相同')),
+        );
+      }
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -550,6 +575,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                     departureSelectedStation['StationName']['Zh_tw'];
               },
             ),
+            // 加入互換按鈕
             const SizedBox(height: 24),
 
             // 目的地輸入框
@@ -618,7 +644,21 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: IconButton(
+
+                icon: Transform.rotate(
+                  angle: 90 * (3.1415926535 / 180), // 旋轉90度
+                  child: Icon(
+                    Icons.swap_vert,
+                    color: primaryColor,
+                    size: 32,
+                  ),
+                ),
+                onPressed: _swapStations,
+              ),
+            ),
 
             // 查詢按鈕
             SizedBox(
@@ -1317,7 +1357,7 @@ class _StationPageState extends State<StationPage>
                 int? delayTime = train['DelayTime'];
                 String endingStation =
                     train['EndingStationName']['Zh_tw'] ?? '未知';
-print(delayTime);
+
                 return GestureDetector(
                   onTap: () async {
                     // 這裡根據需要實作點擊後的行為

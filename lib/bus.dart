@@ -604,7 +604,7 @@ Future <List>_getData()async{
                         )
                             : _dropdownValueNotifier.value == "站牌"
                             ? BusStopList(suggestions.value)
-                            : const Center(child: Text("请选择一个有效的选项"))
+                            : const Center(child: Text("請選擇"))
                             : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
                       );
                     },

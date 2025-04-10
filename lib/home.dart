@@ -20,7 +20,7 @@ import 'database/getData.dart';
 import 'firebase/placeAPI.dart';
 
 import 'widget/transportGrid.dart';
-import 'package:event_bus/event_bus.dart';
+
 
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 // final ValueNotifier<String> routeName = ValueNotifier<String>("");
@@ -40,8 +40,17 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home>
     with AutomaticKeepAliveClientMixin<Home>, MRTColor {
   DateTime _selectedTime = DateTime.now().add(Duration(minutes: 1));
-
+  TextEditingController _searchController = TextEditingController();
   Map<String, dynamic>? _selectedStation; // null 代表沒選任何站點
+
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _selectedStation = null;
+    });
+  }
+
+
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
   Future<void> _selectDateTime(BuildContext context) async {
     // 选择日期
@@ -339,12 +348,12 @@ class _HomeState extends State<Home>
                 ),
               ),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildSearchBar(),
-            ),
+            // Positioned(
+            //   top: 0,
+            //   left: 0,
+            //   right: 0,
+            //   child: _buildSearchBar(),
+            // ),
           ],
         );
       },
@@ -1279,11 +1288,27 @@ class _HomeState extends State<Home>
   Future<Map<String, dynamic>?>? _bikeAvailabilityFuture;
 
   void _updateSelectedStation(Map<String, dynamic> station) {
-    setState(() {
-      _selectedStation = station;
-      _bikeAvailabilityFuture =
-          getBikeAvailability("Taichung", station["StationID"]);
-    });
+   if(station.isNotEmpty){
+     _mapController?.animateCamera(
+       CameraUpdate.newCameraPosition(
+         CameraPosition(
+           target: LatLng(json.decode(station["StationPosition"])["PositionLat"], json.decode(station["StationPosition"])["PositionLon"]),
+           zoom: 23.0, // 可根據需求調整放大倍率
+         ),
+       ),
+     );
+
+     setState(() {
+       _selectedStation = station;
+       _bikeAvailabilityFuture =
+           getBikeAvailability("Taichung", station["StationID"]);
+     });
+   }else{
+     setState(() {
+       _selectedStation = null;
+       
+     });
+   }
     // 這裡可以控制 bottom sheet 彈出
     _bottomSheetController = showBottomSheet(
         context: context,
@@ -1302,7 +1327,7 @@ class _HomeState extends State<Home>
   }
 
   Widget _buildBikeContent(BuildContext context) {
-    return Container(
+    return   Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -1315,31 +1340,35 @@ class _HomeState extends State<Home>
         ],
       ),
       child: _selectedStation == null
-          ? _buildPlaceholder('請選擇站點', Icons.location_off_outlined)
+          // ? _buildPlaceholder('請選擇站點', Icons.location_off_outlined)
+      ?BikeDefaultContent(onStationSelected:_updateSelectedStation )
           : FutureBuilder<Map<String, dynamic>?>(
-              future: _bikeAvailabilityFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingState(context);
-                }
+        future: _bikeAvailabilityFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildLoadingState(context);
+          }
 
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return _buildPlaceholder(
-                    snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
-                    snapshot.hasError
-                        ? Icons.error_outline
-                        : Icons.info_outline,
-                  );
-                }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _buildPlaceholder(
+              snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
+              snapshot.hasError
+                  ? Icons.error_outline
+                  : Icons.info_outline,
+            );
+          }
 
-                final stationName =
-                    json.decode(_selectedStation!["StationName"])["Zh_tw"];
-                final data = snapshot.data!;
+          final stationName =
+          json.decode(_selectedStation!["StationName"])["Zh_tw"];
+          final data = snapshot.data!;
 
-                return _buildContentSection(context, stationName, data);
-              },
-            ),
+          return _buildContentSection(context, stationName, data);
+        },
+      ),
     );
+
+
+
   }
 
   /// Loading 狀態 widget
@@ -1364,8 +1393,7 @@ class _HomeState extends State<Home>
     );
   }
 
-  Widget _buildContentSection(
-      BuildContext context, String stationName, Map<String, dynamic> data) {
+  Widget _buildContentSection(BuildContext context, String stationName, Map<String, dynamic> data) {
     final rentDetails = data["AvailableRentBikesDetail"] ??
         {"GeneralBikes": 0, "ElectricBikes": 0};
 
@@ -1374,17 +1402,17 @@ class _HomeState extends State<Home>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 站點標題
+          // 站點標題 (已新增關閉按鈕)
           Container(
             padding: const EdgeInsets.symmetric(vertical: 5),
             decoration: BoxDecoration(
               border: Border(
-                bottom:
-                    BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
               ),
             ),
             child: Row(
               children: [
+                // 左側圖標和標題
                 Container(
                   padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
@@ -1402,18 +1430,35 @@ class _HomeState extends State<Home>
                   child: Text(
                     stationName,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                          fontSize: 14,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[800],
+                      fontSize: 14,
+                    ),
                   ),
+                ),
+
+                // 新增的關閉按鈕
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(), // 移除默認的最小點擊區域
+                  icon: Icon(
+                    Icons.close,
+                    size: 20,
+                    color: Colors.grey[500],
+                  ),
+                  onPressed: () {
+                    // 處理關閉邏輯，例如：
+                    _updateSelectedStation({});
+                    // 或者調用回調函數：
+                    // widget.onClose?.call();
+                  },
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
 
-          // 主要數據卡片
+          // 主要數據卡片 (保持不變)
           _buildCompactDataGrid(
             context,
             rentBikes: data["AvailableRentBikes"]?.toString() ?? '0',
@@ -1640,19 +1685,273 @@ class _HomeState extends State<Home>
       ),
     );
   }
+  // 更灵活的模糊搜索版本（包含/开头/结尾匹配）
+  List<Map<String, dynamic>> fuzzySearchStations(String keyword) {
+    if (keyword.isEmpty) return [];
 
+    final keywordLower = keyword.toLowerCase();
+
+    return youBikeStations.value.where((station) {
+      try {
+        final stationName = json.decode(station["StationName"])["Zh_tw"].toString().toLowerCase();
+
+        // 多种匹配方式
+        return stationName.contains(keywordLower) ||  // 包含
+            stationName.startsWith(keywordLower) || // 开头
+            stationName.endsWith(keywordLower);    // 结尾
+      } catch (e) {
+        return false;
+      }
+    }).map((e) => e as Map<String, dynamic>).toList();
+  }
   Widget _buildPlaceholder(String text, IconData icon) {
+    return Container(
+      height: 300,
+      color: bgColor,
+      child: Column(
+        children: [
+          // 搜尋框
+          Container(
+            decoration: ShapeDecoration(
+              color: Colors.white.withOpacity(0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(40),
+              ),
+              shadows: const [
+                BoxShadow(
+                  color: Color(0x19000000),
+                  blurRadius: 25,
+                  offset: Offset(0, 0),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (searchText) {
+                setState(() {}); // 觸發UI更新
+              },
+              decoration: InputDecoration(
+                hintText: '搜尋站點名稱或地址',
+                hintStyle: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 8),
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: Colors.grey[700],
+                    size: 24,
+                  ),
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: Colors.grey[700],
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 動態顯示搜尋結果或預設內容
+          Expanded(
+            child: _searchController.text.isEmpty
+                ? BikeDefaultContent(onStationSelected:_updateSelectedStation)// 顯示預設內容
+                : _buildSearchResults(), // 顯示搜尋結果
+          ),
+        ],
+      ),
+    );
+  }
+
+// 預設內容 (無搜尋時顯示)
+  Widget _buildDefaultContent(IconData icon, String text) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 32, color: Colors.grey[400]),
-          const SizedBox(height: 12),
-          Text(text, style: TextStyle(color: Colors.grey[500])),
+          Icon(icon, size: 48, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            text,
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
+    );
+  }
+
+// 搜尋結果列表
+  Widget _buildSearchResults() {
+    final List<Map<String, dynamic>> results = fuzzySearchStations(_searchController.text);
+
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          '找不到符合「${_searchController.text}」的站點',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final station = results[index];
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 12,
+                spreadRadius: 2,
+                offset: const Offset(0, 4),
+              )
+            ],
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withOpacity(0.95),
+                Colors.grey.shade50,
+              ],
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              // 点击处理逻辑
+            },
+            splashColor: Colors.blue.withOpacity(0.1),
+            highlightColor: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 图标区域
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.electric_bike_rounded,
+                      color: Colors.red[600],
+                      size: 28,
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // 文字信息区域
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          json.decode(station["StationName"])["Zh_tw"],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          json.decode(station["StationAddress"])["Zh_tw"],
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 车辆数量指示器
+                  // Column(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   crossAxisAlignment: CrossAxisAlignment.end,
+                  //   children: [
+                  //     Text(
+                  //       '可借',
+                  //       style: TextStyle(
+                  //         fontSize: 12,
+                  //         color: Colors.grey[500],
+                  //       ),
+                  //     ),
+                  //     // const SizedBox(height: 4),
+                  //     // Container(
+                  //     //   padding: const EdgeInsets.symmetric(
+                  //     //     horizontal: 12,
+                  //     //     vertical: 6,
+                  //     //   ),
+                  //     //   decoration: BoxDecoration(
+                  //     //     color: (station["AvailableRentBikes"] ?? 0) > 0
+                  //     //         ? Colors.green.withOpacity(0.15)
+                  //     //         : Colors.red.withOpacity(0.15),
+                  //     //     borderRadius: BorderRadius.circular(8),
+                  //     //     border: Border.all(
+                  //     //       color: (station["AvailableRentBikes"] ?? 0) > 0
+                  //     //           ? Colors.green.withOpacity(0.3)
+                  //     //           : Colors.red.withOpacity(0.3),
+                  //     //       width: 1,
+                  //     //     ),
+                  //     //   ),
+                  //     //   child: Text(
+                  //     //     '${station["AvailableRentBikes"] ?? 0}',
+                  //     //     style: TextStyle(
+                  //     //       fontSize: 16,
+                  //     //       fontWeight: FontWeight.w700,
+                  //     //       color: (station["AvailableRentBikes"] ?? 0) > 0
+                  //     //           ? Colors.green[800]
+                  //     //           : Colors.red[800],
+                  //     //     ),
+                  //     //   ),
+                  //     // ),
+                  //   ],
+                  // ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2418,204 +2717,6 @@ Widget _buildStepContent(Map<String, dynamic> step)  {
   Future<Map<String, dynamic>>? _realTimeDataFuture;
   bool _isRefreshing = false;
 
-  // void _refreshRealTimeData(Map<String, dynamic> step) {
-  //   setState(() {
-  //     _isRefreshing = true;
-  //     _realTimeDataFuture = _fetchRealTimeData(step).whenComplete(() {
-  //       setState(() => _isRefreshing = false);
-  //     });
-  //   });
-  // }
-  //
-  //
-  // Future<Widget> _buildRealTimeInfo(Map<String, dynamic> step) async {
-  //   try {
-  //     // 取得下一班車發出時間，並做 null 檢查
-  //     final List<dynamic>? intermediateStops = step['intermediateStops'];
-  //     final String nextDeparture = (intermediateStops != null && intermediateStops.isNotEmpty)
-  //         ? _formatTime(intermediateStops.first['departure']?['time'] ?? "06:00")
-  //         : "06:00";
-  //
-  //     // 取得路線方向與站點資料
-  //     final Map<String, dynamic>? routeData = await getRouteStopsAndDirection(
-  //       step['transport']['shortName'],
-  //       step['departure']['place']['name'],
-  //       step['arrival']['place']['name'],
-  //     );
-  //     print(routeData);
-  //     if (routeData == null || routeData["originStopID"] == null) {
-  //       throw Exception("無法獲取正確的路線方向資料");
-  //     }
-  //     final String originStopID = routeData["originStopID"];
-  //     final String direction = routeData["direction"];
-  //
-  //     // 取得即時到站資訊（假設 fetchBusTimeWithStopID 回傳 List<dynamic>）
-  //     final dynamic busTimeData = await fetchBusTimeWithStopID(
-  //       step['transport']['shortName'],
-  //       "Taichung",
-  //       originStopID,
-  //         direction
-  //     );
-  //
-  //     // 計算預計到站時間，使用我們自定義的 computeEstimatedArrival()
-  //     String estimatedArrival = "資料暫無";
-  //     if (busTimeData is List && busTimeData.isNotEmpty) {
-  //       // 以第一筆數據作為預估依據
-  //       estimatedArrival = computeEstimatedArrival(busTimeData.first);
-  //     }
-  //
-  //     // 確保 arrival time 有效
-  //     final String arrivalTime = _formatTime(step['arrival']?['time'] ?? "無資料");
-  //
-  //     // 建立美化後的 UI
-  //     return Container(
-  //       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-  //       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-  //       decoration: BoxDecoration(
-  //         color: Colors.white,
-  //         borderRadius: BorderRadius.circular(16),
-  //         boxShadow: [
-  //           BoxShadow(
-  //             color: Colors.blueGrey.withOpacity(0.1),
-  //             blurRadius: 12,
-  //             spreadRadius: 2,
-  //             offset: const Offset(0, 4),
-  //           )
-  //         ],
-  //       ),
-  //       child: Column(
-  //         crossAxisAlignment: CrossAxisAlignment.start,
-  //         children: [
-  //           Row(
-  //             children: [
-  //               Icon(Icons.directions_train_rounded,
-  //                   size: 22,
-  //                   color: Colors.blueGrey[800]),
-  //               const SizedBox(width: 8),
-  //               Text(
-  //                 "即時動態",
-  //                 style: TextStyle(
-  //                   fontSize: 20,
-  //                   fontWeight: FontWeight.w700,
-  //                   color: Colors.blueGrey[900],
-  //                   letterSpacing: 0.8,
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           const SizedBox(height: 14),
-  //           Divider(
-  //             height: 1,
-  //             thickness: 1.2,
-  //             color: Colors.blueGrey.withOpacity(0.15),
-  //           ),
-  //           const SizedBox(height: 18),
-  //           Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //             children: [
-  //               // 下一班車區塊
-  //               Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.start,
-  //                 children: [
-  //                   Row(
-  //                     mainAxisSize: MainAxisSize.min,
-  //                     children: [
-  //                       Icon(Icons.schedule_rounded,
-  //                           size: 16,
-  //                           color: Colors.blueGrey[400]),
-  //                       const SizedBox(width: 6),
-  //                       Text(
-  //                         "下一班車",
-  //                         style: TextStyle(
-  //                             fontSize: 14,
-  //                             color: Colors.blueGrey[500],
-  //                             fontWeight: FontWeight.w500
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                   const SizedBox(height: 8),
-  //                   Text(
-  //                     "$nextDeparture 發出",
-  //                     style: TextStyle(
-  //                         fontSize: 17,
-  //                         fontWeight: FontWeight.w700,
-  //                         color: Colors.blueGrey[800],
-  //                         letterSpacing: -0.2
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //               // 預計到站區塊
-  //               Column(
-  //                 crossAxisAlignment: CrossAxisAlignment.end,
-  //                 children: [
-  //                   Row(
-  //                     mainAxisSize: MainAxisSize.min,
-  //                     children: [
-  //                       Icon(Icons.pin_drop_rounded,
-  //                           size: 16,
-  //                           color: Colors.blueGrey[400]),
-  //                       const SizedBox(width: 6),
-  //                       Text(
-  //                         "預計到站",
-  //                         style: TextStyle(
-  //                             fontSize: 14,
-  //                             color: Colors.blueGrey[500],
-  //                             fontWeight: FontWeight.w500
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                   const SizedBox(height: 8),
-  //                   Text(
-  //                     estimatedArrival,
-  //                     style: TextStyle(
-  //                         fontSize: 17,
-  //                         fontWeight: FontWeight.w700,
-  //                         color: Colors.teal[700],
-  //                         letterSpacing: -0.2
-  //                     ),
-  //                   ),
-  //                 ],
-  //               ),
-  //             ],
-  //           ),
-  //           const SizedBox(height: 20),
-  //           SizedBox(
-  //             width: double.infinity,
-  //             child: FilledButton.icon(
-  //               icon: const Icon(Icons.refresh_rounded, size: 20),
-  //               label: const Text("更新即時動態",
-  //                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-  //               style: FilledButton.styleFrom(
-  //                   backgroundColor: Colors.teal[50],
-  //                   foregroundColor: Colors.teal[800],
-  //                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-  //                   shape: RoundedRectangleBorder(
-  //                     borderRadius: BorderRadius.circular(12),
-  //                   ),
-  //                   elevation: 0,
-  //                   side: BorderSide(
-  //                       color: Colors.teal.withOpacity(0.2),
-  //                       width: 1.2
-  //                   )
-  //               ),
-  //               onPressed: () {},
-  //             ),
-  //           ),
-  //         ],
-  //       ),
-  //     );
-  //   } catch (e, stackTrace) {
-  //     print("即時動態構建錯誤: $e");
-  //     print(stackTrace);
-  //     return Container(
-  //       padding: EdgeInsets.all(16),
-  //       child: Text("無法獲取即時動態", style: TextStyle(color: Colors.red)),
-  //     );
-  //   }
-  // }
   /// 計算預計到站時間的函式
   /// 1. 如果 EstimateTime 存在，則利用 UpdateTime 計算數據延遲，並調整預計到站秒數
   /// 2. 若 EstimateTime 不存在，但 NextBusTime 存在，則使用 NextBusTime 與目前時間差
@@ -2741,10 +2842,11 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
   Future<Map<String, dynamic>> _fetchRealTimeData(Map<String, dynamic> step) async {
     try {
       // 1. 獲取下一班車時間
-      final List<dynamic>? intermediateStops = step['intermediateStops'];
-      final String nextDeparture = (intermediateStops != null && intermediateStops.isNotEmpty)
-          ? _formatTime(intermediateStops.first['departure']?['time'] ?? "--:--")
-          : "--:--"; // 預設值改為 --:--
+      // final List<dynamic>? intermediateStops = step['intermediateStops'];
+      // print(step);
+      // final String nextDeparture = (intermediateStops != null && intermediateStops.isNotEmpty)
+      //     ? _formatTime(intermediateStops.first['departure']?['time'] ?? "--:--")
+      //     : "--:--"; // 預設值改為 --:--
 
       // 2. 獲取路線資料
       final Map<String, dynamic>? routeData = await getRouteStopsAndDirection(
@@ -2764,7 +2866,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
         routeData["originStopID"],
         routeData["direction"],
       );
-
+print(busTimeData);
       // 4. 計算預計到站時間
       String estimatedArrival = "資料暫無";
       if (busTimeData is List && busTimeData.isNotEmpty) {
@@ -2772,7 +2874,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
       }
 
       return {
-        'nextDeparture': nextDeparture,
+        // 'nextDeparture': nextDeparture,
         'estimatedArrival': estimatedArrival,
         'status': 'success',
       };
@@ -2800,7 +2902,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
 
         final data = snapshot.data!;
         return _buildRealTimeCard(
-          nextDeparture: data['nextDeparture'] ?? '--:--',
+          // nextDeparture: data['nextDeparture'] ?? '--:--',
           estimatedArrival: data['estimatedArrival'] ?? '資料暫無',
         );
       },
@@ -2890,7 +2992,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
   }
 
   Widget _buildRealTimeCard({
-    required String nextDeparture,
+    // required String nextDeparture,
     required String estimatedArrival,
   }) {
     return Container(
@@ -2936,10 +3038,11 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
           ),
           const SizedBox(height: 18),
           // 條件顯示邏輯
-          estimatedArrival == "--:--" || estimatedArrival == "資料暫無"
-              ? _buildNextDepartureSection(nextDeparture)  // 只顯示下一班車
-              : _buildEstimatedArrivalSection(estimatedArrival),  // 只顯示預計到站
-          const SizedBox(height: 20),
+          // estimatedArrival == "--:--" || estimatedArrival == "資料暫無"
+          //     ? _buildNextDepartureSection(nextDeparture)  // 只顯示下一班車
+          //     : _buildEstimatedArrivalSection(estimatedArrival),  // 只顯示預計到站
+          _buildEstimatedArrivalSection(estimatedArrival)
+          ,const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -3013,7 +3116,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
           ],
         ),
         // 右側留空保持對稱
-        const SizedBox(width: 40),
+        // const SizedBox(width: 40),
       ],
     );
   }
@@ -3024,7 +3127,7 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // 左側留空保持對稱
-        const SizedBox(width: 40),
+        // const SizedBox(width: 40),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -3086,17 +3189,364 @@ class _RealTimeTransportCardState extends State<RealTimeTransportCard> {
       return minutes > 0 ? "$minutes分鐘" : "即將到站";
     }
     else if (record["NextBusTime"] != null) {
-      DateTime nextBusTime = DateTime.tryParse(record["NextBusTime"] ?? "") ?? now;
+      DateTime now = DateTime.now(); // 目前時間 (本地時區)
+
+      // 解析 NextBusTime，保留其時區
+      DateTime? nextBusTime = DateTime.tryParse(record["NextBusTime"] ?? "");
+
+      if (nextBusTime == null) {
+        return "無法獲取時間"; // 避免解析錯誤
+      }
+
+      // 確保 nextBusTime 為本地時區
+      nextBusTime = nextBusTime.toLocal();
+
+      // 計算剩餘時間
       Duration diff = nextBusTime.difference(now);
-      diff = diff.isNegative ? Duration.zero : diff;
+      if (diff.isNegative) {
+        return "班次結束"; // 避免顯示錯誤時間
+      }
 
       // 轉換成 HH:MM 格式
       String hours = nextBusTime.hour.toString().padLeft(2, '0');
       String minutes = nextBusTime.minute.toString().padLeft(2, '0');
+
       return "$hours:$minutes";
     }
+
     return "--:--";
   }
 
 }
 
+class BikeDefaultContent extends StatefulWidget {
+  final Function(Map<String, dynamic>) onStationSelected; // 新增回調
+
+  const BikeDefaultContent({
+    super.key,
+    required this.onStationSelected, // 必傳參數
+  });
+  @override
+  State<BikeDefaultContent> createState() => _BikeState();
+}
+
+class _BikeState extends State<BikeDefaultContent> {
+  TextEditingController _searchController = TextEditingController();
+  Map<String, dynamic>? _selectedStation; // null 代表沒選任何站點
+  // 添加历史记录相关变量
+  final List<String> _searchHistory = [];
+  static const int _maxHistoryCount = 5;
+
+  // 在清除搜索时同时清除选中状态
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _selectedStation = null;
+    });
+  }
+  // 更灵活的模糊搜索版本（包含/开头/结尾匹配）
+  List<Map<String, dynamic>> fuzzySearchStations(String keyword) {
+    if (keyword.isEmpty) return [];
+    _addToSearchHistory(keyword); // 添加历史记录
+    final keywordLower = keyword.toLowerCase();
+
+    return youBikeStations.value.where((station) {
+      try {
+        final stationName = json.decode(station["StationName"])["Zh_tw"].toString().toLowerCase();
+
+        // 多种匹配方式
+        return stationName.contains(keywordLower) ||  // 包含
+            stationName.startsWith(keywordLower) || // 开头
+            stationName.endsWith(keywordLower);    // 结尾
+      } catch (e) {
+        return false;
+      }
+    }).map((e) => e as Map<String, dynamic>).toList();
+  }
+
+
+
+
+  // 添加搜索关键词到历史记录
+  void _addToSearchHistory(String query) {
+    if (query.isEmpty) return;
+
+    setState(() {
+      // 移除重复项
+      _searchHistory.removeWhere((item) => item == query);
+      // 添加到开头
+      _searchHistory.insert(0, query);
+      // 限制最大数量
+      if (_searchHistory.length > _maxHistoryCount) {
+        _searchHistory.removeLast();
+      }
+    });
+  }
+
+  // 从历史记录移除项目
+  void _removeFromHistory(String query) {
+    setState(() {
+      _searchHistory.remove(query);
+    });
+  }
+
+  // 修改后的默认内容显示，包含历史记录
+  Widget _buildDefaultContent(IconData icon, String text) {
+    return Column(
+      children: [
+        // 原有图标和文字
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.only(top: 24, bottom: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 48, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                text,
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+        // 历史记录标题
+        if (_searchHistory.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '最近搜索',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black54,
+                ),
+              ),
+            ),
+          ),
+        // 历史记录列表
+        if (_searchHistory.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _searchHistory.map((query) => _buildHistoryChip(query)).toList(),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // 历史记录条目组件
+  Widget _buildHistoryChip(String query) {
+    return GestureDetector(
+      onTap: () {
+        _searchController.text = query;
+        setState(() {});
+      },
+      child: Chip(
+        backgroundColor: Colors.grey[100],
+        label: Text(query),
+        deleteIcon: Icon(Icons.close, size: 16),
+        onDeleted: () => _removeFromHistory(query),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 8),
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+// 搜尋結果列表
+  Widget _buildSearchResults() {
+    final List<Map<String, dynamic>> results = fuzzySearchStations(_searchController.text);
+
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          '找不到符合「${_searchController.text}」的站點',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final station = results[index];
+
+        return  Container(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 12,
+                spreadRadius: 2,
+                offset: const Offset(0, 4),
+              )
+            ],
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withOpacity(0.95),
+                Colors.grey.shade50,
+              ],
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              // 点击处理逻辑
+
+              widget.onStationSelected(station); // 這個函數用來記錄目前選中的站點，並打開下方的資訊面板
+            },
+            splashColor: Colors.blue.withOpacity(0.1),
+            highlightColor: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 图标区域
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.electric_bike_rounded,
+                      color: Colors.red[600],
+                      size: 28,
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // 文字信息区域
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          json.decode(station["StationName"])["Zh_tw"],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          json.decode(station["StationAddress"])["Zh_tw"],
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 300,
+      color: bgColor,
+      child: Column(
+        children: [
+          // 搜尋框
+          Container(
+            decoration: ShapeDecoration(
+              color: Colors.white.withOpacity(0.95),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(40),
+              ),
+              shadows: const [
+                BoxShadow(
+                  color: Color(0x19000000),
+                  blurRadius: 25,
+                  offset: Offset(0, 0),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (searchText) {
+                setState(() {}); // 觸發UI更新
+              },
+              decoration: InputDecoration(
+                hintText: '搜尋站點名稱或地址',
+                hintStyle: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                ),
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 8),
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: Colors.grey[700],
+                    size: 24,
+                  ),
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: Colors.grey[700],
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                )
+                    : null,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 動態顯示搜尋結果或預設內容
+          Expanded(
+            child: _searchController.text.isEmpty
+                ? _buildDefaultContent( Icons.location_off_outlined,'請選擇站點') // 顯示預設內容
+                : _buildSearchResults(), // 顯示搜尋結果
+          ),
+        ],
+      ),
+    );
+  }
+}

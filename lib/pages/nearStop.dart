@@ -43,7 +43,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
   Future<List<Station>>? _futureNearStations;
   MarkerProvider? _markerProvider;
-  void _updateFutureNearStations() {
+  Future<void> _updateFutureNearStations() async {
+
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
     setState(() {
       _futureNearStations = getNearStation(Uri.encodeComponent(
@@ -55,14 +56,20 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   void initState() {
 
     super.initState();
-    final locationProvider =
-    Provider.of<LocationProvider>(context, listen: false);
-    _futureNearStations = getNearStation(Uri.encodeComponent(
-        "${locationProvider.latitude},${locationProvider.longitude}"));
+
+    busInit();
     // 添加對 _tabSelect 的監聽
     _tabSelect.addListener(_handleTabSelectChange);
   }
-
+  void busInit() async {
+  final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+  _futureNearStations = getNearStation(Uri.encodeComponent(
+      "${locationProvider.latitude},${locationProvider.longitude}"));
+  final stations = await _futureNearStations;
+  if (mounted) {
+    _loadBusMarkers(context, stations);
+  }
+}
   List<Map<String, dynamic>> convertStations(type,List<dynamic> stations) {
    if(type=="metro"){
      return stations.map((station) {

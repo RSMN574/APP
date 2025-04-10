@@ -1,4 +1,5 @@
 
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/database/getData.dart';
@@ -19,6 +20,7 @@ class EVStation extends StatefulWidget {
 }
 
 class _EVStationState extends State<EVStation> {
+  GoogleMapController? _mapController;
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _filteredStations = [];
   List<dynamic>? allEV=[]; // 所有公車資料
@@ -146,6 +148,23 @@ class _EVStationState extends State<EVStation> {
 
     setState(() => _filteredStations = filtered!);
     _loadMarkers();
+
+    // ✅ 若只剩一個結果，自動聚焦地圖
+    if (filtered?.length == 1) {
+      final station = filtered?.first;
+      print(station);
+      final lat = double.parse(station["PositionLat"]);
+      final lon =double.parse(station["PositionLon"]);
+
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(lat, lon),
+            zoom: 17.0,
+          ),
+        ),
+      );
+    }
   }
 
 
@@ -160,15 +179,43 @@ class _EVStationState extends State<EVStation> {
         },
         child:Scaffold(
       appBar: AppBar(
-        title: const Text('充電樁資訊'),
-        backgroundColor: Colors.green,
+        title: const Text(
+          '充電樁資訊',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.white, // 讓文字更清晰
+          ),
+        ),
+        centerTitle: true, // 讓標題置中
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.green.shade800, // 更深綠色
+                Colors.green.shade500, // 過渡色
+                Colors.greenAccent.shade200, // 增強漸層層次
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(16),
+              bottomRight: Radius.circular(16),
+            ),
+          ),
+        ),
+        elevation: 6, // 加強陰影，讓層次更明顯
+        shadowColor: Colors.black.withOpacity(0.3),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(
         children: [
           // 地圖元件放在背景中
-          map(),
+          map(  onMapCreated: (GoogleMapController controller) {
+            _mapController = controller;
+          },),
           // DraggableScrollableSheet 實現可拖曳、調整高度的面板
           DraggableScrollableSheet(
             initialChildSize: 0.3, // 初始高度佔螢幕比例
@@ -213,6 +260,18 @@ class _EVStationState extends State<EVStation> {
                         controller: _searchController,
                         decoration: InputDecoration(
                           hintText: '搜尋站點名稱或地址',
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.black54),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+
+                                _filterStations('');
+                              });
+                            },
+                          )
+                              : null,
                           prefixIcon: const Icon(
                             Icons.search,
                             color: Colors.black54,

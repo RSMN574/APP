@@ -15,7 +15,7 @@ class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderS
   String selectedTransport = '公車';
 
   // 城市数据
-  List<String> cities = ['台北市', '新北市', '臺中市'];
+  List<String> cities = [ '臺中市'];
   String selectedCity = '臺中市';
 
   // 公车数据
