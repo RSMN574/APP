@@ -30,7 +30,7 @@ class _TransportGridState extends State<TransportGrid> {
     {'icon': 'assets/icons/train-outline.svg', 'text': '高鐵', 'route': 'HSR'},
     {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'bike'},
     {'icon': 'assets/icons/car.svg', 'text': '計程車', 'route': 'taxi'},
-    {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'Intercity Bus'},
+    {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'IntercityBus'},
     // 添加更多項目測試分頁
     {'icon': 'assets/icons/parking.svg', 'text': '停車資訊', 'route': 'parking'},
     {'icon': 'assets/icons/ev-station.svg', 'text': '充電樁', 'route': 'EVStation'},
@@ -45,8 +45,8 @@ class _TransportGridState extends State<TransportGrid> {
     final int totalPages = (transportOptions.length / itemsPerPage).ceil();
 
     double screenWidth = MediaQuery.of(context).size.width;
-    double iconSize = screenWidth > 600 ? 32 : 27;
-    double crossAxisSpacing = screenWidth > 600 ? 45 : 20;
+    double iconSize = screenWidth > 600 ? 35 : 27;
+    double crossAxisSpacing = screenWidth > 600 ? 45 : 15;
     double mainAxisSpacing = 10;
 
     return Container(
@@ -155,7 +155,7 @@ class _TransportGridState extends State<TransportGrid> {
                   Text(
                     text,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14.2,
                       color: Colors.grey[800],
                       fontWeight: FontWeight.w600,
                       letterSpacing: 0.3,

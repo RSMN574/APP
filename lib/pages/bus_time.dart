@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:com.rsmn574.app/widget/bubble.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,12 +11,14 @@ import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../Const/regularClass.dart';
 import '../Const/regularConst.dart';
 import '../database/SQL/favorite_feature.dart';
 import '../database/bus/getBusTime.dart';
 import '../database/getData.dart';
+import '../task/task.dart';
 import '../widget/map.dart';
 import 'busStopInfo.dart';
 
@@ -124,14 +127,14 @@ void _scrollToIndex(int index) {
 
       final marker = Marker(
 
-        markerId: MarkerId(stop['StopUID']),
+        markerId: MarkerId(stop['StopID']),
         position: LatLng(
           stop['StopPosition']['PositionLat'],
           stop['StopPosition']['PositionLon'],
         ),
         infoWindow: InfoWindow(
           title: stop['stopName'] ?? 'Unknown',
-          snippet: stop['StopUID'] ?? 'Unknown',
+          snippet: stop['StopID'] ?? 'Unknown',
         ),
       );
       markers.add(marker);
@@ -142,14 +145,14 @@ void _scrollToIndex(int index) {
 
 
       final marker = Marker(
-        markerId: MarkerId(stop['StopUID']),
+        markerId: MarkerId(stop['StopID']),
         position: LatLng(
           stop['StopPosition']['PositionLat'],
           stop['StopPosition']['PositionLon'],
         ),
         infoWindow: InfoWindow(
           title: stop['stopName'] ?? 'Unknown',
-          snippet: stop['StopUID'] ?? 'Unknown',
+          snippet: stop['StopID'] ?? 'Unknown',
         ),
       );
       markers.add(marker);
@@ -171,7 +174,7 @@ void _scrollToIndex(int index) {
       } else {
         remainingSecondsNotifier.value = 40; // 重置倒计时
         _loadData(); // 加载数据
-        print("更新中");
+
       }
     });
   }
@@ -309,7 +312,7 @@ if(stopNamesWithTime1==null){
                "PlateNumb": nextBusTime["PlateNumb"],
                "Estimates":nextBusTime["Estimates"].toString(),
                "StopPosition":stop["StopPosition"],
-               "StopUID":stop['StopUID'],
+               "StopID":stop['StopID'],
                "isHighlighted":isHighlighted
              });
            }else{
@@ -320,7 +323,7 @@ if(stopNamesWithTime1==null){
                "PlateNumb": '',
                "Estimates":nextBusTime["Estimates"].toString(),
                "StopPosition":stop["StopPosition"],
-               "StopUID":stop['StopUID'],
+               "StopID":stop['StopID'],
                "isHighlighted":isHighlighted
              });
            }
@@ -334,7 +337,7 @@ if(stopNamesWithTime1==null){
              "PlateNumb": '',
              "Estimates":nextBusTime["Estimates"].toString(),
              "StopPosition":stop["StopPosition"],
-             "StopUID":stop['StopUID'],
+             "StopID":stop['StopID'],
              "isHighlighted":isHighlighted
            });
              }}
@@ -355,7 +358,7 @@ if(stopNamesWithTime1==null){
           isTimerOn.value=true;
           return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"],
             "StopPosition":a[0]["StopPosition"]?? "" .toString(),
-            "StopUID":a[0]['StopUID']};
+            "StopID":a[0]['StopID']};
         } else {
           int result = (a[0]["EstimateTime"] / 60).floor();
 
@@ -367,7 +370,7 @@ if(stopNamesWithTime1==null){
               "PlateNumb": result < 3 ?  a[0]["PlateNumb"] : "",
               "Estimates": a[0]["Estimates"],
               "StopPosition":a[0]["StopPosition"]?? "",
-              "StopUID":a[0]['StopUID']
+              "StopID":a[0]['StopID']
             };
 
 
@@ -392,7 +395,7 @@ if(stopNamesWithTime1==null){
                 "PlateNumb": a[0]["PlateNumb"],
                 "Estimates": a[0]["Estimates"],
                 "StopPosition":a[0]["StopPosition"]?? "",
-                "StopUID":a[0]['StopUID']
+                "StopID":a[0]['StopID']
               };
 
 
@@ -411,7 +414,7 @@ if(stopNamesWithTime1==null){
             "PlateNumb": "",
               "Estimates": a[0]["Estimates"],
               "StopPosition":a[0]["StopPosition"]?? "",
-              "StopUID":a[0]['StopUID']
+              "StopID":a[0]['StopID']
             };
           }
 
@@ -424,18 +427,18 @@ if(stopNamesWithTime1==null){
             "Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
 
             "StopPosition":a[0]["StopPosition"]?? "",
-            "StopUID":a[0]['StopUID']
+            "StopID":a[0]['StopID']
           };
         }
       } else {
         return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
-          "StopPosition":a[0]["StopPosition"]?? "","StopUID":a[0]['StopUID']
+          "StopPosition":a[0]["StopPosition"]?? "","StopID":a[0]['StopID']
 };
       }
     }
     return {"time": "error", "color": "班次結束", "PlateNumb": "","Estimates":  "",
 
-      "StopPosition": "", "StopUID":''
+      "StopPosition": "", "StopID":''
 };
   }
 // 返回每个隐藏的菜单项
@@ -839,7 +842,7 @@ padding: const EdgeInsets.only(bottom: 25),
               child:ListTile(
 
                 onTap: () {
-                  _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"]);
+                  _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"],stop);
 
                 },
                 leading: Container(
@@ -920,7 +923,7 @@ padding: const EdgeInsets.only(bottom: 25),
     );
   }
 
-  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates,) {
+  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates, stop,) {
 
     return showDialog(
       context: context,
@@ -947,7 +950,7 @@ padding: const EdgeInsets.only(bottom: 25),
                   children: [
                     _buildDialogOption(context, Icons.info, "下班車資訊","info",{'estimates':estimates}),
                     _buildDialogOption(context, Icons.schedule, "站牌查詢","stop",{"stop":stopName}),
-                    _buildDialogOption(context, Icons.notifications, "到站通知","notification",{}),
+                    _buildDialogOption(context, Icons.notifications, "到站通知","notification",stop),
                     _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
                     _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
                   ],
@@ -1125,7 +1128,22 @@ padding: const EdgeInsets.only(bottom: 25),
               context,
               MaterialPageRoute(builder: (context) => BusStopInfo(other["stop"], city: widget.city,))
           );
-        }else if(id=="map"){
+        }else if(id=="notification"){
+
+
+          await startReminder(
+            transportType: 'bus',
+            routeName: widget.routeName,
+            routeID: widget.routeID.toString(),
+            city: widget.city,
+            stopID: other["StopID"],
+            UserStartingStopName:'',
+            UserDestinationStopName: other["stopName"],
+          );
+
+
+
+
 
 
 

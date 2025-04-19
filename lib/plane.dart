@@ -440,6 +440,7 @@ class _PlaneState extends State<Plane> {
             }
 
             final flights = snapshot.data!;
+            print(snapshot.data!);
             return FlightInfoCard(flight: flights[0]);
           },
         );
@@ -865,7 +866,6 @@ class _FlightInfoCardState extends State<FlightInfoCard>
   bool _expanded = false;
   late AnimationController _controller;
   late Animation<double> _rotationAnimation;
-  late Animation<double> _heightAnimation;
 
   @override
   void initState() {
@@ -875,10 +875,6 @@ class _FlightInfoCardState extends State<FlightInfoCard>
       vsync: this,
     );
     _rotationAnimation = Tween(begin: 0.0, end: 0.5).animate(_controller);
-    _heightAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
-    );
   }
 
   @override
@@ -896,18 +892,6 @@ class _FlightInfoCardState extends State<FlightInfoCard>
     }
   }
 
-  String _getTimeDisplay() {
-    final data = widget.flight;
-    final depTime = data['ActualDepartureTime'] ??
-        data['EstimatedDepartureTime'] ??
-        data['ScheduleDepartureTime'];
-    final arrTime = data['ActualArrivalTime'] ??
-        data['EstimatedArrivalTime'] ??
-        data['ScheduleArrivalTime'];
-
-    return isDeparture ? _formatTime(depTime) : _formatTime(arrTime);
-  }
-
   Color _getStatusColor() {
     final remark = (isDeparture
         ? widget.flight['DepartureRemark']
@@ -918,6 +902,15 @@ class _FlightInfoCardState extends State<FlightInfoCard>
     if (remark.contains('取消')) return Colors.red;
     return Colors.blue.shade600;
   }
+
+  // 用 ArrivalRemark/DepartureRemark 判斷出發與抵達（避免兩者皆有的狀況）
+  bool get isArrival =>
+      widget.flight['ArrivalRemark'] != null &&
+          widget.flight['DepartureRemark'] == null;
+
+  bool get isDeparture =>
+      widget.flight['DepartureRemark'] != null &&
+          widget.flight['ArrivalRemark'] == null;
 
   String get airportCode => isDeparture
       ? widget.flight['DepartureAirportID'] ?? '--'
@@ -931,24 +924,23 @@ class _FlightInfoCardState extends State<FlightInfoCard>
       ? widget.flight['DepartureGate'] ?? '--'
       : widget.flight['ArrivalGate'] ?? '--';
 
-  bool get isDeparture => widget.flight['DepartureAirportID'] != null;
-  bool get isArrival => widget.flight['ArrivalAirportID'] != null;
-
   Widget _buildAirlineBadge() {
     return Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
         color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),),
-    child: Center(
-    child: Text(
-    widget.flight['AirlineID'] ?? '--',
-    style: TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.bold,
-    color: Colors.blue.shade800)),
-    ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          widget.flight['AirlineID'] ?? '--',
+          style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade800),
+        ),
+      ),
     );
   }
 
@@ -959,17 +951,41 @@ class _FlightInfoCardState extends State<FlightInfoCard>
     final actualTime = isDeparture
         ? widget.flight['ActualDepartureTime']
         : widget.flight['ActualArrivalTime'];
+    final estimatedTime = isDeparture
+        ? widget.flight['EstimatedDepartureTime']
+        : widget.flight['EstimatedArrivalTime'];
+    final remark = isDeparture
+        ? widget.flight['DepartureRemark']
+        : widget.flight['ArrivalRemark'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('預定時間：${_formatTime(scheduledTime)}',
-            style: TextStyle(color: Colors.grey.shade600)),
+        Text(
+          '預定時間：${_formatTime(scheduledTime)}',
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
         if (actualTime != null)
-          Text('實際時間：${_formatTime(actualTime)}',
-              style: TextStyle(
-                  color: _getStatusColor(),
-                  fontWeight: FontWeight.w600)),
+          Text(
+            '實際時間：${_formatTime(actualTime)}',
+            style: TextStyle(
+              color: _getStatusColor(),
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else if (estimatedTime != null)
+          Text(
+            '預估時間：${_formatTime(estimatedTime)}',
+            style: const TextStyle(
+              color: Colors.orange,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        if (remark != null && remark.toString().trim().isNotEmpty)
+          Text(
+            '備註：$remark',
+            style: TextStyle(color: Colors.red.shade600),
+          ),
       ],
     );
   }
@@ -985,9 +1001,10 @@ class _FlightInfoCardState extends State<FlightInfoCard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
               Text(value,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                  style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ],
           ),
         ],
@@ -998,9 +1015,9 @@ class _FlightInfoCardState extends State<FlightInfoCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    // 使用 AnimatedSize 自動調整 Card 高度，避免固定高度限制導致 overflow
     return Card(
-      elevation: 4,
+      elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
@@ -1011,157 +1028,148 @@ class _FlightInfoCardState extends State<FlightInfoCard>
             _expanded ? _controller.forward() : _controller.reverse();
           });
         },
-        child: AnimatedContainer(
+        child: AnimatedSize(
           duration: const Duration(milliseconds: 300),
-          constraints: BoxConstraints(
-            minHeight: 120,
-            maxHeight: _expanded ? MediaQuery.of(context).size.height * 0.6 : 120,
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header Section
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildAirlineBadge(),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 航空公司与航班号
-                        Row(
+          curve: Curves.easeInOut,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header 區塊
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAirlineBadge(),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 航空公司與航班號
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '${widget.flight['AirlineID']} ${widget.flight['FlightNumber']}',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor().withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  isDeparture ? '出發' : '抵達',
+                                  style: TextStyle(
+                                    color: _getStatusColor(),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // 機場與航廈資訊
+                          Text(
+                            '$airportCode 第$terminal航廈',
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade600),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // 時間資訊區域
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Flexible(child: _buildTimeComparison()),
+                    Icon(
+                      isDeparture ? Icons.flight_takeoff : Icons.flight_land,
+                      size: 32,
+                      color: theme.primaryColor,
+                    ),
+                  ],
+                ),
+                // 展開詳細資訊區塊
+                if (_expanded)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: ConstrainedBox(
+                      // 限制最大高度，超出部分可滑動
+                      constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4),
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Flexible(
-                              child: Text(
-                                '${widget.flight['AirlineID']} ${widget.flight['FlightNumber']}',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                            const Divider(height: 24),
+                            _buildDetailRow(
+                              Icons.departure_board,
+                              '登機門',
+                              gate,
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
+                            if (isArrival)
+                              _buildDetailRow(
+                                Icons.luggage,
+                                '行李轉盤',
+                                widget.flight['BaggageClaim'] ?? '--',
                               ),
-                              decoration: BoxDecoration(
-                                color: _getStatusColor().withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                isDeparture ? '出發' : '抵達',
-                                style: TextStyle(
-                                  color: _getStatusColor(),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                            _buildDetailRow(
+                              Icons.assignment_ind,
+                              '報到櫃台',
+                              widget.flight['CheckCounter'] ?? '--',
+                            ),
+                            _buildDetailRow(
+                              Icons.update,
+                              '最後更新',
+                              _formatTime(widget.flight['UpdateTime']),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        // 机场与航厦信息
-                        Text(
-                          '$airportCode 第$terminal航廈',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // 时间信息区域
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: _buildTimeComparison(),
-                  ),
-                  Icon(
-                    isDeparture ? Icons.flight_takeoff : Icons.flight_land,
-                    size: 32,
-                    color: theme.primaryColor,
-                  ),
-                ],
-              ),
-
-              // 可展开详细信息
-              SizeTransition(
-                sizeFactor: _heightAnimation,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.4,
-                  ),
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Divider(height: 24),
-                        _buildDetailRow(
-                          Icons.departure_board,
-                          '登機門',
-                          gate,
-                        ),
-                        if (isArrival)
-                          _buildDetailRow(
-                            Icons.luggage,
-                            '行李轉盤',
-                            widget.flight['BaggageClaim'] ?? '--',
-                          ),
-                        _buildDetailRow(
-                          Icons.assignment_ind,
-                          '報到櫃台',
-                          widget.flight['CheckCounter'] ?? '--',
-                        ),
-                        _buildDetailRow(
-                          Icons.update,
-                          '最後更新',
-                          _formatTime(widget.flight['UpdateTime']),
-                        ),
-                      ],
-                    ),
+                // 展開指示器
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _expanded
+                      ? Icon(Icons.expand_less,
+                      color: Colors.grey.shade500, key: const ValueKey(1))
+                      : RotationTransition(
+                    turns: _rotationAnimation,
+                    child: Icon(Icons.expand_more,
+                        color: Colors.grey.shade500,
+                        key: const ValueKey(2)),
                   ),
                 ),
-              ),
-
-              // 展开指示器
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _expanded
-                    ? Icon(
-                  Icons.expand_less,
-                  color: Colors.grey.shade500,
-                )
-                    : RotationTransition(
-                  turns: _rotationAnimation,
-                  child: Icon(
-                    Icons.expand_more,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+      // 卡片的背景與陰影：現代化設計
+      // (Card 本身內建 elevation，但這裡也可以根據需求額外調整)
     );
   }
 }
+
 // 加载指示器
 Widget _buildLoadingIndicator() {
   return Center(

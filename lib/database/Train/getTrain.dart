@@ -168,7 +168,7 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
   }
 }
 //取得指定[日期],[起迄站間]之站間時刻表資料
-Future<List<dynamic>> fetchTrainRoute(departurePosition,destinationPosition,time) async {
+Future<List<dynamic>> fetchTrainRoute(String departurePosition,String destinationPosition,String time) async {
 
   // 对参数进行 URL 编码
   String encodedDeparture = Uri.encodeComponent(departurePosition);

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:com.rsmn574.app/pages/HSR/HSRSchedulePage.dart';
 import 'package:com.rsmn574.app/pages/bus_time.dart';
 import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
+import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -28,16 +29,97 @@ class _CommuteState extends State<Commute> {
 
     fetchScheduleData(); // 初始化时获取数据
   }
+  Future<void> scheduleTodayReminders() async {
+    // 1. 撈出所有排程
 
+    final data = scheduleData;
+    // data 型態: List<Map<String, dynamic>>
+
+    // 2. 取得今天的年月日
+    final now = DateTime.now();
+    bool isToday(DateTime t) =>
+        t.year == now.year && t.month == now.month && t.day == now.day;
+
+    // 3. 過濾出 time 在今天的那幾筆
+    final todayItems = data.where((item) {
+      final t = item['time'];
+      if (t == null) return false;
+      // 如果拿到的是 String：
+      final dt = t is String
+          ? DateTime.parse(t)
+          : t is DateTime
+          ? t
+          : null;
+      return dt != null && isToday(dt);
+    }).toList();
+
+    // 4. 逐筆設定提醒
+
+    for (final item in todayItems) {
+      print(item);
+      final type = item['type'] as String;
+      if (type == 'train') {
+        final routeName = item['Route'].toString();
+        final routeID   = item['routeID']?.toString() ?? '';
+        final city      = item['city']?.toString()    ?? '';
+        final UserStartingStopName      = item['UserStartingStopName']    ?? '';
+        final UserDestinationStopName      = item['UserDestinationStopName']    ?? '';
+        // 假設你有把 StopID 存到 other 裡
+        final other = item['other'];
+
+
+        // 呼叫 startReminder
+        await startReminder(
+          transportType: type,
+          routeName:     routeName,
+          routeID:       routeID,
+          city:          city,
+          UserStartingStopName:UserStartingStopName, UserDestinationStopName:UserDestinationStopName ,
+        );
+
+      }else if (type == 'bus') {
+        final routeName = item['Route'].toString();
+        final routeID   = item['routeID']?.toString() ?? '';
+        final city      = item['city']?.toString()    ?? '';
+        // 假設你有把 StopID 存到 other 裡
+        final other = item['other'];
+        final stopID   = other?['StopID']?.toString() ??
+            item['StopID']?.toString()   ??
+            '';
+        final UserStartingStopName      = item['UserStartingStopName']    ?? '';
+        final UserDestinationStopName      = item['UserDestinationStopName']    ?? '';
+        if (stopID.isEmpty) {
+          print("第 ${item['id']} 筆缺少 stopID，跳過");
+          continue;
+        }
+
+        // 呼叫 startReminder
+        await startReminder(
+          transportType: type,
+          routeName:     routeName,
+          routeID:       routeID,
+          city:          city,
+          stopID:        stopID,
+          UserStartingStopName:UserStartingStopName, UserDestinationStopName:UserDestinationStopName ,
+        );
+
+      }
+
+
+
+    }
+  }
   Future<void> fetchScheduleData() async {
     final db = schedule();
     await db.deleteExpiredSchedules( );
     final data = await db.getSchedule(
       "schedule",
     );
+    print(data);
     setState(() {
       scheduleData = data;
     });
+    scheduleTodayReminders();
   }
 
   // 下拉刷新方法
@@ -58,6 +140,7 @@ class _CommuteState extends State<Commute> {
               itemCount: filteredData.length,
               itemBuilder: (context, index) {
                 final item = filteredData[index];
+                print(item);
                 return _buildScheduleCard(item);
               },
             ),
@@ -281,6 +364,9 @@ class _CommuteState extends State<Commute> {
             ScaffoldMessenger.of(context)
                 .showSnackBar(const SnackBar(content: Text('行程刪除失败。')));
           }
+
+          // 1. 呼叫 removeReminder 刪除該筆提醒
+           await removeReminder(other!['Route'].toString());
           Navigator.pop(context); // 关闭弹窗
         } else if (id == "info") {
           showDialog(
@@ -1104,6 +1190,7 @@ class _CommuteState extends State<Commute> {
 
   @override
   Widget build(BuildContext context) {
+    scheduleTodayReminders();
     final List<Widget> pages = [
       _buildCommutePage("commute"),
       _buildCommutePage("trip"),

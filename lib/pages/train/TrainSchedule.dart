@@ -23,6 +23,38 @@ class TrainSchedulePage extends StatelessWidget {
     required this.time,
   }) : super(key: key);
 
+  Map printStartEndDepartureTimes(Map<String, dynamic> trainData) {
+    // 1. 取出「起站」與「迄站」的中文站名
+    final dailyInfo = trainData['DailyTrainInfo'] as Map<String, dynamic>;
+    final startZh = dailyInfo['StartingStationName']['Zh_tw'] as String;
+    final endZh   = dailyInfo['EndingStationName']['Zh_tw']   as String;
+
+    // 2. 停靠時間列表（看你 API 回來叫什麼，這邊假設是 StopTimes）
+    final stops = (trainData['StopTimes'] as List<dynamic>)
+        .cast<Map<String, dynamic>>();
+
+    // 3. 找到對應站名的那筆 stop，並回傳它的 DepartureTime
+    String? findDeparture(String stationZh) {
+      final stop = stops.firstWhere(
+            (s) => s['StationName']['Zh_tw'] == stationZh,
+        orElse: () => <String, dynamic>{},
+      );
+      return stop.isNotEmpty ? stop['DepartureTime'] as String : null;
+    }
+
+    final startDeparture = findDeparture(startZh);
+    final endDeparture   = findDeparture(endZh);
+
+    // 4. 印出來看看
+    print('起站 $startZh 的 DepartureTime：$startDeparture');
+    print('迄站 $endZh 的 DepartureTime：$startDeparture');
+    return {
+      "startDeparture":startDeparture,
+      "endDeparture":endDeparture
+
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -97,16 +129,23 @@ List<dynamic> stationNames = trainData["StopTimes"]
                             return 'other';
                         }
                       }
-
+                      Map timeMap=printStartEndDepartureTimes(trainData);
                       final schedule _schedule = schedule();
                       final output = await _schedule.addSchedule(
-
                           UserStartingStopName: result['departure'],
                           UserDestinationStopName: result['destination'],
-                          StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                          FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-                          route: trainData['DailyTrainInfo']['TrainNo'], type: 'train',
-                          other:{"DateTime":  (time).toString(),"trainType":trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],"category":getCategory(result['category']),"seatNumber":result["_seatNumber"]}
+                          StartingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          FinalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          route: trainData['DailyTrainInfo']['TrainNo'],
+                          type: 'train',
+                          other: {
+                            "DateTime": time.toString(),
+                            "trainType": trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                            "category": getCategory(result['category']),
+                            "seatNumber": result["seatNumber"],
+                            "startDeparture": timeMap["startDeparture"],
+                            "endDeparture": timeMap["endDeparture"]
+                          }
                       );
 
 // 根据 addSchedule 方法返回的结果进行处理

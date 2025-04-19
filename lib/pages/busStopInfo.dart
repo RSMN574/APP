@@ -10,10 +10,19 @@ import '../database/getData.dart';
 import '../database/bus/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../pages/bus_time.dart';
+import '../utils/convert.dart';
 import '../widget/bubble.dart';
 import '../widget/error.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
+// 在檔案頂部(其他import之後)宣告enum
+enum SortType {
+  nameAsc,     // 站名正序 (A-Z)
+  nameDesc,    // 站名倒序 (Z-A)
+  timeAsc, // 站序正序 (1-10)
+  timeDesc // 站序倒序 (10-1)
+}
 class BusStopInfo extends StatefulWidget {
+
   final String stop;
   final String city;
   const BusStopInfo(this.stop, {super.key, required this.city});
@@ -22,22 +31,94 @@ class BusStopInfo extends StatefulWidget {
 }
 
 class _BusStopInfoState extends State<BusStopInfo> {
-  final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
 
+  final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
+  final _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
   List<Map<String, dynamic>> data = [];
-  final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
+  late List<Map<String, dynamic>> _originalData; // 原始数据
+  late List<Map<String, dynamic>> _sortedData;   // 排序后数据
   // 构建 TabBar
   @override
   void initState() {
     super.initState();
     // _loadData(); // 初次加载数据
+
   }
   @override
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     super.dispose();
   }
+  void _applySort() {
+    _sortedData = List<Map<String, dynamic>>.from(_originalData);
 
+    switch(_sortNotifier.value) {
+      case SortType.nameAsc:
+        _sortedData.sort((a, b) => getChineseName(a['StopName']["Zh_tw"]).compareTo(getChineseName(b['StopName']["Zh_tw"])));
+        break;
+      case SortType.nameDesc:
+        _sortedData.sort((a, b) => getChineseName(b['StopName']["Zh_tw"]).compareTo(getChineseName(a['StopName']["Zh_tw"])));
+        break;
+      case SortType.timeAsc:
+        _sortedData.sort(_timeAscComparator);
+        break;
+      case SortType.timeDesc:
+        _sortedData.sort(_timeDescComparator);
+        break;
+    }
+  }
+
+  int _timeAscComparator(a, b) {
+    if (a["time"] == "即將到站") return -1;
+    if (b["time"] == "即將到站") return 1;
+    if (a["time"] == "班次結束") return 1;
+    if (b["time"] == "班次結束") return -1;
+    return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
+  }
+
+  int _timeDescComparator(a, b) {
+    if (a["time"] == "即將到站") return 1;
+    if (b["time"] == "即將到站") return -1;
+    if (a["time"] == "班次結束") return -1;
+    if (b["time"] == "班次結束") return 1;
+    return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
+  }
+
+  void _showSortDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("選擇排序方式"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildSortOption('站序 1→10', SortType.nameAsc),
+              _buildSortOption('站序 10→1', SortType.nameDesc),
+              _buildSortOption('時間 早→晚', SortType.timeAsc),
+              _buildSortOption('時間 晚→早', SortType.timeDesc),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSortOption(String title, SortType type) {
+    return ListTile(
+      title: Text(title),
+      leading: Radio<SortType>(
+        value: type,
+        groupValue:  _sortNotifier.value ,
+        onChanged: (SortType? value) {
+          if (value != null) {
+            _applySort();
+            Navigator.pop(context); // 關閉對話框
+          }
+        },
+      ),
+    );
+  }
 
   // 获取到站时间列表的异步方法
   Future<Map<String, dynamic>> getTimeList(stopData) async {
@@ -144,17 +225,47 @@ class _BusStopInfoState extends State<BusStopInfo> {
     }
 
     // 对 stop["time"] 按照时间升序排序
-    finalList.sort((a, b) {
-      if (a["time"] == "即將到站") return -1;
-      if (b["time"] == "即將到站") return 1;
-      if (a["time"] == "班次結束") return 1;
-      if (b["time"] == "班次結束") return -1;
+    // finalList.sort((a, b) {
+    //   if (a["time"] == "即將到站") return -1;
+    //   if (b["time"] == "即將到站") return 1;
+    //   if (a["time"] == "班次結束") return 1;
+    //   if (b["time"] == "班次結束") return -1;
+    //
+    //   int aTimeInMinutes = _parseTimeToMinutes(a["time"]);
+    //   int bTimeInMinutes = _parseTimeToMinutes(b["time"]);
+    //
+    //   return aTimeInMinutes.compareTo(bTimeInMinutes);
+    // });
 
-      int aTimeInMinutes = _parseTimeToMinutes(a["time"]);
-      int bTimeInMinutes = _parseTimeToMinutes(b["time"]);
-
-      return aTimeInMinutes.compareTo(bTimeInMinutes);
-    });
+// 根據排序類型排序
+    // 根據排序類型排序
+    switch( _sortNotifier.value ) {
+      case SortType.nameAsc:
+        finalList.sort((a, b) => a['StopSequence'].compareTo(b['StopSequence']));
+        break;
+      case SortType.nameDesc:
+        finalList.sort((a, b) => b['StopSequence'].compareTo(a['StopSequence']));
+        break;
+      case SortType.timeAsc:
+        finalList.sort((a, b) {
+          // 處理"班次結束"等特殊值
+          if (a["time"] == "即將到站") return -1;
+          if (b["time"] == "即將到站") return 1;
+          if (a["time"] == "班次結束") return 1;
+          if (b["time"] == "班次結束") return -1;
+          return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
+        });
+        break;
+      case SortType.timeDesc:
+        finalList.sort((a, b) {
+          if (a["time"] == "即將到站") return 1;
+          if (b["time"] == "即將到站") return -1;
+          if (a["time"] == "班次結束") return -1;
+          if (b["time"] == "班次結束") return 1;
+          return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
+        });
+        break;
+    }
 
     return RefreshIndicator(
         onRefresh: () async {
@@ -297,6 +408,69 @@ class _BusStopInfoState extends State<BusStopInfo> {
         )
     );
   }
+  // Future<void> _loadAndProcessData() async {
+  //   final stopEstimatedTime = await fetchBusStopInfo(); // 获取原始数据
+  //   _originalData = await _processData(stopEstimatedTime);
+  //   _applySort(); // 初始排序
+  //   _streamController.add(data); // 向数据流中添加新数据
+  // }
+//   Future<List<Map<String, dynamic>>> _processData(stopEstimatedTime)async {
+//     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
+//     // 使用 Map 來確保每個路線只出現一次
+//     List<Map<String, dynamic>> uniqueList;
+//     final Map<String, Map<String, dynamic>> uniqueRoutes = {};
+//     for (var item in stopEstimatedTime) {
+//       final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
+//       if (!uniqueRoutes.containsKey(routeKey) ||
+//           _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
+//         uniqueRoutes[routeKey] = item;
+//       }
+//     }
+//
+//     uniqueList= uniqueRoutes.values.toList();
+//
+//     List<Map<String, dynamic>> finalList=[];
+//
+//     // 按 StationID 分类
+//     Map<String, List<Map<String, dynamic>>> groupedData = {};
+//     for (var item in uniqueList) {
+//       String stationID = item["StationID"];
+//       groupedData.putIfAbsent(stationID, () => []).add(item);
+//     }
+//
+//     // 打印分组后的结果
+//     groupedData.forEach((stationID, items) {
+//       if(stationID==direction){
+//         finalList=items;
+//         // print("finalList");
+//         // print(finalList);
+//       }
+//       // print("StationID: $stationID");
+//       // print("Data: $items");
+//     });
+//
+//     for (var i in finalList) {
+//
+//       // 根据方向查找去程或回程的目的地信息
+//       if (i['Direction'] == 1) {
+//         var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+//
+//         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+//         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+//         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+//         i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+//         i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+//       } else if (i['Direction'] == 0) {
+//         var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+//         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+//         i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+//         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+//         i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+//         i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+//       }
+//     }
+// return finalList;
+//   }
   Future<void> _loadData() async {
 
 
@@ -441,6 +615,16 @@ class _BusStopInfoState extends State<BusStopInfo> {
                                   itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
                                     SelectView(Icons.info, '站牌資訊', 'A'),
                                     SelectView(Icons.add, '加入收藏', 'B'),
+                                    const PopupMenuItem<String>(
+                                      value: 'sort',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.sort, color: Colors.black),
+                                          SizedBox(width: 8),
+                                          Text('排序方式'),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                   onSelected: (String action) async {
                                     if (action == 'B') {
@@ -472,6 +656,8 @@ class _BusStopInfoState extends State<BusStopInfo> {
                                           text: '儲存項目時發生錯誤',
                                         );
                                       }
+                                    }else if (action == 'sort') {
+                                      _showSortDialog(context); // 顯示排序選擇對話框
                                     }
                                   },
                                 ),

@@ -98,3 +98,7 @@ double calculateApproxDistance(double lat1, double lon1, double lat2, double lon
   double lonDiff = (lon2 - lon1) * meterPerDegree * cos(lat1 * pi / 180);
   return sqrt(latDiff * latDiff + lonDiff * lonDiff);
 }
+String getChineseName(dynamic stopName) {
+  final name = (stopName is Map) ? stopName['Zh_tw']?.toString() ?? '' : '';
+  return name.replaceAll(RegExp(r'[()（）]'), ''); // 移除括號內容
+}

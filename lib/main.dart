@@ -12,6 +12,7 @@ import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
 import 'HSR.dart';
+import 'IntercityBus.dart';
 import 'commute.dart';
 import 'database/SQL/schedule.dart';
 import 'database/SQL/sqlite.dart';
@@ -149,6 +150,8 @@ class _NavigationBarAppState extends State<NavigationBarApp>
               "bike": (BuildContext context) => _buildAnimatedPage(Bike()),
               "HSR": (BuildContext context) => _buildAnimatedPage(HSR()),
               "EVStation": (BuildContext context) => _buildAnimatedPage(EVStation()),
+              "IntercityBus": (BuildContext context) => _buildAnimatedPage(IntercityBus()),
+
             },
             theme: appTheme,
             themeMode: ThemeMode.system,

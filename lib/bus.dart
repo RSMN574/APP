@@ -630,21 +630,23 @@ Future <List>_getData()async{
 
   Widget tab(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(10),
+      margin: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.white.withOpacity(0.95)
+            : Colors.grey[900]!.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          _buildTabBar(), // 保持原有結構
+          _buildTabBar(),
           Expanded(child: _buildPageView()),
         ],
       ),
@@ -653,112 +655,135 @@ Future <List>_getData()async{
 
   Widget _buildTabBar() {
     return Container(
+      height: 85,
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.white.withOpacity(0.7)
+            : Colors.grey[850]!.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 6,
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
-        borderRadius: BorderRadius.circular(12),
       ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 90,
-        child: ListView.builder(
-          physics: const BouncingScrollPhysics(),
-          itemCount: items.length,
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (ctx, index) => _buildTabItem(index),
-        ),
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        itemCount: items.length,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (ctx, index) => _buildTabItem(index),
       ),
     );
   }
 
   Widget _buildTabItem(int index) {
     final bool isSelected = _current == index;
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _current = index;
-              updateCurrent();
-            });
-            pageController.animateToPage(
-              _current,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.ease,
-            );
-          },
-          child: AnimatedContainer(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _current = index;
+            updateCurrent();
+          });
+          pageController.animateToPage(
+            _current,
             duration: const Duration(milliseconds: 300),
-            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            width: 100,
-            height: 60,
-            decoration: BoxDecoration(
-              gradient: isSelected
-                  ? LinearGradient(
-                colors: [
-                  busBlue.withOpacity(0.7),
-                  busBlue,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-                  : LinearGradient(
-                colors: [
-                  Colors.grey.shade200,
-                  Colors.grey.shade100,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(isSelected ? 16 : 10),
-              border: isSelected ? Border.all(color: busBlue, width: 2.5) : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(2, 2),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icons[index],
-                    size: isSelected ? 26 : 22,
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
+            curve: Curves.easeInOut,
+          );
+        },
+        child: AnimatedScale(
+          scale: isSelected ? 1.05 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                width: 90,
+                height: 60,
+                decoration: BoxDecoration(
+                  gradient: isSelected
+                      ? LinearGradient(
+                    colors: [
+                      busBlue.withOpacity(0.9),
+                      busBlue.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                      : LinearGradient(
+                    colors: [
+                      Colors.grey.withOpacity(0.1),
+                      Colors.grey.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    items[index],
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.grey.shade700,
-                      fontWeight: FontWeight.bold,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isSelected
+                      ? Border.all(
+                    color: busBlue.withOpacity(0.5),
+                    width: 1.5,
+                  )
+                      : null,
+                  boxShadow: isSelected
+                      ? [
+                    BoxShadow(
+                      color: busBlue.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
-                ],
+                  ]
+                      : [],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icons[index],
+                      size: isSelected ? 24 : 20,
+                      color: isSelected
+                          ? Colors.white
+                          : Theme.of(context).brightness == Brightness.light
+                          ? Colors.grey.shade600
+                          : Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      items[index],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : Theme.of(context).brightness == Brightness.light
+                            ? Colors.grey.shade600
+                            : Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+              if (isSelected)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.only(top: 4),
+                  width: 24,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: busBlue,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+            ],
           ),
         ),
-        if (isSelected)
-          Container(
-            margin: const EdgeInsets.only(top: 4),
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: busBlue,
-              shape: BoxShape.circle,
-            ),
-          ),
-      ],
+      ),
     );
   }
 

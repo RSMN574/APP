@@ -166,10 +166,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none, // 無邊框
-                ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
@@ -493,10 +490,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none, // 無邊框
-                ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
@@ -570,10 +564,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none, // 無邊框
-                ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
@@ -816,10 +807,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none, // 無邊框
-                ),
+
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(

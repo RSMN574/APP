@@ -133,7 +133,7 @@ class schedule {
         }
 
 
-            if(type=="train" || type=="HSR" ) {
+            if(type=="train"  ) {
         // 尝试插入新记录
         await db.insert(
           'schedule',
@@ -146,15 +146,40 @@ class schedule {
             'Route': route,
             'other': jsonEncode({
 
-              "trainType": other?["trainType"] ?? ""
+              "trainType": other?["trainType"] ?? "",
+              'startDeparture':other?["startDeparture"],
+              'endDeparture':other?["endDeparture"]
             }), // 轉為 JSON 字串存入
             'category': other?["category"],
             'time':  other?["DateTime"] ,
-            'seatNumber':other?["seatNumber"]
+            'seatNumber':other?["seatNumber"],
+
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-      }else{
+      }
+            else if( type=="HSR" ) {
+          // 尝试插入新记录
+          await db.insert(
+            'schedule',
+            {
+              'UserStartingStopName': UserStartingStopName,
+              'UserDestinationStopName': UserDestinationStopName,
+              'StartingStopName': StartingStopName,
+              'FinalStopName': FinalStopName,
+              'type': type,
+              'Route': route,
+              'other': jsonEncode({
+
+                "trainType": other?["trainType"] ?? ""
+              }), // 轉為 JSON 字串存入
+              'category': other?["category"],
+              'time':  other?["DateTime"] ,
+              'seatNumber':other?["seatNumber"]
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }else{
               // 尝试插入新记录
               await db.insert(
                 'schedule',
