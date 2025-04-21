@@ -1,3 +1,5 @@
+import 'package:animated_list_plus/animated_list_plus.dart';
+import 'package:animated_list_plus/transitions.dart';
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -33,9 +35,9 @@ class BusStopInfo extends StatefulWidget {
 class _BusStopInfoState extends State<BusStopInfo> {
 
   final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
+
   final _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
   List<Map<String, dynamic>> data = [];
-  late List<Map<String, dynamic>> _originalData; // 原始数据
   late List<Map<String, dynamic>> _sortedData;   // 排序后数据
   // 构建 TabBar
   @override
@@ -49,24 +51,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
     _streamController.close(); // 关闭 StreamController
     super.dispose();
   }
-  void _applySort() {
-    _sortedData = List<Map<String, dynamic>>.from(_originalData);
 
-    switch(_sortNotifier.value) {
-      case SortType.nameAsc:
-        _sortedData.sort((a, b) => getChineseName(a['StopName']["Zh_tw"]).compareTo(getChineseName(b['StopName']["Zh_tw"])));
-        break;
-      case SortType.nameDesc:
-        _sortedData.sort((a, b) => getChineseName(b['StopName']["Zh_tw"]).compareTo(getChineseName(a['StopName']["Zh_tw"])));
-        break;
-      case SortType.timeAsc:
-        _sortedData.sort(_timeAscComparator);
-        break;
-      case SortType.timeDesc:
-        _sortedData.sort(_timeDescComparator);
-        break;
-    }
-  }
 
   int _timeAscComparator(a, b) {
     if (a["time"] == "即將到站") return -1;
@@ -109,16 +94,21 @@ class _BusStopInfoState extends State<BusStopInfo> {
       title: Text(title),
       leading: Radio<SortType>(
         value: type,
-        groupValue:  _sortNotifier.value ,
+        groupValue: _sortNotifier.value,
         onChanged: (SortType? value) {
           if (value != null) {
-            _applySort();
-            Navigator.pop(context); // 關閉對話框
+            _sortNotifier.value = value; // ✅ 更新排序方式
+            Navigator.pop(context); // ✅ 關閉 dialog
           }
         },
       ),
+      onTap: () {
+        _sortNotifier.value = type; // ✅ 點 ListTile 也能改
+        Navigator.pop(context);
+      },
     );
   }
+
 
   // 获取到站时间列表的异步方法
   Future<Map<String, dynamic>> getTimeList(stopData) async {
@@ -168,121 +158,59 @@ class _BusStopInfoState extends State<BusStopInfo> {
     }
   }
 
-  Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
-    List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
-    // 使用 Map 來確保每個路線只出現一次
-    List<Map<String, dynamic>> uniqueList;
-    final Map<String, Map<String, dynamic>> uniqueRoutes = {};
-    for (var item in stopEstimatedTime) {
-      final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
-      if (!uniqueRoutes.containsKey(routeKey) ||
-          _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
-        uniqueRoutes[routeKey] = item;
-      }
-    }
+  Future<Widget> _buildTabContent(String direction,List<Map<String, dynamic>> stopEstimatedTime) async {
+    List<Map<String, dynamic>> finalList=await _processData(direction,stopEstimatedTime);
 
-    uniqueList= uniqueRoutes.values.toList();
 
-    List<Map<String, dynamic>> finalList=[];
 
-    // 按 StationID 分类
-    Map<String, List<Map<String, dynamic>>> groupedData = {};
-    for (var item in uniqueList) {
-      String stationID = item["StationID"];
-      groupedData.putIfAbsent(stationID, () => []).add(item);
-    }
 
-    // 打印分组后的结果
-    groupedData.forEach((stationID, items) {
-      if(stationID==direction){
-        finalList=items;
-        // print("finalList");
-        // print(finalList);
-      }
-      // print("StationID: $stationID");
-      // print("Data: $items");
-    });
+        return ValueListenableBuilder<SortType>(
+          valueListenable: _sortNotifier,
+          builder: (context, sortType, _) {
+            final sortedList = [...finalList];
 
-    for (var i in finalList) {
+            switch(sortType) {
+              case SortType.nameAsc:
+                sortedList.sort((a, b) => getChineseName(a['StopName']["Zh_tw"]).compareTo(getChineseName(b['StopName']["Zh_tw"])));
+                break;
+              case SortType.nameDesc:
+                sortedList.sort((a, b) => getChineseName(b['StopName']["Zh_tw"]).compareTo(getChineseName(a['StopName']["Zh_tw"])));
+                break;
+              case SortType.timeAsc:
+                sortedList.sort(_timeAscComparator);
+                break;
+              case SortType.timeDesc:
+                sortedList.sort(_timeDescComparator);
+                break;
+            }
 
-      // 根据方向查找去程或回程的目的地信息
-      if (i['Direction'] == 1) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+            return _buildTabContentUI(direction, sortedList); // 改這裡：傳給 UI builder 而不是 Future
+          },
+        );
 
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-        i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-      } else if (i['Direction'] == 0) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-        i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-      }
-    }
 
-    // 对 stop["time"] 按照时间升序排序
-    // finalList.sort((a, b) {
-    //   if (a["time"] == "即將到站") return -1;
-    //   if (b["time"] == "即將到站") return 1;
-    //   if (a["time"] == "班次結束") return 1;
-    //   if (b["time"] == "班次結束") return -1;
-    //
-    //   int aTimeInMinutes = _parseTimeToMinutes(a["time"]);
-    //   int bTimeInMinutes = _parseTimeToMinutes(b["time"]);
-    //
-    //   return aTimeInMinutes.compareTo(bTimeInMinutes);
-    // });
-
-// 根據排序類型排序
-    // 根據排序類型排序
-    switch( _sortNotifier.value ) {
-      case SortType.nameAsc:
-        finalList.sort((a, b) => a['StopSequence'].compareTo(b['StopSequence']));
-        break;
-      case SortType.nameDesc:
-        finalList.sort((a, b) => b['StopSequence'].compareTo(a['StopSequence']));
-        break;
-      case SortType.timeAsc:
-        finalList.sort((a, b) {
-          // 處理"班次結束"等特殊值
-          if (a["time"] == "即將到站") return -1;
-          if (b["time"] == "即將到站") return 1;
-          if (a["time"] == "班次結束") return 1;
-          if (b["time"] == "班次結束") return -1;
-          return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
-        });
-        break;
-      case SortType.timeDesc:
-        finalList.sort((a, b) {
-          if (a["time"] == "即將到站") return 1;
-          if (b["time"] == "即將到站") return -1;
-          if (a["time"] == "班次結束") return -1;
-          if (b["time"] == "班次結束") return 1;
-          return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
-        });
-        break;
-    }
-
+  }
+  Widget _buildTabContentUI(String direction, List<Map<String, dynamic>> finalList) {
     return RefreshIndicator(
-        onRefresh: () async {
-
-        },
-        child:
-
-
-
-
-        Container(
-          margin: const EdgeInsets.only(bottom: 25), // 设置底部间距
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await _loadData(); // 刷新时重新加载数据
+        onRefresh: () async => await _loadData(),
+        child:   AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 0.05),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
             },
             child: ListView.separated(
+              key: ValueKey(_sortNotifier.value), // 每次排序不同 key，觸發動畫
               itemCount: finalList.length,
               itemBuilder: (context, index) {
                 final stop = finalList[index];
@@ -368,24 +296,7 @@ class _BusStopInfoState extends State<BusStopInfo> {
                             color: const Color.fromRGBO(136, 136, 136, 1),
                           ),
                         ),
-                        if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6), // 左侧间距
-                            child: SvgPicture.asset(
-                              'assets/icons/Taiwan_Railways_Logo.svg', // 自定义SVG路径
-                              width: 18, // SVG图标宽度
-                              height: 18, // SVG图标高度
-                            ),
-                          )
-                        else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6), // 左侧间距
-                            child: SvgPicture.asset(
-                              'assets/icons/tc_MRT.svg', // 自定义SVG路径
-                              width: 18, // SVG图标宽度
-                              height: 18, // SVG图标高度
-                            ),
-                          ),
+
                       ],
                     ),
 
@@ -403,74 +314,75 @@ class _BusStopInfoState extends State<BusStopInfo> {
                   endIndent: 20, // 分隔线右间距
                 );
               },
-            ),
-          ),
-        )
+            )
+        ),
+
     );
   }
+
   // Future<void> _loadAndProcessData() async {
   //   final stopEstimatedTime = await fetchBusStopInfo(); // 获取原始数据
-  //   _originalData = await _processData(stopEstimatedTime);
+  //   // _originalData = await _processData(stopEstimatedTime);
   //   _applySort(); // 初始排序
   //   _streamController.add(data); // 向数据流中添加新数据
   // }
-//   Future<List<Map<String, dynamic>>> _processData(stopEstimatedTime)async {
-//     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
-//     // 使用 Map 來確保每個路線只出現一次
-//     List<Map<String, dynamic>> uniqueList;
-//     final Map<String, Map<String, dynamic>> uniqueRoutes = {};
-//     for (var item in stopEstimatedTime) {
-//       final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
-//       if (!uniqueRoutes.containsKey(routeKey) ||
-//           _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
-//         uniqueRoutes[routeKey] = item;
-//       }
-//     }
-//
-//     uniqueList= uniqueRoutes.values.toList();
-//
-//     List<Map<String, dynamic>> finalList=[];
-//
-//     // 按 StationID 分类
-//     Map<String, List<Map<String, dynamic>>> groupedData = {};
-//     for (var item in uniqueList) {
-//       String stationID = item["StationID"];
-//       groupedData.putIfAbsent(stationID, () => []).add(item);
-//     }
-//
-//     // 打印分组后的结果
-//     groupedData.forEach((stationID, items) {
-//       if(stationID==direction){
-//         finalList=items;
-//         // print("finalList");
-//         // print(finalList);
-//       }
-//       // print("StationID: $stationID");
-//       // print("Data: $items");
-//     });
-//
-//     for (var i in finalList) {
-//
-//       // 根据方向查找去程或回程的目的地信息
-//       if (i['Direction'] == 1) {
-//         var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-//
-//         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-//         i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-//         i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-//         i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-//         i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-//       } else if (i['Direction'] == 0) {
-//         var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-//         i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-//         i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-//         i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-//         i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-//         i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-//       }
-//     }
-// return finalList;
-//   }
+  Future<List<Map<String, dynamic>>> _processData(String direction, List<Map<String, dynamic>> stopEstimatedTime)async {
+    List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
+    // 使用 Map 來確保每個路線只出現一次
+    List<Map<String, dynamic>> uniqueList;
+    final Map<String, Map<String, dynamic>> uniqueRoutes = {};
+    for (var item in stopEstimatedTime) {
+      final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
+      if (!uniqueRoutes.containsKey(routeKey) ||
+          _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
+        uniqueRoutes[routeKey] = item;
+      }
+    }
+
+    uniqueList= uniqueRoutes.values.toList();
+
+    List<Map<String, dynamic>> finalList=[];
+
+    // 按 StationID 分类
+    Map<String, List<Map<String, dynamic>>> groupedData = {};
+    for (var item in uniqueList) {
+      String stationID = item["StationID"];
+      groupedData.putIfAbsent(stationID, () => []).add(item);
+    }
+
+    // 打印分组后的结果
+    groupedData.forEach((stationID, items) {
+      if(stationID==direction){
+        finalList=items;
+        // print("finalList");
+        // print(finalList);
+      }
+      // print("StationID: $stationID");
+      // print("Data: $items");
+    });
+
+    for (var i in finalList) {
+
+      // 根据方向查找去程或回程的目的地信息
+      if (i['Direction'] == 1) {
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+
+        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+      } else if (i['Direction'] == 0) {
+        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+        i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
+        i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
+        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
+        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+      }
+    }
+return finalList;
+  }
   Future<void> _loadData() async {
 
 
@@ -687,8 +599,9 @@ class _BusStopInfoState extends State<BusStopInfo> {
                       // controller: _tabController,  // 加入 controller 綁定
                       children: List.generate(_stationIDs.value.length, (index) {
                         String label = String.fromCharCode(65 + index); // A, B, C...
+
                         return FutureBuilder(
-                          future: _buildTabContent(_stationIDs.value[index], snapshot.data!), // 傳入 A, B, C...
+                          future: _buildTabContent(_stationIDs.value[index],snapshot.data!), // 傳入 A, B, C...
                           builder: (context, contentSnapshot) {
 
                             if (contentSnapshot.connectionState == ConnectionState.waiting) {
