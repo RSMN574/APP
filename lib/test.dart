@@ -1,233 +1,257 @@
-import 'package:com.rsmn574.app/utils/MRTColor.dart';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+// 新增的Pair類用於記錄已繪製連接
+class Pair<T1, T2> {
+  final T1 a;
+  final T2 b;
 
-class Station {
-  final String name; // 车站中文名称
-  final Offset position; // 车站英文名称
-  final String type;
-  Station( {required this.type,required this.name, required this.position});
-}
-
-class test extends StatefulWidget {
-
-
+  Pair(this.a, this.b);
 
   @override
-  _test createState() => _test();
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+          other is Pair &&
+              ((a == other.a && b == other.b) ||
+                  (a == other.b && b == other.a));
+
+  @override
+  int get hashCode => a.hashCode ^ b.hashCode;
 }
 
-class _test extends State<test> with MRTColor {
-  var lineName="green";
-  var color=MRTColor.taichungGreen;
-    Station? clickedStation= Station(name: '一号线', position: Offset(113.2677, 23.0958), type: 'point'); // 当前被点击的站点
+// 修改後的站點數據結構（增加路線顏色屬性）
+class Station {
+  final String name;
+  final Offset position;
+   List<Station> connections;
+  final Color lineColor;
 
-  final List<Station> markPoints = [
-    Station(name: '一号线', position: Offset(113.2677, 23.0958), type: 'point'),
-    Station(name: '一号线', position: Offset(113.3528, 23.1338), type: 'point'),
+  Station(this.name, this.position,
+      {this.connections = const [], this.lineColor = Colors.blue});
+}
+
+class MetroMapScreen extends StatefulWidget {
+  @override
+  _MetroMapScreenState createState() => _MetroMapScreenState();
+}
+
+class _MetroMapScreenState extends State<MetroMapScreen> {
+  final TransformationController _transformationController = TransformationController();
+  String _selectedStation = '';
+  final double _stationRadius = 20.0;
+// 完整地鐵站點資料範例
+  final List<Station> _stations = [
+    Station('A站', Offset(50, 100), lineColor: Colors.red),
+    Station('B站', Offset(150, 100), lineColor: Colors.red),
+    Station('C站', Offset(250, 180), lineColor: Colors.red),
+    Station('D站', Offset(350, 180), lineColor: Colors.red),
+    Station('E站', Offset(450, 260), lineColor: Colors.red),
+    Station('F站', Offset(550, 260), lineColor: Colors.red),
+
+    Station('G站', Offset(150, 300), lineColor: Colors.green),
+    Station('H站', Offset(250, 300), lineColor: Colors.green),
+    Station('D站', Offset(350, 180), lineColor: Colors.green),
+    Station('I站', Offset(350, 100), lineColor: Colors.green),
   ];
-// 基准点 (高鐵臺中站)
-  static const Offset basePoint = Offset(120.61405, 24.11011);
-// 在 _test 类中定义转换方法（与 MetroMapPainter 的 transform 一致）
-  Offset _transformPosition(Offset point) {
-    const double scale = 2400;
-    const double refLongitude = 120.64903;
-    const double refLatitude = 24.16199;
-    return Offset(
-      (point.dx - refLongitude) * scale,
-      (refLatitude - point.dy) * scale, // Y轴需取反
+
+// 建立連線關係
+  void _initConnections() {
+    // 紅線
+    _stations[0].connections = [_stations[1]];
+    _stations[1].connections = [_stations[0], _stations[2]];
+    _stations[2].connections = [_stations[1], _stations[3]];
+    _stations[3].connections = [_stations[2], _stations[4]];
+    _stations[4].connections = [_stations[3], _stations[5]];
+    _stations[5].connections = [_stations[4]];
+
+    // 綠線
+    _stations[6].connections = [_stations[7]];
+    _stations[7].connections = [_stations[6], _stations[8]];
+    _stations[8].connections = [_stations[7], _stations[9]];
+    _stations[9].connections = [_stations[8]];
+    Map<String, List<Station>> stationGroups = {};
+
+    for (var station in _stations) {
+      stationGroups.putIfAbsent(station.name, () => []).add(station);
+    }
+
+    Set<String> transferStationNames = stationGroups.entries
+        .where((entry) => entry.value.length > 1)
+        .map((entry) => entry.key)
+        .toSet();
+
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _initConnections();
+    return Scaffold(
+      appBar: AppBar(title: const Text('動態捷運路線圖')),
+      body: Stack(
+        children: [
+          InteractiveViewer(
+            transformationController: _transformationController,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            minScale: 0.1,
+            maxScale: 4.0,
+            child: Container(
+              width: 600,  // 調整容器的寬度
+              height: 600, // 調整容器的高度
+              child: GestureDetector(
+                onTapUp: (details) => _handleTap(details),
+                child: CustomPaint(
+                  painter: _MetroMapPainter(_stations),
+                  child: Stack(
+                    children: [
+                      ..._stations.map((station) => Positioned(
+                        left: station.position.dx - _stationRadius,
+                        top: station.position.dy - _stationRadius,
+                        child: GestureDetector(
+                          onTap: () => _showStationInfo(station),
+                          child: Container(
+                            width: _stationRadius * 2,
+                            height: _stationRadius * 2,
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.3),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                      )),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_selectedStation.isNotEmpty)
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                color: Colors.white,
+                child: Text('當前選擇: $_selectedStation'),
+              ),
+            ),
+        ],
+      ),
     );
   }
-  // 画布坐标系参数
-  static const double _canvasScale = 2400;  // 缩放比例
-  static const Offset _canvasOrigin = Offset(120.64903, 24.16199); // 画布原点（对应市政府站的经纬度）
 
-  // 经纬度 → 画布坐标
-  Offset _geoToCanvas(Offset geoPoint) {
-    return Offset(
-      (geoPoint.dx - _canvasOrigin.dx) * _canvasScale,
-      (_canvasOrigin.dy - geoPoint.dy) * _canvasScale, // Y轴取反
-    );
-  }
+  void _handleTap(TapUpDetails details) {
+    final matrix = _transformationController.value;
+    final inverseMatrix = Matrix4.inverted(matrix);
+    final tapPosition = details.localPosition;
+    final untransformedPosition = MatrixUtils.transformPoint(inverseMatrix, tapPosition);
 
-  // 画布坐标 → 经纬度（用于点击位置转换）
-  Offset _canvasToGeo(Offset canvasPoint) {
-    return Offset(
-      (canvasPoint.dx / _canvasScale) + _canvasOrigin.dx,
-      _canvasOrigin.dy - (canvasPoint.dy / _canvasScale),
-    );
-  }
-// // 经纬度转相对坐标的函数
-//   static Offset convertToRelativePosition(double longitude, double latitude) {
-//     double deltaLongitude = longitude - basePoint.dx;
-//     double deltaLatitude = latitude - basePoint.dy;
-//     return Offset(deltaLongitude, deltaLatitude);
-//   }
-  void _handleTap(Offset tapPosition) {
-    final transformedTap = _transformPosition(tapPosition);
-    final tolerance = 8.0 / currentScale; // 动态容差
+    for (final station in _stations) {
+      final dx = station.position.dx - untransformedPosition.dx;
+      final dy = station.position.dy - untransformedPosition.dy;
+      final distance = dx * dx + dy * dy;
 
-    for (var line in lineData.values) {
-      for (var segment in line) {
-        for (var station in segment) {
-          final dxDiff = (transformedTap.dx - station.position.dx).abs();
-          final dyDiff = (transformedTap.dy - station.position.dy).abs();
-print("$dxDiff,$dyDiff --$tolerance");
-          if (dxDiff < tolerance && dyDiff < tolerance) {
-            setState(() => clickedStation = station);
-            return;
-          }
-        }
+      if (distance < _stationRadius * _stationRadius) {
+        setState(() {
+          _selectedStation = station.name;
+        });
+        return;
       }
     }
   }
 
-
-  Map<String, List<List<Station>>> lineData = {
-    'Line1': [
-      [
-        Station(name: '高鐵臺中站', position: Offset(120.61405, 24.11011), type: 'normalPoints'),
-        Station(name: '烏日', position: Offset(120.62490, 24.10890), type: 'normalPoints'),
-        Station(name: '九德', position: Offset(120.63448, 24.11104), type: 'normalPoints'),
-        Station(name: '九張犁', position: Offset(120.64010, 24.11450), type: 'normalPoints'),
-        Station(name: '大慶', position: Offset(120.64760, 24.11910), type: 'normalPoints'),
-        Station(name: '豐樂公園', position: Offset(120.64635, 24.13260), type: 'normalPoints'),
-        Station(name: '南屯', position: Offset(120.64660, 24.14050), type: 'normalPoints'),
-        Station(name: '文心森林公園', position: Offset(120.64660, 24.14540), type: 'normalPoints'),
-        Station(name: '水安宮', position: Offset(120.64668, 24.15311), type: 'normalPoints'),
-        Station(name: '市政府', position: Offset(120.64903, 24.16199), type: 'normalPoints'),
-        Station(name: '文心櫻花', position: Offset(120.65367, 24.16763), type: 'normalPoints'),
-        Station(name: '文華高中', position: Offset(120.66045, 24.17141), type: 'normalPoints'),
-        Station(name: '文心中清', position: Offset(120.67059, 24.17368), type: 'normalPoints'),
-        Station(name: '文心崇德', position: Offset(120.68486, 24.17219), type: 'normalPoints'),
-        Station(name: '四維國小', position: Offset(120.69329, 24.17124), type: 'normalPoints'),
-        Station(name: '松竹', position: Offset(120.70145, 24.18080), type: 'normalPoints'),
-        Station(name: '舊社', position: Offset(120.70729, 24.18228), type: 'normalPoints'),
-        Station(name: '北屯總站', position: Offset(120.70864, 24.18913), type: 'normalPoints'),
-
-      ],
-    ],
-  };
-  double currentScale = 1.0; // 跟踪当前缩放比例
-// 在State类中定义GlobalKey
-  final GlobalKey _customPaintKey = GlobalKey();
-  // 在 State 类中定义变换跟踪变量
-  Matrix4 _transformMatrix = Matrix4.identity();
-  @override
-  Widget build(BuildContext context) {
-    return  Scaffold(
-      backgroundColor: Colors.grey[700],
-      body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapUp: (TapUpDetails details) {
-          final RenderBox renderBox = _customPaintKey.currentContext!.findRenderObject() as RenderBox;
-
-          // 获取从 CustomPaint 到全局的变换矩阵
-          final matrix = renderBox.getTransformTo(null);
-
-          // 将点击位置转换为画布坐标（考虑缩放/平移）
-          final localTap = renderBox.globalToLocal(details.globalPosition);
-          final canvasTap = _canvasToGeo(localTap); // 转换为经纬度
-
-          _handleTap(canvasTap);
-        },
-        child: Center(child: InteractiveViewer(
-          onInteractionUpdate: (details) {
-            setState(() => currentScale *= details.scale);
-          },
-          boundaryMargin: const EdgeInsets.all(200),
-          minScale: 0.5,
-          maxScale: 8.0,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return CustomPaint(
-                key: _customPaintKey, // 分配GlobalKey
-                size: Size(constraints.maxWidth, constraints.maxHeight),
-                painter: MetroMapPainter(lineData: lineData, clickedStation: clickedStation),
-              );
-            },
+  void _showStationInfo(Station station) {
+    setState(() {
+      _selectedStation = station.name;
+    });
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(station.name),
+        content: Text('車站詳細資訊...'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('關閉'),
           ),
-        ),)
-      )
-
+        ],
+      ),
     );
   }
 }
 
-class MetroMapPainter extends CustomPainter {
-  final Map<String, List<List<Station>>> lineData;
-  final Station? clickedStation; // 当前被点击的站点
+class _MetroMapPainter extends CustomPainter {
+  final List<Station> stations;
+  final double stationRadius;
 
-  MetroMapPainter({required this.lineData, this.clickedStation});
-
-  // 經緯度轉畫布座標（縮小範圍）
-  Offset transform(Offset point) {
-    double scale = 2400; // 调整缩放比例
-    print(point);
-    return Offset((point.dx - 120.64903) * scale, (24.16199 - point.dy) * scale);
-  }
+  _MetroMapPainter(this.stations, {this.stationRadius = 8});
 
   @override
   void paint(Canvas canvas, Size size) {
-    Paint linePaint = Paint()
-      ..color = MRTColor.taichungGreen
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke;
+    final drawnConnections = <Pair<Station, Station>>{};
+    final displayedStationNames = <String>{};
 
-    Paint stationPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    Paint effectPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.5) // 圆形特效的颜色和透明度
-      ..style = PaintingStyle.fill;
-    for (var line in lineData.values) {
-      for (var segment in line) {
-        if (segment.isEmpty) continue;
-        Path path = Path();
-        path.moveTo(transform(segment[0].position).dx, transform(segment[0].position).dy);
+    // 預先找出轉乘站
+    final transferStationNames = <String>{};
+    final nameGroup = <String, List<Station>>{};
+    for (var station in stations) {
+      nameGroup.putIfAbsent(station.name, () => []).add(station);
+    }
+    nameGroup.forEach((name, list) {
+      if (list.length > 1) transferStationNames.add(name);
+    });
 
-        for (int i = 1; i < segment.length; i++) {
-          path.lineTo(transform(segment[i].position).dx, transform(segment[i].position).dy);
-        }
+    // 繪製路線連接（修改後版本）
+    final Set<Pair<Station, Station>> _drawnConnections = {};
 
-        canvas.drawPath(path, linePaint);
+    for (final station in stations) {
+      for (final connectedStation in station.connections) {
+        // 避免重複繪製相同連接
+        final connectionPair = Pair(station, connectedStation);
+        if (!_drawnConnections.contains(connectionPair)) {
+          final path = Path()
+            ..moveTo(station.position.dx, station.position.dy)
+            ..lineTo(connectedStation.position.dx, connectedStation.position.dy);
 
-        // 畫站點與站名
-        for (var point in segment) {
-          Offset pos = transform(point.position);
-          canvas.drawCircle(pos, 1.5, stationPaint); // 畫圓點
-// 如果当前站点是被点击的站点，绘制特效圆圈
-          if (point == clickedStation) {
+          final linePaint = Paint()
+            ..color = station.lineColor
+            ..strokeWidth = 6
+            ..style = PaintingStyle.stroke;
 
-            canvas.drawCircle(pos, 3.0, effectPaint); // 特效圆圈
-          }
-          // 畫站名
-          drawText(canvas, point.name, pos);
+          canvas.drawPath(path, linePaint);
+          _drawnConnections.add(Pair(connectedStation, station));
         }
       }
     }
+
+    // 畫站點與站名
+    for (final station in stations) {
+      final isTransferStation = transferStationNames.contains(station.name);
+      final position = station.position;
+
+      if (isTransferStation) {
+        canvas.drawCircle(position, stationRadius + 4, Paint()..color = Colors.white);
+      }
+
+      canvas.drawCircle(position, stationRadius, Paint()..color = station.lineColor);
+
+      // 顯示站名（只顯示一次）
+      if (!displayedStationNames.contains(station.name)) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: station.name,
+            style: TextStyle(fontSize: 12, color: Colors.black),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(position.dx + 10, position.dy + 10));
+        displayedStationNames.add(station.name);
+      }
+    }
   }
-  // 繪製站名
-  void drawText(Canvas canvas, String text, Offset position) {
-    final textStyle = TextStyle(
-      color: Colors.white,
-      fontSize: 4,
-    );
 
-    final textSpan = TextSpan(text: text, style: textStyle);
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter.layout();
-    Offset textOffset = position.translate(-textPainter.width / 2, 2);
-
-    textPainter.paint(canvas, textOffset);
-  }
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
 

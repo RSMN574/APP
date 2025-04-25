@@ -94,46 +94,56 @@ Future <List>_getData()async{
 
 
 }
-  Future<List> _updateSuggestions(id) async {
-
-     suggestions.value.clear();
+  Future<List<dynamic>> _updateSuggestions(String id) async {
+    suggestions.value.clear(); // 僅清空一次
 
     if (id == "route") {
+      final String input = busIdController.text;
+      final List<dynamic> suggestionsForRoute = [];
 
-      List suggestionsForRoute=[];
-      suggestions.value.clear();
-      // suggestionsForRoute.add(GetBus(correspondingID,busIdController.text));
       for (var route in busData) {
-        String routeName = json.decode(route["RouteName"])["Zh_tw"];
-        if (routeName.contains(busIdController.text)) {
-          if (busIdController.text == routeName) {
+        final routeName = json.decode(route["RouteName"])["Zh_tw"];
+        if (routeName.contains(input)) {
+          if (input == routeName) {
             suggestions.value.insert(0, route);
             suggestionsForRoute.insert(0, route);
           } else {
             suggestions.value.add(route);
             suggestionsForRoute.add(route);
           }
-         }
-      }
-
-      return        suggestionsForRoute;
-    } else if (id == "stop") {
-      suggestions.value.clear();
-      var i = await mysqlSelect("SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%${busIdController.text}%'");
-      for (var a in i) {
-        if (busIdController.text == json.decode(a["StationName"])["Zh_tw"]) {
-          suggestions.value.insert(0, json.decode(a["StationName"])["Zh_tw"]);
-        } else {
-          suggestions.value.add(json.decode(a["StationName"])["Zh_tw"]);
         }
       }
-      suggestions.value = (suggestions.value.toSet().toList());
 
-      return             suggestions.value;
+      return suggestionsForRoute;
     }
 
-    return             suggestions.value;
+    else if (id == "stop") {
+      final String input = busIdController.text;
+      final rawData = await mysqlSelect(
+          "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+              "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
+      );
+
+      final seen = <String>{};
+
+      for (var item in rawData) {
+        final name = json.decode(item["StationName"])["Zh_tw"];
+        if (seen.contains(name)) continue;
+        seen.add(name);
+
+        if (input == name) {
+          suggestions.value.insert(0, name);
+        } else {
+          suggestions.value.add(name);
+        }
+      }
+
+      return suggestions.value;
+    }
+
+    return suggestions.value;
   }
+
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
     return PopupMenuItem<String>(
@@ -147,39 +157,37 @@ Future <List>_getData()async{
         )
     );
   }
-  @override
-  Widget build(BuildContext context) {
-    updateCurrent();
-    return Scaffold(
-      appBar: AppBar(
+  // 提取 AppBar 為獨立 Widget
+  AppBar  _buildAppBar() {
+    return AppBar(
 
-        backgroundColor: busBlue,
-        elevation: 0,
-        title: const Text(
-          "公車",
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-
+      backgroundColor: busBlue,
+      elevation: 0,
+      title: const Text(
+        "公車",
+        style: TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
         ),
-        actions: [
-          PopupMenuButton<String>(
-            iconColor:   Colors.black,
-            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-              this.SelectView(Icons.confirmation_number, '票價說明', 'A'),
-              this.SelectView(Icons.warning, '通阻消息', 'B'),
 
-            ],
-            onSelected: (String action) async {
-              // 点击选项的时候
-              switch (action) {
-                case 'A':
+      ),
+      actions: [
+        PopupMenuButton<String>(
+          iconColor:   Colors.black,
+          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+            this.SelectView(Icons.confirmation_number, '票價說明', 'A'),
+            this.SelectView(Icons.warning, '通阻消息', 'B'),
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
+          ],
+          onSelected: (String action) async {
+            // 点击选项的时候
+            switch (action) {
+              case 'A':
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
                       builder: (context) => Scaffold(
                         appBar: AppBar(
                           backgroundColor: busBlue,
@@ -211,7 +219,7 @@ Future <List>_getData()async{
                                     // Handle selection change
                                     updatedCorrespondingID();
                                     _getData();
-                                      currentCityNotifier.value = value!;
+                                    currentCityNotifier.value = value!;
 
                                   },
                                 ),
@@ -242,7 +250,7 @@ Future <List>_getData()async{
                                   ],
                                 ),
                                 child:
-                                  const Column(
+                                const Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
@@ -276,16 +284,16 @@ Future <List>_getData()async{
                         ),
                       )
 
-                    ),
-                  );
+                  ),
+                );
 
-                  break;
-                case "B":
+                break;
+              case "B":
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => Scaffold(
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => Scaffold(
                           appBar: AppBar(
                             backgroundColor: busBlue,
                             elevation: 0,
@@ -299,110 +307,116 @@ Future <List>_getData()async{
                             ),
                           ),
                           body:ValueListenableBuilder<String>(
-              valueListenable: currentCityNotifier,
-              builder: (context, currentCity, child) {
-              return FutureBuilder<dynamic>(
-                            future: fetchByUrl(
-                              "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/${ correspondingIDNotifier.value}?%24top=10&%24format=JSON",
-                            ),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(child: CircularProgressIndicator());
-                              } else if (snapshot.hasError) {
-                                return Center(child: Text('Error: ${snapshot.error}'));
-                              } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
-                                return const Center(child: Text('No data available.'));
-                              } else {
-                                final data = snapshot.data as List;
-                                return  Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      // Custom Dropdown
-                                      CustomDropdown<String>(
-                                        hintText: '選擇城市',
-                                        items: _list,
-                                        initialItem: currentCityNotifier.value,
-                                        onChanged: (value) {
-                                          setState(()  {
-                                            currentCityNotifier.value=value!;
-                                            updatedCorrespondingID();
-                                            _getData();
-                                            // 重新觸發 FutureBuilder
-                                            updateCurrent();
-
-
-                                          });
-                                        },
-
-                                      ),
-                                      const SizedBox(height: 16), // 增加間距
-                                      // Expanded ListView
-                                      Expanded(
-                                        child: ListView.builder(
-                                          itemCount: data.length,
-                                          itemBuilder: (context, index) {
-                                            final alert = data[index];
-                                            return Container(
-                                              margin: const EdgeInsets.only(bottom: 12.0),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withOpacity(0.05), // 微弱陰影
-                                                    offset: const Offset(0, 4),
-                                                    blurRadius: 8,
-                                                  ),
-                                                ],
-                                              ),
-                                              child: ValueListenableBuilder<String>(
-                                          valueListenable: currentCityNotifier,
-                                                builder: (context, currentCity, child) {
-                                           return ListTile(
-                                                contentPadding: const EdgeInsets.all(16.0),
-                                                title: Text(
-                                                  alert['Title'] ?? '無標題',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 18,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                                subtitle: Text(
-                                                  alert['Description'] ?? '無描述',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                              );})
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                              valueListenable: currentCityNotifier,
+                              builder: (context, currentCity, child) {
+                                return FutureBuilder<dynamic>(
+                                  future: fetchByUrl(
+                                    "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/${ correspondingIDNotifier.value}?%24top=10&%24format=JSON",
                                   ),
-                                );
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState == ConnectionState.waiting) {
+                                      return const Center(child: CircularProgressIndicator());
+                                    } else if (snapshot.hasError) {
+                                      return Center(child: Text('Error: ${snapshot.error}'));
+                                    } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+                                      return const Center(child: Text('No data available.'));
+                                    } else {
+                                      final data = snapshot.data as List;
+                                      return  Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Custom Dropdown
+                                            CustomDropdown<String>(
+                                              hintText: '選擇城市',
+                                              items: _list,
+                                              initialItem: currentCityNotifier.value,
+                                              onChanged: (value) {
+                                                setState(()  {
+                                                  currentCityNotifier.value=value!;
+                                                  updatedCorrespondingID();
+                                                  _getData();
+                                                  // 重新觸發 FutureBuilder
+                                                  updateCurrent();
 
 
-                              }
-                            },
-                          );})
-                        )
+                                                });
+                                              },
 
-                    ),
-                  );
+                                            ),
+                                            const SizedBox(height: 16), // 增加間距
+                                            // Expanded ListView
+                                            Expanded(
+                                              child: ListView.builder(
+                                                itemCount: data.length,
+                                                itemBuilder: (context, index) {
+                                                  final alert = data[index];
+                                                  return Container(
+                                                      margin: const EdgeInsets.only(bottom: 12.0),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.black.withOpacity(0.05), // 微弱陰影
+                                                            offset: const Offset(0, 4),
+                                                            blurRadius: 8,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: ValueListenableBuilder<String>(
+                                                          valueListenable: currentCityNotifier,
+                                                          builder: (context, currentCity, child) {
+                                                            return ListTile(
+                                                              contentPadding: const EdgeInsets.all(16.0),
+                                                              title: Text(
+                                                                alert['Title'] ?? '無標題',
+                                                                style: const TextStyle(
+                                                                  fontWeight: FontWeight.w600,
+                                                                  fontSize: 18,
+                                                                  color: Colors.black,
+                                                                ),
+                                                              ),
+                                                              subtitle: Text(
+                                                                alert['Description'] ?? '無描述',
+                                                                style: const TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Colors.grey,
+                                                                ),
+                                                              ),
+                                                            );})
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
 
 
-                  break;
+                                    }
+                                  },
+                                );})
+                      )
 
-              }
-            },
-          ),
-        ],
-      ),
+                  ),
+                );
+
+
+                break;
+
+            }
+          },
+        ),
+      ],
+    );
+  }
+  @override
+  Widget build(BuildContext context) {
+    updateCurrent();
+    return Scaffold(
+      appBar: _buildAppBar(),
       body: GestureDetector(
         onTap: () {
           hideKeyboard(context);
@@ -431,7 +445,7 @@ Future <List>_getData()async{
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Container(
+              child: SizedBox(
                 height: 70,
                 child: Row(
                   children: [
@@ -508,20 +522,17 @@ Future <List>_getData()async{
                         child: TextField(
                           onChanged: (text) async {
                             if (text.isNotEmpty) {
+                              double screenHeight = MediaQuery.of(context).size.height;
+                              double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                              double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
                               if (_dropdownValueNotifier.value == "路線") {
                                  await _updateSuggestions('route');
                                  setState(() {
-                                   double screenHeight = MediaQuery.of(context).size.height;
-                                   double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                                   double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
                                    suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
                                  });
                               } else if (_dropdownValueNotifier.value == "站牌") {
                                 await _updateSuggestions('stop');
                                 setState(() {
-                                  double screenHeight = MediaQuery.of(context).size.height;
-                                  double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                                  double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
                                   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
                                 });
                               }

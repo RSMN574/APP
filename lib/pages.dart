@@ -1,3 +1,5 @@
+import 'package:com.rsmn574.app/task/task.dart';
+import 'package:com.rsmn574.app/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -177,6 +179,21 @@ class InfoPages extends StatelessWidget {
               backgroundColor: Colors.transparent,
             ),
           ),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: testTask, // 按鈕點擊時調用 testTask
+          child: Text('觸發通知'),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed:(){
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MetroMapScreen()),
+            );
+    },
+          child: Text('test'),
         ),
       ],
     );

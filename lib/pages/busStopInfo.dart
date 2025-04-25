@@ -168,13 +168,13 @@ class _BusStopInfoState extends State<BusStopInfo> {
           valueListenable: _sortNotifier,
           builder: (context, sortType, _) {
             final sortedList = [...finalList];
-
+print(sortedList);
             switch(sortType) {
               case SortType.nameAsc:
-                sortedList.sort((a, b) => getChineseName(a['StopName']["Zh_tw"]).compareTo(getChineseName(b['StopName']["Zh_tw"])));
+                sortedList.sort((a, b) => getChineseName(a['RouteName']["Zh_tw"]).compareTo(getChineseName(b['RouteName']["Zh_tw"])));
                 break;
               case SortType.nameDesc:
-                sortedList.sort((a, b) => getChineseName(b['StopName']["Zh_tw"]).compareTo(getChineseName(a['StopName']["Zh_tw"])));
+                sortedList.sort((a, b) => getChineseName(b['RouteName']["Zh_tw"]).compareTo(getChineseName(a['RouteName']["Zh_tw"])));
                 break;
               case SortType.timeAsc:
                 sortedList.sort(_timeAscComparator);
@@ -193,139 +193,127 @@ class _BusStopInfoState extends State<BusStopInfo> {
   Widget _buildTabContentUI(String direction, List<Map<String, dynamic>> finalList) {
     return RefreshIndicator(
         onRefresh: () async => await _loadData(),
-        child:   AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeInOut,
-            switchOutCurve: Curves.easeInOut,
-            transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0.0, 0.05),
-                    end: Offset.zero,
-                  ).animate(animation),
-                  child: child,
-                ),
-              );
-            },
-            child: ListView.separated(
-              key: ValueKey(_sortNotifier.value), // 每次排序不同 key，觸發動畫
-              itemCount: finalList.length,
-              itemBuilder: (context, index) {
-                final stop = finalList[index];
-                final PlateNumb = stop["PlateNumb"];
+        child:   ImplicitlyAnimatedList<Map<String, dynamic>>(
+          key: ValueKey(_sortNotifier.value), // 每次排序不同 key
+          items: finalList,
+          areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
+          itemBuilder: (context, animation, stop, index) {
+            final PlateNumb = stop["PlateNumb"];
 
-                final color = stop["color"] == '0'
-                    ? const Color.fromRGBO(235, 15, 41, 0.85)
-                    : (stop["color"] == '2'
-                    ? const Color.fromRGBO(225, 85, 104, 0.1)
-                    : (stop["color"] == "班次結束"
-                    ? const Color.fromRGBO(69, 69, 69, 0.1)
-                    : (stop["color"] == "min"
-                    ? const Color.fromRGBO(13, 168, 255, 0.1)
-                    : const Color.fromRGBO(68, 68, 68, 0.1))));
+            final color = stop["color"] == '0'
+                ? const Color.fromRGBO(235, 15, 41, 0.85)
+                : (stop["color"] == '2'
+                ? const Color.fromRGBO(225, 85, 104, 0.1)
+                : (stop["color"] == "班次結束"
+                ? const Color.fromRGBO(69, 69, 69, 0.1)
+                : (stop["color"] == "min"
+                ? const Color.fromRGBO(13, 168, 255, 0.1)
+                : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-                return Container(
-                  height: 53.0, // 每个列表项的固定高度
-                  child: ListTile(
-                    onTap: () async {
-                      await GetBusInfo( routeid: int.parse(stop["RouteID"]), city: widget.city);
-                      print(stop);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BusTime(
-                            routeName:  stop["RouteName"]["Zh_tw"],
-                            departureStopName:  stop["DepartureStopName"],
-                            destinationStopName:  stop["DestinationStopName"],
-                            operators: "",
-                            routeMapImageUrl: "",
-                            city: widget.city, routeID: int.parse(stop["RouteID"]),
-                            mark: Mark.fromMap({
-                              "highlight": [
-                                widget.stop
-                              ],
-                              "direction": stop["Direction"],
-                            }),
+            return SizeFadeTransition(
+              animation: animation,
+              curve: Curves.easeInOut,
+              sizeFraction: 0.9,
+              child: Column(
+                children: [
+                  Container(
+                    height: 53.0,
+                    child: ListTile(
+                      onTap: () async {
+                        await GetBusInfo(
+                            routeid: int.parse(stop["RouteID"]),
+                            city: widget.city);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BusTime(
+                              routeName: stop["RouteName"]["Zh_tw"],
+                              departureStopName: stop["DepartureStopName"],
+                              destinationStopName: stop["DestinationStopName"],
+                              operators: "",
+                              routeMapImageUrl: "",
+                              city: widget.city,
+                              routeID: int.parse(stop["RouteID"]),
+                              mark: Mark.fromMap({
+                                "highlight": [widget.stop],
+                                "direction": stop["Direction"],
+                              }),
+                            ),
                           ),
+                        );
+                      },
+                      leading: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: color,
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                      );
-                    },
-                    leading: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        stop["time"] ?? "未知",
-                        style: TextStyle(
-                          fontFamily: 'MiSans-normal',
-                          fontSize: 17,
-                          color: stop["color"] == '0'
-                              ? Colors.white
-                              : (stop["color"] == '2'
-                              ? const Color.fromRGBO(255, 85, 104, 1)
-                              : (stop["color"] == "班次結束"
-                              ? const Color.fromRGBO(149, 149, 149, 1.0)
-                              : (stop["color"] == "min"
-                              ? const Color.fromRGBO(13, 168, 255, 1)
-                              : const Color.fromRGBO(68, 68, 68, 1)))),
-                        ),
-                      ),
-                    ),
-                    title:  Row(
-                      children: [
-                        Text(
-                          stop["RouteName"]["Zh_tw"] ?? "未知站名",
-                          style: TextStyle(
-                            fontFamily: stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
-                            fontSize: 17,
-                            color: stop["color"] == "班次結束"
-                                ? const Color.fromRGBO(136, 136, 136, 1)
-                                : Colors.black,
-                          ),
-                        ),
-                        const SizedBox(width: 8), // 增加站名和方向之間的間距
-                        Text(
-                          "往 ${stop["to"] ?? "未知方向"}",
+                        child: Text(
+                          stop["time"] ?? "未知",
                           style: TextStyle(
                             fontFamily: 'MiSans-normal',
-                            fontSize: 14,
-                            color: const Color.fromRGBO(136, 136, 136, 1),
+                            fontSize: 17,
+                            color: stop["color"] == '0'
+                                ? Colors.white
+                                : (stop["color"] == '2'
+                                ? const Color.fromRGBO(255, 85, 104, 1)
+                                : (stop["color"] == "班次結束"
+                                ? const Color.fromRGBO(149, 149, 149, 1.0)
+                                : (stop["color"] == "min"
+                                ? const Color.fromRGBO(13, 168, 255, 1)
+                                : const Color.fromRGBO(
+                                68, 68, 68, 1)))),
                           ),
                         ),
-
-                      ],
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                            style: TextStyle(
+                              fontFamily: stop["color"] == "0"
+                                  ? 'MiSans-Semibold'
+                                  : 'MiSans-normal',
+                              fontSize: 17,
+                              color: stop["color"] == "班次結束"
+                                  ? const Color.fromRGBO(136, 136, 136, 1)
+                                  : Colors.black,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "往 ${stop["to"] ?? "未知方向"}",
+                            style: const TextStyle(
+                              fontFamily: 'MiSans-normal',
+                              fontSize: 14,
+                              color: Color.fromRGBO(136, 136, 136, 1),
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: PlateNumb != null
+                          ? bubble(plateNum: PlateNumb)
+                          : null,
                     ),
-
-                    trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
-
                   ),
-                );
-              },
-              separatorBuilder: (BuildContext context, int index) {
-                return const Divider(
-                  color: Color.fromRGBO(231, 231, 231, 1), // 分隔线颜色
-                  height: 9, // 分隔线与上下元素间距
-                  thickness: 1, // 分隔线粗细
-                  indent: 20, // 分隔线左间距
-                  endIndent: 20, // 分隔线右间距
-                );
-              },
-            )
+                  const Divider(
+                    color: Color.fromRGBO(231, 231, 231, 1),
+                    height: 9,
+                    thickness: 1,
+                    indent: 20,
+                    endIndent: 20,
+                  ),
+                ],
+              ),
+            );
+          },
         ),
 
     );
   }
 
-  // Future<void> _loadAndProcessData() async {
-  //   final stopEstimatedTime = await fetchBusStopInfo(); // 获取原始数据
-  //   // _originalData = await _processData(stopEstimatedTime);
-  //   _applySort(); // 初始排序
-  //   _streamController.add(data); // 向数据流中添加新数据
-  // }
+
   Future<List<Map<String, dynamic>>> _processData(String direction, List<Map<String, dynamic>> stopEstimatedTime)async {
     List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
     // 使用 Map 來確保每個路線只出現一次

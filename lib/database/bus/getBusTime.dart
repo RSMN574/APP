@@ -124,7 +124,7 @@ Future<List<Station>> getNearStation(String location) async {
     return distanceA.compareTo(distanceB);
   });
 
-  print('排序後的站牌: $stations');
+
   return stations;
 }
 Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, int sum) async {
@@ -177,7 +177,7 @@ Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
         "\$format": "JSON",
       },
     );
-print(url);
+
     // 發起 GET 請求
     final response = await http.get(
       url,

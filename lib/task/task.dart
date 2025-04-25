@@ -3,9 +3,11 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 import '../database/getData.dart';
 
@@ -169,5 +171,35 @@ Future<void> removeReminder(String routeID) async {
   if (taskList.isEmpty) {
     await AndroidAlarmManager.cancel(9999);
     print("已停止所有背景任務");
+  }
+}
+Future<void> testTask() async {
+  try {
+    // 獲取當前時間的分鐘數
+    int currentMinute = DateTime.now().minute;
+
+    // 檢查當前分鐘數是否為偶數
+    if (currentMinute % 2 == 0) {
+      await flutterLocalNotificationsPlugin.show(
+        DateTime.now().millisecondsSinceEpoch ~/ 1000, // 使用時間戳作為唯一 ID
+        '到站提醒測試',
+        '【測試類型】測試路線 即將抵達 測試站牌！',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'arrival_alerts_channel', // 必須與主 channel ID 一致
+            '到站提醒通知',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true, // 測試時建議開啟聲音
+            enableVibration: true,
+          ),
+        ),
+      );
+      debugPrint('測試通知已觸發');
+    } else {
+      debugPrint('當前分鐘數為奇數，未觸發通知');
+    }
+  } catch (e) {
+    debugPrint('通知發送失敗: $e');
   }
 }

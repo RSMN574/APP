@@ -2,12 +2,15 @@ import 'dart:ui';
 
 import 'package:com.rsmn574.app/pages/EV_station.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
+import 'package:com.rsmn574.app/task/task.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:provider/single_child_widget.dart';
+
 import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
@@ -30,50 +33,69 @@ import 'train.dart';
 import 'bus.dart';
 import 'package:logging/logging.dart';
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+class AppInitializer {
+  static Future<void> initialize() async {
+    Logger.root.level = Level.ALL;
+    Logger.root.onRecord.listen((record) {
+      print('${record.level.name}: ${record.time}: ${record.message}');
+    });
 
-Future<void> main() async {
-  Logger.root.level = Level.ALL; // 設定最低日誌等級
-  Logger.root.onRecord.listen((record) {
-    print('${record.level.name}: ${record.time}: ${record.message}');
-  });
+    final log = Logger('MyApp');
+    log.info('應用程式啟動');
 
-  final log = Logger('MyApp');
-  log.info('應用程式啟動');
-  WidgetsFlutterBinding.ensureInitialized(); // 確保初始化順序正確
-  await SecureStorage.initializeApiKey(); // 確保首次啟動時儲存 API 金鑰
-  try {
-    // 初始化 Firebase
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await SecureStorage.initializeApiKey();
 
-    // 请求通知权限
-    await requestPermission();
+    try {
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await requestPermission();
+      await initializeNotifications();
+      setupForegroundMessageHandler();
+      await setupFirebaseMessaging();
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    } catch (e, stack) {
+      log.severe('Firebase 初始化失敗', e, stack);
+    }
 
-    // 初始化通知和消息处理
-    await initializeNotifications();
-    setupForegroundMessageHandler();
-    await setupFirebaseMessaging();
-
-    // 设置后台消息处理
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  } catch (e) {
-    print('Firebase 初始化失败: $e');
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      log.severe('Flutter Error: ${details.exception}', details.stack);
+    };
   }
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    // 记录日志或上报异常
-  };
+}
+class ProviderSetup {
+  static List<SingleChildWidget> getProviders() {
+    return [
+      ChangeNotifierProvider(create: (_) => CityProvider()),
+      ChangeNotifierProvider(create: (_) => LocationProvider()),
+      ChangeNotifierProvider(create: (_) => MarkerProvider()),
+    ];
+  }
+}
+class AppRoutes {
+  static const String plane = "plane";
+  static const String train = "train";
+  static const String metro = "metro";
+  static const String bus = "bus";
+  static const String notification = "notification";
+  static const String home = "home";
+  static const String bike = "bike";
+  static const String HSR = "HSR";
+  static const String EVStation = "EVStation";
+  static const String IntercityBus = "IntercityBus";
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppInitializer.initialize();
+
 
   runApp(MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (context) => CityProvider()),
-      ChangeNotifierProvider(create: (context) => LocationProvider()),
-      ChangeNotifierProvider(create: (context) => MarkerProvider()),
-    ],
+    providers: ProviderSetup.getProviders(),
     child: const NavigationBarApp(),
   ));
+
 }
+
 
 // 定义 SVG 资源路径的常量类
 class SvgAssets {
@@ -87,7 +109,7 @@ class SvgAssets {
   static const String person = 'assets/icons/person.svg';
   static const String commuteOutlined = 'assets/icons/commute-outlined.svg';
 }
-late AnimationController _animationController;
+
 class NavigationBarApp extends StatefulWidget {
   const NavigationBarApp({super.key});
 
@@ -97,17 +119,13 @@ class NavigationBarApp extends StatefulWidget {
 
 class _NavigationBarAppState extends State<NavigationBarApp>
     with SingleTickerProviderStateMixin { // 使用 SingleTickerProviderStateMixin
-  late AnimationController _animationController;
+
 
   @override
   void initState() {
     super.initState();
-    // 初始化 AnimationController
-    _animationController = AnimationController(
-      vsync: this, // 使用 this 作為 TickerProvider
-      duration: const Duration(milliseconds: 1000),
 
-    );
+
     // 在应用启动时获取定位信息
 
     getLocation(context);
@@ -115,7 +133,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
 
   @override
   void dispose() {
-    _animationController.dispose(); // 釋放資源
+
     super.dispose();
   }
   // 監聽應用的生命周期變化
@@ -127,116 +145,36 @@ class _NavigationBarAppState extends State<NavigationBarApp>
 
   @override
   Widget build(BuildContext context) {
-    // 在应用启动时获取定位信息
 
-    getLocation(context);
+
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus();
       },
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            routes: {
-              "plane": (BuildContext context) => _buildAnimatedPage(Plane()),
-              "train": (BuildContext context) => _buildAnimatedPage(Train()),
-              "metro": (BuildContext context) => _buildAnimatedPage(Metro()),
-              "bus": (BuildContext context) => _buildAnimatedPage(const Bus()),
-              'notification': (BuildContext context) => _buildAnimatedPage(NotificationPage()),
-              "home": (BuildContext context) => _buildAnimatedPage(Home()),
-              "bike": (BuildContext context) => _buildAnimatedPage(Bike()),
-              "HSR": (BuildContext context) => _buildAnimatedPage(HSR()),
-              "EVStation": (BuildContext context) => _buildAnimatedPage(EVStation()),
-              "IntercityBus": (BuildContext context) => _buildAnimatedPage(IntercityBus()),
-
-            },
-            theme: appTheme,
-            themeMode: ThemeMode.system,
-            home: const TaiwanPass(),
-          );
+      child:  MaterialApp(
+        debugShowCheckedModeBanner: false,
+        routes: {
+          AppRoutes.plane: (BuildContext context) => (Plane()),
+          AppRoutes.train: (BuildContext context) => (Train()),
+          AppRoutes.metro: (BuildContext context) => (Metro()),
+          AppRoutes.bus: (BuildContext context) => (const Bus()),
+          AppRoutes.notification: (BuildContext context) => (NotificationPage()),
+          AppRoutes.home: (BuildContext context) => (Home()),
+          AppRoutes.bike: (BuildContext context) => (Bike()),
+          AppRoutes.HSR: (BuildContext context) => (HSR()),
+          AppRoutes.EVStation: (BuildContext context) => (EVStation()),
+          AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),
         },
-      ),
+
+        theme: appTheme,
+        themeMode: ThemeMode.system,
+        home: const TaiwanPass(),
+      )
     );
   }
-  Widget _buildAnimatedPage(Widget page, {bool isReverse = false}) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 600),
-      switchInCurve: Curves.fastEaseInToSlowEaseOut,
-      switchOutCurve: Curves.fastEaseInToSlowEaseOut,
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        // 定義進出動畫方向
-        final Offset enterOffset = isReverse
-            ? const Offset(-0.1, 0)
-            : const Offset(0.1, 0);
-        final Offset exitOffset = isReverse
-            ? const Offset(0.1, 0)
-            : const Offset(-0.1, 0);
 
-        // 進入動畫
-        final Animation<Offset> enterAnimation = Tween<Offset>(
-          begin: enterOffset,
-          end: Offset.zero,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Interval(0.0, 1.0, curve: Curves.easeOutCubic),
-        ));
-
-        // 退出動畫
-        final Animation<Offset> exitAnimation = Tween<Offset>(
-          begin: Offset.zero,
-          end: exitOffset,
-        ).animate(CurvedAnimation(
-          parent: animation,
-          curve: Interval(0.0, 1.0, curve: Curves.easeInCubic),
-        ));
-
-        // 組合動畫
-        return Stack(
-          children: <Widget>[
-            // 退出頁面動畫
-            SlideTransition(
-              position: exitAnimation,
-              child: FadeTransition(
-                opacity: ReverseAnimation(animation),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 1.0, end: 0.95).animate(
-                    CurvedAnimation(
-                      parent: ReverseAnimation(animation),
-                      curve: Curves.easeInOut,
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
-            ),
-            // 進入頁面動畫
-            SlideTransition(
-              position: enterAnimation,
-              child: FadeTransition(
-                opacity: animation,
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-                    CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutBack,
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-      child: KeyedSubtree(
-        key: ValueKey(page.runtimeType),
-        child: page,
-      ),
-    );
-  }
 }
 class TaiwanPass extends StatefulWidget {
   const TaiwanPass({super.key});
@@ -266,7 +204,10 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
   void initState() {
     // 在应用启动时获取定位信息
 
-    getLocation(context);
+    // 延迟获取定位信息
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getLocation(context); // 异步获取定位信息
+    });
     _navIconController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -305,7 +246,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
 
     final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
-    print(cityProvider.city);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('台灣通'),
@@ -478,31 +419,6 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
       ),
     );
   }
-  // Widget _buildNavigationBar() {
-  //   return NavigationBarTheme(
-  //     data: NavigationBarThemeData(
-  //       indicatorColor: const Color(0xFFFFFFFF),
-  //       labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-  //             (Set<WidgetState> states) {
-  //           if (states.contains(WidgetState.selected)) {
-  //             return const TextStyle(color: primary, fontWeight: FontWeight.bold);
-  //           }
-  //           return const TextStyle(fontSize: 12, color: Colors.grey);
-  //         },
-  //       ),
-  //       backgroundColor: Colors.white,
-  //     ),
-  //     child: NavigationBar(
-  //       selectedIndex: currentPageIndex,
-  //       onDestinationSelected: (int index) {
-  //         setState(() {
-  //           currentPageIndex = index;
-  //         });
-  //       },
-  //       destinations: _buildNavigationDestinations(),
-  //     ),
-  //   );
-  // }
 
 
 

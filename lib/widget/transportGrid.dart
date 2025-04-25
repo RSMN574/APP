@@ -203,13 +203,6 @@ class _TransportGridState extends State<TransportGrid> {
       );
     } else if (route == "bike") {
       widget.onClick("bike");
-    }else if (route == "test") {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => test(),
-        ),
-      );
     } else {
       Navigator.pushNamed(context, route);
     }

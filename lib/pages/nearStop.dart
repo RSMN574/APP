@@ -28,10 +28,11 @@ import 'bus_time.dart';
 
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
+ValueNotifier<String> _selectStationGroupID = ValueNotifier<String>('');
 ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
 ValueNotifier<String> _stopName = ValueNotifier<String>('');
 ValueNotifier<String> _tabSelect = ValueNotifier<String>('');
-
+final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
@@ -40,9 +41,10 @@ class NearbyStationsPage extends StatefulWidget {
 }
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
-  final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
+
   Future<List<Station>>? _futureNearStations;
   MarkerProvider? _markerProvider;
+  GoogleMapController? _mapController;
   Future<void> _updateFutureNearStations() async {
 
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
@@ -157,6 +159,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     Set<Marker> markers = {};
 
     for (var station in stations) {
+
       final marker = Marker(
           markerId: MarkerId(station.stationID),
           position: LatLng(
@@ -168,28 +171,49 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             snippet: station.stationID ?? 'Unknown',
           ),
           onTap: () async {
-            BusStopCache  cache = BusStopCache();
-            List<Map<String, dynamic>> data =await cache.getBusStopInfo(station.stationNameZh);
-                // await getBusStopInfo(station.stationNameZh, "Taichung");
-             print(data);
-            // 使用 map 來提取 StationID 並轉換為字串
-            List<String> stationIDs = data
-                .map((station) {
-                  // 確保 StationID 存在並轉換為字串
-                  if (station.containsKey('StationID')) {
-                    return station['StationID'].toString();
-                  }
-                  return '';
-                })
-                // 過濾掉空字串
-                .where((id) => id.isNotEmpty)
-                .toList();
-            _stationIDs.value = stationIDs;
-            _stopName.value = station.stationNameZh;
-            _selectStationID.value = station.stationID;
+            print(station.stationGroupID);
+            final cache = BusStopCache();
+            final stopName = station.stationNameZh;
+            final stopID = station.stationID;
+            final stationGroupID = station.stationGroupID;
+            try {
+              // 取得該站點的所有停靠資料
+              final data = await cache.getBusStopInfo(stopName);
 
-            _indexNotifier.value = 1; // 切换到搜索内容
-          });
+              // 提取 StationID 並過濾無效資料
+              final stationIDs = data
+                  .map((item) => item['StationID']?.toString())
+                  .whereType<String>()
+                  .where((id) => id.isNotEmpty)
+                  .toList();
+
+              if (stationIDs.isEmpty) {
+                debugPrint('無有效站點 ID，無法更新');
+                return;
+              }
+
+              // 更新相關狀態
+              _stationIDs.value = stationIDs;
+              _stopName.value = stopName;
+              _selectStationID.value = stopID;
+              _selectStationGroupID.value=stationGroupID;
+              // 聚焦到該站點位置
+              _mapController?.animateCamera(
+                CameraUpdate.newCameraPosition(
+                  CameraPosition(
+                    target: LatLng(station.positionLat, station.positionLon),
+                    zoom: 17.0,
+                  ),
+                ),
+              );
+
+              // 切換 UI 顯示內容
+              _indexNotifier.value = 1;
+            } catch (e) {
+              debugPrint('取得站點資料失敗: $e');
+            }
+          }
+      );
       markers.add(marker);
     }
     _markers.value = markers; // 添加新标记
@@ -292,8 +316,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                       builder: (context, markers, child) {
                         return map(
                           markers: _markers.value,
-                          onMapCreated: (controller) {
-                            // 自定义逻辑
+                          onMapCreated: (GoogleMapController controller) {
+                            _mapController = controller;
                           },
                         );
                       },
@@ -1097,7 +1121,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
   Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
     if (_tabSelect.value == "bus") {
-      print(_stopName.value);
+
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1107,7 +1131,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           controller: scrollController, // 绑定 PrimaryScrollController
           child: BusStopList(
             _stopName.value,
-            key: ValueKey(_stopName.value),
+            key: ValueKey(_selectStationGroupID.value),
           ),
         ),
       );
@@ -1153,70 +1177,62 @@ class BusStopList extends StatefulWidget {
 class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
   final StreamController<List<Map<String, dynamic>>> _streamController =
       StreamController();
+  final ValueNotifier<TabController?> _tabControllerNotifier = ValueNotifier(null);
 
-  late ValueNotifier<TabController> _tabControllerNotifier;
-
-  // 构建 TabBar
   @override
   void initState() {
     super.initState();
-// 初始化 _tabControllerNotifier
-    _tabControllerNotifier = ValueNotifier(
-      TabController(
-        length: _stationIDs.value.length, // 初始长度为 _stationIDs 的长度
-        vsync: this,
-      ),
-    );
+
     // 初始化 TabController
-    // _tabController = TabController(
-    //     length: _stationIDs.value.length, // 使用 stationIDs 的長度
-    //     vsync: this
-    // );
-    _selectStationID.addListener(() {
-      if (_tabControllerNotifier.value.length != _stationIDs.value.length) {
-        _initTabController();
-      }
+    _initTabController();
 
-      String currentStop = _selectStationID.value;
-      _stationIDs.value.sort(); // 對站點列表進行排序
-      int index =
-          _stationIDs.value.indexOf(currentStop); // 獲取 currentStop 在排序後列表中的索引
-
-      if (index != -1) {
-        _NearbyStationsPageState._updateMarkerStyle(
-            _selectStationID.value); // 切換 marker 樣式
-        _tabControllerNotifier.value.animateTo(index); // 切換 Tab
-      }
-    });
-    // 初始化时确保 _stationIDs 不为空
-    if (_stationIDs.value.isEmpty) {
-      _initTabController();
-    }
-
-    // 监听 _stationIDs 的变化
+    // 監聽 _stationIDs 變化，更新 TabController
     _stationIDs.addListener(() {
       if (!mounted) return;
-
-      // 当 stationIDs 发生变化时，重新创建 TabController
-      setState(() {
-        _initTabController();
-      });
+      _initTabController();
     });
 
-    // 监听 _selectStationID 的变化
-    _selectStationID.addListener(() {
-      if (!mounted) return;
-
-      String currentStop = _selectStationID.value;
-      if (_stationIDs.value.isNotEmpty) {
-        int index = _stationIDs.value.indexOf(currentStop);
-        if (index != -1) {
-          _NearbyStationsPageState._updateMarkerStyle(_selectStationID.value);
-          _tabControllerNotifier.value.animateTo(index);
-        }
-      }
-    });
+    // 監聽 _selectStationID，切換 Tab 並更新 marker 樣式
+    _selectStationID.addListener(_onSelectStationChanged);
   }
+
+  String? _lastGroupID; // 加在 class 中
+
+  void _initTabController() {
+    final length = _stationIDs.value.length;
+    final currentGroupID = _selectStationGroupID.value;
+
+    // 若 groupID 沒變且長度也沒變，就不重建
+    if (_tabControllerNotifier.value != null &&
+        _tabControllerNotifier.value!.length == length &&
+        _lastGroupID == currentGroupID) {
+      return;
+    }
+
+    // 記錄目前的 groupID
+    _lastGroupID = currentGroupID;
+
+    // 重建 TabController
+    _tabControllerNotifier.value?.dispose();
+    _tabControllerNotifier.value = TabController(length: length, vsync: this);
+
+
+  }
+
+
+
+  void _onSelectStationChanged() {
+    if (!mounted || _stationIDs.value.isEmpty) return;
+
+    final currentStop = _selectStationID.value;
+    _stationIDs.value.sort();
+    final index = _stationIDs.value.indexOf(currentStop);
+    if (index != -1 && _tabControllerNotifier.value != null) {
+      _NearbyStationsPageState._updateMarkerStyle(currentStop);
+      _tabControllerNotifier.value!.animateTo(index);
+    }
+  }
+
 
   @override
   void didUpdateWidget(covariant BusStopList oldWidget) {
@@ -1224,18 +1240,13 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     print("didUpdateWidget called");
   }
 
-  void _initTabController() {
-    _tabControllerNotifier.value = TabController(
-      length: _stationIDs.value.length,
-      vsync: this,
-    );
-  }
+
 
   @override
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     // 釋放 TabController
-    _tabControllerNotifier.value.dispose();
+    _tabControllerNotifier.value?.dispose();
     super.dispose();
   }
 
@@ -1600,7 +1611,7 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
         decoration: BoxDecoration(
           color: Colors.white, // 使用白色背景
         ),
-        child: ValueListenableBuilder<TabController>(
+        child: ValueListenableBuilder<TabController?>(
             valueListenable: _tabControllerNotifier,
             builder: (context, tabController, child) {
               return TabBar(
@@ -1642,158 +1653,172 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     super.build(context);
 
-    return FutureBuilder<List<Map<String, dynamic>>>(
-        future: _loadData(), // 调用异步方法
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: LoadingAnimationWidget.stretchedDots(
-                color: Colors.black,
-                size: 40,
-              ),
-            ); // 加载中的占位组件
-          } else if (snapshot.hasError) {
-            return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
-          } else if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text('沒有資料')); // 无数据占位
-          }
+    return ValueListenableBuilder<String>(
+        valueListenable: _selectStationGroupID,
+        builder: (context, groupID, _)
+    {
+      return
+        FutureBuilder<List<Map<String, dynamic>>>(
+            future: _loadData(), // 调用异步方法
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: LoadingAnimationWidget.stretchedDots(
+                    color: Colors.black,
+                    size: 40,
+                  ),
+                ); // 加载中的占位组件
+              } else if (snapshot.hasError) {
+                return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
+              } else if (!snapshot.hasData || snapshot.data == null) {
+                return const Center(child: Text('沒有資料')); // 无数据占位
+              }
 
-          return DefaultTabController(
-              length: 2,
-              child: Column(
-                children: [
-                  // 自定义 AppBar
-                  SingleChildScrollView(
-                    child: PreferredSize(
-                      preferredSize: const Size.fromHeight(120), // 自定义高度
-                      child: Container(
-                        height: 120,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16)),
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2), // 微弱阴影
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            AppBar(
-                              backgroundColor: Colors.transparent,
-                              // 设置透明背景
-                              elevation: 0,
-                              // 移除默认阴影
-                              title: Text(
-                                _stopName.value,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              actions: [
-                                IconButton(
-                                  icon:
-                                      Icon(Icons.refresh, color: Colors.black),
-                                  onPressed: _loadData, // 刷新数据
-                                ),
-                                PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert,
-                                      color: Colors.black),
-                                  itemBuilder: (BuildContext context) =>
-                                      <PopupMenuItem<String>>[
-                                    SelectView(Icons.info, '站牌資訊', 'A'),
-                                    SelectView(Icons.add, '加入收藏', 'B'),
-                                  ],
-                                  onSelected: (String action) async {
-                                    if (action == 'B') {
-                                      favorite_feature dbHelper =
-                                          favorite_feature();
-                                      final output = await dbHelper.addFavorite(
-                                        StopName: widget.stop,
-                                        table: "FavoritesStop",
-                                        city: 'Taichung',
-                                      );
-                                      if (output == 100) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.success,
-                                          text: '${widget.stop}已儲存項目',
-                                        );
-                                      } else if (output == -1) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.warning,
-                                          text: '${widget.stop}已存在於列表中，不會重複添加',
-                                        );
-                                      } else if (output == 200) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.error,
-                                          title: 'Oops...',
-                                          text: '儲存項目時發生錯誤',
-                                        );
-                                      }
-                                    }
-                                  },
+              return DefaultTabController(
+                  length: 2,
+                  child: Column(
+                    children: [
+                      // 自定义 AppBar
+                      SingleChildScrollView(
+                        child: PreferredSize(
+                          preferredSize: const Size.fromHeight(120), // 自定义高度
+                          child: Container(
+                            height: 120,
+                            decoration: BoxDecoration(
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(16)),
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2), // 微弱阴影
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
                                 ),
                               ],
-                              bottom: _buildTabBar(snapshot.data!),
                             ),
-                          ],
+                            child:PreferredSize(
+                              preferredSize: Size.fromHeight(100), // 視需要調整高度
+                              child: AppBar(
+                                automaticallyImplyLeading: false, // 不顯示默認返回鍵
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                                title: Text(
+                                  _stopName.value,
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                                leading: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.black),
+                                  onPressed: () {
+                                    if (_indexNotifier.value > 0) {
+                                      setState(() {
+                                        _indexNotifier.value--; // 返回到上一个索引
+                                      });
+
+                                    }}, // 點 X 返回
+                                ),
+                                actions: [
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh, color: Colors.black),
+                                    onPressed: _loadData,
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, color: Colors.black),
+                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                      SelectView(Icons.info, '站牌資訊', 'A'),
+                                      SelectView(Icons.add, '加入收藏', 'B'),
+                                    ],
+                                    onSelected: (String action) async {
+                                      if (action == 'B') {
+                                        favorite_feature dbHelper = favorite_feature();
+                                        final output = await dbHelper.addFavorite(
+                                          StopName: widget.stop,
+                                          table: "FavoritesStop",
+                                          city: 'Taichung',
+                                        );
+                                        if (output == 100) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.success,
+                                            text: '${widget.stop}已儲存項目',
+                                          );
+                                        } else if (output == -1) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.warning,
+                                            text: '${widget.stop}已存在於列表中，不會重複添加',
+                                          );
+                                        } else if (output == 200) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.error,
+                                            title: 'Oops...',
+                                            text: '儲存項目時發生錯誤',
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ],
+                                bottom: _buildTabBar(snapshot.data!),
+                              ),
+                            )
+
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  // 内容部分
-                  Expanded(
-                    child: TabBarView(
-                      controller:
-                          _tabControllerNotifier.value, // 加入 controller 綁定
-                      children:
-                          List.generate(_stationIDs.value.length, (index) {
-                        String label =
-                            String.fromCharCode(65 + index); // A, B, C...
-                        return FutureBuilder(
-                          future: _buildTabContent(_stationIDs.value[index],
-                              snapshot.data!), // 傳入 A, B, C...
-                          builder: (context, contentSnapshot) {
-                            if (contentSnapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(
-                                child: LoadingAnimationWidget.stretchedDots(
-                                  color: Colors.black,
-                                  size: 40,
-                                ),
-                              );
-                            }
+                      // 内容部分
+                      ValueListenableBuilder<TabController?>(
+                      valueListenable: _tabControllerNotifier, // 監聽 TabController
+              builder: (context, tabController, _) {
+              return    Expanded(
+                child: TabBarView(
+                  controller: _tabControllerNotifier.value, // 加入 controller 綁定
+                  children:
+                  List.generate(_stationIDs.value.length, (index) {
+                    String label =
+                    String.fromCharCode(65 + index); // A, B, C...
+                    return FutureBuilder(
+                      future: _buildTabContent(_stationIDs.value[index],
+                          snapshot.data!), // 傳入 A, B, C...
+                      builder: (context, contentSnapshot) {
+                        if (contentSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: LoadingAnimationWidget.stretchedDots(
+                              color: Colors.black,
+                              size: 40,
+                            ),
+                          );
+                        }
 
-                            if (contentSnapshot.hasError) {
-                              return Center(
-                                child: Text('Error: ${contentSnapshot.error}'),
-                              );
-                            }
+                        if (contentSnapshot.hasError) {
+                          return Center(
+                            child: Text('Error: ${contentSnapshot.error}'),
+                          );
+                        }
 
-                            if (contentSnapshot.data == null) {
-                              return Center(
-                                child: Text("No content available"),
-                              );
-                            }
-                            return contentSnapshot.data is Widget
-                                ? contentSnapshot.data as Widget
-                                : Center(child: Text("Invalid content"));
-                          },
-                        );
-                      }),
-                    ),
-                  ),
-                ],
-              ));
-        });
+                        if (contentSnapshot.data == null) {
+                          return Center(
+                            child: Text("No content available"),
+                          );
+                        }
+                        return contentSnapshot.data is Widget
+                            ? contentSnapshot.data as Widget
+                            : Center(child: Text("Invalid content"));
+                      },
+                    );
+                  }),
+                ),
+              );
+                      })
+                    ],
+                  ));
+            });
+    });
   }
 
   @override
