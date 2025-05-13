@@ -423,7 +423,7 @@ Future<List> _getStationInfo(String station) async {
 
   var i = (await mysqlSelect(
       "SELECT info FROM MRT.MRT_Taichung_station WHERE StationNameZh_tw ='$station'"));
-  print(json.decode(i[0]["info"]) is List);
+
   try {
     facilitiesNotifier.value = json.decode(i[0]["info"]);
   } catch (e) {

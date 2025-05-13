@@ -110,15 +110,15 @@ class _CommuteState extends State<Commute> {
     }
   }
   Future<void> fetchScheduleData() async {
-    final db = schedule();
-    await db.deleteExpiredSchedules( );
-    final data = await db.getSchedule(
-      "schedule",
-    );
-    print(data);
+
+    await ScheduleService.instance.deleteExpiredSchedules( );
+    final data = await ScheduleService.instance.getSchedules();
+
     setState(() {
       scheduleData = data;
     });
+print("data");
+    print(data);
     scheduleTodayReminders();
   }
 
@@ -129,8 +129,9 @@ class _CommuteState extends State<Commute> {
 
   Widget _buildCommutePage(String category) {
     final filteredData = scheduleData.where((item) {
-      return item["category"] == category;
+      return (item["category"] ?? '').toString().toLowerCase() == category.toLowerCase();
     }).toList();
+
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
@@ -140,7 +141,7 @@ class _CommuteState extends State<Commute> {
               itemCount: filteredData.length,
               itemBuilder: (context, index) {
                 final item = filteredData[index];
-                print(item);
+
                 return _buildScheduleCard(item);
               },
             ),
@@ -338,17 +339,20 @@ class _CommuteState extends State<Commute> {
       onTap: () async {
         // 处理对话框选项点击事件
         if (id == "remove") {
-          final db = schedule();
-          int result = await db.removeSchedule(
+          final schedule = ScheduleModel(
             city: other?['type'] == "train" ? '' : (other?['city'] ?? ''),
             type: other?['type'],
-            table: 'schedule',
-            UserStartingStopName: other?['UserStartingStopName'],
-            UserDestinationStopName: other?['UserDestinationStopName'],
-            StartingStopName: other?['StartingStopName'],
-            FinalStopName: other?['FinalStopName'],
+            userStartingStopName: other?['UserStartingStopName'],
+            userDestinationStopName: other?['UserDestinationStopName'],
+            startingStopName: other?['StartingStopName'],
+            finalStopName: other?['FinalStopName'],
             route: other?['Route'],
           );
+
+// 调用 updateSchedule 来更新现有的排程
+
+
+          final result = await ScheduleService.instance.removeSchedule(model:schedule);
 
           if (result == -1) {
             // 如果已经存在相同的记录，提示用户
@@ -755,11 +759,21 @@ class _CommuteState extends State<Commute> {
                           String newSeatNumber = controller.text.trim();
                           if (newSeatNumber.isNotEmpty) {
                             // 更新座位號碼
-                            final schedule _schedule = schedule();
-                            final output = await _schedule.updateSchedule(
-                                id: data["id"],
-                                type: type,
-                                other: {"seatNumber": newSeatNumber});
+                            final schedule = ScheduleModel(
+                              id: data["id"], // 确保 id 是有效的
+                              type: type,
+                              route: data['DailyTrainInfo']['TrainNo'], // 提供 route 参数
+                              startingStopName: data['DailyTrainInfo']['StartingStationName']['Zh_tw'], // 提供 startingStopName 参数
+                              finalStopName: data['DailyTrainInfo']['EndingStationName']['Zh_tw'], // 提供 finalStopName 参数
+                              other: {"seatNumber": newSeatNumber}, // 更新 seatNumber
+                            );
+
+// 调用 updateSchedule 来更新现有的排程
+                            final output = await ScheduleService.instance.updateSchedule(schedule);
+
+
+
+
                             // 根据 updateSchedule 方法返回的结果进行处理
                             if (output == -1) {
                               // 如果已经存在相同的记录，提示用户

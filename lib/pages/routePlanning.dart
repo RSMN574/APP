@@ -739,17 +739,20 @@ print(stopsQuery);
               onPressed: () async {
                 // 添加到通勤逻辑
                 Navigator.pop(context); // 关闭对话框
-
-                final schedule _schedule = schedule();
-                final result = await _schedule.addSchedule(
+                final schedule = ScheduleModel(
                     city: city,
-                    UserStartingStopName: Departure,
-                    UserDestinationStopName: DestinationS,
-                    StartingStopName:routeDepartureStation,
-                    FinalStopName:routeArrivalStation,
+                    userStartingStopName: Departure,
+                    userDestinationStopName: DestinationS,
+                    startingStopName:routeDepartureStation!,
+                    finalStopName:routeArrivalStation!,
                     route: route, type: 'bus',
+                    category:"trip",
                     other:{"routeID":RouteID.toString(),"category":"trip"}
                 );
+
+                final result = await ScheduleService.instance.addSchedule(schedule);
+
+
 
 // 根据 addSchedule 方法返回的结果进行处理
                 if (result == -1) {
@@ -776,16 +779,20 @@ print(stopsQuery);
                 // 添加到通勤逻辑
                 Navigator.pop(context); // 关闭对话框
 
-                final schedule _schedule = schedule();
-                final result = await _schedule.addSchedule(
+                final schedule = ScheduleModel(
                     city: city,
-                    UserStartingStopName: Departure,
-                    UserDestinationStopName: DestinationS,
-                    StartingStopName:routeDepartureStation,
-                    FinalStopName:routeArrivalStation,
+                    userStartingStopName: Departure,
+                    userDestinationStopName: DestinationS,
+                    startingStopName:routeDepartureStation!,
+                    finalStopName:routeArrivalStation!,
                     route: route, type: 'bus',
-                     other:{"routeID":RouteID,"category":"commute"}
+                    category:"commute",
+                    other:{"routeID":RouteID,"category":"commute"}
                 );
+
+                final result = await ScheduleService.instance.addSchedule(schedule);
+
+
 
 // 根据 addSchedule 方法返回的结果进行处理
                 if (result == -1) {

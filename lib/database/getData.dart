@@ -421,8 +421,7 @@ Future<List> getNearTrainStation(double latitude,double longitude) async {
     // 连接数据库
     await connMysql();
 
-    String queryNearStation =
-        "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
+    String queryNearStation = "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
 
     // 查询设施数据
     List<Map<String, dynamic>> nearStation =

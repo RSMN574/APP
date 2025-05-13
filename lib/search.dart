@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class Frame9 extends StatelessWidget {
+class s extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -9,7 +9,7 @@ class Frame9 extends StatelessWidget {
         height: 56,
         padding: const EdgeInsets.all(16),
         decoration: ShapeDecoration(
-          color: Color(0xFFFAFAFA),
+          color: const Color(0xFFFAFAFA),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),

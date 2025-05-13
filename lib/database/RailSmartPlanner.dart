@@ -11,7 +11,7 @@ Future<Map<String, dynamic>> fetchTrainRoutes(String origin, String destination,
   // 查詢直達班次
   final url = '$baseUrl/Rail/TRA/DailyTrainTimetable/OD/$origin/to/$destination/$encodedTime?%24format=JSON';
 
-print(url);
+
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求

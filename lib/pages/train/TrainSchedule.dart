@@ -130,23 +130,28 @@ List<dynamic> stationNames = trainData["StopTimes"]
                         }
                       }
                       Map timeMap=printStartEndDepartureTimes(trainData);
-                      final schedule _schedule = schedule();
-                      final output = await _schedule.addSchedule(
-                          UserStartingStopName: result['departure'],
-                          UserDestinationStopName: result['destination'],
-                          StartingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                          FinalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-                          route: trainData['DailyTrainInfo']['TrainNo'],
-                          type: 'train',
-                          other: {
-                            "DateTime": time.toString(),
-                            "trainType": trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
-                            "category": getCategory(result['category']),
-                            "seatNumber": result["seatNumber"],
-                            "startDeparture": timeMap["startDeparture"],
-                            "endDeparture": timeMap["endDeparture"]
-                          }
+                      final schedule = ScheduleModel(
+                        type: 'train',
+                        route: trainData['DailyTrainInfo']['TrainNo'],
+                        startingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                        userStartingStopName: result['departure'],
+                        finalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                        userDestinationStopName: result['destination'],
+                        time: time.toString(),
+                        category: getCategory(result['category']),
+                        seatNumber: result['seatNumber'],
+                        other: {
+                          "DateTime": time.toString(),
+                          "trainType": trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                          "category": getCategory(result['category']),
+                          "seatNumber": result["seatNumber"],
+                          "startDeparture": timeMap["startDeparture"],
+                          "endDeparture": timeMap["endDeparture"]
+                        },
                       );
+
+                      final output = await ScheduleService.instance.addSchedule(schedule);
+
 
 // 根据 addSchedule 方法返回的结果进行处理
                       if (output == -1) {

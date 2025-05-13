@@ -79,17 +79,19 @@ class HSRSchedulePage extends StatelessWidget {
                   return 'other';
               }
             }
-            print(trainData);
-            final schedule _schedule = schedule();
-            final output = await _schedule.addSchedule(
 
-                UserStartingStopName: result['departure'],
-                UserDestinationStopName: result['destination'],
-                StartingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                FinalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+            final schedule = ScheduleModel(
+                userStartingStopName: result['departure'],
+                userDestinationStopName: result['destination'],
+                startingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                finalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
                 route: trainData['DailyTrainInfo']['TrainNo'], type: 'HSR',
                 other:{"DateTime":  (time).toString(),"trainType":"台灣高鐵700T","category":getCategory(result['category'])}
+
             );
+
+// 调用 updateSchedule 来更新现有的排程
+            final output = await ScheduleService.instance.updateSchedule(schedule);
 
 // 根据 addSchedule 方法返回的结果进行处理
             if (output == -1) {

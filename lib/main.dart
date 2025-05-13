@@ -221,8 +221,8 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
       InfoPages(),
 
     ]);
-    final schedule _schedule = schedule();
-    _schedule.initDatabase();
+
+    ScheduleService.instance.initDatabase();
 
     // 获取天气信息
     // getWeatherInfo(context);
