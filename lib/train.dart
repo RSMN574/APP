@@ -677,7 +677,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         builder: (context) => RoutePage(
                             departure: departureSelectedStation,
                             destination: destinationSelectedStation,
-                            date: DateTime.now()),
+                            date: DateTime.now().add(const Duration(minutes: 1))),
                       ),
                     );
                   } else {
@@ -1574,7 +1574,7 @@ class _RoutePageState extends State<RoutePage> {
   @override
   void initState() {
     super.initState();
-    print(widget.date);
+
     _selectedDate = widget.date;
     _selectedDateTime = widget.date;
   }
@@ -1708,11 +1708,15 @@ class _RoutePageState extends State<RoutePage> {
             children: [
               ElevatedButton(
                 onPressed: () async {
+                  final initialTime = _selectedDateTime != null
+                      ? TimeOfDay(hour: _selectedDateTime.hour, minute: _selectedDateTime!.minute)
+                      : TimeOfDay.now();
+
                   final picked = await showTimePicker(
                     context: context,
-                    initialTime: _selectedTime ?? TimeOfDay.now(),
+                    initialTime: initialTime,
                   );
-                  if (picked != null && picked != _selectedTime) {
+                  if (picked != null) {
                     _updateSelectedTime(picked);
                   }
                 },
@@ -1726,11 +1730,16 @@ class _RoutePageState extends State<RoutePage> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Text(
-                    _selectedTime?.format(context) ?? '選擇時間',
+                    _selectedDateTime != null
+                        ? TimeOfDay(hour: _selectedDateTime.hour, minute: _selectedDateTime!.minute)
+                        .format(context)
+                        : '選擇時間',
                     style: const TextStyle(fontSize: 16),
                   ),
                 ),
               ),
+
+
               const SizedBox(width: 8),
               Expanded(
                 child: SingleChildScrollView(

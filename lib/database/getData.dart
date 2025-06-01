@@ -416,64 +416,66 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
   }
 }
 
-Future<List> getNearTrainStation(double latitude,double longitude) async {
+Future<List> getNearTrainStation(double latitude, double longitude,
+    {double maxDistanceInKm = 30.0, int count = 5}) async {
   try {
-    // 连接数据库
     await connMysql();
 
-    String queryNearStation = "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
+    String queryNearStation =
+        "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
+    List<Map<String, dynamic>> nearStation = await mysqlSelect(queryNearStation);
 
-    // 查询设施数据
-    List<Map<String, dynamic>> nearStation =
-        await mysqlSelect(queryNearStation);
-
-    // 重置闲置计时器
     _startIdleTimer();
 
     List<Map<String, dynamic>> findNearestStations(
         List<Map<String, dynamic>> stations,
         double userLat,
         double userLon, {
-          int count = 5,
+          required double maxDistance,
+          required int count,
         }) {
-      List<Map<String, dynamic>> sortedStations = List.from(stations)
-        ..sort((a, b) {
-          double distanceA = calculateApproxDistance(
-            userLat,
-            userLon,
-            json.decode(a["StationPosition"])["PositionLat"],
-            json.decode(a["StationPosition"])["PositionLon"],
-          );
-          double distanceB = calculateApproxDistance(
-            userLat,
-            userLon,
-            json.decode(b["StationPosition"])["PositionLat"],
-            json.decode(b["StationPosition"])["PositionLon"],
-          );
-          return distanceA.compareTo(distanceB);
-        });
+      List<Map<String, dynamic>> filtered = stations.where((station) {
+        double stationLat = json.decode(station["StationPosition"])["PositionLat"];
+        double stationLon = json.decode(station["StationPosition"])["PositionLon"];
+        double distance = calculateApproxDistance(userLat, userLon, stationLat, stationLon);
+        return distance <= maxDistance;
+      }).toList();
 
-      return sortedStations.take(count).toList();
+      filtered.sort((a, b) {
+        double distanceA = calculateApproxDistance(
+          userLat,
+          userLon,
+          json.decode(a["StationPosition"])["PositionLat"],
+          json.decode(a["StationPosition"])["PositionLon"],
+        );
+        double distanceB = calculateApproxDistance(
+          userLat,
+          userLon,
+          json.decode(b["StationPosition"])["PositionLat"],
+          json.decode(b["StationPosition"])["PositionLon"],
+        );
+        return distanceA.compareTo(distanceB);
+      });
+
+      return filtered.take(count).toList();
     }
 
-// 呼叫函式
     List<dynamic> nearestStations = findNearestStations(
       nearStation,
       latitude,
       longitude,
-      count: 5,
+      maxDistance: maxDistanceInKm,
+      count: count,
     );
 
     return nearestStations;
   } catch (e, stackTrace) {
-    // 捕获并记录错误
     print("Error fetching station facilities: $e");
-    print(stackTrace);
 
-    // 返回空列表以防止程序崩溃
     return [];
   }
 }
+
 // Future<List<dynamic>> getNearBusStation(double latitude, double longitude) async {
 //   try {
 //     // 連接資料庫

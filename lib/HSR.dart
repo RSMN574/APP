@@ -716,7 +716,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         builder: (context) => RoutePage(
                             departure: departureSelectedStation,
                             destination: destinationSelectedStation,
-                            date: DateTime.now()),
+                            date:DateTime.now().add(const Duration(minutes: 1))),
                       ),
                     );
                   } else {

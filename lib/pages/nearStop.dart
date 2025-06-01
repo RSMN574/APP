@@ -587,15 +587,17 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                             ),
                                                           );
                                                         } else {
-                                                          return const Center(
-                                                            child: Text(
-                                                              "找不到附近的站牌",
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .grey,
-                                                                  fontSize: 16),
-                                                            ),
-                                                          );
+                                                          return Container(
+                                                              margin:  EdgeInsets.only(top: 20), // 可调数值
+                                                              child: Center(
+                                                                child: Text(
+                                                                  "找不到附近的站牌",
+                                                                  style: TextStyle(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      fontSize: 16),
+                                                                ),
+                                                              ));
                                                         }
                                                       },
                                                     ),
@@ -635,75 +637,73 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                                   MainAxisAlignment
                                                                       .center,
                                                               children: [
-                                                                const Text(
-                                                                  "找不到附近的站牌",
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: Colors
-                                                                        .black54,
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
+                                                                const Icon(
+                                                                  Icons.location_off_outlined,
+                                                                  size: 64,
+                                                                  color: Colors.orangeAccent,
+                                                                ),
+                                                                const SizedBox(height: 24),
+                                                                RichText(
+                                                                  textAlign: TextAlign.center,
+                                                                  text: TextSpan(
+                                                                    children: [
+                                                                      TextSpan(
+                                                                        text: "暫時找不到附近的站牌\n",
+                                                                        style: TextStyle(
+                                                                          color: Colors.grey[700],
+                                                                          fontSize: 18,
+                                                                          fontWeight: FontWeight.w600,
+                                                                          height: 1.5,
+                                                                        ),
+                                                                      ),
+                                                                      TextSpan(
+                                                                        text: "請確認定位權限已開啟，\n或嘗試手動刷新",
+                                                                        style: TextStyle(
+                                                                          color: Colors.grey[500],
+                                                                          fontSize: 14,
+                                                                          fontWeight: FontWeight.w400,
+                                                                        ),
+                                                                      ),
+                                                                    ],
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                    height: 16),
-                                                                ElevatedButton
-                                                                    .icon(
-                                                                  onPressed:
-                                                                      () {
-                                                                    setState(
-                                                                        () {
-                                                                      // 重新觸發 FutureBuilder 的 future
+                                                                const SizedBox(height: 32),
+                                                                ElevatedButton.icon(
+                                                                  onPressed: () {
+                                                                    setState(() {
                                                                       getNearMRTStation(
                                                                         Uri.encodeComponent(
                                                                             "${locationProvider.latitude},${locationProvider.longitude}"),
                                                                       );
                                                                     });
                                                                   },
-                                                                  icon:
-                                                                      const Icon(
-                                                                    Icons
-                                                                        .refresh,
-                                                                    color: Colors
-                                                                        .black,
+                                                                  icon: const Icon(
+                                                                    Icons.refresh_rounded,
+                                                                    size: 20,
+                                                                    color: Colors.white,
                                                                   ),
-                                                                  label:
-                                                                      const Text(
-                                                                    "重試",
+                                                                  label: const Text(
+                                                                    "重新嘗試搜尋",
                                                                     style: TextStyle(
-                                                                        color: Colors
-                                                                            .black,
-                                                                        fontSize:
-                                                                            14),
-                                                                  ),
-                                                                  style: ElevatedButton
-                                                                      .styleFrom(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .white,
-                                                                    foregroundColor:
-                                                                        Colors
-                                                                            .black,
-                                                                    elevation:
-                                                                        3,
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                        horizontal:
-                                                                            20,
-                                                                        vertical:
-                                                                            12),
-                                                                    shape:
-                                                                        RoundedRectangleBorder(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              12),
+                                                                      color: Colors.white,
+                                                                      fontSize: 15,
+                                                                      fontWeight: FontWeight.w500,
+                                                                      letterSpacing: 0.8,
                                                                     ),
-                                                                    shadowColor:
-                                                                        Colors.grey[
-                                                                            300],
+                                                                  ),
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: Colors.blueAccent,
+                                                                    foregroundColor: Colors.white,
+                                                                    elevation: 4,
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal: 28,
+                                                                      vertical: 16,
+                                                                    ),
+                                                                    shape: RoundedRectangleBorder(
+                                                                      borderRadius: BorderRadius.circular(16),
+                                                                    ),
+                                                                    shadowColor: Colors.blueAccent.withOpacity(0.3),
+                                                                    animationDuration: const Duration(milliseconds: 200),
                                                                   ),
                                                                 ),
                                                               ],
@@ -787,7 +787,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                             ),
                                                           );
                                                         } else {
-                                                          return const Center(
+                                                          return Container(
+                                                              margin:  EdgeInsets.only(top: 20), // 可调数值
+                                                            child: Center(
                                                             child: Text(
                                                               "找不到附近的站牌",
                                                               style: TextStyle(
@@ -795,7 +797,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                                       .grey,
                                                                   fontSize: 16),
                                                             ),
-                                                          );
+                                                          ));
                                                         }
                                                       },
                                                     ),
@@ -1000,7 +1002,19 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                             ),
                                                           );
                                                         }
-                                                        return Container();
+                                                        else {
+                                                          return Container(
+                                                              margin:  EdgeInsets.only(top: 20), // 可调数值
+                                                              child: Center(
+                                                                child: Text(
+                                                                  "找不到附近的站牌",
+                                                                  style: TextStyle(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      fontSize: 16),
+                                                                ),
+                                                              ));
+                                                        }
                                                       },
                                                     ),
                                                   );
