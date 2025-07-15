@@ -46,14 +46,14 @@ print(jsonData);
 }
 
 //取得指定[日期],[起迄站間]之站間時刻表資料
-Future<List<dynamic>> fetchHSRRoute(departurePosition,destinationPosition,time) async {
+Future<List<dynamic>> fetchHSRRoute(departureID,destinationID,time) async {
 
   // 对参数进行 URL 编码
-  String encodedDeparture = Uri.encodeComponent(departurePosition);
-  String encodedDestination = Uri.encodeComponent(destinationPosition);
-  String encodedTime = Uri.encodeComponent(time);
+  // String encodedDeparture = Uri.encodeComponent(departurePosition);
+  // String encodedDestination = Uri.encodeComponent(destinationPosition);
+
   // String url="https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/DailyTrainTimetable/OD/Inclusive/$departureID/to/$destinationID/$date?%24&%24format=JSON";
-  String url="https://tdx.transportdata.tw/api/maas/routing?origin=$encodedDeparture&destination=$encodedDestination&gc=0.0&top=10&transit=3&transfer_time=5%2C60&depart=$encodedTime&first_mile_mode=0&last_mile_mode=0";
+  String url="https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/DailyTimetable/OD/$departureID/to/$destinationID/$time?%24format=JSON";
   print( Uri.parse(url));
   try {
 
@@ -75,13 +75,13 @@ Future<List<dynamic>> fetchHSRRoute(departurePosition,destinationPosition,time) 
     }
 
     // 解析 JSON 数据
-    Map<String, dynamic>  jsonData = await jsonDecode(response.body);
+  List<dynamic>  jsonData = await jsonDecode(response.body);
 
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
     // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
 
-    return jsonData["data"]["routes"];
+    return jsonData;
   } catch (e) {
     print('Error occurred: $e');
   }
@@ -90,6 +90,7 @@ Future<List<dynamic>> fetchHSRRoute(departurePosition,destinationPosition,time) 
 
 
 Future<dynamic> fetchAvailableSeatStatus(String departureID,String arrivalID,String TrainNo,String date) async {
+
 
 
 

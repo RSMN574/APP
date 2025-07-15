@@ -162,7 +162,7 @@ class _HomeState extends State<Home>
       onWillPop: () async {
         if (_indexNotifier.value > 0) {
           if (_indexNotifier.value == 2 || _indexNotifier.value == 1) {
-            print("setMarkers");
+
             Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
           }
           _indexNotifier.value--; // 返回到上一个索引

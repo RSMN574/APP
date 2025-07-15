@@ -33,7 +33,7 @@ class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderS
 // 站点选择
   String? selectedDepartureStation; // 当前选择的出发站
   String? selectedArrivalStation; // 当前选择的到达站
-String? selectDirection;
+int? selectDirection;
 String? routeArrivalStation;
   String? routeDepartureStation;
 // 出发站和到达站的数据（可能会根据选择的路线进行动态更新）
@@ -331,11 +331,7 @@ String? routeArrivalStation;
     var stopsQuery = await mysqlSelect(
       "SELECT Stops FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
     );
-    if(selectDirection=="arrival"){
 
-    }else if(selectDirection=='departure'){
-
-    }
     // 路線方向信息
    late  List<dynamic> departureStops;
     if(routeDepartureStation== routeQuery[0]["DepartureStopNameZh"]){
@@ -440,7 +436,15 @@ String? routeArrivalStation;
 
 
 
-
+    if (routeDepartureStation == routeQuery[0]["DepartureStopNameZh"]) {
+      if (stopsQuery.length > 1 && json.encode(departureStops) == stopsQuery[1]["Stops"]) {
+        selectDirection = 0;
+      } else {
+        selectDirection = 1;
+      }
+    } else {
+      selectDirection = 1;
+    }
       setState(() {
         if (selected != null) selectedArrivalStation = selected!;
         // routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
@@ -746,6 +750,7 @@ print(stopsQuery);
                     startingStopName:routeDepartureStation!,
                     finalStopName:routeArrivalStation!,
                     route: route, type: 'bus',
+                    routeID:RouteID,
                     category:"trip",
                     other:{"routeID":RouteID.toString(),"category":"trip"}
                 );
@@ -786,8 +791,9 @@ print(stopsQuery);
                     startingStopName:routeDepartureStation!,
                     finalStopName:routeArrivalStation!,
                     route: route, type: 'bus',
+                    routeID:RouteID,
                     category:"commute",
-                    other:{"routeID":RouteID,"category":"commute"}
+                    other:{"routeID":RouteID,"category":"commute","direction":selectDirection.toString()}
                 );
 
                 final result = await ScheduleService.instance.addSchedule(schedule);

@@ -55,7 +55,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
   final double _stationRadius = 7.0;
   Station? _selectedStation;
   Map<Station, int> _timeMap = {};
-   List<Station> _stations = [];
+  List<Station> _stations = [];
 
   @override
   void initState() {
@@ -65,10 +65,11 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
   }
 
   void _initializeStations() {
-    // 创建共享的换乘站D
-    // final dStation = Station('D站', Offset(350, 180), lineColor: Colors.red);
+    // Create the shared transfer station
+    final cityHallStation = Station('市政府站', Offset(0.5, 0.45), lineColor: Colors.black);
 
-    _stations.addAll([
+    // Green Line stations
+    final greenLineStations = [
       Station('北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
       Station('舊社站', Offset(0.5, 0.10), lineColor: Colors.green),
       Station('松竹站', Offset(0.5, 0.15), lineColor: Colors.green),
@@ -77,7 +78,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       Station('文心中清站', Offset(0.5, 0.30), lineColor: Colors.green),
       Station('文華高中站', Offset(0.5, 0.35), lineColor: Colors.green),
       Station('文心櫻花站', Offset(0.5, 0.40), lineColor: Colors.green),
-      Station('市政府站', Offset(0.5, 0.45), lineColor: Colors.green),
+      cityHallStation, // Transfer station
       Station('水安宮站', Offset(0.5, 0.50), lineColor: Colors.green),
       Station('文心森林公園站', Offset(0.5, 0.55), lineColor: Colors.green),
       Station('南屯站', Offset(0.5, 0.60), lineColor: Colors.green),
@@ -87,20 +88,52 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       Station('九德站', Offset(0.8, 0.85), lineColor: Colors.green),
       Station('烏日站', Offset(0.85, 0.9), lineColor: Colors.green),
       Station('高鐵台中站', Offset(0.9, 0.95), lineColor: Colors.green),
-    ]);
+    ];
 
+
+    // Blue Line stations (20 stations, horizontal along Taiwan Boulevard)
+    final blueLineStations = [
+      Station('台中港站 (B1)', Offset(0.10, 0.45), lineColor: Colors.blue),
+      Station('梧棲站 (B2)', Offset(0.14, 0.45), lineColor: Colors.blue),
+      Station('大庄站 (B3)', Offset(0.18, 0.45), lineColor: Colors.blue),
+      Station('沙鹿站 (B4)', Offset(0.22, 0.45), lineColor: Colors.blue),
+      Station('竹林站 (B5)', Offset(0.26, 0.45), lineColor: Colors.blue),
+      Station('靜宜大學站 (B6)', Offset(0.30, 0.45), lineColor: Colors.blue),
+      Station('弘光科大站 (B7)', Offset(0.34, 0.45), lineColor: Colors.blue),
+      Station('正英路站 (B8)', Offset(0.38, 0.45), lineColor: Colors.blue),
+      // Station('東海別墅站 (B9)', Offset(0.42, 0.45), lineColor: Colors.blue),
+      // Station('東海大學站 (B10)', Offset(0.46, 0.45), lineColor: Colors.blue),
+      // Station('澄清醫院站 (B11)', Offset(0.48, 0.45), lineColor: Colors.blue),
+      // Station('福安站 (B12)', Offset(0.49, 0.45), lineColor: Colors.blue),
+      // Station('朝馬站 (B13)', Offset(0.495, 0.45), lineColor: Colors.blue),
+      cityHallStation, // Transfer station (B14)
+      // Station('漢口路站 (B15)', Offset(0.505, 0.45), lineColor: Colors.blue),
+      // Station('科博館站 (B16)', Offset(0.52, 0.45), lineColor: Colors.blue),
+      Station('茄苳腳站 (B17)', Offset(0.56, 0.45), lineColor: Colors.blue),
+      Station('第二市場站 (B18)', Offset(0.60, 0.45), lineColor: Colors.blue),
+      Station('台中車站 (B19)', Offset(0.64, 0.45), lineColor: Colors.blue),
+      Station('帝國製糖廠站 (B20)', Offset(0.68, 0.45), lineColor: Colors.blue),
+    ];
+    // Add all stations, avoiding duplication of the transfer station
+    _stations.addAll(greenLineStations);
+    _stations.addAll(blueLineStations.where((s) => s != cityHallStation));
   }
 
   void _initConnections() {
-    // 綠線全線連接
-    for (int i = 0; i < _stations.length - 1; i++) {
-      _stations[i].connections.add(Connection(_stations[i + 1], Colors.green));
-      _stations[i + 1].connections.add(Connection(_stations[i], Colors.green));
+    // Green Line connections
+    final greenLineStations = _stations.where((s) => s.lineColor == Colors.green || s.name == '市政府站').toList();
+    for (int i = 0; i < greenLineStations.length - 1; i++) {
+      greenLineStations[i].connections.add(Connection(greenLineStations[i + 1], Colors.green));
+      greenLineStations[i + 1].connections.add(Connection(greenLineStations[i], Colors.green));
     }
 
-
+    // blue Line connections
+    final blueLineStations = _stations.where((s) => s.lineColor == Colors.blue || s.name == '市政府站').toList();
+    for (int i = 0; i < blueLineStations.length - 1; i++) {
+      blueLineStations[i].connections.add(Connection(blueLineStations[i + 1], Colors.blue));
+      blueLineStations[i + 1].connections.add(Connection(blueLineStations[i], Colors.blue));
+    }
   }
-
 
   Map<Station, int> _calculateTimes(Station start) {
     Map<Station, int> distances = {};
@@ -121,7 +154,6 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
 
     return distances.map((station, distance) => MapEntry(station, distance * 2));
   }
-
 
   void _updateSelectedStation(Station station) {
     setState(() {
@@ -148,16 +180,15 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
               height: 600,
               child: GestureDetector(
                 onTapUp: (details) => _handleTap(details),
-                child:LayoutBuilder(
+                child: LayoutBuilder(
                   builder: (context, constraints) {
                     final canvasSize = Size(constraints.maxWidth, constraints.maxHeight);
-
                     return CustomPaint(
                       painter: _MetroMapPainter(
                         stations: _stations,
                         selectedStation: _selectedStation,
                         stationRadius: _stationRadius,
-                        canvasSize: canvasSize, // 傳入畫布大小給 painter
+                        canvasSize: canvasSize,
                       ),
                       child: Stack(
                         children: _stations
@@ -166,12 +197,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
                       ),
                     );
                   },
-                )
-
-
-
-
-
+                ),
               ),
             ),
           ),
@@ -189,9 +215,10 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       ),
     );
   }
+
   Widget _buildStationDot(Station station, Size canvasSize) {
     final actualOffset = Offset(
-      station.relativePosition.dx * canvasSize.width,  // 相對轉換為絕對座標
+      station.relativePosition.dx * canvasSize.width,
       station.relativePosition.dy * canvasSize.height,
     );
 
@@ -200,24 +227,21 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       top: actualOffset.dy - _stationRadius,
       child: GestureDetector(
         onTap: () {
-          _updateSelectedStation(station);  // 更新選中的站點
-          // _showStationInfo(station);  // 顯示站點資訊
-          buildStationInfo(context,"");
+          _updateSelectedStation(station);
+          buildStationInfo(context, "");
         },
         child: Container(
           width: _stationRadius * 2,
+
           height: _stationRadius * 2,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.transparent,
-            // border: Border.all(color: Colors.black),  // 可選，幫助顯示邊界
           ),
         ),
       ),
     );
   }
-
-
 
   void _handleTap(TapUpDetails details) {
     final matrix = _transformationController.value;
@@ -271,24 +295,26 @@ class _MetroMapPainter extends CustomPainter {
   final List<Station> stations;
   final Station? selectedStation;
   final double stationRadius;
+  final Size canvasSize;
 
   _MetroMapPainter({
     required this.stations,
     this.selectedStation,
-    this.stationRadius = 3, required Size canvasSize,
+    required this.stationRadius,
+    required this.canvasSize,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final drawnConnections = <Pair<Station, Station>>{};
 
-    // 繪製連接線
+    // Draw connections
     for (final station in stations) {
       for (final connection in station.connections) {
         final pair = Pair(station, connection.station);
         if (!drawnConnections.contains(pair)) {
           final paint = Paint()
-            ..color = connection.color  // 用連線自己帶的顏色
+            ..color = connection.color
             ..strokeWidth = 4
             ..style = PaintingStyle.stroke;
 
@@ -301,31 +327,29 @@ class _MetroMapPainter extends CustomPainter {
       }
     }
 
-    // 繪製站點
+    // Draw stations
     for (final station in stations) {
       _drawStation(canvas, station, size);
     }
   }
 
-  // 將相對位置轉換為絕對座標
   Offset _getAbsolutePosition(Offset relativePosition, Size size) {
     final x = relativePosition.dx * size.width;
     final y = relativePosition.dy * size.height;
     return Offset(x, y);
   }
 
-  // 繪製站點
   void _drawStation(Canvas canvas, Station station, Size size) {
     final isSelected = station == selectedStation;
     final position = _getAbsolutePosition(station.relativePosition, size);
 
-    // 繪製外圈
+    // Draw outer circle
     final outerPaint = Paint()
       ..color = station.lineColor
       ..style = PaintingStyle.fill;
     canvas.drawCircle(position, stationRadius, outerPaint);
 
-    // 繪製內圈（如果被選中）
+    // Draw inner circle if selected
     if (isSelected) {
       final innerPaint = Paint()
         ..color = Colors.white
@@ -333,7 +357,7 @@ class _MetroMapPainter extends CustomPainter {
       canvas.drawCircle(position, stationRadius * 0.6, innerPaint);
     }
 
-    // 繪製時間文字
+    // Draw time text
     if (station.displayTime != null) {
       final text = station.displayTime.toString();
       final textPainter = TextPainter(
@@ -355,7 +379,7 @@ class _MetroMapPainter extends CustomPainter {
       textPainter.paint(canvas, offset);
     }
 
-    // 繪製站名
+    // Draw station name
     final namePainter = TextPainter(
       text: TextSpan(
         text: station.name,

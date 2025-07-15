@@ -821,10 +821,11 @@ print("data");
   }
 
   Widget _buildScheduleCard(Map<String, dynamic> data) {
-// json.decode(data["other"]);
+
     return GestureDetector(
       onLongPress: () => _dialogBuilder(context, data),
       onTap: () async {
+
         if (data['type'] == "bus") {
           await GetBusInfo(
               routeid: data["routeID"], city: cityNameConverter(data['city']));
@@ -836,8 +837,13 @@ print("data");
                 departureStopName: data["StartingStopName"],
                 destinationStopName: data["FinalStopName"],
                 operators: "",
+
                 city: cityNameConverter(data['city']),
                 routeID: data["routeID"],
+                mark: Mark.fromMap({
+                  "highlight": [data["StartingStopName"], data["FinalStopName"]],
+                  "direction": int.parse(json.decode(data['other'])["direction"]),
+                }),
               ),
             ),
           );

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
+
 
 import 'package:com.rsmn574.app/pages/HSR/HSRSchedulePage.dart';
 
@@ -207,7 +209,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none, // 無邊框
                 ),
-                hintText: '例：1120',
+                hintText: '例：1110',
                 hintStyle: TextStyle(
                   color: textSecondary.withOpacity(0.6),
                   fontSize: 14,
@@ -958,25 +960,27 @@ class RoutePage extends StatefulWidget {
 }
 
 class _RoutePageState extends State<RoutePage> {
+  final ItemScrollController _itemScrollController = ItemScrollController();
+   late ScrollController _scrollController;
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
-    // 将 JSON 字符串解析为 Map
-    Map<String, dynamic> departureJsonData =
-        jsonDecode(widget.departure["StationPosition"]);
 
-    // 获取 PositionLat 和 PositionLon 并转换为 String
-    String departurePositionLat = departureJsonData['PositionLat'].toString();
-    String departurePositionLon = departureJsonData['PositionLon'].toString();
-    Map<String, dynamic> destinationJsonData =
-        jsonDecode(widget.destination["StationPosition"]);
+    _scrollController = ScrollController();
 
-    // 获取 PositionLat 和 PositionLon 并转换为 String
-    String destinationPositionLat =
-        destinationJsonData['PositionLat'].toString();
-    String destinationPositionLon =
-        destinationJsonData['PositionLon'].toString();
-    final DateFormat dateFormatForRoutePage = DateFormat('yyyy-MM-ddTHH:mm:ss');
-    final DateFormat dateFormatForTrainNo = DateFormat('yyyy-MM-dd');
+
+    final DateFormat dateFormatForRoutePage = DateFormat('yyyy-MM-dd');
+
     return Scaffold(
       backgroundColor: surfaceColor,
       appBar: AppBar(
@@ -993,271 +997,215 @@ class _RoutePageState extends State<RoutePage> {
         iconTheme: const IconThemeData(color: textPrimary),
       ),
       body: FutureBuilder<List<dynamic>>(
-          future: fetchHSRRoute(
-            "$departurePositionLat,$departurePositionLon",
-            "$destinationPositionLat,$destinationPositionLon",
-            dateFormatForRoutePage.format(widget.date),
-          ),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                  child: CircularProgressIndicator(color: primaryColor));
-            } else if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  '載入失敗: ${snapshot.error}',
-                  style: const TextStyle(fontSize: 16, color: Colors.redAccent),
-                ),
-              );
-            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  '無列車資訊',
-                  style: TextStyle(fontSize: 16, color: textSecondary),
-                ),
-              );
-            } else {
-              final data = snapshot.data!;
-              return ListView.builder(
-                itemCount: data.length,
-                itemBuilder: (context, index) {
-                  final section = data[index];
-                  final DateFormat dateFormat = DateFormat('HH:mm');
-                  final sections = section["sections"];
+        future: fetchHSRRoute(
+          widget.departure["StationID"],
+          widget.destination["StationID"],
+          dateFormatForRoutePage.format(widget.date),
+        ),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryColor),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                '載入失敗: ${snapshot.error}',
+                style: const TextStyle(fontSize: 16, color: Colors.redAccent),
+              ),
+            );
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text(
+                '無列車資訊',
+                style: TextStyle(fontSize: 16, color: textSecondary),
+              ),
+            );
+          } else {
+            final data = snapshot.data!;
+            final dateFormat = DateFormat('HH:mm');
+            final trainDateFormat = DateFormat('yy-MM-dd');
 
-                  // 过滤出 type 为 "transit" 的段
-                  List<dynamic> transitSections = section["sections"]
-                      .where((section) => section['type'] == 'transit')
-                      .toList();
+            // 找最近時間車次並捲動
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              int closestIndex = 0;
+              Duration minDiff = const Duration(days: 999);
+              for (int i = 0; i < data.length; i++) {
+                final train = data[i];
+                final depTimeStr = train["TrainDate"] + ' ' + train["OriginStopTime"]["DepartureTime"];
+                final depTime = DateTime.tryParse(depTimeStr);
+                if (depTime != null) {
+                  final diff = (depTime.difference(widget.date)).abs();
+                  if (diff < minDiff) {
+                    closestIndex = i;
+                    minDiff = diff;
+                  }
+                }
+              }
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _itemScrollController.scrollTo(
+                  index: closestIndex,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
+              });
 
-                  // 提取并输出所有的 transport 数据
-                  List<dynamic> transports =
-                      transitSections.map((section) => section).toList();
-                  List<dynamic> arrival = transitSections
-                      .map((section) => section['arrival']["place"]["name"])
-                      .toList();
+            });
 
-                  final start_time = dateFormat.format(
-                      DateTime.parse(transitSections[0]["departure"]["time"]));
-                  final end_time = dateFormat.format(DateTime.parse(
-                      transitSections[transitSections.length - 1]["arrival"]
-                          ["time"]));
-                  bool trainSit = transports.length > 1 ? true : false;
+            return ScrollablePositionedList.builder(
+              itemScrollController: _itemScrollController,
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                final train = data[index];
+                final origin = train["OriginStopTime"];
+                final destination = train["DestinationStopTime"];
+                final info = train["DailyTrainInfo"];
 
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primaryColor.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 16),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 第一行：时间和车次信息
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 出发时间与地点
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    start_time, // 出发时间
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: textPrimary,
-                                    ),
+                final startTime = origin["DepartureTime"];
+                final endTime = destination["ArrivalTime"];
+                final trainNo = info["TrainNo"];
+                final fare = "NT\$---";
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "日期：${trainDateFormat.format(DateTime.parse(train["TrainDate"]))}",
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  startTime,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.departure["StationName"]
-                                        ["Zh_tw"], // 出发地点
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  origin["StationName"]["Zh_tw"],
+                                  style: const TextStyle(fontSize: 14, color: textSecondary),
+                                ),
+                              ],
                             ),
-                            // 车次信息
-                            Expanded(
-                              flex: 3,
-                              child: Column(
-                                children: transports.map((i) {
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 4.0),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              children: [
+                                GestureDetector(
+                                  onTap: () async {
+                                    var trainData = await fetchHSR(
+                                      trainNo,
+                                      DateTime.parse(train["TrainDate"]),
+                                    );
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => HSRSchedulePage(
+                                          trainData: trainData,
+                                          type: 'trainNo',
+                                          time: DateTime.parse(train["TrainDate"]),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                    decoration: BoxDecoration(
+                                      color: primaryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: primaryColor.withOpacity(0.3),
+                                        width: 1,
+                                      ),
+                                    ),
                                     child: Column(
                                       children: [
-                                        GestureDetector(
-                                          onTap: () async {
-                                            print(int.parse(i['transport']
-                                                    ["name"]
-                                                .replaceAll(
-                                                    RegExp(r'[^0-9]'), '')));
-                                            var trainData = await fetchHSR(
-                                              int.parse(i['transport']["name"]
-                                                      .replaceAll(
-                                                          RegExp(r'[^0-9]'),
-                                                          ''))
-                                                  .toString()
-                                                  .padLeft(4, '0'),
-                                              DateTime.parse(
-                                                  i["departure"]["time"]),
-                                            );
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    HSRSchedulePage(
-                                                  trainData: trainData,
-                                                  type: 'trainNo',
-                                                  time: DateTime.parse(
-                                                      i["departure"]["time"]),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                vertical: 6, horizontal: 8),
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  primaryColor.withOpacity(0.1),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              border: Border.all(
-                                                  color: primaryColor
-                                                      .withOpacity(0.3),
-                                                  width: 1),
-                                            ),
-                                            child: Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  i['transport']
-                                                      ["name"], // 车次名称
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primaryColor,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  "${i["transport"]["fare"]}元", // 票价
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primaryColor,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
+                                        Text(
+                                          trainNo,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryColor,
                                           ),
                                         ),
                                         const SizedBox(height: 2),
-                                        if (i['arrival']["place"]["name"] !=
-                                                null &&
-                                            widget.destination["StationName"]
-                                                    ["Zh_tw"] !=
-                                                null &&
-                                            i['arrival']["place"]["name"] !=
-                                                widget.destination[
-                                                    "StationName"]["Zh_tw"])
-                                          Text(
-                                            "${i['arrival']["place"]["name"]}   ${dateFormat.format(DateTime.parse(i['arrival']["time"]))}", // 到达地点和时间
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: textSecondary,
-                                            ),
-                                            textAlign: TextAlign.center,
+                                        Text(
+                                          fare,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: primaryColor,
                                           ),
+                                        ),
                                       ],
                                     ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                            // 到达时间与地点
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    end_time, // 到达时间
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: textPrimary,
-                                    ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    widget.destination["StationName"]
-                                        ["Zh_tw"], // 到达地点
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: textSecondary,
-                                    ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  endTime,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: textPrimary,
                                   ),
-                                ],
-                              ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  destination["StationName"]["Zh_tw"],
+                                  style: const TextStyle(fontSize: 14, color: textSecondary),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        // 分割线
-                        Divider(
-                          height: 16,
-                          thickness: 1,
-                          color: primaryColor.withOpacity(0.2),
-                        ),
-                        // 可选部分：票价信息
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            FutureBuilder<List<Widget>>(
-                              future: getTransportWidgets(transports),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return Container();
-                                }
-                                if (snapshot.hasError) {
-                                  print(snapshot.error);
-                                  return Container();
-                                }
-                                return Column(
-                                  children: snapshot.data ?? [],
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-            }
-          }),
+                          ),
+                        ],
+                      ),
+                      Divider(
+                        height: 16,
+                        thickness: 1,
+                        color: primaryColor.withOpacity(0.2),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          }
+        },
+      )
+
     );
   }
 
