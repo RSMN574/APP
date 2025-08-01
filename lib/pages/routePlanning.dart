@@ -752,7 +752,7 @@ print(stopsQuery);
                     route: route, type: 'bus',
                     routeID:RouteID,
                     category:"trip",
-                    other:{"routeID":RouteID.toString(),"category":"trip"}
+                    other:{"routeID":RouteID.toString(),"category":"trip","direction":selectDirection.toString()}
                 );
 
                 final result = await ScheduleService.instance.addSchedule(schedule);

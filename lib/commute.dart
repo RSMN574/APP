@@ -756,16 +756,17 @@ print("data");
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
+
                           String newSeatNumber = controller.text.trim();
                           if (newSeatNumber.isNotEmpty) {
                             // 更新座位號碼
                             final schedule = ScheduleModel(
                               id: data["id"], // 确保 id 是有效的
                               type: type,
-                              route: data['DailyTrainInfo']['TrainNo'], // 提供 route 参数
-                              startingStopName: data['DailyTrainInfo']['StartingStationName']['Zh_tw'], // 提供 startingStopName 参数
-                              finalStopName: data['DailyTrainInfo']['EndingStationName']['Zh_tw'], // 提供 finalStopName 参数
-                              other: {"seatNumber": newSeatNumber}, // 更新 seatNumber
+                              route: data['Route'], // 提供 route 参数
+                              startingStopName: data['UserStartingStopName'], // 提供 startingStopName 参数
+                              finalStopName: data['UserDestinationStopName'], // 提供 finalStopName 参数
+                              seatNumber:newSeatNumber // 更新 seatNumber
                             );
 
 // 调用 updateSchedule 来更新现有的排程
@@ -825,7 +826,7 @@ print("data");
     return GestureDetector(
       onLongPress: () => _dialogBuilder(context, data),
       onTap: () async {
-
+print(data);
         if (data['type'] == "bus") {
           await GetBusInfo(
               routeid: data["routeID"], city: cityNameConverter(data['city']));
@@ -834,14 +835,14 @@ print("data");
             MaterialPageRoute(
               builder: (context) => BusTime(
                 routeName: data['Route'],
-                departureStopName: data["StartingStopName"],
-                destinationStopName: data["FinalStopName"],
+                departureStopName: data["FinalStopName"],
+                destinationStopName: data["StartingStopName"],
                 operators: "",
 
                 city: cityNameConverter(data['city']),
                 routeID: data["routeID"],
                 mark: Mark.fromMap({
-                  "highlight": [data["StartingStopName"], data["FinalStopName"]],
+                  "highlight": [data["UserStartingStopName"], data["UserDestinationStopName"]],
                   "direction": int.parse(json.decode(data['other'])["direction"]),
                 }),
               ),

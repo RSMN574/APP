@@ -7,9 +7,9 @@ class ScheduleModel {
   int? id;
   final String type;
   final String route;
-  final String startingStopName;
+  final String? startingStopName;
   final String? userStartingStopName;
-  final String finalStopName;
+  final String? finalStopName;
   final String? userDestinationStopName;
   final String? city;
   final int? routeID;
@@ -22,9 +22,9 @@ class ScheduleModel {
     this.id,
     required this.type,
     required this.route,
-    required this.startingStopName,
+     this.startingStopName,
     this.userStartingStopName,
-    required this.finalStopName,
+     this.finalStopName,
     this.userDestinationStopName,
     this.city,
     this.routeID,
@@ -331,5 +331,10 @@ class ScheduleService {
   Future<bool> hasSchedule({String? type, String? route}) async {
     final list = await getSchedules(type: type, route: route);
     return list.isNotEmpty;
+  }
+  /// 🔴 清除資料表全部資料
+  Future<void> clearDatabase() async {
+    final db = await database;
+    await db.delete(_tableName);
   }
 }

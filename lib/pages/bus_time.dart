@@ -85,12 +85,6 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       }
     });
 
-    // // 根據 mark.direction 設定 _tabController 的 index
-    // if (widget.mark?.direction == 0) {
-    //   _tabController.index = 1;
-    // } else if (widget.mark?.direction == 1) {
-    //   _tabController.index = 0;
-    // }
 
 
 
@@ -219,7 +213,7 @@ void _scrollToIndex(int index) {
         );
       }
     }
-    print(widget.mark?.direction);
+
     if (widget.mark?.direction == 1) {
       _tabController.animateTo(1);
     } else if (widget.mark?.direction == 0) {
@@ -319,7 +313,7 @@ void _scrollToIndex(int index) {
         Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
         bool isHighlighted = false;
         if (widget.mark != null && widget.mark!.highlight != null) {
-          isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex == widget.mark!.direction;
+          isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex != widget.mark!.direction;
         }
 
 

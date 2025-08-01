@@ -84,14 +84,17 @@ class HSRSchedulePage extends StatelessWidget {
                 userStartingStopName: result['departure'],
                 userDestinationStopName: result['destination'],
                 startingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                finalStopName:trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                finalStopName:trainData['DailyTrainInfo']['EndingStationName']['Z1h_tw'],
                 route: trainData['DailyTrainInfo']['TrainNo'], type: 'HSR',
+                category:getCategory(result['category']),
+                time:(time).toString(),
+                seatNumber: result["seatNumber"],
                 other:{"DateTime":  (time).toString(),"trainType":"台灣高鐵700T","category":getCategory(result['category'])}
 
             );
 
 // 调用 updateSchedule 来更新现有的排程
-            final output = await ScheduleService.instance.updateSchedule(schedule);
+            final output = await ScheduleService.instance.addSchedule(schedule);
 
 // 根据 addSchedule 方法返回的结果进行处理
             if (output == -1) {
@@ -100,7 +103,7 @@ class HSRSchedulePage extends StatelessWidget {
                   const SnackBar(content: Text('該行程已經存在。'))
               );
             } else if (output == 100) {
-              // 成功添加行程，提示用户
+              // 成功添加行程，提示用户8
               ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('行程添加成功！'))
               );

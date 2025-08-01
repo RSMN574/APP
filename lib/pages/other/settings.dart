@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../database/SQL/schedule.dart';
+
 class SettingsPage extends StatefulWidget {
   @override
   _SettingsPageState createState() => _SettingsPageState();
@@ -102,6 +104,12 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _showInfoDialog(context),
           ),
           ListTile(
+            title: const Text('清除數據庫'),
+            leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
+            onTap: () => _showClearDialog(context),
+          ),
+
+          ListTile(
             title: Text('關於我們'),
             leading: Icon(Icons.info_outline),
             trailing: Icon(Icons.chevron_right),
@@ -144,6 +152,37 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         );
       },
+    );
+  }
+  void _showClearDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('確認清除？'),
+        content: const Text('這將刪除所有儲存的資料，是否繼續？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ScheduleService.instance.clearDatabase();
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✅ 數據庫已清除'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('確定', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 
