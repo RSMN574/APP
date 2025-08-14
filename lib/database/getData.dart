@@ -416,8 +416,7 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
   }
 }
 
-Future<List> getNearTrainStation(double latitude, double longitude,
-    {double maxDistanceInKm = 30.0, int count = 5}) async {
+Future<List> getNearTrainStation(double latitude, double longitude, {double maxDistanceInKm = 30.0, int count = 5}) async {
   try {
     await connMysql();
 
@@ -434,31 +433,20 @@ Future<List> getNearTrainStation(double latitude, double longitude,
           required double maxDistance,
           required int count,
         }) {
-      List<Map<String, dynamic>> filtered = stations.where((station) {
-        double stationLat = json.decode(station["StationPosition"])["PositionLat"];
-        double stationLon = json.decode(station["StationPosition"])["PositionLon"];
-        double distance = calculateApproxDistance(userLat, userLon, stationLat, stationLon);
-        return distance <= maxDistance;
-      }).toList();
+      final withDistance = stations.map((station) {
+        final pos = json.decode(station["StationPosition"]);
+        final distance = calculateApproxDistance(
+          userLat, userLon,
+          pos["PositionLat"], pos["PositionLon"],
+        )/1000;
+        return {...station, "distance": distance};
+      }).where((s) => s["distance"] <= maxDistance).toList();
 
-      filtered.sort((a, b) {
-        double distanceA = calculateApproxDistance(
-          userLat,
-          userLon,
-          json.decode(a["StationPosition"])["PositionLat"],
-          json.decode(a["StationPosition"])["PositionLon"],
-        );
-        double distanceB = calculateApproxDistance(
-          userLat,
-          userLon,
-          json.decode(b["StationPosition"])["PositionLat"],
-          json.decode(b["StationPosition"])["PositionLon"],
-        );
-        return distanceA.compareTo(distanceB);
-      });
+      withDistance.sort((a, b) => (a["distance"] as double).compareTo(b["distance"] as double));
 
-      return filtered.take(count).toList();
+      return withDistance.take(count).toList();
     }
+
 
     List<dynamic> nearestStations = findNearestStations(
       nearStation,

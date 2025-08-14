@@ -36,7 +36,7 @@ class Mark {
     );
   }
 }
-
+int globalHighlightedIndex=0;
 class BusTime extends StatefulWidget {
   final routeName;
   final departureStopName;
@@ -226,8 +226,8 @@ void _scrollToIndex(int index) {
     stopNamesWithTime2 = await fetchStopNamesWithFallback(0, 1);
 
     // 根據 direction 決定要處理的 stops
-    final int direction = widget.mark?.direction ?? 1;
-    final List<dynamic> stops = direction == 0 ? stopNamesWithTime2 : stopNamesWithTime1;
+    final int? direction = widget.mark?.direction;
+    final List<dynamic> stops = direction == 0 ? stopNamesWithTime1 :  stopNamesWithTime2;
 
     nearestStop = null;
     int? nearestIndex;
@@ -272,11 +272,15 @@ void _scrollToIndex(int index) {
       final String highlightStation = widget.mark!.highlight!.first;
       final stopNames = stops.map((e) => e["stopName"]).toList();
       final highlightedIndex = stopNames.indexOf(highlightStation);
-
+      globalHighlightedIndex=stopNames.indexOf(highlightStation);
       if (highlightedIndex != -1) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToIndex(highlightedIndex);
-        });
+        if (widget.mark != null && widget.mark!.highlight != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToIndex(highlightedIndex);
+          });
+        }
+
+
       } else {
         print("⚠️ 找不到 highlight 站點");
       }
@@ -314,6 +318,7 @@ void _scrollToIndex(int index) {
         bool isHighlighted = false;
         if (widget.mark != null && widget.mark!.highlight != null) {
           isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex != widget.mark!.direction;
+
         }
 
 
@@ -817,6 +822,7 @@ void _scrollToIndex(int index) {
 
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
+    final List<GlobalKey> _itemKeys = [];
     return Container(
 padding: const EdgeInsets.only(bottom: 25),
       child: RefreshIndicator(
@@ -829,7 +835,9 @@ padding: const EdgeInsets.only(bottom: 25),
         controller: _scrollController,
         itemCount: stopNamesWithTime.length,
         itemBuilder: (context, index) {
-
+          if (_itemKeys.length <= index) {
+            _itemKeys.add(GlobalKey());
+          }
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
 

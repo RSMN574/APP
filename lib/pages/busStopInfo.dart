@@ -236,7 +236,7 @@ print(sortedList);
                               routeID: int.parse(stop["RouteID"]),
                               mark: Mark.fromMap({
                                 "highlight": [widget.stop],
-                                "direction": stop["Direction"],
+                                "direction": stop['Direction'] == 0 ? 1 : 0,
                               }),
                             ),
                           ),
@@ -252,7 +252,7 @@ print(sortedList);
                         child: Text(
                           stop["time"] ?? "未知",
                           style: TextStyle(
-                            fontFamily: 'MiSans-normal',
+
                             fontSize: 17,
                             color: stop["color"] == '0'
                                 ? Colors.white

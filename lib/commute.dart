@@ -826,7 +826,7 @@ print("data");
     return GestureDetector(
       onLongPress: () => _dialogBuilder(context, data),
       onTap: () async {
-print(data);
+
         if (data['type'] == "bus") {
           await GetBusInfo(
               routeid: data["routeID"], city: cityNameConverter(data['city']));

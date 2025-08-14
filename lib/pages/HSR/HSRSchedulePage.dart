@@ -14,11 +14,11 @@ class HSRSchedulePage extends StatelessWidget {
   final String type;
   final DateTime time;
   const HSRSchedulePage({
-    Key? key,
+    super.key,
     required this.trainData,
     required this.type,
     required this.time,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -129,8 +129,8 @@ class HSRSchedulePage extends StatelessWidget {
           children: [
             _buildTrainInfoCard(),
             const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
                 '停靠站資訊',
                 style: TextStyle(
@@ -170,7 +170,7 @@ class HSRSchedulePage extends StatelessWidget {
           children: [
             Text(
               '車次 ${trainData['DailyTrainInfo']['TrainNo']}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: primaryColor,
