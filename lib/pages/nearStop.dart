@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +16,7 @@ import '../database/bus/getBusTime.dart';
 import '../database/getData.dart';
 import '../database/bus/getStationInfo.dart';
 import '../metro.dart';
-import '../models/MRTStation.dart';
+
 import '../models/Station.dart';
 import '../train.dart';
 import '../utils/convert.dart';
@@ -39,12 +39,18 @@ class NearbyStationsPage extends StatefulWidget {
   @override
   _NearbyStationsPageState createState() => _NearbyStationsPageState();
 }
+final GlobalKey<_NearbyStationsPageState> mapKey = GlobalKey();
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
+   GoogleMapController? _mapController;
 
   Future<List<Station>>? _futureNearStations;
   MarkerProvider? _markerProvider;
-  GoogleMapController? _mapController;
+  void setMapController(GoogleMapController controller) {
+    _mapController = controller;
+  }
+
+   GoogleMapController? get mapController => _mapController;
   Future<void> _updateFutureNearStations() async {
 
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
@@ -98,9 +104,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
   // 處理 _tabSelect 變化的方法
   void _handleTabSelectChange() async {
-    final locationProvider =
-        Provider.of<LocationProvider>(context, listen: false);
 
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
     if (_tabSelect.value == "bus") {
       _updateFutureNearStations();
       final stations = await _futureNearStations;
@@ -266,7 +271,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   static void _updateMarkerStyle([String? selectedIndex]) {
-    // String selectedStationID = _stationIDs.value[selectedIndex];
 
     // 遍歷所有 markers，更新樣式
     _markers.value = _markers.value.map((marker) {
@@ -282,6 +286,29 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         );
       }
     }).toSet();
+  }
+  static void _clearMarkerStyle(context) {
+    _markers.value = _markers.value.map((marker) {
+      return marker.copyWith(
+        iconParam: BitmapDescriptor.defaultMarker, // 全部恢復成預設樣式
+      );
+    }).toSet();
+    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+
+    final LatLng currentPosition = LatLng(
+      locationProvider.latitude,
+      locationProvider.longitude,
+    );
+
+    // mapKey.currentState?.mapController?.animateCamera(
+    //   CameraUpdate.newCameraPosition(
+    //     CameraPosition(
+    //       target: currentPosition,
+    //       zoom: 15.0, // 你要的縮放
+    //     ),
+    //   ),
+    // );
+
   }
 
   @override
@@ -1084,7 +1111,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     .toList() ??
                 [];
 
-        print(station["StationGroup"]["Stations"][0]["positionLat"]); // 不要 decode，直接 print      print(json.decode(station["StationGroup"]["Stations"]));
 
 
         // 聚焦到該站點位置
@@ -1273,6 +1299,8 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     _streamController.close(); // 关闭 StreamController
     // 釋放 TabController
     _tabControllerNotifier.value?.dispose();
+
+
     super.dispose();
   }
 
@@ -1465,25 +1493,25 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                             color: const Color.fromRGBO(136, 136, 136, 1),
                           ),
                         ),
-                        if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6), // 左侧间距
-                            child: SvgPicture.asset(
-                              'assets/icons/Taiwan_Railways_Logo.svg',
-                              // 自定义SVG路径
-                              width: 18, // SVG图标宽度
-                              height: 18, // SVG图标高度
-                            ),
-                          )
-                        else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
-                          Padding(
-                            padding: const EdgeInsets.only(left: 6), // 左侧间距
-                            child: SvgPicture.asset(
-                              'assets/icons/tc_MRT.svg', // 自定义SVG路径
-                              width: 18, // SVG图标宽度
-                              height: 18, // SVG图标高度
-                            ),
-                          ),
+                        // if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(left: 6), // 左侧间距
+                        //     child: SvgPicture.asset(
+                        //       'assets/icons/Taiwan_Railways_Logo.svg',
+                        //       // 自定义SVG路径
+                        //       width: 18, // SVG图标宽度
+                        //       height: 18, // SVG图标高度
+                        //     ),
+                        //   )
+                        // else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
+                        //   Padding(
+                        //     padding: const EdgeInsets.only(left: 6), // 左侧间距
+                        //     child: SvgPicture.asset(
+                        //       'assets/icons/tc_MRT.svg', // 自定义SVG路径
+                        //       width: 18, // SVG图标宽度
+                        //       height: 18, // SVG图标高度
+                        //     ),
+                        //   ),
                       ],
                     ),
                     trailing: bubble(plateNum: PlateNumb),
@@ -1744,6 +1772,12 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                                       setState(() {
                                         _indexNotifier.value--; // 返回到上一个索引
                                       });
+                                      _NearbyStationsPageState._clearMarkerStyle(context,);
+                                      // 更新相關狀態
+                                      _stationIDs.value = [];
+                                      _stopName.value = "";
+                                      _selectStationID.value = "";
+                                      _selectStationGroupID.value="";
 
                                     }}, // 點 X 返回
                                 ),
