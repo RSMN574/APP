@@ -54,10 +54,10 @@ Future <List<dynamic>> getAirportFIDS(String location) async {
 
   return jsonData;
 }
-Future <List<dynamic>> getAirportFIDSDeparture() async {
+Future <List<dynamic>> getAirportFIDSDeparture(String airport) async {
 
-  const String url =
-      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/TPE?%24top=70&%24format=JSON';
+  final String url =
+      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/$airport?%24top=70&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求
@@ -78,10 +78,10 @@ Future <List<dynamic>> getAirportFIDSDeparture() async {
 
   return jsonData;
 }
-Future <List<dynamic>> getAirportFIDSArrival() async {
+Future <List<dynamic>> getAirportFIDSArrival(String airport) async {
 
-  const String url =
-      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Arrival/TPE?%24top=70&%24format=JSON';
+  final String url =
+      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Arrival/$airport?%24top=70&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
   final token=tokenResponse.body;
   // 发起 GET 请求
@@ -135,4 +135,18 @@ Future <List<dynamic>> getFlight(String airlineId,String flightNumber) async {
 
 
   return jsonData;
+}
+class AirportService {
+  static const String apiUrl = "http://hidden.rsmn574.com:3920/token/data/airports.json";
+
+  static Future<Map<String, dynamic>> loadAirportData(String code) async {
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body) as Map<String, dynamic>;
+      return data[code] ?? {};
+    } else {
+      throw Exception("Failed to load airport data");
+    }
+  }
 }

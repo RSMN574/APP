@@ -207,7 +207,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 CameraUpdate.newCameraPosition(
                   CameraPosition(
                     target: LatLng(station.positionLat, station.positionLon),
-                    zoom: 17.0,
+                    zoom: 19.0,
                   ),
                 ),
               );
@@ -1237,11 +1237,34 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
 
     // 初始化 TabController
     _initTabController();
+    // 加上 listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = _tabControllerNotifier.value;
+      if (controller != null) {
+        controller.addListener(() {
+          if (!controller.indexIsChanging) {
+            // 取得當前 Tab 對應的站點 ID
+            final currentStationID = _stationIDs.value[controller.index];
+
+            // 更新選中的站點
+            _selectStationID.value = currentStationID;
+
+            print("✅ Tab 切換完成 -> index: ${controller.index}, StationID: $currentStationID");
+
+            // 更新 Marker Style
+            _NearbyStationsPageState._updateMarkerStyle(currentStationID);
+          }
+        });
+      }
+    });
+
 
     // 監聽 _stationIDs 變化，更新 TabController
     _stationIDs.addListener(() {
       if (!mounted) return;
       _initTabController();
+
+
     });
 
     // 監聽 _selectStationID，切換 Tab 並更新 marker 樣式
@@ -1263,7 +1286,15 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
 
     // 記錄目前的 groupID
     _lastGroupID = currentGroupID;
-
+    // 初始化時，直接跳到對應 tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initIndex =
+      _stationIDs.value.indexOf(_selectStationID.value); // 找到對應 index
+      if (initIndex != -1) {
+        _tabControllerNotifier.value?.index = initIndex; // 設定到指定 Tab
+        _tabControllerNotifier.value!; // 同步更新 marker
+      }
+    });
     // 重建 TabController
     _tabControllerNotifier.value?.dispose();
     _tabControllerNotifier.value = TabController(length: length, vsync: this);

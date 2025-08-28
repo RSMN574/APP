@@ -27,6 +27,25 @@ class _PlaneState extends State<Plane> {
     {'icon': Icons.security, 'label': '安檢安保'},
     {'icon': Icons.luggage, 'label': '行李服務'},
   ];
+  final List<Map<String, String>> airportList = [
+    {'code': 'TSA', 'name': '松山機場'},
+    {'code': 'KHH', 'name': '高雄機場'},
+    {'code': 'TPE', 'name': '桃園機場'},
+    {'code': 'MFK', 'name': '北竿機場'},
+    {'code': 'LZN', 'name': '南竿機場'},
+    {'code': 'KNH', 'name': '金門機場'},
+    {'code': 'MZG', 'name': '澎湖機場'},
+    {'code': 'RMQ', 'name': '臺中機場'},
+    {'code': 'CYI', 'name': '嘉義機場'},
+    {'code': 'TNN', 'name': '臺南機場'},
+    {'code': 'HUN', 'name': '花蓮機場'},
+    {'code': 'TTT', 'name': '臺東機場'},
+    {'code': 'KYD', 'name': '蘭嶼機場'},
+    {'code': 'GNI', 'name': '綠島機場'},
+  ];
+
+  String selectedAirport = "TPE";
+
 
   @override
   Widget build(BuildContext context) {
@@ -34,13 +53,42 @@ class _PlaneState extends State<Plane> {
       length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('桃園機場航班資訊',
-            style: TextStyle(
+          title: Text(
+            '${airportList.firstWhere((a) => a['code'] == selectedAirport)['name']}航班資訊 ',
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
             ),
           ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: DropdownButton<String>(
+                value: selectedAirport, // 例如 'TPE'
+                underline: SizedBox(), // 移除下劃線
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                dropdownColor: Colors.white,
+                style: const TextStyle(color: Colors.black, fontSize: 14),
+                items: airportList.map((airport) {
+                  return DropdownMenuItem<String>(
+                    value: airport['code'], // ✅ 只傳代碼
+                    child: Text(airport['name']!), // 顯示機場名稱
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      selectedAirport = value;
+
+                     // TODO: 根據選擇的機場刷新 TabBar / 資料
+                    });
+                  }
+                },
+              ),
+            ),
+
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
             child: Container(
@@ -61,7 +109,7 @@ class _PlaneState extends State<Plane> {
                     colors: [startColor, endColor],
                   ),
                 ),
-                indicatorWeight: 0, // 移除預設底線
+                indicatorWeight: 0,
                 indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.grey[600],
@@ -69,15 +117,16 @@ class _PlaneState extends State<Plane> {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   shadows: [
-                  Shadow(
-                  color: Colors.black26,
-                  blurRadius: 2,
-                  offset: Offset(1, 1),
-                  ) ],
+                    Shadow(
+                      color: Colors.black26,
+                      blurRadius: 2,
+                      offset: Offset(1, 1),
+                    )
+                  ],
                 ),
                 unselectedLabelStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal
+                  fontSize: 14,
+                  fontWeight: FontWeight.normal,
                 ),
                 splashFactory: NoSplash.splashFactory,
                 overlayColor: MaterialStateProperty.all(Colors.transparent),
@@ -85,7 +134,8 @@ class _PlaneState extends State<Plane> {
               ),
             ),
           ),
-        ),
+        )
+        ,
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -149,7 +199,7 @@ class _PlaneState extends State<Plane> {
   }
   Widget _buildArrivalTab() {
     return FutureBuilder<List<dynamic>>(
-      future: getAirportFIDSArrival(),
+      future: getAirportFIDSArrival(selectedAirport),
       builder: (context, snapshot) {
         return _buildFlightList(snapshot, 'Arrival');
       },
@@ -324,7 +374,7 @@ class _PlaneState extends State<Plane> {
   }
   Widget _buildDepartureTab() {
     return FutureBuilder<List<dynamic>>(
-      future: getAirportFIDSDeparture(),
+      future: getAirportFIDSDeparture(selectedAirport),
       builder: (context, snapshot) {
         return _buildFlightList(snapshot, 'Departure');
       },

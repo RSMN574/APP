@@ -183,123 +183,118 @@ void _scrollToIndex(int index) {
 
   }
 
-  // 加载数据，包括站名和 NextBusTime
   Future<void> _loadData() async {
-    final List<Map<String, dynamic>> data = await GetBusInfo(
-      city: widget.city,
-      routeid: widget.routeID,
-    );
-
-    final routeInfo = [
-      widget.routeName,
-      widget.departureStopName,
-      widget.destinationStopName
-    ];
-
-    final busTimeData = await fetchBusTime(widget.routeName, widget.city);
-
-    Future<List<dynamic>> fetchStopNamesWithFallback(int primaryDirection, int fallbackDirection) async {
-      try {
-        return await fetchStopNamesWithTime(
-          primaryDirection,
-          busTimeData.where((stop) => stop['Direction'] == primaryDirection).toList(),
-          data,
-        );
-      } catch (e) {
-        return await fetchStopNamesWithTime(
-          fallbackDirection,
-          busTimeData.where((stop) => stop['Direction'] == fallbackDirection).toList(),
-          data,
-        );
-      }
-    }
-
-    if (widget.mark?.direction == 1) {
-      _tabController.animateTo(1);
-    } else if (widget.mark?.direction == 0) {
-      _tabController.animateTo(0);
-    }
-
-
-    // 取得雙方向資料
-    stopNamesWithTime1 = await fetchStopNamesWithFallback(1, 0);
-    stopNamesWithTime2 = await fetchStopNamesWithFallback(0, 1);
-
-    // 根據 direction 決定要處理的 stops
-    final int? direction = widget.mark?.direction;
-    final List<dynamic> stops = direction == 0 ? stopNamesWithTime1 :  stopNamesWithTime2;
-
-    nearestStop = null;
-    int? nearestIndex;
-    double? nearestDistance;
-
     try {
-      final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-      double userLat = locationProvider.latitude;
-      double userLon = locationProvider.longitude;
+      // 🚍 下載站點與時間資料
+      final List<Map<String, dynamic>> data = await GetBusInfo(
+        city: widget.city,
+        routeid: widget.routeID,
+      );
 
-      double minDistance = double.infinity;
-      for (int i = 0; i < stops.length; i++) {
-        final pos = stops[i]['StopPosition'];
-        if (pos != null && pos['PositionLat'] != null && pos['PositionLon'] != null) {
-          double lat = pos['PositionLat'];
-          double lon = pos['PositionLon'];
-          double distance = calculateApproxDistance(userLat, userLon, lat, lon);
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestIndex = i;
+      final routeInfo = [
+        widget.routeName,
+        widget.departureStopName,
+        widget.destinationStopName,
+      ];
+
+      final busTimeData = await fetchBusTime(widget.routeName, widget.city);
+
+      // 📌 包一個方法：主方向失敗時用備援方向
+      Future<List<dynamic>> fetchStops(int primary, int fallback) async {
+        final filterStops = (int dir) =>
+            busTimeData.where((s) => s['Direction'] == dir).toList();
+
+        try {
+          return await fetchStopNamesWithTime(primary, filterStops(primary), data);
+        } catch (_) {
+          return await fetchStopNamesWithTime(fallback, filterStops(fallback), data);
+        }
+      }
+
+      // 🔄 設定 Tab (根據 direction)
+      final int? direction = widget.mark?.direction;
+      if (direction != null) _tabController.animateTo(direction);
+
+      // 📌 抓雙向資料
+      stopNamesWithTime1 = await fetchStops(1, 0);
+      stopNamesWithTime2 = await fetchStops(0, 1);
+
+      final List<dynamic> stops = direction == 0 ? stopNamesWithTime1 : stopNamesWithTime2;
+      final List<dynamic> nearStops = direction == 0 ? stopNamesWithTime2 : stopNamesWithTime1;
+
+      // 📍 找最近站點
+      int? nearestIndex;
+      double? nearestDistance;
+      try {
+        final loc = Provider.of<LocationProvider>(context, listen: false);
+        final userLat = loc.latitude, userLon = loc.longitude;
+
+        double minDist = double.infinity;
+        for (int i = 0; i < nearStops.length; i++) {
+          final pos = nearStops[i]['StopPosition'];
+          if (pos?['PositionLat'] != null && pos?['PositionLon'] != null) {
+            final dist = calculateApproxDistance(
+              userLat, userLon, pos['PositionLat'], pos['PositionLon'],
+            );
+            if (dist < minDist) {
+              minDist = dist;
+              nearestIndex = i;
+            }
           }
         }
+
+        if (nearestIndex != null && minDist <= 7000) {
+          nearestStop = nearStops[nearestIndex]['stopName'];
+          nearestDistance = minDist;
+          if (kDebugMode) {
+            print("📍 最近站點：$nearestStop，距離=${minDist.toStringAsFixed(1)}m");
+          }
+        } else {
+          if (kDebugMode) print("❌ 沒有站點在 7 公里內");
+        }
+      } catch (e) {
+        print("⚠️ 定位錯誤: $e");
       }
 
-      if (nearestIndex != null && minDistance <= 7000) {
-        nearestStop = stops[nearestIndex]['stopName'];
-        nearestDistance = minDistance;
-        if (kDebugMode) {
-          print("📍 最近站點：$nearestStop，距離=${minDistance.toStringAsFixed(1)}m");
-        }
-      } else {
-        if (kDebugMode) {
-          print("❌ 沒有站點在 7 公里內");
-        }
+      // 🎯 滾動到 highlight 或最近站點
+      void scrollTo(int index) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToIndex(index);
+        });
       }
-    } catch (e) {
-      print("⚠️ 定位錯誤: $e");
+
+      if (widget.mark?.highlight?.isNotEmpty ?? false) {
+        final highlightStation = widget.mark!.highlight!.first;
+        final stopNames = stops.map((e) => e["stopName"]).toList();
+        final highlightedIndex = stopNames.indexOf(highlightStation);
+        globalHighlightedIndex = highlightedIndex;
+
+        if (highlightedIndex != -1) {
+          scrollTo(highlightedIndex);
+        } else {
+          print("⚠️ 找不到 highlight 站點");
+        }
+      } else if (nearestIndex != null) {
+        scrollTo(nearestIndex);
+      }
+
+      // ⏱ 啟動自動刷新
+      if (isTimerOn.value) _startAutoReload();
+
+      // 🗺 載入地圖標記
+      _loadMarkers("stopNamesWithTime1");
+
+      // 📢 通知 UI
+      _dataNotifier.value = {
+        'routeInfo': routeInfo,
+        'stopNamesWithTime1': stopNamesWithTime1,
+        'stopNamesWithTime2': stopNamesWithTime2,
+      };
+    } catch (e, s) {
+      print("❌ _loadData 發生錯誤: $e\n$s");
     }
-
-    // 若有 highlight 則滾動到 highlight，否則才滾動最近站點
-    if (widget.mark?.highlight != null && widget.mark!.highlight!.isNotEmpty) {
-      final String highlightStation = widget.mark!.highlight!.first;
-      final stopNames = stops.map((e) => e["stopName"]).toList();
-      final highlightedIndex = stopNames.indexOf(highlightStation);
-      globalHighlightedIndex=stopNames.indexOf(highlightStation);
-      if (highlightedIndex != -1) {
-        if (widget.mark != null && widget.mark!.highlight != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToIndex(highlightedIndex);
-          });
-        }
-
-
-      } else {
-        print("⚠️ 找不到 highlight 站點");
-      }
-    } else if (nearestIndex != null && nearestStop != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollToIndex(nearestIndex!);
-      });
-    }
-
-    if (isTimerOn.value) _startAutoReload();
-
-    _loadMarkers("stopNamesWithTime1");
-
-    _dataNotifier.value = {
-      'routeInfo': routeInfo,
-      'stopNamesWithTime1': stopNamesWithTime1,
-      'stopNamesWithTime2': stopNamesWithTime2,
-    };
   }
+
 
 
 
