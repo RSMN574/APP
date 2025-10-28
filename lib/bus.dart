@@ -22,18 +22,19 @@ class Bus extends StatefulWidget {
   State<Bus> createState() => BusState();
 }
 
-class BusState extends State<Bus>  {
 
-  final List<IconData> icons=[Icons.favorite, Icons.favorite, Icons.route,Icons.airport_shuttle];
-  final List<String> items=["收藏路線", "收藏站牌",  "規劃","接駁車"];
-  final List<String> id=["route", "stop",  "routeplan","shuttleBus"];
+
+class BusState extends State<Bus> {
+  final List<IconData> icons = [Icons.favorite, Icons.favorite, Icons.route, Icons.airport_shuttle];
+  final List<String> items = ["收藏路線", "收藏站牌", "規劃", "接駁車"];
+  final List<String> id = ["route", "stop", "routeplan", "shuttleBus"];
   int _current = 0;
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
-  List busData=[];
-  final List<String> _list = ['全部', '臺中市','臺北市'];
-  final List<String> _listID = ['all', 'Taichung','Taipei'];
+  List busData = [];
+  final List<String> _list = ['全部', '臺中市', '臺北市'];
+  final List<String> _listID = ['all', 'Taichung', 'Taipei'];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
@@ -41,61 +42,60 @@ class BusState extends State<Bus>  {
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
+  // 顏色定義 - 使用航班主題
+  final Color _primaryColor = const Color(0xFF1A73E8);
+  final Color _secondaryColor = const Color(0xFFEEF3FB);
+  final Color _backgroundColor = Colors.white;
+  final Color _textColor = Colors.black87;
+  final Color _greyColor = Colors.grey;
 
-  // 更新當前值
   Future<int> updateCurrent() async {
-    favoriteRoutes.value=await  _loadFavorites("FavoritesRoute",city: correspondingIDNotifier.value);
-
-     favoriteStops.value=await  _loadFavorites("FavoritesStop",city: correspondingIDNotifier.value);
-
+    favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
+    favoriteStops.value = await _loadFavorites("FavoritesStop", city: correspondingIDNotifier.value);
     return 200;
   }
+
   @override
   void initState() {
     super.initState();
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
     if (_list.contains(currentCity)) {
-      currentCityNotifier.value = currentCity; // 正确赋值
+      currentCityNotifier.value = currentCity;
     }
     _initializeFavorites();
     updatedCorrespondingID();
     _getData();
     updateCurrent();
-
   }
+
   @override
   void dispose() {
     super.dispose();
   }
 
-  // 异步初始化函数
   Future<void> _initializeFavorites() async {
-    // await _loadFavorites(); // 初始化时加载收藏列表
     try {
-      favorite_feature dbHelper = favorite_feature(); // 创建实例
-      await dbHelper.initDatabase(); // 正确通过实例调用数据库初始化
+      favorite_feature dbHelper = favorite_feature();
+      await dbHelper.initDatabase();
     } catch (e) {
       print('Error initializing database: $e');
     }
   }
 
-
   Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
-    favorite_feature db=favorite_feature();
-    final favorites = await db.getFavorites(key, correspondingIDNotifier.value,city);
+    favorite_feature db = favorite_feature();
+    final favorites = await db.getFavorites(key, correspondingIDNotifier.value, city);
     return favorites;
   }
-Future <List>_getData()async{
-  busCurrentCity=correspondingIDNotifier.value;
 
-    busData= await  GetBus(correspondingIDNotifier.value);
+  Future<List> _getData() async {
+    busCurrentCity = correspondingIDNotifier.value;
+    busData = await GetBus(correspondingIDNotifier.value);
+    return [];
+  }
 
-    return []; // 返回一个空列表，避免 Future 没有返回值的问题
-
-
-}
   Future<List<dynamic>> _updateSuggestions(String id) async {
-    suggestions.value.clear(); // 僅清空一次
+    suggestions.value.clear();
 
     if (id == "route") {
       final String input = busIdController.text;
@@ -113,11 +113,8 @@ Future <List>_getData()async{
           }
         }
       }
-
       return suggestionsForRoute;
-    }
-
-    else if (id == "stop") {
+    } else if (id == "stop") {
       final String input = busIdController.text;
       final rawData = await mysqlSelect(
           "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
@@ -125,7 +122,6 @@ Future <List>_getData()async{
       );
 
       final seen = <String>{};
-
       for (var item in rawData) {
         final name = json.decode(item["StationName"])["Zh_tw"];
         if (seen.contains(name)) continue;
@@ -137,279 +133,426 @@ Future <List>_getData()async{
           suggestions.value.add(name);
         }
       }
-
       return suggestions.value;
     }
-
     return suggestions.value;
   }
 
-// 返回每个隐藏的菜单项
-  SelectView(IconData icon, String text, String id) {
-    return PopupMenuItem<String>(
-        value: id,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            Icon(icon, color: busBlue),
-            Text(text),
-          ],
-        )
-    );
-  }
-  // 提取 AppBar 為獨立 Widget
-  AppBar  _buildAppBar() {
+// 精緻風格的 AppBar
+  AppBar _buildAppBar() {
     return AppBar(
-
-      backgroundColor: busBlue,
+      // backgroundColor: _primaryColor,
       elevation: 0,
-      title: const Text(
-        "公車",
-        style: TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: _secondaryColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.directions_bus,
+              color: Color(0xFF1A73E8),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Text(
+            "公車資訊",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+            ),
+          ),
+        ],
       ),
+      centerTitle: true,
+      iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
       actions: [
-        PopupMenuButton<String>(
-          iconColor:   Colors.black,
-          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-            this.SelectView(Icons.confirmation_number, '票價說明', 'A'),
-            this.SelectView(Icons.warning, '通阻消息', 'B'),
-
-          ],
-          onSelected: (String action) async {
-            // 点击选项的时候
-            switch (action) {
-              case 'A':
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => Scaffold(
-                        appBar: AppBar(
-                          backgroundColor: busBlue,
-                          elevation: 0,
-                          title: const Text(
-                            "票價說明",
-                            style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        body: SingleChildScrollView(
-
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Dropdown
-                              Container(
-                                margin: const EdgeInsets.only(bottom: 16.0),
-                                child: CustomDropdown<String>(
-                                  hintText: '選擇城市',
-                                  items: _list,
-                                  initialItem: currentCityNotifier.value,
-
-                                  onChanged: (value) {
-                                    // Handle selection change
-                                    updatedCorrespondingID();
-                                    _getData();
-                                    currentCityNotifier.value = value!;
-
-                                  },
-                                ),
-                              ),
-                              // Title
-                              const Text(
-                                "票價細則",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              // Description with better styling
-                              Container(
-                                padding: const EdgeInsets.all(12.0),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.2),
-                                      spreadRadius: 2,
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child:
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "1. 臺中市民、市民的新住民配偶及臺中就學的外縣市學生，"
-                                          "使用綁定市民限定乘車優惠的電子票證可享「10公里免費＋超過10公里車資上限10元」的雙十優惠。",
-                                      style: TextStyle(fontSize: 16, height: 1.5),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "2. 非市民搭乘依里程計費，投現上車應付車資全票20元、半票11元，"
-                                          "超過基本里程再依實際搭乘距離計算下車應付車資；另使用電子票證，"
-                                          "刷卡上車應付車資全票僅扣15元(享有5元的優惠)、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資。",
-                                      style: TextStyle(fontSize: 16, height: 1.5),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "3. 臺中市委託發行敬老愛心卡先享有雙十乘車優惠，即搭乘距離在10公里內不會扣點，"
-                                          "搭乘超過10公里最多扣10點。",
-                                      style: TextStyle(fontSize: 16, height: 1.5),
-                                    ),
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。",
-                                      style: TextStyle(fontSize: 16, height: 1.5),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-
-                  ),
-                );
-
-                break;
-              case "B":
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => Scaffold(
-                          appBar: AppBar(
-                            backgroundColor: busBlue,
-                            elevation: 0,
-                            title: const Text(
-                              "通阻消息",
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          body:ValueListenableBuilder<String>(
-                              valueListenable: currentCityNotifier,
-                              builder: (context, currentCity, child) {
-                                return FutureBuilder<dynamic>(
-                                  future: fetchByUrl(
-                                    "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/${ correspondingIDNotifier.value}?%24top=10&%24format=JSON",
-                                  ),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState == ConnectionState.waiting) {
-                                      return const Center(child: CircularProgressIndicator());
-                                    } else if (snapshot.hasError) {
-                                      return Center(child: Text('Error: ${snapshot.error}'));
-                                    } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
-                                      return const Center(child: Text('No data available.'));
-                                    } else {
-                                      final data = snapshot.data as List;
-                                      return  Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Custom Dropdown
-                                            CustomDropdown<String>(
-                                              hintText: '選擇城市',
-                                              items: _list,
-                                              initialItem: currentCityNotifier.value,
-                                              onChanged: (value) {
-                                                setState(()  {
-                                                  currentCityNotifier.value=value!;
-                                                  updatedCorrespondingID();
-                                                  _getData();
-                                                  // 重新觸發 FutureBuilder
-                                                  updateCurrent();
-
-
-                                                });
-                                              },
-
-                                            ),
-                                            const SizedBox(height: 16), // 增加間距
-                                            // Expanded ListView
-                                            Expanded(
-                                              child: ListView.builder(
-                                                itemCount: data.length,
-                                                itemBuilder: (context, index) {
-                                                  final alert = data[index];
-                                                  return Container(
-                                                      margin: const EdgeInsets.only(bottom: 12.0),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.circular(12),
-                                                        boxShadow: [
-                                                          BoxShadow(
-                                                            color: Colors.black.withOpacity(0.05), // 微弱陰影
-                                                            offset: const Offset(0, 4),
-                                                            blurRadius: 8,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      child: ValueListenableBuilder<String>(
-                                                          valueListenable: currentCityNotifier,
-                                                          builder: (context, currentCity, child) {
-                                                            return ListTile(
-                                                              contentPadding: const EdgeInsets.all(16.0),
-                                                              title: Text(
-                                                                alert['Title'] ?? '無標題',
-                                                                style: const TextStyle(
-                                                                  fontWeight: FontWeight.w600,
-                                                                  fontSize: 18,
-                                                                  color: Colors.black,
-                                                                ),
-                                                              ),
-                                                              subtitle: Text(
-                                                                alert['Description'] ?? '無描述',
-                                                                style: const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Colors.grey,
-                                                                ),
-                                                              ),
-                                                            );})
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-
-
-                                    }
-                                  },
-                                );})
-                      )
-
-                  ),
-                );
-
-
-                break;
-
-            }
-          },
+        IconButton(
+          icon: const Icon(Icons.info_outline_rounded, size: 24),
+          onPressed: _showInfoMenu,
         ),
       ],
+    );
+  }
+
+  void _showInfoMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildMenuOption(
+              icon: Icons.confirmation_number_rounded,
+              title: '票價說明',
+              subtitle: '查看公車票價資訊',
+              onTap: _navigateToFareInfo,
+            ),
+            const SizedBox(height: 12),
+            _buildMenuOption(
+              icon: Icons.warning_amber_rounded,
+              title: '通阻消息',
+              subtitle: '查看交通中斷資訊',
+              onTap: _navigateToAlertInfo,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF1A73E8),
+                      const Color(0xFF1A73E8).withOpacity(0.8),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 24, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  void _navigateToFareInfo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: _primaryColor,
+            elevation: 0,
+            title: const Text("票價說明"),
+          ),
+          body: _buildFareInfoContent(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFareInfoContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCityDropdown(),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 標題
+                Container(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: const Text(
+                    "票價細則",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ),
+                ),
+                // 內容
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoText("1. 臺中市民、市民的新住民配偶及臺中就學的外縣市學生，使用綁定市民限定乘車優惠的電子票證可享「10公里免費＋超過10公里車資上限10元」的雙十優惠。"),
+                    const SizedBox(height: 12),
+                    _buildInfoText("2. 非市民搭乘依里程計費，投現上車應付車資全票20元、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資；另使用電子票證，刷卡上車應付車資全票僅扣15元(享有5元的優惠)、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資。"),
+                    const SizedBox(height: 12),
+                    _buildInfoText("3. 臺中市委託發行敬老愛心卡先享有雙十乘車優惠，即搭乘距離在10公里內不會扣點，搭乘超過10公里最多扣10點。"),
+                    const SizedBox(height: 12),
+                    _buildInfoText("4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildInfoText(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 16, height: 1.5),
+      ),
+    );
+  }
+
+  void _navigateToAlertInfo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            // backgroundColor: _primaryColor,
+            elevation: 0,
+            title: const Text("通阻消息"),
+          ),
+          body: ValueListenableBuilder<String>(
+            valueListenable: currentCityNotifier,
+            builder: (context, currentCity, child) {
+              return FutureBuilder<dynamic>(
+                future: fetchByUrl(
+                  "https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/${correspondingIDNotifier.value}?%24top=10&%24format=JSON",
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+                    return _buildNoDataWidget();
+                  } else {
+                    final data = snapshot.data as List;
+                    return _buildAlertList(data);
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlertList(List data) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCityDropdown(),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (context, index) {
+                final alert = data[index];
+                return _buildAlertCard(alert);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertCard(Map<String, dynamic> alert) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, 4),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16.0),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _secondaryColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.warning, color: Color(0xFF1A73E8), size: 20),
+        ),
+        title: Text(
+          alert['Title'] ?? '無標題',
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        subtitle: Text(
+          alert['Description'] ?? '無描述',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoDataWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.info_outline, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            '暫無通阻消息',
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCityDropdown() {
+    return Container(
+      // margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3FB),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.location_on_rounded,
+              size: 20,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            '選擇城市',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const Spacer(),
+          // 為 CustomDropdown 提供明確的寬度約束
+          SizedBox(
+            width: 120, // 或者根據需要調整寬度
+            child: CustomDropdown<String>(
+              items: _list,
+              initialItem: currentCityNotifier.value,
+              onChanged: (value) {
+                setState(() {
+                  currentCityNotifier.value = value!;
+                  updatedCorrespondingID();
+                  _getData();
+                  updateCurrent();
+                });
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
   @override
@@ -418,208 +561,24 @@ Future <List>_getData()async{
     return Scaffold(
       appBar: _buildAppBar(),
       body: GestureDetector(
-        onTap: () {
-          hideKeyboard(context);
-        },
+        onTap: () => hideKeyboard(context),
         child: Column(
           children: [
+            // 城市選擇
             Padding(
-              padding: const EdgeInsets.all(1.0),
-              child: CustomDropdown<String>(
-                hintText: 'Select City',
-                items: _list,
-                initialItem: currentCityNotifier.value,
-                onChanged: (value) {
-
-                  setState(()  {
-                    currentCityNotifier.value=value!;
-                    updatedCorrespondingID();
-                    _getData();
-                    // 重新觸發 FutureBuilder
-                    updateCurrent();
-                    // _updateSuggestions("route");
-                  });
-
-                },
-              ),
+              padding: const EdgeInsets.all(16.0),
+              child: _buildCityDropdown(),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: SizedBox(
-                height: 70,
-                child: Row(
-                  children: [
 
-                    Container(
-                      width: 100,
-                      margin: const EdgeInsets.only(right: 10),
-                      decoration: BoxDecoration(
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12, // 陰影顏色
-                            blurRadius: 6, // 陰影模糊半徑
-                            offset: Offset(0, 3), // 陰影位置
-                          ),
-                        ],
-                        borderRadius: BorderRadius.circular(20), // 容器圓角
-                      ),
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: _dropdownValueNotifier,
-                        builder: (context, value, child) {
-                          return DropdownButtonFormField<String>(
-                            value: value,
-                            onChanged: (String? newValue) {
-                              _dropdownValueNotifier.value = newValue!;
-                            },
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: Colors.white, // 淺灰色背景
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20.0), // 圓角
-                                borderSide: BorderSide.none, // 無邊框
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), // 調整內邊距
-                            ),
-                            style: const TextStyle(
-                              color: Colors.black87, // 下拉選單文字顏色
-                              fontSize: 16, // 字體大小
-                            ),
-                            dropdownColor: Colors.white, // 下拉選單背景色
-                            icon: const Icon(Icons.arrow_drop_down, color: Colors.black54), // 下拉箭頭圖標
-                            items: <String>['路線', '站牌', ]
-                                .map<DropdownMenuItem<String>>((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: const TextStyle(
-                                    color: Colors.black87, // 選項文字顏色
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                    ),
+            // 搜尋區域
+            _buildSearchSection(),
 
-                    Expanded(
-                      child: Container(
-                        decoration: ShapeDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(40),
-                          ),
-                          shadows: const [
-                            BoxShadow(
-                              color: Color(0x19000000),
-                              blurRadius: 25,
-                              offset: Offset(0, 0),
-                              spreadRadius: 0,
-                            )
-                          ],
-                        ),
-                        child: TextField(
-                          onChanged: (text) async {
-                            if (text.isNotEmpty) {
-                              double screenHeight = MediaQuery.of(context).size.height;
-                              double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                              double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
-                              if (_dropdownValueNotifier.value == "路線") {
-                                 await _updateSuggestions('route');
-                                 setState(() {
-                                   suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-                                 });
-                              } else if (_dropdownValueNotifier.value == "站牌") {
-                                await _updateSuggestions('stop');
-                                setState(() {
-                                  suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 14 - 70;
-                                });
-                              }
-                            } else {
-                              suggestions.value.clear();
-                              suggestionsHeightNotifier.value = 0;
-
-                            }
-                          },
-                          controller: busIdController,
-                          decoration: InputDecoration(
-                            hintText: '搜尋...',
-                            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
-                            prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 24),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30.0),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: Colors.transparent, // Fill color will be applied by ShapeDecoration
-
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.clear),
-                              color: Colors.grey[700],
-                              onPressed: () {
-                                busIdController.clear();
-                                _dropdownValueNotifier.value = '路線';
-                                suggestions.value.clear();
-                                suggestionsHeightNotifier.value = 0;
-                              },
-                            ),
-                          ),
-                          style: const TextStyle(color: Colors.black87, fontSize: 16),
-                        ),
-                      ),
-                    )
-
-                  ],
-                ),
-              ),
-            ),
+            // 主要內容區域
             Expanded(
               child: Stack(
                 children: [
-                  tab(context),
-                  ValueListenableBuilder<double>(
-                    valueListenable: suggestionsHeightNotifier,
-                    builder: (context, height, child) {
-
-                      return Container(
-                        color: bgColor,
-                        height: height,
-                        child: suggestions.value.isNotEmpty
-                            ? _dropdownValueNotifier.value == "路線"
-                            ?
-                        // Buslist(suggestions:suggestions.value )
-                        FutureBuilder(
-                          future: _updateSuggestions('route',), // 等待 _updateSuggestions() 完成
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(), // 显示加载指示器
-                              );
-                            } else if (snapshot.hasError) {
-                              return Center(
-                                child: Text("加载失败: ${snapshot.error}"), // 显示错误信息
-                              );
-                            } else {
-                              // 数据加载完成后，显示 Buslist
-                              return Buslist(
-                                suggestions: snapshot.data ?? [],
-                                city: correspondingIDNotifier.value == 'all'
-                                    ? "Taipei,Taichung"
-                                    : correspondingIDNotifier.value,
-                              );
-
-                            }
-                          },
-                        )
-                            : _dropdownValueNotifier.value == "站牌"
-                            ? BusStopList(suggestions.value)
-                            : const Center(child: Text("請選擇"))
-                            : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
-                      );
-                    },
-                  ),
+                  _buildMainContent(),
+                  _buildSuggestionsOverlay(),
                 ],
               ),
             ),
@@ -629,27 +588,135 @@ Future <List>_getData()async{
     );
   }
 
-  void hideKeyboard(BuildContext context) {
-    FocusScopeNode currentFocus = FocusScope.of(context);
-    if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
-      FocusManager.instance.primaryFocus?.unfocus();
-    }
+  Widget _buildSearchSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // 搜尋類型下拉選單
+          Container(
+            width: 120,
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ValueListenableBuilder<String>(
+              valueListenable: _dropdownValueNotifier,
+              builder: (context, value, child) {
+                return DropdownButtonFormField<String>(
+                  value: value,
+                  onChanged: (String? newValue) {
+                    _dropdownValueNotifier.value = newValue!;
+                  },
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  dropdownColor: Colors.white,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  items: <String>['路線', '站牌']
+                      .map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+
+          // 搜尋輸入框
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: TextField(
+                onChanged: (text) async {
+                  if (text.isNotEmpty) {
+                    double screenHeight = MediaQuery.of(context).size.height;
+                    double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                    double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+
+                    if (_dropdownValueNotifier.value == "路線") {
+                      await _updateSuggestions('route');
+                      setState(() {
+                        suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
+                      });
+                    } else if (_dropdownValueNotifier.value == "站牌") {
+                      await _updateSuggestions('stop');
+                      setState(() {
+                        suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
+                      });
+                    }
+                  } else {
+                    suggestions.value.clear();
+                    suggestionsHeightNotifier.value = 0;
+                  }
+                },
+                controller: busIdController,
+                decoration: InputDecoration(
+                  hintText: '搜尋公車路線或站牌...',
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 20),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear),
+                    color: Colors.grey[700],
+                    onPressed: () {
+                      busIdController.clear();
+                      suggestions.value.clear();
+                      suggestionsHeightNotifier.value = 0;
+                    },
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                style: const TextStyle(color: Colors.black87, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-
-
-
-  Widget tab(BuildContext context) {
+  Widget _buildMainContent() {
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? Colors.white.withOpacity(0.95)
-            : Colors.grey[900]!.withOpacity(0.95),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -666,20 +733,11 @@ Future <List>_getData()async{
 
   Widget _buildTabBar() {
     return Container(
-      height: 85,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? Colors.white.withOpacity(0.7)
-            : Colors.grey[850]!.withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      height: 100,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: ListView.builder(
         physics: const BouncingScrollPhysics(),
@@ -693,7 +751,7 @@ Future <List>_getData()async{
   Widget _buildTabItem(int index) {
     final bool isSelected = _current == index;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
         onTap: () {
           setState(() {
@@ -702,95 +760,78 @@ Future <List>_getData()async{
           });
           pageController.animateToPage(
             _current,
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 400),
             curve: Curves.easeInOut,
           );
         },
-        child: AnimatedScale(
-          scale: isSelected ? 1.05 : 1.0,
-          duration: const Duration(milliseconds: 200),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          width: 100,
+          height: 76,
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? LinearGradient(
+              colors: [
+                const Color(0xFF1A73E8),
+                const Color(0xFF1A73E8).withOpacity(0.9),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+                : LinearGradient(
+              colors: [
+                Colors.white,
+                Colors.grey[50]!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isSelected
+                ? [
+              BoxShadow(
+                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ]
+                : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            border: isSelected
+                ? Border.all(color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
+                : Border.all(color: Colors.grey[200]!, width: 1),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                width: 90,
-                height: 60,
+              Container(
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                    colors: [
-                      busBlue.withOpacity(0.9),
-                      busBlue.withOpacity(0.7),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                      : LinearGradient(
-                    colors: [
-                      Colors.grey.withOpacity(0.1),
-                      Colors.grey.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: isSelected
-                      ? Border.all(
-                    color: busBlue.withOpacity(0.5),
-                    width: 1.5,
-                  )
-                      : null,
-                  boxShadow: isSelected
-                      ? [
-                    BoxShadow(
-                      color: busBlue.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                      : [],
+                  color: isSelected ? Colors.white.withOpacity(0.2) : const Color(0xFFEEF3FB),
+                  shape: BoxShape.circle,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icons[index],
-                      size: isSelected ? 24 : 20,
-                      color: isSelected
-                          ? Colors.white
-                          : Theme.of(context).brightness == Brightness.light
-                          ? Colors.grey.shade600
-                          : Colors.grey.shade400,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      items[index],
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Colors.white
-                            : Theme.of(context).brightness == Brightness.light
-                            ? Colors.grey.shade600
-                            : Colors.grey.shade400,
-                      ),
-                    ),
-                  ],
+                child: Icon(
+                  icons[index],
+                  size: 18,
+                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
                 ),
               ),
-              if (isSelected)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.only(top: 4),
-                  width: 24,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: busBlue,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                items[index],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
                 ),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -799,256 +840,291 @@ Future <List>_getData()async{
   }
 
   Widget _buildPageView() {
-    return Container(
-      margin: const EdgeInsets.only(top: 30),
-      width: double.infinity,
-      child: PageView.builder(
-        itemCount: id.length,
-        controller: pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        itemBuilder: (context, index) {
-          switch (id[index]) {
-            case "route":
-              return _buildList('FavoritesRoute', _buildRouteListItem);
-            case "stop":
-              return _buildList('FavoritesStop', _buildStopListItem);
-            case "routeplan":
-              return RoutePlanner();
+    return PageView.builder(
+      itemCount: id.length,
+      controller: pageController,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        switch (id[index]) {
+          case "route":
+            return _buildFavoriteRoutes();
+          case "stop":
+            return _buildFavoriteStops();
+          case "routeplan":
+            return RoutePlanner();
           default:
-              return const Center(child: Text("開發中"));
-          }
-        },
-      ),
+            return _buildComingSoon();
+        }
+      },
     );
   }
 
-  Widget _buildList(String key, Widget Function(dynamic) itemBuilder) {
-
-      ValueNotifier<List<Map<String, dynamic>>>? notifier;
-
-      if (key == "FavoritesRoute") {
-        notifier = favoriteRoutes;
-      } else if (key == "FavoritesStop") {
-        notifier = favoriteStops;
-      } else {
-        return const Center(child: Text("無效的選項"));
-      }
-
-      return FutureBuilder<int>(
-        future: updateCurrent(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text("載入失敗"));
-          } else if (!snapshot.hasData || notifier!.value.isEmpty) {
-            return Center(child: _NoFavoritesWidget());
-          }
-
-          final items = notifier?.value;
-          return ListView.separated(
-            itemCount: items!.length,
-            itemBuilder: (context, index) => itemBuilder(items[index]),
-            separatorBuilder: (context, index) => const Divider(
-              color: Color.fromRGBO(231, 231, 231, 1), // 分隔線顏色
-              height: 9, // 間距
-              thickness: 1, // 粗細
-              indent: 20, // 左側間距
-              endIndent: 20, // 右側間距
-            ),
-          );
-        },
-      );
-
-
+  Widget _buildFavoriteRoutes() {
+    return _buildFavoriteList(
+      favoriteRoutes,
+      _buildRouteCard,
+      '收藏路線',
+    );
   }
 
-  Widget _NoFavoritesWidget() {
+  Widget _buildFavoriteStops() {
+    return _buildFavoriteList(
+      favoriteStops,
+      _buildStopCard,
+      '收藏站牌',
+    );
+  }
+
+  Widget _buildFavoriteList(
+      ValueNotifier<List<Map<String, dynamic>>> notifier,
+      Widget Function(Map<String, dynamic>) itemBuilder,
+      String emptyMessage,
+      ) {
+    return FutureBuilder<int>(
+      future: updateCurrent(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('載入失敗: ${snapshot.error}'));
+        } else if (!snapshot.hasData || notifier.value.isEmpty) {
+          return _buildEmptyState(emptyMessage);
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: notifier.value.length,
+          separatorBuilder: (context, index) => const Divider(height: 16),
+          itemBuilder: (context, index) => itemBuilder(notifier.value[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildRouteCard(Map<String, dynamic> route) {
+    return _buildInfoCard(
+      title: route["routeName"]?.toString() ?? '',
+      subtitle: '${route["DepartureStopNameZh"]} - ${route["DestinationStopNameZh"]}',
+      onTap: () => _navigateToRouteDetails(route),
+      onRemove: () => _showConfirmDialog(context, route["routeName"], "FavoritesRoute"),
+    );
+  }
+
+  Widget _buildStopCard(Map<String, dynamic> stop) {
+    return _buildInfoCard(
+      title: stop["stopName"]?.toString() ?? '',
+      onTap: () => _navigateToStopDetails(stop),
+      onRemove: () => _showConfirmDialog(context, stop["stopName"], "FavoritesStop"),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    String? subtitle,
+    VoidCallback? onTap,
+    VoidCallback? onRemove,
+  }) {
     return Container(
-      color: Colors.white, // 白色底
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 插入提示圖片，可以替換為你需要的圖片
-            Icon(
-              Icons.favorite_border,
-              size: 80,
-              color: Colors.grey,
-            ),
-            SizedBox(height: 20),
-            // 顯示「沒有任何收藏的」提示文字
-            Text(
-              '沒有任何收藏的',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              '快去添加一些喜歡的吧！',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
-  Widget _buildStopListItem( stop) {
-    return _buildListItem(stop["stopName"], () => _showConfirmDialog(context, stop["stopName"],"FavoritesStop"), () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => BusStopInfo(stop["stopName"], city:correspondingIDNotifier.value ,)),
-      );
-    });
-  }
-void updatedCorrespondingID(){
-  // 查找 currentCity 在 _list 中的索引
-  int index = _list.indexOf(currentCityNotifier.value);
-
-  if (index != -1 ) {
-  // 获取 _listID 中对应的值
-
-      correspondingIDNotifier.value = _listID[index];
-
-
-  } else {
-  print('City not found in the list');
-
-  }// 调用异步初始化函数
-
-}
-  Widget _buildRouteListItem( route) {
-
-    return _buildListItemRoute(route, () => _showConfirmDialog(context, route["routeName"],"FavoritesRoute"),() async {
-
-      await GetBusInfo( routeid: route["routeID"], city: correspondingIDNotifier.value);
-      List baseData= await mysqlSelect("SELECT * FROM Bus.Bus_${ correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context,) => BusTime(
-          routeName:(route)["routeName"],
-          departureStopName:(route)["DepartureStopNameZh"],
-          destinationStopName:(route)["DestinationStopNameZh"],
-          operators: "",
-          routeMapImageUrl:baseData[0]["RouteMapImageUrl"],
-          city:  correspondingIDNotifier.value, routeID: (route["routeID"]),
-
-
-        )),
-      );
-
-
-    });
-  }
-
-  Widget _buildListItem(String title, VoidCallback onConfirm, [VoidCallback? onTap]) {
-    return ListTile(
-      title: Text(title),
-      trailing: IconButton(
-        icon: const Icon(Icons.favorite, color: Color.fromRGBO(51, 51, 51, 1)),
-        onPressed: onConfirm,
-      ),
-      onLongPress: () => _dialogBuilder(context),
-      onTap: onTap,
-    );
-  }
-  Widget _buildListItemRoute( jsonData, VoidCallback onConfirm, [VoidCallback? onTap]) {
-    return
-
-      ListTile(
-        title: Text((jsonData["routeName"]).toString()
-          ,style:
-          const TextStyle(
-              fontFamily: "MiSans-Demibold",
-              fontSize: 21
-
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _secondaryColor,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            onRemove != null ? Icons.directions_bus : Icons.favorite,
+            color: _primaryColor,
+            size: 20,
           ),
         ),
-        subtitle: Text('${jsonData["DepartureStopNameZh"].toString()}-${jsonData["DestinationStopNameZh"].toString()} '
-          ,style:
-          const TextStyle(
-              fontSize: 15,
-              color: Color.fromRGBO(136, 136, 136, 1)
-
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Colors.black87,
           ),
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.favorite, color: Color.fromRGBO(51, 51, 51, 1)),
-          onPressed: onConfirm,
-        ),
-        onLongPress: () => _dialogBuilder(context),
+        subtitle: subtitle != null
+            ? Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+          ),
+        )
+            : null,
+        trailing: onRemove != null
+            ? IconButton(
+          icon: const Icon(Icons.favorite, color: Colors.red),
+          onPressed: onRemove,
+        )
+            : null,
         onTap: onTap,
-      );
+      ),
+    );
   }
-  Future<void> _dialogBuilder(BuildContext context) {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.favorite_border,
+            size: 64,
+            color: Colors.grey[400],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 20),
-                _buildDialogOptions(),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: busBlue,
-                  ),
-                  child: const Text(
-                    '關閉',
-                    style: TextStyle(color: Colors.white, fontSize: 15),
-                  ),
+          const SizedBox(height: 16),
+          Text(
+            '暫無$message',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '快去添加一些喜歡的吧！',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComingSoon() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.build, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            '功能開發中',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionsOverlay() {
+    return ValueListenableBuilder<double>(
+      valueListenable: suggestionsHeightNotifier,
+      builder: (context, height, child) {
+        if (height <= 0) return const SizedBox();
+
+        return Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: height,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
+            child: suggestions.value.isNotEmpty
+                ? _buildSuggestionsList()
+                : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
           ),
         );
       },
     );
   }
 
-  Widget _buildDialogOptions() {
-    return Column(
-      children: [
-        _buildDialogOption(context, Icons.info, "資訊", "info"),
-        _buildDialogOption(context, Icons.route, "路線規劃", "route"),
-      ],
-    );
+  Widget _buildSuggestionsList() {
+    if (_dropdownValueNotifier.value == "路線") {
+      return FutureBuilder(
+        future: _updateSuggestions('route'),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return Buslist(
+            suggestions: snapshot.data ?? [],
+            city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
+          );
+        },
+      );
+    } else {
+      return BusStopList(suggestions.value);
+    }
   }
 
-  Widget _buildDialogOption(BuildContext context, IconData icon, String title, String id) {
-    return InkWell(
-      onTap: () async {
-        // 处理对话框选项点击事件
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Icon(icon, color: busBlue),
-            const SizedBox(width: 10),
-            Text(title, style: const TextStyle(fontSize: 18)),
-          ],
+  // 其他方法保持不變，但使用新的顏色變數
+  void updatedCorrespondingID() {
+    int index = _list.indexOf(currentCityNotifier.value);
+    if (index != -1) {
+      correspondingIDNotifier.value = _listID[index];
+    }
+  }
+
+  void hideKeyboard(BuildContext context) {
+    FocusScopeNode currentFocus = FocusScope.of(context);
+    if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+  }
+
+  void _navigateToRouteDetails(Map<String, dynamic> route) async {
+    await GetBusInfo(routeid: route["routeID"], city: correspondingIDNotifier.value);
+    List baseData = await mysqlSelect("SELECT * FROM Bus.Bus_${correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusTime(
+          routeName: route["routeName"],
+          departureStopName: route["DepartureStopNameZh"],
+          destinationStopName: route["DestinationStopNameZh"],
+          operators: "",
+          routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
+          city: correspondingIDNotifier.value,
+          routeID: route["routeID"],
         ),
       ),
     );
   }
 
-  void _showConfirmDialog(BuildContext context, String item,String SharedPreferencesList) {
+  void _navigateToStopDetails(Map<String, dynamic> stop) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BusStopInfo(
+          stop["stopName"],
+          city: correspondingIDNotifier.value,
+        ),
+      ),
+    );
+  }
+
+  void _showConfirmDialog(BuildContext context, String item, String SharedPreferencesList) {
     QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
@@ -1058,71 +1134,59 @@ void updatedCorrespondingID(){
       confirmBtnColor: Colors.green,
       onCancelBtnTap: () => Navigator.pop(context),
       onConfirmBtnTap: () {
-        _removeFavorite(context, item,SharedPreferencesList);
+        _removeFavorite(context, item, SharedPreferencesList);
         Navigator.pop(context);
       },
     );
   }
 
-  Future<void> _removeFavorite(BuildContext context, String item,String SharedPreferencesList) async {
-    favorite_feature db=favorite_feature();
-    if(SharedPreferencesList=="FavoritesRoute"){
-     await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList,);
-
-    }else if(SharedPreferencesList=="FavoritesStop"){
-     await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList,);
-
+  Future<void> _removeFavorite(BuildContext context, String item, String SharedPreferencesList) async {
+    favorite_feature db = favorite_feature();
+    if (SharedPreferencesList == "FavoritesRoute") {
+      await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
+    } else if (SharedPreferencesList == "FavoritesStop") {
+      await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
     }
-setState(() {
-
-});
-    // await _loadFavorites(); // 重新加载收藏列表
+    setState(() {});
   }
+
   Widget BusStopList(List suggestions) {
     return ListView.builder(
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
-        return
-          Container(
-            padding: EdgeInsets.only(left: 6.3),
-            decoration: BoxDecoration(
-              color: index==0?Color.fromRGBO(238, 238, 238, 0.85) :Colors.white,
-              borderRadius: BorderRadius.circular(10),
-            ),
-
-            child:
-            ListTile(
-
-              title: Text(suggestions[index].toString(),
-                  style:TextStyle(
-
-                      fontFamily: "MiSans-Medium"
-                  )
-
-
+        return Container(
+          decoration: BoxDecoration(
+            color: index == 0 ? _secondaryColor : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: _primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
               ),
-
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BusStopInfo(suggestions[index].toString(), city: correspondingIDNotifier.value,)),
-                );
-              },
+              child: const Icon(Icons.place, size: 16, color: Color(0xFF1A73E8)),
             ),
-
-
-          );
-
-
-
+            title: Text(
+              suggestions[index].toString(),
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BusStopInfo(
+                    suggestions[index].toString(),
+                    city: correspondingIDNotifier.value,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
       },
     );
-
-
-
-
-
   }
-
 }
 

@@ -16,6 +16,7 @@ import '../utils/convert.dart';
 import '../widget/bubble.dart';
 import '../widget/error.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
+final ValueNotifier<int> _currentTabIndex = ValueNotifier<int>(0);
 // 在檔案頂部(其他import之後)宣告enum
 enum SortType {
   nameAsc,     // 站名正序 (A-Z)
@@ -32,8 +33,8 @@ class BusStopInfo extends StatefulWidget {
   State<BusStopInfo> createState() => _BusStopInfoState();
 }
 
-class _BusStopInfoState extends State<BusStopInfo> {
-
+class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderStateMixin {
+  late final  TabController _tabController;
   final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
 
   final _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
@@ -44,11 +45,18 @@ class _BusStopInfoState extends State<BusStopInfo> {
   void initState() {
     super.initState();
     // _loadData(); // 初次加载数据
-
+    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab3
+    // 添加監聽器，只更新 ValueNotifier
+    _tabController.addListener(() {
+      if (_tabController.index != _currentTabIndex.value) {
+        _currentTabIndex.value = _tabController.index;
+      }
+    });
   }
   @override
   void dispose() {
     _streamController.close(); // 关闭 StreamController
+    _tabController.dispose(); // 释放 TabController
     super.dispose();
   }
 
@@ -584,7 +592,7 @@ return finalList;
                       ),
                     ),
                     body: TabBarView(
-                      // controller: _tabController,  // 加入 controller 綁定
+                       controller: _tabController,  // 加入 controller 綁定
                       children: List.generate(_stationIDs.value.length, (index) {
                         String label = String.fromCharCode(65 + index); // A, B, C...
 
@@ -629,36 +637,121 @@ return finalList;
   }
   PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(60),
+      preferredSize: const Size.fromHeight(80),
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white, // 使用白色背景
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: TabBar(
-
-
-          indicatorColor: Colors.black, // 使用黑色作为指示器颜色
-          labelColor: Colors.black, // 黑色文字
-          unselectedLabelColor: Colors.grey, // 灰色未选中文字
-          indicatorWeight: 2.0, // 更细的指示器
-          indicatorSize: TabBarIndicatorSize.label, // 窄指示器
-          labelStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600, // 略轻的加粗，显得现代
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 15, // 未选中标签稍小字体
-          ),
-
-          tabs: List.generate(_stationIDs.value.length, (index) {
-            String label = String.fromCharCode(65 + index); // 將索引轉為字母 A, B, C...
-            return Tab(
-              icon: Icon(Icons.directions_bus, size: 24),
-              text: _stationIDs.value[index],
-
+        child: ValueListenableBuilder<int>(
+          valueListenable: _currentTabIndex, // 需要創建這個 ValueNotifier
+          builder: (context, currentIndex, child) {
+            return Row(
+              children: List.generate(_stationIDs.value.length, (index) {
+                String label = String.fromCharCode(65 + index);
+                return Expanded(
+                  child: Padding(
+                    padding: index < _stationIDs.value.length - 1
+                        ? const EdgeInsets.only(right: 8)
+                        : EdgeInsets.zero,
+                    child: _buildTabButton(
+                      icon: Icons.directions_bus,
+                      text: _stationIDs.value[index],
+                      label: label,
+                      isSelected: currentIndex == index,
+                      onTap: () => _tabController.animateTo(index),
+                    ),
+                  ),
+                );
+              }),
             );
-          }),
-
+          },
+        ),
+      ),
+    );
+  }
+  Widget _buildTabButton({
+    required IconData icon,
+    required String text,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(
+              color: const Color(0xFF1A73E8).withOpacity(0.3),
+              width: 1.5,
+            )
+                : Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 字母標籤和圖標組合
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[500],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

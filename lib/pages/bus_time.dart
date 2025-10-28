@@ -787,29 +787,94 @@ void _scrollToIndex(int index) {
   }
 
   PreferredSize _buildTabBar(List routeInfo) {
-    List<Tab> tabs = [];
-
-    if (stopNamesWithTime1.isEmpty==false) {
-      tabs.add(Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[1]));
-    }
-    if (stopNamesWithTime2.isEmpty==false) {
-      tabs.add(Tab(icon: const Icon(Icons.swap_horiz), text: routeInfo[2]));
-    }
-
     return PreferredSize(
-      preferredSize: const Size.fromHeight(60),
+      preferredSize: const Size.fromHeight(80),
       child: Container(
-        color: Colors.white,
-        child: TabBar(
-          controller: _tabController,
-          indicatorColor: busBlue,
-          labelColor: busBlue,
-          unselectedLabelColor: Colors.grey,
-          indicatorWeight: 3.0,
-          indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontSize: 16),
-          tabs: tabs,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (stopNamesWithTime1.isNotEmpty)
+              Expanded(
+                child: _buildTabButton(
+                  icon: Icons.directions_bus,
+                  text: routeInfo[1],
+                  isSelected: _tabController.index == 0,
+                  onTap: () => _tabController.animateTo(0),
+                ),
+              ),
+            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty)
+              const SizedBox(width: 12),
+            if (stopNamesWithTime2.isNotEmpty)
+              Expanded(
+                child: _buildTabButton(
+                  icon: Icons.swap_horiz,
+                  text: routeInfo[2],
+                  isSelected: _tabController.index == 1,
+                  onTap: () => _tabController.animateTo(1),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required IconData icon,
+    required String text,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(
+              color: const Color(0xFF1A73E8).withOpacity(0.3),
+              width: 1.5,
+            )
+                : Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -958,248 +1023,459 @@ padding: const EdgeInsets.only(bottom: 25),
     );
   }
 
-  Future<void> _dialogBuilder(BuildContext context, plateNumb,stopName,  estimates, stop,) {
-
+  Future<void> _dialogBuilder(BuildContext context, plateNumb, stopName, estimates, stop) {
     return showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-              children: [
-                Text(
-                  stopName,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20), // 添加间距
-                Column(
-                  children: [
-                    _buildDialogOption(context, Icons.info, "下班車資訊","info",{'estimates':estimates}),
-                    _buildDialogOption(context, Icons.schedule, "站牌查詢","stop",{"stop":stopName}),
-                    _buildDialogOption(context, Icons.notifications, "到站通知","notification",stop),
-                    _buildDialogOption(context, Icons.favorite, "加入收藏","favorite",{"id":stopName}),
-                    _buildDialogOption(context, Icons.route, "路線規劃","route",{}),
-                  ],
-                ),
-                const SizedBox(height: 20), // 添加间距
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop(); // 关闭对话框
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: busBlue, // 设置按钮背景色
-                  ),
-                  child: const Text('關閉',
-
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15
-
-
-                    ),),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
               ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 標題區域
+                  _buildDialogHeader(stopName),
+                  const SizedBox(height: 24),
+
+                  // 選項列表
+                  _buildDialogOptions(context, estimates, stopName, stop),
+                  const SizedBox(height: 24),
+
+                  // 關閉按鈕
+                  _buildCloseButton(context),
+                ],
+              ),
             ),
           ),
         );
       },
     );
   }
-  Widget _buildDialogOption (BuildContext context, IconData icon, String title, String id,Map other) {
-    return InkWell(
-      onTap: () async {
-        var output;
-        // var stationComparison;
-        // 在这里可以添加对应的功能
 
-        if(id=="favorite"){
-          favorite_feature dbHelper = favorite_feature(); // 创建实例
+  Widget _buildDialogHeader(String stopName) {
+    return Column(
+      children: [
+        // 圖標
+        Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEEF3FB),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Icon(
+            Icons.directions_bus,
+            size: 30,
+            color: Color(0xFF1A73E8),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // 站牌名稱
+        Text(
+          stopName,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A73E8),
+            letterSpacing: -0.3,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 8),
+        // 副標題
+        Text(
+          '公車站牌選項',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 
-          final result = await dbHelper.addFavorite(StopName:other["id"]  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
+  Widget _buildDialogOptions(BuildContext context, estimates, stopName, stop) {
+    return Column(
+      children: [
+        _buildDialogOption(
+          context: context,
+          icon: Icons.schedule_outlined,
+          title: "下班車資訊",
+          subtitle: "查看預計到站時間",
+          type: "info",
+          data: {'estimates': estimates},
+        ),
+        const SizedBox(height: 12),
+        _buildDialogOption(
+          context: context,
+          icon: Icons.place_outlined,
+          title: "站牌查詢",
+          subtitle: "查看詳細站牌資訊",
+          type: "stop",
+          data: {"stop": stopName},
+        ),
+        const SizedBox(height: 12),
+        _buildDialogOption(
+          context: context,
+          icon: Icons.notifications_outlined,
+          title: "到站通知",
+          subtitle: "設定公車到站提醒",
+          type: "notification",
+          data: stop,
+        ),
+        const SizedBox(height: 12),
+        _buildDialogOption(
+          context: context,
+          icon: Icons.favorite_outline,
+          title: "加入收藏",
+          subtitle: "收藏此站牌",
+          type: "favorite",
+          data: {"id": stopName},
+        ),
+        const SizedBox(height: 12),
+        _buildDialogOption(
+          context: context,
+          icon: Icons.route_outlined,
+          title: "路線規劃",
+          subtitle: "規劃乘車路線",
+          type: "route",
+          data: {},
+        ),
+      ],
+    );
+  }
 
-          // output=await  saveList('favoritesBusStop',other["id"] );
-          // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-          // 顯示相應的 QuickAlert
-          if (result==100) {
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.success,
-              text: output,
-            );
-
-          } else if (result==-1) {
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.warning,
-              text: output,
-            );
-          } else if (result==200) {
-            QuickAlert.show(
-              context: context,
-              type: QuickAlertType.error,
-              title: 'Oops...',
-              text: output,
-            );
-          }
-        }else if(id=='info'){
-          List<Map<String, dynamic>> estimates=[];
-
-
-// 使用 jsonDecode 将 JSON 字符串转换为 Dart 对象
-          if (other["estimates"] != 'null') {
-            try {
-              // 自动修正 JSON 字符串
-              String correctedJsonString = other["estimates"]
-                  .replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":') // 为键添加双引号
-                  .replaceAllMapped(RegExp(r'(\d+)(?=,|\})'), (match) => '${match[0]}') // 保留数字
-                  .replaceAllMapped(RegExp(r'(\w+-\w+)'), (match) => '"${match[0]}"') // 为带连字符的值添加双引号
-                  .replaceAllMapped(RegExp(r'\"(?!\d)') , (match) => '"') // 移除不必要的连字符
-
-                  .replaceAllMapped(RegExp(r'\"(?!\w+-\w+)') , (match) => '"'); // 处理字符串带连字符的情况
-
-              // 解析为 List<Map<String, dynamic>>
-              estimates= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
-
-              if (kDebugMode) {
-                print("other" +other["estimates"]);
-              }
-            } catch (e) {
-              print("Error decoding JSON: $e");
-            }
-          }
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Scaffold(
-                appBar: AppBar(
-                  backgroundColor: Colors.white,
-                  elevation: 2,
-                  title: const Text(
-                    "下班車資訊",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                  ),
-                  iconTheme: const IconThemeData(color: Colors.black), // 设置返回图标颜色
+  Widget _buildDialogOption({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String type,
+    required Map<String, dynamic> data,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _handleOptionTap(context, type, data),
+        borderRadius: BorderRadius.circular(12),
+        splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+        highlightColor: const Color(0xFFEEF3FB),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Colors.grey[200]!,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              // 圖標
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                body: estimates.isNotEmpty
-                    ? ListView.builder(
-                  itemCount: estimates.length, // 項目數
-                  itemBuilder: (context, index) {
-                    final bus = estimates[index]; // 獲取當前項目資料
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2), // 微弱的阴影
-                            blurRadius: 8,
-                            offset: const Offset(0, 4), // 阴影偏移量
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.directions_bus, color: Colors.blue),
-                        ),
-                        title: Text(
-                          '公車 ${bus["PlateNumb"] ?? "未知"}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Colors.black,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                        trailing: (bus["IsLastBus"] ?? false)
-                            ? const Icon(Icons.warning, color: Colors.red)
-                            : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                      ),
-                    );
-                  },
-                )
-                    : const Center(
-                  child: Text(
-                    "目前沒有公車預估時間",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: const Color(0xFF1A73E8),
                 ),
               ),
-            ),
-          );
-
-
-        }else if(id=="stop"){
-
-          Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => BusStopInfo(other["stop"], city: widget.city,))
-          );
-        }else if(id=="notification"){
-
-
-          await startReminder(
-            transportType: 'bus',
-            routeName: widget.routeName,
-            routeID: widget.routeID.toString(),
-            city: widget.city,
-            stopID: other["StopID"],
-            UserStartingStopName:'',
-            UserDestinationStopName: other["stopName"],
-          );
-
-
-
-
-
-
-
-        }
-
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10), // 添加上下间距
-        child: Row(
-          children: [
-            Icon(icon, color: busBlue), // 设置图标颜色
-            const SizedBox(width: 10), // 添加间距
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ],
+              const SizedBox(width: 16),
+              // 文字內容
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 箭頭
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey[400],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildCloseButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).pop(),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3FB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: const Text(
+              '關閉',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A73E8),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+// 處理選項點擊
+  void _handleOptionTap(BuildContext context, String type, Map<String, dynamic> data) {
+    switch (type) {
+      case "info":
+      // 處理下班車資訊
+        _showNextBusInfo(context, data['estimates']);
+        break;
+      case "stop":
+      // 處理站牌查詢
+        _navigateToStopInfo(context, data['stop']);
+        break;
+      case "notification":
+      // 處理到站通知
+        _setupArrivalNotification(context, data);
+        break;
+      case "favorite":
+      // 處理加入收藏
+        _addToFavorites(context, data['id']);
+        break;
+      case "route":
+      // 處理路線規劃
+        _navigateToRoutePlanning(context);
+        break;
+    }
+  }
+
+// 範例方法 - 您需要根據實際情況實現
+  void _showNextBusInfo(BuildContext context, estimates) {
+    List<Map<String, dynamic>> estimatesList=[];
+
+
+// 使用 jsonDecode 将 JSON 字符串转换为 Dart 对象
+    if (estimatesList != 'null') {
+      try {
+        // 自动修正 JSON 字符串
+        String correctedJsonString = estimates
+            .replaceAllMapped(RegExp(r'(\w+):'), (match) => '"${match[1]}":') // 为键添加双引号
+            .replaceAllMapped(RegExp(r'(\d+)(?=,|\})'), (match) => '${match[0]}') // 保留数字
+            .replaceAllMapped(RegExp(r'(\w+-\w+)'), (match) => '"${match[0]}"') // 为带连字符的值添加双引号
+            .replaceAllMapped(RegExp(r'\"(?!\d)') , (match) => '"') // 移除不必要的连字符
+
+            .replaceAllMapped(RegExp(r'\"(?!\w+-\w+)') , (match) => '"'); // 处理字符串带连字符的情况
+
+        // 解析为 List<Map<String, dynamic>>
+        estimatesList= List<Map<String, dynamic>>.from(jsonDecode(correctedJsonString));
+
+        if (kDebugMode) {
+          print("other" + estimates);
+        }
+      } catch (e) {
+        print("Error decoding JSON: $e");
+      }
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 2,
+            title: const Text(
+              "下班車資訊",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            iconTheme: const IconThemeData(color: Colors.black), // 设置返回图标颜色
+          ),
+          body: estimatesList.isNotEmpty
+              ? ListView.builder(
+            itemCount: estimatesList.length, // 項目數
+            itemBuilder: (context, index) {
+              final bus = estimatesList[index]; // 獲取當前項目資料
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2), // 微弱的阴影
+                      blurRadius: 8,
+                      offset: const Offset(0, 4), // 阴影偏移量
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.directions_bus, color: Colors.blue),
+                  ),
+                  title: Text(
+                    '公車 ${bus["PlateNumb"] ?? "未知"}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.black,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '預估時間: ${((bus["EstimateTime"] ?? 0) / 60).round()} 分鐘',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                  trailing: (bus["IsLastBus"] ?? false)
+                      ? const Icon(Icons.warning, color: Colors.red)
+                      : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                ),
+              );
+            },
+          )
+              : const Center(
+            child: Text(
+              "目前沒有公車預估時間",
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+
+
+    // 然後顯示下班車資訊
+  }
+
+  void _navigateToStopInfo(BuildContext context, String stopName) {
+    Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => BusStopInfo(stopName, city: widget.city,))
+    );
+    // 導航到站牌詳細資訊頁面
+  }
+
+  Future<void> _setupArrivalNotification(BuildContext context, stop) async {
+    Navigator.of(context).pop();
+    // 設定到站通知
+    await startReminder(
+    transportType: 'bus',
+    routeName: widget.routeName,
+    routeID: widget.routeID.toString(),
+    city: widget.city,
+    stopID: stop["StopID"],
+    UserStartingStopName:'',
+    UserDestinationStopName: stop["stopName"],
+    );
+
+
+  }
+
+  Future<void> _addToFavorites(BuildContext context, String stopId) async {
+    favorite_feature dbHelper = favorite_feature(); // 创建实例
+    var output;
+    final result = await dbHelper.addFavorite(StopName:stopId  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
+
+    // output=await  saveList('favoritesBusStop',other["id"] );
+    // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+    // 顯示相應的 QuickAlert
+    if (result==100) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        text: output,
+      );
+
+    } else if (result==-1) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.warning,
+        text: output,
+      );
+    } else if (result==200) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Oops...',
+        text: output,
+      );
+    }
+
+    // 加入收藏邏輯
+  }
+
+  void _navigateToRoutePlanning(BuildContext context) {
+    Navigator.of(context).pop();
+    // 導航到路線規劃頁面
+  }
+
 }
 
 

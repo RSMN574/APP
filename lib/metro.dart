@@ -398,16 +398,6 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
       },
     );
   }
-
-  // 加载并缓存图像的 Future
-  Future<Image> _loadCachedImage(String url) async {
-    final cacheManager = DefaultCacheManager();
-    final file = await cacheManager.getSingleFile(url);
-    final image = Image.file(file);
-    await precacheImage(image.image, context); // Preload the image
-    return image;
-  }
-
   // 轉乘資訊頁面
   Widget _buildTransferInfo() {
     return const Padding(
@@ -418,6 +408,16 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
       ),
     );
   }
+  // 加载并缓存图像的 Future
+  Future<Image> _loadCachedImage(String url) async {
+    final cacheManager = DefaultCacheManager();
+    final file = await cacheManager.getSingleFile(url);
+    final image = Image.file(file);
+    await precacheImage(image.image, context); // Preload the image
+    return image;
+  }
+
+
 }
 
 // 异步获取车站信息
@@ -730,18 +730,20 @@ class MetroMap extends StatefulWidget {
   _MetroMapScreenState createState() => _MetroMapScreenState();
 }
 
-class _MetroMapScreenState extends State<MetroMap> {
+class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin {
+  late TabController _tabController;
   final TransformationController _transformationController = TransformationController();
   final double _stationRadius = 6.0;
   MRTStation? _selectedStation;
   Map<MRTStation, int> _timeMap = {};
   List<MRTStation> _stations = [];
-
+  int selectedIndex = -1; // 選中的站點索引
   @override
   void initState() {
     super.initState();
     _initializeStations();
     _initConnections();
+    _tabController = TabController(length: 2, vsync: this); // 现在有两个标签页
   }
 
   void _initializeStations() {
@@ -762,12 +764,12 @@ class _MetroMapScreenState extends State<MetroMap> {
       MRTStation('水安宮站', Offset(0.5, 0.50), lineColor: Colors.green),
       MRTStation('文心森林公園站', Offset(0.5, 0.55), lineColor: Colors.green),
       MRTStation('南屯站', Offset(0.5, 0.60), lineColor: Colors.green),
-      MRTStation('豐樂公園站', Offset(0.65, 0.7), lineColor: Colors.green),
-      MRTStation('大慶站', Offset(0.7, 0.75), lineColor: Colors.green),
-      MRTStation('九張犁站', Offset(0.75, 0.8), lineColor: Colors.green),
-      MRTStation('九德站', Offset(0.8, 0.85), lineColor: Colors.green),
-      MRTStation('烏日站', Offset(0.85, 0.9), lineColor: Colors.green),
-      MRTStation('高鐵台中站', Offset(0.9, 0.95), lineColor: Colors.green),
+      MRTStation('豐樂公園站', Offset(0.5, 0.7), lineColor: Colors.green),
+      MRTStation('大慶站', Offset(0.501, 0.75), lineColor: Colors.green),
+      MRTStation('九張犁站', Offset(0.45, 0.81), lineColor: Colors.green),
+      MRTStation('九德站', Offset(0.33, 0.85), lineColor: Colors.green),
+      MRTStation('烏日站', Offset(0.24, 0.85), lineColor: Colors.green),
+      MRTStation('高鐵台中站', Offset(0.18, 0.85), lineColor: Colors.green),
     ];
 
 
@@ -841,6 +843,87 @@ class _MetroMapScreenState extends State<MetroMap> {
       _timeMap = _calculateTimes(station);
       _stations.forEach((s) => s.displayTime = _timeMap[s]);
     });
+    if (_selectedStation != null) {
+      showBottomSheet(
+        context: context,
+        builder: (context) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.4, // 初始高度比例
+            minChildSize: 0.3, // 最小高度比例
+            maxChildSize: 0.8, // 最大高度比例
+            expand: false, // 防止内容展开
+            builder: (BuildContext context,
+                ScrollController scrollController) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // 拖动提示线
+                    SingleChildScrollView(
+                      controller:
+                      scrollController, // 使用 ScrollController 使内容可以滚动
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 4, // 提示线高度
+                            width: 40, // 提示线宽度
+                            decoration: BoxDecoration(
+                              color: Colors.grey, // 提示线颜色
+                              borderRadius:
+                              BorderRadius.circular(
+                                  2), // 圆角
+                            ),
+                            margin: const EdgeInsets.only(
+                                bottom: 8), // 提示线与内容之间的间距
+                          ),
+                          Text(
+                            _selectedStation
+                            !.name,
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+
+                          TabBar(
+                            controller: _tabController,
+                            labelColor: Colors.black,
+                            unselectedLabelColor: Colors.grey,
+                            indicatorColor: Colors.blue,
+                            tabs: const [
+                              Tab(text: "車站資訊"),
+                              Tab(text: "轉乘資訊"),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          // 将车站信息和转乘信息作为子项传入
+                          SingleChildScrollView(
+                            controller: scrollController,
+                            child: buildStationInfo(
+                                _selectedStation
+                                !.name),
+                          ),
+                          SingleChildScrollView(
+                            controller: scrollController,
+                            child: _buildTransferInfo(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    };
   }
 
   @override
@@ -857,7 +940,9 @@ class _MetroMapScreenState extends State<MetroMap> {
             width: 600,
             height: 600,
             child: GestureDetector(
-              onTapUp: (details) => _handleTap(details),
+              onTapUp: (details) {
+                _handleTap(details);
+              } ,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final canvasSize = Size(constraints.maxWidth, constraints.maxHeight);
@@ -892,7 +977,16 @@ class _MetroMapScreenState extends State<MetroMap> {
       ],
     );
   }
-
+  // 轉乘資訊頁面
+  Widget _buildTransferInfo() {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Text(
+        "這裡顯示車站的轉乘資訊，包括可以轉乘的其他交通工具或路線。",
+        style: TextStyle(fontSize: 16),
+      ),
+    );
+  }
   Widget _buildStationDot(MRTStation station, Size canvasSize) {
     final actualOffset = Offset(
       station.relativePosition.dx * canvasSize.width,
@@ -936,6 +1030,8 @@ class _MetroMapScreenState extends State<MetroMap> {
         return;
       }
     }
+
+
   }
 
   void _showStationInfo(MRTStation station) {
