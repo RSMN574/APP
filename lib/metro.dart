@@ -275,69 +275,214 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
                 initialChildSize: 0.4, // 初始高度比例
                 minChildSize: 0.3, // 最小高度比例
                 maxChildSize: 0.8, // 最大高度比例
-                expand: false, // 防止内容展开
-                builder:
-                    (BuildContext context, ScrollController scrollController) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16.0),
+                expand: false,
+                builder: (BuildContext context, ScrollController scrollController) {
+                  return Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
                     child: Column(
                       children: [
-                        // 拖动提示线
-                        SingleChildScrollView(
-                          controller:
-                              scrollController, // 使用 ScrollController 使内容可以滚动
+                        // 頂部拖拽指示器
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 標題區域
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: Column(
                             children: [
-                              Container(
-                                height: 4, // 提示线高度
-                                width: 40, // 提示线宽度
-                                decoration: BoxDecoration(
-                                  color: Colors.grey, // 提示线颜色
-                                  borderRadius: BorderRadius.circular(2), // 圆角
-                                ),
-                                margin: const EdgeInsets.only(
-                                    bottom: 8), // 提示线与内容之间的间距
-                              ),
-                              Text(
-                                _mrtGreenLinePainter
-                                    .stationInfos[stationIndex].name,
-                                style: const TextStyle(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(_mrtGreenLinePainter
-                                  .stationInfos[stationIndex].englishName),
-                              const SizedBox(height: 8),
-                              TabBar(
-                                controller: _tabController,
-                                labelColor: Colors.black,
-                                unselectedLabelColor: Colors.grey,
-                                indicatorColor: Colors.blue,
-                                tabs: const [
-                                  Tab(text: "車站資訊"),
-                                  Tab(text: "轉乘資訊"),
+                              // 車站圖標和名稱
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.train_rounded,
+                                      size: 20,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        // 車站名稱
+                                        Text(
+                                          _mrtGreenLinePainter.stationInfos[stationIndex].name,
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1A73E8),
+                                            letterSpacing: -0.5,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        // 英文名稱
+                                        Text(
+                                          _mrtGreenLinePainter.stationInfos[stationIndex].englishName,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey[600],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
+                              const SizedBox(height: 20),
                             ],
                           ),
                         ),
-                        Expanded(
-                          child: TabBarView(
+
+// TabBar
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFD),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF1A73E8).withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: TabBar(
                             controller: _tabController,
-                            children: [
-                              // 将车站信息和转乘信息作为子项传入
-                              SingleChildScrollView(
-                                controller: scrollController,
-                                child: buildStationInfo(_mrtGreenLinePainter
-                                    .stationInfos[stationIndex].name),
+                            indicator: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1A73E8), ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              SingleChildScrollView(
-                                controller: scrollController,
-                                child: _buildTransferInfo(),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF1A73E8).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            indicatorWeight: 0,
+                            indicatorPadding: const EdgeInsets.all(4),
+                            labelColor: Colors.white,
+                            unselectedLabelColor: const Color(0xFF1A73E8),
+                            labelStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            unselectedLabelStyle: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            splashFactory: NoSplash.splashFactory,
+                            overlayColor: MaterialStateProperty.all(Colors.transparent),
+                            tabs: const [
+                              Tab(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.info_outline_rounded, size: 16),
+                                    SizedBox(width: 6),
+                                    Text("車站資訊"),
+                                  ],
+                                ),
+                              ),
+                              Tab(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.transfer_within_a_station_rounded, size: 16),
+                                    SizedBox(width: 6),
+                                    Text("轉乘資訊"),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
+
+                        const SizedBox(height: 16),
+
+                        // 內容區域
+                        Expanded(
+                          child: Container(
+                            // margin: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                // 車站資訊頁面
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    controller: scrollController,
+                                    padding: const EdgeInsets.all(16),
+                                    child: buildStationInfo(
+                                      _mrtGreenLinePainter.stationInfos[stationIndex].name,
+                                    ),
+                                  ),
+                                ),
+                                // 轉乘資訊頁面
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: SingleChildScrollView(
+                                    controller: scrollController,
+                                    padding: const EdgeInsets.all(16),
+                                    child: _buildTransferInfo(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
                       ],
                     ),
                   );
@@ -439,125 +584,527 @@ Future<List> _getStationInfo(String station) async {
 
   return stationExit;
 }
-
+// 獲取設施顏色
+Color getFacilityColor(String iconName) {
+  switch (iconName) {
+    case 'Inquiry Desk Icon':
+      return const Color(0xFF1A73E8);
+    case 'ATM Icon':
+      return const Color(0xFF34C759);
+    case 'Water Fountain Icon':
+      return const Color(0xFF007AFF);
+    case 'Restroom Icon':
+      return const Color(0xFFFF9500);
+    case 'AEDA Icon':
+      return const Color(0xFFAF52DE);
+    case 'Accessible Elevator Icon':
+      return const Color(0xFF5856D6);
+    default:
+      return const Color(0xFF8E8E93);
+  }
+}
 // 車站資訊頁面
 Widget buildStationInfo(String station) {
-  IconData getIcon(String iconName) {
+
+
+
+  // 獲取設施顏色
+  Color _getFacilityColor(String iconName) {
     switch (iconName) {
       case 'Inquiry Desk Icon':
-        return Icons.info;
+        return const Color(0xFF1A73E8);
       case 'ATM Icon':
-        return Icons.atm;
+        return const Color(0xFF34C759);
       case 'Water Fountain Icon':
-        return Icons.water;
+        return const Color(0xFF007AFF);
       case 'Restroom Icon':
-        return Icons.wc;
+        return const Color(0xFFFF9500);
       case 'AEDA Icon':
-        return Icons.favorite; // 可替换为更适合的图标
+        return const Color(0xFFAF52DE);
       case 'Accessible Elevator Icon':
-        return Icons.elevator;
+        return const Color(0xFF5856D6);
       default:
-        return Icons.help; // 默认图标
+        return const Color(0xFF8E8E93);
     }
   }
-
   return FutureBuilder(
-    future: _getStationInfo(station), // 异步获取车站信息
+    future: _getStationInfo(station),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         return Center(
-          child: LoadingAnimationWidget.stretchedDots(
-            color: Colors.black,
-            size: 40,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LoadingAnimationWidget.stretchedDots(
+                  color: const Color(0xFF1A73E8),
+                  size: 40,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '載入車站資訊中...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ); // 显示加载进度条
+        );
       } else if (snapshot.hasError) {
-        return const Text("無法載入車站資訊"); // 显示错误信息
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF3B30).withOpacity(0.1),
+                        const Color(0xFFFF3B30).withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    size: 40,
+                    color: Color(0xFFFF3B30),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '無法載入車站資訊',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFFF3B30),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       } else if (snapshot.hasData) {
         var stationI = snapshot.data;
         return SingleChildScrollView(
+          // padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 使用 Expanded 包裹 ListView 以便滚动
-              ListView.builder(
-                itemCount: stationI?.length, // 列表项数量
-                physics:
-                    const NeverScrollableScrollPhysics(), // 禁用 ListView 的滚动
-                shrinkWrap: true, // 让 ListView 根据内容的高度收缩
-                itemBuilder: (context, index) {
-                  final station = stationI?[index]; // 获取当前车站的信息
-                  return ListTile(
-                    title: Text(
-                      json.decode(station["ExitName"])["Zh_tw"], // 显示车站名称
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    leading: Row(
-                      mainAxisSize: MainAxisSize.min, // 确保图标不会占用过多空间
-                      children: [
-                        if (int.parse(station["Stair"]) == 1)
-                          const Icon(Icons.stairs, color: Colors.blue), // 楼梯图标
-                        if (int.parse(station["Elevator"]) == 1)
-                          const Icon(Icons.elevator,
-                              color: Colors.green), // 电梯图标
-                        if (int.parse(station["Escalator"]) == 1)
-                          const Icon(Icons.escalator,
-                              color: Colors.orange), // 手扶梯图标
-                      ],
-                    ),
-                    onTap: () {
-                      // 点击车站时执行的操作
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              '点击了 ${json.decode(station["ExitName"])["Zh_tw"]}'),
+              // 出口資訊卡片
+              if (stationI != null && stationI.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 標題
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.directions_rounded,
+                                size: 20,
+                                color: Color(0xFF1A73E8),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              '車站出口資訊',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A73E8),
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                      ),
+                      // 出口列表
+                      ...stationI.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final station = entry.value;
+                        final isLast = index == stationI.length - 1;
 
-              const SizedBox(height: 20), // 增加间距使布局更清晰
-
-              // 车站设施表格
-              const Text(
-                "車站設施",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10), // 表格标题与表格之间的间距
-
-              DataTable(
-                columnSpacing: 30,
-                headingTextStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey,
+                        return Container(
+                          margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
+                          child: _buildExitCard(station, index, context),
+                        );
+                      }).toList(),
+                    ],
+                  ),
                 ),
-                dataRowHeight: 60,
-                columns: const [
-                  DataColumn(label: Text('Icon')),
-                  DataColumn(label: Text('Facility')),
-                  DataColumn(label: Text('Location')),
-                ],
-                rows: facilitiesNotifier.value.map((facility) {
-                  return DataRow(cells: [
-                    DataCell(Icon(
-                      getIcon(facility['icon']),
-                      color: Colors.black54,
-                      size: 24,
-                    )),
-                    DataCell(Text(facility['facility'])),
-                    DataCell(Text(facility['location'])),
-                  ]);
-                }).toList(),
+
+              // 車站設施卡片
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 標題
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF34C759).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.local_activity_rounded,
+                              size: 20,
+                              color: Color(0xFF34C759),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            '車站設施',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1A73E8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 設施列表
+                    ...facilitiesNotifier.value.map((facility) {
+                      final color = _getFacilityColor(facility['icon']);
+                      return _buildFacilityCard(facility, color);
+                    }).toList(),
+                  ],
+                ),
               ),
             ],
           ),
         );
       } else {
-        return const Text("未找到任何車站資訊");
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFF1A73E8).withOpacity(0.1),
+                        const Color(0xFF1A73E8).withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline_rounded,
+                    size: 40,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '未找到車站資訊',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     },
+  );
+}
+
+// 構建出口卡片
+Widget _buildExitCard(dynamic station, int index,context) {
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('點擊了 ${json.decode(station["ExitName"])["Zh_tw"]}'),
+            backgroundColor: const Color(0xFF1A73E8),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey[200]!,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            // 出口圖標
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A73E8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.exit_to_app_rounded,
+                size: 20,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // 出口資訊
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    json.decode(station["ExitName"])["Zh_tw"],
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // 設施圖標
+                  Row(
+                    children: [
+                      if (int.parse(station["Stair"]) == 1)
+                        _buildFacilityIcon(Icons.stairs_rounded, '樓梯', const Color(0xFF1A73E8)),
+                      if (int.parse(station["Elevator"]) == 1)
+                        _buildFacilityIcon(Icons.elevator_rounded, '電梯', const Color(0xFF34C759)),
+                      if (int.parse(station["Escalator"]) == 1)
+                        _buildFacilityIcon(Icons.escalator_rounded, '手扶梯', const Color(0xFFFF9500)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+// 獲取設施圖標
+IconData getIcon(String iconName) {
+  switch (iconName) {
+    case 'Inquiry Desk Icon':
+      return Icons.info_outline_rounded;
+    case 'ATM Icon':
+      return Icons.atm_rounded;
+    case 'Water Fountain Icon':
+      return Icons.water_drop_rounded;
+    case 'Restroom Icon':
+      return Icons.wc_rounded;
+    case 'AEDA Icon':
+      return Icons.accessible_rounded;
+    case 'Accessible Elevator Icon':
+      return Icons.elevator_rounded;
+    default:
+      return Icons.help_outline_rounded;
+  }
+}
+// 構建設施卡片
+Widget _buildFacilityCard(Map<String, dynamic> facility, Color color) {
+  return Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // 處理設施點擊
+        },
+        borderRadius: BorderRadius.circular(12),
+        splashColor: color.withOpacity(0.1),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[200]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // 設施圖標
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [color, color.withOpacity(0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  getIcon(facility['icon']),
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 設施資訊
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      facility['facility'],
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      facility['location'],
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// 構建設施圖標
+Widget _buildFacilityIcon(IconData icon, String label, Color color) {
+  return Container(
+    margin: const EdgeInsets.only(right: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: color.withOpacity(0.3),
+        width: 1,
+      ),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
   );
 }
 

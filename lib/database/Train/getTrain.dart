@@ -4,7 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../../Const/regularConst.dart';
-import '../getData.dart'; // 用于网络请求
+import '../getData.dart';
+import '../token_manager.dart'; // 用于网络请求
 // 定義快取
 Map<String, List<dynamic>> _trainStationCache = {};
 DateTime _lastCacheUpdate = DateTime.now().subtract(const Duration(minutes: 10));
@@ -20,7 +21,7 @@ Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
   try {
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -118,7 +119,7 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
   try {
     await connMysql();
     final tokenResponse = await http.get(tokenUri);
-    final token = tokenResponse.body;
+    final token = await TokenManager().getToken();
 
     final response = await http.get(
       Uri.parse(url),
@@ -181,7 +182,7 @@ Future<List<dynamic>> fetchTrainRoute(String departurePosition,String destinatio
 
 
     final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -218,7 +219,7 @@ Future<List<dynamic>> fetchLiveTrainDelay(String trainNo) async {
 
   try {
     final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -254,7 +255,7 @@ Future<List<Map<String, dynamic>>> fetchTrainLiveBoard(String stationID) async {
   try {
     await  connMysql();
     final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'Const/regularConst.dart';
 import 'database/flight/getFlight.dart';
-
+final PageController pageController = PageController();
 class Plane extends StatefulWidget {
   const Plane({super.key});
 
@@ -13,11 +13,11 @@ class Plane extends StatefulWidget {
   State<Plane> createState() => _PlaneState();
 }
 
-class _PlaneState extends State<Plane> {
+class _PlaneState extends State<Plane>   {
   final TextEditingController _flightNumberController = TextEditingController();
   final List<String> tabs = ['機場資訊','入境航班', '出境航班', '航班查詢'];
   final ValueNotifier<String> _searchQuery = ValueNotifier('');
-
+  int _current = 0;
   // 假資料 - 機場服務功能 (圖示 + 標題)
   final List<Map<String, dynamic>> services = [
     {'icon': Icons.local_taxi, 'label': '機場交通'},
@@ -52,149 +52,236 @@ class _PlaneState extends State<Plane> {
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFD),
         appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
           title: Text(
-            '${airportList.firstWhere((a) => a['code'] == selectedAirport)['name']}航班資訊 ',
+            '${airportList.firstWhere((a) => a['code'] == selectedAirport)['name']}航班資訊',
             style: const TextStyle(
               fontSize: 20,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A73E8),
+              letterSpacing: -0.5,
             ),
           ),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
           actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEEF3FB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF1A73E8).withOpacity(0.2),
+                ),
+              ),
               child: DropdownButton<String>(
-                value: selectedAirport, // 例如 'TPE'
-                underline: SizedBox(), // 移除下劃線
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                value: selectedAirport,
+                underline: const SizedBox(),
+                icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1A73E8)),
                 dropdownColor: Colors.white,
-                style: const TextStyle(color: Colors.black, fontSize: 14),
+                style: const TextStyle(
+                  color: Color(0xFF1A73E8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
                 items: airportList.map((airport) {
                   return DropdownMenuItem<String>(
-                    value: airport['code'], // ✅ 只傳代碼
-                    child: Text(airport['name']!), // 顯示機場名稱
+                    value: airport['code'],
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.flight_takeoff_rounded,
+                          size: 16,
+                          color: const Color(0xFF1A73E8).withOpacity(0.7),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(airport['name']!),
+                      ],
+                    ),
                   );
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
                     setState(() {
                       selectedAirport = value;
-
-                     // TODO: 根據選擇的機場刷新 TabBar / 資料
                     });
                   }
                 },
               ),
             ),
-
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(60),
+            preferredSize: const Size.fromHeight(100), // 只放 TabBar
             child: Container(
               decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ),
+                ],
               ),
-              child: TabBar(
-                isScrollable: true,
-                tabs: tabs.map((tab) => _buildStyledTab(tab)).toList(),
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  gradient: LinearGradient(
-                    colors: [startColor, endColor],
-                  ),
-                ),
-                indicatorWeight: 0,
-                indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey[600],
-                labelStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black26,
-                      blurRadius: 2,
-                      offset: Offset(1, 1),
-                    )
-                  ],
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                ),
-                splashFactory: NoSplash.splashFactory,
-                overlayColor: MaterialStateProperty.all(Colors.transparent),
-                enableFeedback: true,
-              ),
+              child: _buildTabBar(), // 只返回 TabBar
             ),
           ),
-        )
-        ,
+        ),
         body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.blue.shade50,
-                Colors.white,
-              ],
-            ),
+          decoration: const BoxDecoration(
+            color: Color(0xFFF8FAFD),
           ),
-          child: TabBarView(
+          child: Column(
             children: [
-              _buildAirportInfoTab(),
-              _buildArrivalTab(),
-              _buildDepartureTab(),
-              _buildSearchTab(),
+              Expanded(
+                child:_buildPageView()
+              ),
             ],
-            physics: const BouncingScrollPhysics(),
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildTabBar() {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: ListView.builder(
+        physics: const BouncingScrollPhysics(),
+        itemCount: tabs.length,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (ctx, index) => _buildTabItem(index),
+      ),
+    );
+  }
+  Widget _buildTabItem(int index) {
+    final bool isSelected = _current == index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _current = index;
+
+          });
+          pageController.animateToPage(
+            _current,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          width: 100,
+          height: 76,
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? LinearGradient(
+              colors: [
+                const Color(0xFF1A73E8),
+                const Color(0xFF1A73E8).withOpacity(0.9),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+                : LinearGradient(
+              colors: [
+                Colors.white,
+                Colors.grey[50]!,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: isSelected
+                ? [
+              BoxShadow(
+                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ]
+                : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+            border: isSelected
+                ? Border.all(color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
+                : Border.all(color: Colors.grey[200]!, width: 1),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+
+              Text(
+                tabs[index],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-// 自定義美化後的 Tab
-  Widget _buildStyledTab(String text) {
-    return Tab(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.transparent,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _getTabIcon(text), // 根據標籤文字返回對應圖標
-            const SizedBox(width: 8),
-            Text(text),
-          ],
-        ),
-      ),
+  Widget _buildPageView() {
+    return PageView.builder(
+      itemCount: tabs.length,
+      controller: pageController,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        switch (tabs[index]) {
+          case "機場資訊":
+            return _buildAirportInfoTab();
+          case "入境航班":
+            return _buildArrivalTab();
+          case "出境航班":
+            return _buildDepartureTab();
+          case "航班查詢":
+            return _buildSearchField();
+
+        }
+        return null;
+      },
     );
   }
-
-// 標籤圖標映射
-  Icon _getTabIcon(String tabText) {
-    switch (tabText) {
+// 獲取標籤對應的圖標
+  IconData _getTabIcon(String text) {
+    switch (text) {
       case '機場資訊':
-        return const Icon(Icons.info, size: 18);
-      case '入境航班':
-        return const Icon(Icons.flight_land, size: 18);
-      case '出境航班':
-        return const Icon(Icons.flight_takeoff, size: 18);
-      case '航班查詢':
-        return const Icon(Icons.search, size: 18);
+        return Icons.info_outline_rounded;
+      case '抵達航班':
+        return Icons.flight_land_rounded;
+      case '出發航班':
+        return Icons.flight_takeoff_rounded;
+      case '搜尋航班':
+        return Icons.search_rounded;
+      case '航班狀態':
+        return Icons.airplane_ticket_rounded;
+      case '設施服務':
+        return Icons.local_activity_rounded;
+      case '交通資訊':
+        return Icons.directions_transit_rounded;
+      case '購物餐飲':
+        return Icons.local_dining_rounded;
       default:
-        return const Icon(Icons.circle, size: 18);
+        return Icons.flight_rounded;
     }
   }
   Widget _buildArrivalTab() {
@@ -380,6 +467,7 @@ class _PlaneState extends State<Plane> {
       },
     );
   }
+
   Widget _buildFlightList(AsyncSnapshot<List<dynamic>> snapshot, String type) {
     if (snapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
@@ -497,6 +585,8 @@ class _PlaneState extends State<Plane> {
       },
     );
   }
+
+
 
 
 }

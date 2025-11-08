@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:com.rsmn574.app/widget/bubble.dart';
 import 'package:flutter/foundation.dart';
@@ -471,7 +472,332 @@ void _scrollToIndex(int index) {
     );
   }
 
+// 美化彈出菜單項目
+  PopupMenuItem<String> _buildPopupMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String value,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      height: 70,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3FB),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: const Color(0xFF1A73E8)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+// 美化開發中對話框
+  void _showDevelopmentDialog(String featureName) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF9500).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.build_rounded,
+                    size: 30,
+                    color: Color(0xFFFF9500),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '$featureName',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '功能開發中',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF3FB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1A73E8).withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          '關閉',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A73E8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// 美化加入收藏功能
+  Future<void> _addRouteToFavorites(List routeInfo) async {
+    favorite_feature dbHelper = favorite_feature();
+
+    final result = await dbHelper.addFavorite(
+      DepartureStopNameZh: routeInfo[1],
+      DestinationStopNameZh: routeInfo[2],
+      routeName: routeInfo[0],
+      city: "Taichung",
+      routeID: widget.routeID,
+      table: "FavoritesRoute",
+    );
+
+    // 顯示美化後的提示
+    if (result == 100) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: '收藏成功',
+        text: '${routeInfo[0]} 已加入收藏',
+        confirmBtnColor: const Color(0xFF1A73E8),
+        animType: QuickAlertAnimType.slideInUp,
+      );
+    } else if (result == -1) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.warning,
+        title: '已收藏',
+        text: '${routeInfo[0]} 已在收藏列表中',
+        confirmBtnColor: const Color(0xFFFF9500),
+      );
+    } else if (result == 200) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: '收藏失敗',
+        text: '請稍後再試',
+        confirmBtnColor: const Color(0xFFFF3B30),
+      );
+    }
+  }
+
+// 美化路線圖對話框
+  void _showRouteMapDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.map_rounded,
+                    size: 30,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '路線圖',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEEF3FB),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Linkify(
+                    onOpen: (link) async {
+                      if (!await launchUrl(Uri.parse(link.url))) {
+                        throw Exception('Could not launch ${link.url}');
+                      }
+                    },
+                    text: widget.routeMapImageUrl,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF1A73E8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    linkStyle: const TextStyle(
+                      color: Color(0xFF1A73E8),
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF3FB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1A73E8).withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          '關閉',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A73E8),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// 導航到歷史時間頁面
+  void _navigateToBusDetail() {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => BusDetailPage(
+          routeId: widget.routeID.toString(),
+          city: widget.city,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+
+          return SlideTransition(
+            position: offsetAnimation,
+            child: child,
+          );
+        },
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
 
@@ -536,134 +862,87 @@ void _scrollToIndex(int index) {
                   child: Scaffold(
 
                     appBar: AppBar(
-                      backgroundColor: busBlue,
+                      backgroundColor: Colors.white,
                       elevation: 0,
-                      leading: IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white), // 返回图标
-                        onPressed: () {
-                          Navigator.pop(context); // 返回上一个页面
-                        },
+                      leading: Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF3FB),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                          color: const Color(0xFF1A73E8),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ),
                       title: Text(
                         routeInfo[0],
-                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                          letterSpacing: -0.5,
+                        ),
                       ),
+                      centerTitle: true,
                       actions: [
-                        PopupMenuButton<String>(
-                          iconColor:   Colors.white,
-                          itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                            SelectView(Icons.info, '公車資訊', 'A'),
-                            SelectView(Icons.favorite, '加入收藏', 'B'),
-                            SelectView(Icons.location_on, '路線圖', 'C'),
-                            SelectView(Icons.schedule, '歷史公車時間', 'D'),
-                          ],
-                          onSelected: (String action) async {
-                            // 点击选项的时候
-                            switch (action) {
-                              case 'A':
-                                showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return Dialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(15),
-                                        ),
-                                        child: const Padding(
-                                          padding: EdgeInsets.all(20.0),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-                                            children: [
-                                              Text(
-                                                "開發中",
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );});
-                                break;
-                              case 'B':
-                                favorite_feature dbHelper = favorite_feature(); // 创建实例
-
-                            final result = await dbHelper.addFavorite(DepartureStopNameZh:routeInfo[1],DestinationStopNameZh:routeInfo[2],routeName:routeInfo[0],city:"Taichung",routeID:(widget.routeID),table: "FavoritesRoute");
-
-                                      // var output=await    saveList("favoritesBusRoute",'{"route":"${routeInfo[0]}","DepartureStopNameZh":"${routeInfo[1]}","DestinationStopNameZh":"${routeInfo[2]}"}');
-
-                                // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
-                                // 顯示相應的 QuickAlert
-                                if (result==100) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.success,
-                                    text: '${routeInfo[0]}已儲存項目',
-                                  );
-                                } else if (result==-1) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.warning,
-                                    text: '${routeInfo[0]}已存在於列表中，不會重複添加',
-                                  );
-                                } else if (result==200) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.error,
-                                    title: 'Oops...',
-                                    text: '儲存項目時發生錯誤',
-                                  );
-                                }
-
-
-                                break;
-                              case 'C':
-
-
-
-                                showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return Dialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(15),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min, // 自适应内容的高度
-                                            children: [
-                                              const Text(
-                                                "路線圖",
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),Linkify(
-                                                onOpen: (link) async {
-                                                  if (!await launchUrl(Uri.parse(link.url))) {
-                                                    throw Exception('Could not launch ${link.url}');
-                                                  }
-                                                },
-                                                text: widget.routeMapImageUrl,
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      );});break;
-                              case 'D':
-                            Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                            builder: (context) => BusDetailPage(  routeId: (widget.routeID).toString(), city:widget.city ,),
+                        Container(
+                          margin: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF3FB),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF1A73E8)),
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            );
-
-                                break;
-                            }
-                          },
+                            elevation: 8,
+                            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                              _buildPopupMenuItem(
+                                icon: Icons.info_outline_rounded,
+                                title: '公車資訊',
+                                subtitle: '查看詳細資訊',
+                                value: 'A',
+                              ),
+                              _buildPopupMenuItem(
+                                icon: Icons.favorite_outline_rounded,
+                                title: '加入收藏',
+                                subtitle: '收藏此路線',
+                                value: 'B',
+                              ),
+                              _buildPopupMenuItem(
+                                icon: Icons.map_rounded,
+                                title: '路線圖',
+                                subtitle: '查看路線地圖',
+                                value: 'C',
+                              ),
+                              _buildPopupMenuItem(
+                                icon: Icons.history_rounded,
+                                title: '歷史時間',
+                                subtitle: '查看歷史班次',
+                                value: 'D',
+                              ),
+                            ],
+                            onSelected: (String action) async {
+                              switch (action) {
+                                case 'A':
+                                  _showDevelopmentDialog('公車資訊');
+                                  break;
+                                case 'B':
+                                  await _addRouteToFavorites(routeInfo);
+                                  break;
+                                case 'C':
+                                  _showRouteMapDialog();
+                                  break;
+                                case 'D':
+                                  _navigateToBusDetail();
+                                  break;
+                              }
+                            },
+                          ),
                         ),
                       ],
                       bottom: _buildTabBar(routeInfo),
@@ -682,94 +961,105 @@ void _scrollToIndex(int index) {
                             ],
                           ),
 
-      ),
-                      if (isTimerOn.value == false)
-                    Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
-                        decoration: BoxDecoration(
-                          color: busBlue, // 使用 busBlue 作為背景色
-                          borderRadius: BorderRadius.circular(10), // 圓角設置
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4, // 輕微的模糊效果
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                          border: Border.all(color: busBlue, width: 1.5),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-                          children: [
-                            Icon(Icons.pause_circle_filled, color: Colors.white, size: 14), // 使用暂停图标，颜色为白色
-                            SizedBox(width: 6), // 图标与文本间距
-                            Text(
-                              "已停止自動更新",
-                              style: TextStyle(
-                                fontSize: 12, // 字體較小
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white, // 字體顏色為白色
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                          else if (isTimerOn.value == true)
-                  Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: ValueListenableBuilder<int>(
-                      valueListenable: remainingSecondsNotifier, // 监听 remainingSecondsNotifier
-                      builder: (context, remainingTime, child) {
-                        return GestureDetector(
-                          onTap: (){
-
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 16), // 小的內邊距，確保高度合適
-                            decoration: BoxDecoration(
-                              color: busBlue, // 使用 busBlue 作為背景色
-                              borderRadius: BorderRadius.circular(10), // 圓角設置
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4, // 輕微的模糊效果
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                              border: Border.all(color: busBlue, width: 1.5),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center, // 水平居中
-                              children: [
-                                Icon(Icons.refresh, color: Colors.white, size: 14), // 使用更新图标，颜色为白色
-                                SizedBox(width: 6), // 图标与文本间距
-                                Text(
-                                  "剩餘時間: $remainingTime 秒", // 显示剩余时间
-                                  style: const TextStyle(
-                                    fontSize: 12, // 字體較小
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white, // 字體顏色為白色
+      )
+                        ,
+                        if (isTimerOn.value == false)
+                          Positioned(
+                            bottom: 12,
+                            left: 16,
+                            right: 16,
+                            child: Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[700]!.withOpacity(0.7),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.1),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.pause_circle_filled_rounded,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          "已停止自動更新",
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                )
+                          )
+                        else if (isTimerOn.value == true)
+                          Positioned(
+                            bottom: 12,
+                            left: 16,
+                            right: 16,
+                            child: Center(
+                              child: ValueListenableBuilder<int>(
+                                valueListenable: remainingSecondsNotifier,
+                                builder: (context, remainingTime, child) {
+                                  final isWarning = remainingTime <= 10;
 
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: (isWarning ? const Color(0xFFFF9500) : const Color(0xFF1A73E8)).withOpacity(0.7),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(0.1),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              isWarning ? Icons.warning_amber_rounded : Icons.autorenew_rounded,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              "$remainingTime 秒",
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          )
 
 
 
@@ -883,144 +1173,142 @@ void _scrollToIndex(int index) {
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
     final List<GlobalKey> _itemKeys = [];
-    return Container(
-padding: const EdgeInsets.only(bottom: 25),
-      child: RefreshIndicator(
+    return RefreshIndicator(
 
-      onRefresh: () async {
-        await _loadData(); // 刷新时重新加载数据
-        _startAutoReload();
-      },
-      child: ListView.separated(
-        controller: _scrollController,
-        itemCount: stopNamesWithTime.length,
-        itemBuilder: (context, index) {
-          if (_itemKeys.length <= index) {
-            _itemKeys.add(GlobalKey());
-          }
-          final stop = stopNamesWithTime[index];
-          final PlateNumb = stop["PlateNumb"];
+    onRefresh: () async {
+      await _loadData(); // 刷新时重新加载数据
+      _startAutoReload();
+    },
+    child: ListView.separated(
+      padding: const EdgeInsets.only(bottom: 40), // ✅ 讓底部留空間
+      controller: _scrollController,
+      itemCount: stopNamesWithTime.length,
+      itemBuilder: (context, index) {
+        if (_itemKeys.length <= index) {
+          _itemKeys.add(GlobalKey());
+        }
+        final stop = stopNamesWithTime[index];
+        final PlateNumb = stop["PlateNumb"];
 
-          final color = stop["color"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["color"] == '2'
-              ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == "班次結束"
-              ? const Color.fromRGBO(69, 69, 69, 0.1)
-              :(stop["color"] == "min"
-              ? const Color.fromRGBO(13, 168, 255, 0.1)
-              : const Color.fromRGBO(68, 68, 68, 0.1))));
+        final color = stop["color"] == '0'
+            ? const Color.fromRGBO(235, 15, 41, 0.85)
+            : (stop["color"] == '2'
+            ? const Color.fromRGBO(225, 85, 104, 0.1)
+            : (stop["color"] == "班次結束"
+            ? const Color.fromRGBO(69, 69, 69, 0.1)
+            :(stop["color"] == "min"
+            ? const Color.fromRGBO(13, 168, 255, 0.1)
+            : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-          return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
-              decoration:
-                 BoxDecoration(
-                border: Border.all(
-                  width: 2,
-                  color: Colors.transparent,
+        return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
+            decoration:
+               BoxDecoration(
+              border: Border.all(
+                width: 2,
+                color: Colors.transparent,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+
+            height: 54.5, // 設置每個項目的固定高度
+            child:ListTile(
+
+              onTap: () {
+                _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"],stop);
+
+              },
+              leading: Container(
+
+                padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
+                decoration: BoxDecoration(
+                  color: color,
+
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                borderRadius: BorderRadius.circular(10),
+                child: Text(
+                  stop["nextBusTime"]!,
+                  style: TextStyle(
+                      fontFamily: 'MiSans-normal',
+                      fontSize: 17,
+                      color: stop["color"] == '0'
+                          ? Colors.white
+                          : (stop["color"] == '2'
+                          ? const Color.fromRGBO(255, 85, 104, 1)
+                          : (stop["color"] == "班次結束"
+                          ? const Color.fromRGBO(149, 149, 149, 1.0)
+                          :(stop["color"] == "min"
+                          ? const Color.fromRGBO(13, 168, 255, 1)
+                          : const Color.fromRGBO(68, 68, 68, 1))))
+                  ),
+                ),
+              ),
+              title: Row(
+                children: [
+                  Text(
+                    stop["stopName"]!,
+                    style: TextStyle(
+                      fontFamily: 'MiSans',
+                      fontSize: stop["isHighlighted"] == true ? 18 : 17,
+                      fontWeight: stop["isHighlighted"] == true
+                          ? FontWeight.w900
+                          : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
+                      color: stop["isHighlighted"] == true
+                          ? Colors.blue[800]
+                          : (stop["color"] == "班次結束"
+                          ? const Color.fromRGBO(136, 136, 136, 1)
+                          : Colors.black),
+                      letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
+                      shadows: stop["isHighlighted"] == true
+                          ? [
+                        Shadow(
+                          offset: Offset(1, 1),
+                          blurRadius: 2.0,
+                          color: Colors.blue.withOpacity(0.5),
+                        )
+                      ]
+                          : [],
+                    ),
+                  ),
+                  if (stop["stopName"] == nearestStop) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Color.fromRGBO(13, 168, 255, 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: Color.fromRGBO(13, 168, 255, 0.6)),
+                      ),
+                      child: const Text(
+                        '最近',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color.fromRGBO(13, 168, 255, 1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
 
-              height: 54.5, // 設置每個項目的固定高度
-              child:ListTile(
+              trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
 
-                onTap: () {
-                  _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"],stop);
-
-                },
-                leading: Container(
-
-                  padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
-                  decoration: BoxDecoration(
-                    color: color,
-
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Text(
-                    stop["nextBusTime"]!,
-                    style: TextStyle(
-                        fontFamily: 'MiSans-normal',
-                        fontSize: 17,
-                        color: stop["color"] == '0'
-                            ? Colors.white
-                            : (stop["color"] == '2'
-                            ? const Color.fromRGBO(255, 85, 104, 1)
-                            : (stop["color"] == "班次結束"
-                            ? const Color.fromRGBO(149, 149, 149, 1.0)
-                            :(stop["color"] == "min"
-                            ? const Color.fromRGBO(13, 168, 255, 1)
-                            : const Color.fromRGBO(68, 68, 68, 1))))
-                    ),
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      stop["stopName"]!,
-                      style: TextStyle(
-                        fontFamily: 'MiSans',
-                        fontSize: stop["isHighlighted"] == true ? 18 : 17,
-                        fontWeight: stop["isHighlighted"] == true
-                            ? FontWeight.w900
-                            : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
-                        color: stop["isHighlighted"] == true
-                            ? Colors.blue[800]
-                            : (stop["color"] == "班次結束"
-                            ? const Color.fromRGBO(136, 136, 136, 1)
-                            : Colors.black),
-                        letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
-                        shadows: stop["isHighlighted"] == true
-                            ? [
-                          Shadow(
-                            offset: Offset(1, 1),
-                            blurRadius: 2.0,
-                            color: Colors.blue.withOpacity(0.5),
-                          )
-                        ]
-                            : [],
-                      ),
-                    ),
-                    if (stop["stopName"] == nearestStop) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Color.fromRGBO(13, 168, 255, 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Color.fromRGBO(13, 168, 255, 0.6)),
-                        ),
-                        child: const Text(
-                          '最近',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color.fromRGBO(13, 168, 255, 1),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-
-                trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
-
-              ));
-        }, separatorBuilder: (BuildContext context, int index) {
-        return const Divider(
-          color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
-          height: 9, // 分隔線與上下元素的間距
-          thickness: 1, // 分隔線的粗細
-          indent: 20, // 分隔線距離左側的間距
-          endIndent: 20, // 分隔線距離右側的間距
-        );
+            ));
+      }, separatorBuilder: (BuildContext context, int index) {
+      return const Divider(
+        color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
+        height: 9, // 分隔線與上下元素的間距
+        thickness: 1, // 分隔線的粗細
+        indent: 20, // 分隔線距離左側的間距
+        endIndent: 20, // 分隔線距離右側的間距
+      );
 
 
-      },
+    },
 
-      ),
     ),
-    );
+        );
   }
 
   Future<void> _dialogBuilder(BuildContext context, plateNumb, stopName, estimates, stop) {

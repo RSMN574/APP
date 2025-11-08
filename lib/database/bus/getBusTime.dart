@@ -7,14 +7,15 @@ import 'package:intl/intl.dart';
 import '../../Const/regularConst.dart';
 import '../../models/Station.dart';
 import '../../utils/convert.dart';
-import '../getData.dart'; // 用于网络请求
+import '../getData.dart';
+import '../token_manager.dart'; // 用于网络请求
 
 Future<dynamic> fetchBusTime(routeName, city) async {
   int id = await getInfo('routeID');
   int? top = await getInfo('sum');
   var url =
       "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
-  final token =await  getToken();
+  final token = await TokenManager().getToken();
 
   try {
     await connMysql();
@@ -57,7 +58,7 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination, ti
   }
   final String url =
       'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=$transit&transfer_time=5%2C60&depart=$time&first_mile_mode=${option["TravelMode"]}&first_mile_time=10&last_mile_mode=${option["TravelMode"]}&last_mile_time=10';
-  final token =await  getToken();
+  final token = await TokenManager().getToken();
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -83,7 +84,7 @@ Future<List<Station>> getNearStation(String location) async {
   final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
 
-  final token = await getToken();
+  final token = await TokenManager().getToken();
 
   final response = await http.get(
     Uri.parse(url),
@@ -139,7 +140,7 @@ Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, 
     throw HttpException(
         'Failed to get token! status: ${tokenResponse.statusCode}');
   }
-  final token =await  getToken();
+  final token = await TokenManager().getToken();
   final response = await http.get(
     Uri.parse(url),
     headers: {
@@ -165,7 +166,7 @@ Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, 
 Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
     String routeName, String city, String stopID ,String direction ) async {
   try {
-    final token = await getToken(); // 獲取 Token
+    final token = await TokenManager().getToken();// 獲取 Token
     await connMysql(); // 連接 MySQL（如果必要）
 
     // 使用 Uri 構建 URL

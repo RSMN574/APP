@@ -21,6 +21,7 @@ import 'commute.dart';
 import 'database/SQL/schedule.dart';
 import 'database/SQL/sqlite.dart';
 import 'database/getData.dart';
+import 'database/token_manager.dart';
 import 'firebase/FCM.dart';
 import 'firebase/firebase_options.dart';
 import 'widget/geolocator.dart';
@@ -53,6 +54,9 @@ class AppInitializer {
       setupForegroundMessageHandler();
       await setupFirebaseMessaging();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      final tokenManager = TokenManager();
+      await tokenManager.getToken();  // 啟動時先確保有 token
+      tokenManager.startAutoRefresh(); // 啟動定時更新
     } catch (e, stack) {
       log.severe('Firebase 初始化失敗', e, stack);
     }
@@ -252,39 +256,175 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('台灣通'),
-        actions: [
-          // 下拉菜单
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: DropdownButton<String>(
-              value: cityProvider.city,
-              hint: const Text('選擇地區'),
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
-              dropdownColor: Colors.white,
-              style: const TextStyle(color: Colors.black),
-              onChanged: (String? newValue) {
-                if (newValue != null) {
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          '台灣通',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A73E8),
+            letterSpacing: -0.5,
+          ),
+        ),
 
-                  cityProvider.setCity(newValue); // 更新所选城市
-                }
-              },
-              items: regions.map<DropdownMenuItem<String>>((String region) {
-                return DropdownMenuItem<String>(
-                  value: region,
-                  child: Text(region),
-                );
-              }).toList(),
+        actions: [
+          // 豪華版地區選擇下拉選單
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  // 可以添加點擊效果
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: cityProvider.city,
+                      hint: Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF1A73E8)),
+                          const SizedBox(width: 8),
+                          Text(
+                            '選擇地區',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      icon: const Icon(Icons.arrow_drop_down_rounded, size: 22, color: Color(0xFF1A73E8)),
+                      dropdownColor: Colors.white,
+                      elevation: 8,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      menuMaxHeight: 300,
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          cityProvider.setCity(newValue);
+                        }
+                      },
+                      selectedItemBuilder: (BuildContext context) {
+                        return regions.map<Widget>((String region) {
+                          return Container(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF1A73E8)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  region,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF1A73E8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList();
+                      },
+                      items: regions.map<DropdownMenuItem<String>>((String region) {
+                        final isSelected = cityProvider.city == region;
+                        return DropdownMenuItem<String>(
+                          value: region,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    region,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      color: isSelected ? const Color(0xFF1A73E8) : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(
+                                    Icons.check_rounded,
+                                    size: 16,
+                                    color: Color(0xFF1A73E8),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(context, "notification");
-            },
-            icon: SvgPicture.asset(
-              SvgAssets.notifications,
-              width: 20,
-              height: 20,
+          // 通知按鈕
+          Container(
+            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  Navigator.pushNamed(context, "notification");
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  child: SvgPicture.asset(
+                    SvgAssets.notifications,
+                    width: 20,
+                    height: 20,
+                    color: const Color(0xFF1A73E8),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

@@ -81,42 +81,134 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("選擇排序方式"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSortOption('站序 1→10', SortType.nameAsc),
-              _buildSortOption('站序 10→1', SortType.nameDesc),
-              _buildSortOption('時間 早→晚', SortType.timeAsc),
-              _buildSortOption('時間 晚→早', SortType.timeDesc),
-            ],
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 標題
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A73E8).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.sort_rounded,
+                        size: 24,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "選擇排序方式",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // 排序選項
+                _buildSortOption('站序 1→10', SortType.nameAsc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
+                _buildSortOption('站序 10→1', SortType.nameDesc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
+                _buildSortOption('時間 早→晚', SortType.timeAsc, Icons.access_time_rounded, const Color(0xFF34C759)),
+                _buildSortOption('時間 晚→早', SortType.timeDesc, Icons.access_time_rounded, const Color(0xFFFF9500)),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildSortOption(String title, SortType type) {
-    return ListTile(
-      title: Text(title),
-      leading: Radio<SortType>(
-        value: type,
-        groupValue: _sortNotifier.value,
-        onChanged: (SortType? value) {
-          if (value != null) {
-            _sortNotifier.value = value; // ✅ 更新排序方式
-            Navigator.pop(context); // ✅ 關閉 dialog
-          }
-        },
+  Widget _buildSortOption(String title, SortType type, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _sortNotifier.value = type;
+            Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(12),
+          splashColor: color.withOpacity(0.1),
+          highlightColor: color.withOpacity(0.05),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _sortNotifier.value == type ? color.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: _sortNotifier.value == type
+                  ? Border.all(color: color.withOpacity(0.3), width: 1.5)
+                  : Border.all(color: Colors.grey[200]!, width: 1),
+            ),
+            child: Row(
+              children: [
+                // 圖標
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _sortNotifier.value == type ? color : color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: _sortNotifier.value == type ? Colors.white : color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // 標題
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _sortNotifier.value == type ? color : Colors.black87,
+                    ),
+                  ),
+                ),
+
+                // 選取指示器
+                if (_sortNotifier.value == type)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
-      onTap: () {
-        _sortNotifier.value = type; // ✅ 點 ListTile 也能改
-        Navigator.pop(context);
-      },
     );
   }
-
 
   // 获取到站时间列表的异步方法
   Future<Map<String, dynamic>> getTimeList(stopData) async {
@@ -428,17 +520,15 @@ return finalList;
 
     _stationIDs.value= info.map((station) => station["StationID"] as String).toList();// 提取 StationID
 
-    if (info != null) {
-      for (var i in info) {
-        var stationInfo = await fetchStationInfo(_stationIDs.value, widget.city);
-        for (var stop in stationInfo) {
-          var timeData = await getTimeList(stop);
-          stop["time"] = timeData["time"];
-          stop["isRed"] = timeData["isRed"];
-          stop["color"] = timeData["color"];
-        }
-        tempData.addAll(stationInfo);
+    for (var i in info) {
+      var stationInfo = await fetchStationInfo(_stationIDs.value, widget.city);
+      for (var stop in stationInfo) {
+        var timeData = await getTimeList(stop);
+        stop["time"] = timeData["time"];
+        stop["isRed"] = timeData["isRed"];
+        stop["color"] = timeData["color"];
       }
+      tempData.addAll(stationInfo);
     }
 
 
@@ -457,7 +547,103 @@ return finalList;
         )
     );
   }
-
+  PopupMenuItem<String> _buildPopupMenuItem({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }void _showStopInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A73E8).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.info_rounded,
+                color: Color(0xFF1A73E8),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              '站牌資訊',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A73E8),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '站牌名稱：${widget.stop}',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '所在城市：${widget.city}',
+              style: const TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '關閉',
+              style: TextStyle(
+                color: Color(0xFF1A73E8),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     _loadData();
@@ -502,72 +688,112 @@ return finalList;
                         child: Stack(
                           children: [
                             AppBar(
-
-                              backgroundColor: Colors.transparent, // 设置透明背景
-                              elevation: 0, // 移除默认阴影
+                              backgroundColor: Colors.white, // 改為白色背景
+                              elevation: 0, // 移除陰影
                               title: Text(
                                 widget.stop,
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
+                                style: const TextStyle(
                                   fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1A73E8), // 使用通知中心的主色調
+                                  letterSpacing: -0.5,
                                 ),
                               ),
+                              centerTitle: true, // 標題居中
+                              iconTheme: const IconThemeData(color: Color(0xFF1A73E8)), // 返回箭頭顏色
                               actions: [
-                                IconButton(
-                                  icon: Icon(Icons.refresh, color: Colors.black),
-                                  onPressed: _loadData, // 刷新数据
+                                // 刷新按鈕
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: IconButton(
+                                    icon: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEEF3FB),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.refresh_rounded, size: 20),
+                                    ),
+                                    onPressed: _loadData,
+                                  ),
                                 ),
-                                PopupMenuButton<String>(
-                                  icon: Icon(Icons.more_vert, color: Colors.black),
-                                  itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                                    SelectView(Icons.info, '站牌資訊', 'A'),
-                                    SelectView(Icons.add, '加入收藏', 'B'),
-                                    const PopupMenuItem<String>(
-                                      value: 'sort',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.sort, color: Colors.black),
-                                          SizedBox(width: 8),
-                                          Text('排序方式'),
-                                        ],
+                                // 更多選項按鈕
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: PopupMenuButton<String>(
+                                    icon: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEEF3FB),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.more_vert_rounded, size: 20),
+                                    ),
+                                    color: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: Colors.grey[200]!,
+                                        width: 1,
                                       ),
                                     ),
-                                  ],
-                                  onSelected: (String action) async {
-                                    if (action == 'B') {
-                                      favorite_feature dbHelper = favorite_feature();
+                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                      _buildPopupMenuItem(
+                                        icon: Icons.info_outline_rounded,
+                                        title: '站牌資訊',
+                                        value: 'info',
+                                        color: const Color(0xFF1A73E8),
+                                      ),
+                                      _buildPopupMenuItem(
+                                        icon: Icons.favorite_border_rounded,
+                                        title: '加入收藏',
+                                        value: 'favorite',
+                                        color: const Color(0xFFFF3B30),
+                                      ),
+                                      _buildPopupMenuItem(
+                                        icon: Icons.sort_rounded,
+                                        title: '排序方式',
+                                        value: 'sort',
+                                        color: const Color(0xFF34C759),
+                                      ),
+                                    ],
+                                    onSelected: (String action) async {
+                                      if (action == 'favorite') {
+                                        favorite_feature dbHelper = favorite_feature();
+                                        final output = await dbHelper.addFavorite(
+                                          StopName: widget.stop,
+                                          table: "FavoritesStop",
+                                          city: widget.city,
+                                        );
 
-                                      final output = await dbHelper.addFavorite(
-                                        StopName: widget.stop,
-                                        table: "FavoritesStop",
-                                        city: widget.city,
-                                      );
-
-                                      if (output == 100) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.success,
-                                          text: '${widget.stop}已儲存項目',
-                                        );
-                                      } else if (output == -1) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.warning,
-                                          text: '${widget.stop}已存在於列表中，不會重複添加',
-                                        );
-                                      } else if (output == 200) {
-                                        QuickAlert.show(
-                                          context: context,
-                                          type: QuickAlertType.error,
-                                          title: 'Oops...',
-                                          text: '儲存項目時發生錯誤',
-                                        );
+                                        if (output == 100) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.success,
+                                            text: '${widget.stop}已儲存項目',
+                                          );
+                                        } else if (output == -1) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.warning,
+                                            text: '${widget.stop}已存在於列表中，不會重複添加',
+                                          );
+                                        } else if (output == 200) {
+                                          QuickAlert.show(
+                                            context: context,
+                                            type: QuickAlertType.error,
+                                            title: 'Oops...',
+                                            text: '儲存項目時發生錯誤',
+                                          );
+                                        }
+                                      } else if (action == 'sort') {
+                                        _showSortDialog(context);
+                                      } else if (action == 'info') {
+                                        // 處理站牌資訊
+                                        _showStopInfo(context);
                                       }
-                                    }else if (action == 'sort') {
-                                      _showSortDialog(context); // 顯示排序選擇對話框
-                                    }
-                                  },
+                                    },
+                                  ),
                                 ),
                               ],
                               bottom: _buildTabBar(snapshot.data!),
