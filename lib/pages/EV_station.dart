@@ -20,6 +20,10 @@ class EVStation extends StatefulWidget {
 }
 
 class _EVStationState extends State<EVStation> {
+  final List<String> regions = [
+     '臺中市',
+  ];
+String selectedCity="臺中市";
   GoogleMapController? _mapController;
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _filteredStations = [];
@@ -178,36 +182,75 @@ class _EVStationState extends State<EVStation> {
           return true; // 允許頁面返回
         },
         child:Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          '充電樁資訊',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Colors.white, // 讓文字更清晰
-          ),
-        ),
-        centerTitle: true, // 讓標題置中
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.green.shade800, // 更深綠色
-                Colors.green.shade500, // 過渡色
-                Colors.greenAccent.shade200, // 增強漸層層次
+            appBar: AppBar(
+              title: const Text(
+                '充電樁資訊',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+              centerTitle: true,
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.green.shade800,
+                      Colors.green.shade500,
+                      Colors.greenAccent.shade200,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+              ),
+              elevation: 6,
+              shadowColor: Colors.black.withOpacity(0.3),
+
+              // ⭐ 這裡加上 Dropdown
+              actions: [
+                Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2), // 半透明白背景
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      dropdownColor: Colors.white, // 下拉清單背景
+                      value: selectedCity,
+                      icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+
+                      items: regions.map((city) {
+                        return DropdownMenuItem(
+                          value: city,
+                          child: Text(
+                            city,
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        );
+                      }).toList(),
+
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCity = value!;
+                        });
+
+                        // 👉 你要加載資料就在這裡觸發
+                        // loadDataForCity(selectedCity);
+                      },
+                    ),
+                  ),
+                ),
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-            ),
-          ),
-        ),
-        elevation: 6, // 加強陰影，讓層次更明顯
-        shadowColor: Colors.black.withOpacity(0.3),
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Stack(

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/pages/EV_station.dart';
+import 'package:com.rsmn574.app/pages/parking.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
@@ -88,6 +89,7 @@ class AppRoutes {
   static const String EVStation = "EVStation";
   static const String IntercityBus = "IntercityBus";
   static const String test = "test";
+  static const String parking = "parking";
 }
 
 void main() async {
@@ -173,6 +175,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           AppRoutes.EVStation: (BuildContext context) => (EVStation()),
           AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),
           AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
+          AppRoutes.parking: (BuildContext context) => (Parking()),
         },
 
         theme: appTheme,

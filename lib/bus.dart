@@ -299,7 +299,7 @@ class BusState extends State<Bus> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            backgroundColor: _primaryColor,
+
             elevation: 0,
             title: const Text("票價說明"),
           ),
@@ -315,7 +315,7 @@ class BusState extends State<Bus> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCityDropdown(),
+          _buildCityDropdown(false),
           const SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.all(16.0),
@@ -421,7 +421,7 @@ class BusState extends State<Bus> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCityDropdown(),
+          _buildCityDropdown(false),
           const SizedBox(height: 16),
           Expanded(
             child: ListView.builder(
@@ -496,7 +496,11 @@ class BusState extends State<Bus> {
     );
   }
 
-  Widget _buildCityDropdown() {
+  Widget _buildCityDropdown([bool includeAll = true] ) {
+    final filteredList = includeAll
+        ? _list
+        : _list.where((item) => item != '全部').toList();
+
     return Container(
       // margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -539,8 +543,10 @@ class BusState extends State<Bus> {
           SizedBox(
             width: 120, // 或者根據需要調整寬度
             child: CustomDropdown<String>(
-              items: _list,
-              initialItem: currentCityNotifier.value,
+              items: filteredList,
+              initialItem: currentCityNotifier.value == '全部' && !includeAll
+                  ? null
+                  : currentCityNotifier.value,
               onChanged: (value) {
                 setState(() {
                   currentCityNotifier.value = value!;

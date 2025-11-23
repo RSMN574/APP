@@ -5,93 +5,78 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import '../Const/regularClass.dart';
+import '../database/token_manager.dart';
+import '../utils/convert.dart';
 
+Future<Map<String, String>?> getDistrictFromTDX({
+  required double latitude,
+  required double longitude,
+}) async {
+  final token = await TokenManager().getToken();
+  if (token == null) return null;
+
+  final url = Uri.parse(
+      "https://tdx.transportdata.tw/api/advanced/V3/Map/GeoLocating/District/LocationX/$longitude/LocationY/$latitude?\$format=JSON");
+
+  final response = await http.get(
+    url,
+    headers: {
+      "accept": "application/json",
+      "authorization": "Bearer $token",
+    },
+  );
+
+  if (response.statusCode != 200) {
+    return null;
+  }
+
+  final data = jsonDecode(response.body);
+
+  if (data is List && data.isNotEmpty) {
+    final item = data[0];
+
+    return {
+      "city": item["City"] ?? "",
+      "district": item["District"] ?? "",
+    };
+  }
+
+  return null;
+}
 
 Future<String?> getLocation(BuildContext context) async {
-  // 请求定位权限
-  bool serviceEnabled;
-  LocationPermission permission;
+  bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  if (!serviceEnabled) return '定位服務未啟用';
 
-  serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) {
-    print('定位服務未啟用');
-    return '定位服務未啟用';
-  }
-
-  permission = await Geolocator.checkPermission();
+  LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) {
-      print('定位权限被拒绝');
-      return '定位权限被拒绝';
-    }
+    if (permission == LocationPermission.denied) return '定位权限被拒绝';
   }
-
   if (permission == LocationPermission.deniedForever) {
-    print('定位权限被永久拒绝');
     return '定位权限被永久拒绝';
   }
 
-  // 获取当前位置
-  Position position = await Geolocator.getCurrentPosition(
+  Position pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high);
-Provider.of<LocationProvider>(context, listen: false).setLocation(position.latitude, position.longitude);
 
-  Map<String, String>  placemark = await getCountryAndCity( position.latitude, position.longitude);
+  Provider.of<LocationProvider>(context, listen: false)
+      .setLocation(pos.latitude, pos.longitude);
 
-  if (placemark.isNotEmpty) {
+  // 使用 TDX 查縣市
+  final districtInfo = await getDistrictFromTDX(
+    latitude: pos.latitude,
+    longitude: pos.longitude,
+  );
 
-print(placemark );
-    if (placemark["country"] == "臺灣") {
-      // 优先返回 subAdministrativeArea（市或县），如果没有，则返回 administrativeArea（省或州）
+  if (districtInfo == null) return '無法取得城市';
+
+  String city = cityNameConverter(districtInfo["city"] ?? "");
 
 
 
-// 使用 cityMap 替换城市名称
-      for (var key in cityMap.keys) {
-        if (placemark["city"]!.startsWith(key)) {
-          print('原始城市名稱: ${placemark["city"]}');
-          placemark["city"] = cityMap[key]!;
-          print('替換後的城市名稱: ${cityMap[key]}');
-          break; // 找到匹配後直接跳出循環
-        }
-      }
-
-      // 更新 CityProvider 的城市状态
-      Provider.of<CityProvider>(context, listen: false).setCity( placemark["city"]!);
-
-      return placemark["city"];
-    } else {
-      print('非臺灣地區');
-      return '非臺灣地區';
-    }
-  } else {
-    print('無法取得城市');
-    return '無法取得城市';
-  }
+   Provider.of<CityProvider>(context, listen: false).setCity(city);
+  return city;
 }
 
 
-
-Future<Map<String, String>> getCountryAndCity(double latitude, double longitude) async {
-  String url =
-      'https://nominatim.openstreetmap.org/reverse?format=json&lat=$latitude&lon=$longitude&addressdetails=1&accept-language=zh-TW';
-
-  try {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      String country = data['address']['country'] ?? 'Unable to retrieve country';
-      String city = data['address']['city'] ??
-          data['address']['town'] ??
-          data['address']['village'] ??
-          data['address']['state_district'] ?? 'Unable to retrieve city';
-
-      return {'country': country, 'city': city};
-    } else {
-      return {'error': 'Request failed'};
-    }
-  } catch (e) {
-    return {'error': 'Error: $e'};
-  }
-}

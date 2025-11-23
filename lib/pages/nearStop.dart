@@ -407,7 +407,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                           "火車站",
                                           "高鐵站"
                                         ],
-                                        icons: [
+                                        icons: const [
                                           Icons.directions_bus,
                                           Icons.subway,
                                           Icons.train,
@@ -1067,32 +1067,43 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               ),
 
               // 重載按鈕
+              // 重載按鈕（白色版本）
               Positioned(
                 bottom: 20,
                 right: 20,
-                child: GestureDetector(
-                  onTap: () async {
-
-                    // 直接調用監聽器方法來重新加載
-                    _handleTabSelectChange();
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(50),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4.0,
-                          offset: const Offset(0, 2),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () async {
+                      _handleTabSelectChange();
+                    },
+                    borderRadius: BorderRadius.circular(50),
+                    splashColor: const Color(0xFF1A73E8).withOpacity(0.2),
+                    highlightColor: const Color(0xFFEEF3FB),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      padding: const EdgeInsets.all(14.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(50),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.12),
+                            blurRadius: 12.0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: const Color(0xFFEEF3FB),
+                          width: 1,
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.refresh,
-                      color: Colors.black,
-                      size: 24,
+                      ),
+                      child: const Icon(
+                        Icons.refresh_rounded,
+                        color: Color(0xFF1A73E8),
+                        size: 24,
+                      ),
                     ),
                   ),
                 ),
@@ -1102,74 +1113,161 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         ));
   }
 
-  Widget _stationCard({required Map<String, dynamic> station}) {
-    return GestureDetector(
-      onTap: () {
-        List<String> stationIDs =
-            (station["StationGroup"]["Stations"] as List<dynamic>?)
-                    ?.map((station) => station["stationID"].toString())
-                    .toList() ??
-                [];
+   Widget _stationCard({required Map<String, dynamic> station}) {
+     return GestureDetector(
+       onTap: () {
+         List<String> stationIDs =
+             (station["StationGroup"]["Stations"] as List<dynamic>?)
+                 ?.map((station) => station["stationID"].toString())
+                 .toList() ??
+                 [];
 
+         // 聚焦到該站點位置
+         _mapController?.animateCamera(
+           CameraUpdate.newCameraPosition(
+             CameraPosition(
+               target: LatLng(
+                   station["StationGroup"]["Stations"][0]["positionLat"],
+                   station["StationGroup"]["Stations"][0]["positionLon"]
+               ),
+               zoom: 19.0,
+             ),
+           ),
+         );
 
+         _stopName.value = station["StationGroup"]["StationGroupName"]["Zh_tw"];
+         _stationIDs.value = stationIDs;
 
-        // 聚焦到該站點位置
-        _mapController?.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(
-              target: LatLng(station["StationGroup"]["Stations"][0]["positionLat"] ,station["StationGroup"]["Stations"][0]["positionLon"]),
-              zoom: 19.0,
-            ),
-          ),
-        );
+         _indexNotifier.value = 1; // 切换到搜索内容
+       },
+       onHorizontalDragEnd: (details) {
+         if (details.velocity.pixelsPerSecond.dx < -200) {
+           // 向左滑动
+           setState(() {
+             if (_indexNotifier.value > 0) {
+               _indexNotifier.value = 1; // 切换到搜索内容
+             }
+           });
+         }
+       },
+       child: Transform.translate(
+         offset: const Offset(0, 0.5),
+         child: Material(
+           color: Colors.transparent,
+           child: InkWell(
+             onTap: () {
+               List<String> stationIDs =
+                   (station["StationGroup"]["Stations"] as List<dynamic>?)
+                       ?.map((station) => station["stationID"].toString())
+                       .toList() ??
+                       [];
 
-        _stopName.value = station["StationGroup"]["StationGroupName"]["Zh_tw"];
-        _stationIDs.value = stationIDs;
+               _mapController?.animateCamera(
+                 CameraUpdate.newCameraPosition(
+                   CameraPosition(
+                     target: LatLng(
+                         station["StationGroup"]["Stations"][0]["positionLat"],
+                         station["StationGroup"]["Stations"][0]["positionLon"]
+                     ),
+                     zoom: 19.0,
+                   ),
+                 ),
+               );
 
-        _indexNotifier.value = 1; // 切换到搜索内容
-      },
-      onHorizontalDragEnd: (details) {
-        if (details.velocity.pixelsPerSecond.dx < -200) {
-          // 向左滑动
-          setState(() {
-            if (_indexNotifier.value > 0) {
-              _indexNotifier.value = 1; // 切换到搜索内容
-            }
-          });
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              station["StationGroup"]["StationGroupName"]["Zh_tw"],
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Divider(color: Colors.grey[300], thickness: 0.5),
-          ],
-        ),
-      ),
-    );
-  }
+               _stopName.value = station["StationGroup"]["StationGroupName"]["Zh_tw"];
+               _stationIDs.value = stationIDs;
+               _indexNotifier.value = 1;
+             },
+             borderRadius: BorderRadius.circular(16),
+             splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+             highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
+             child: Container(
+               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+               padding: const EdgeInsets.all(16),
+               decoration: BoxDecoration(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(16),
+                 boxShadow: [
+                   BoxShadow(
+                     color: Colors.black.withOpacity(0.06),
+                     blurRadius: 12,
+                     offset: const Offset(0, 4),
+                   ),
+                 ],
+               ),
+               child: Row(
+                 children: [
+                   // 站點圖標
+                   Container(
+                     width: 40,
+                     height: 40,
+                     decoration: BoxDecoration(
+                       gradient: const LinearGradient(
+                         colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                         begin: Alignment.topLeft,
+                         end: Alignment.bottomRight,
+                       ),
+                       borderRadius: BorderRadius.circular(10),
+                     ),
+                     child: const Icon(
+                       Icons.train_rounded,
+                       size: 20,
+                       color: Colors.white,
+                     ),
+                   ),
+                   const SizedBox(width: 12),
+
+                   // 站點資訊
+                   Expanded(
+                     child: Column(
+                       crossAxisAlignment: CrossAxisAlignment.start,
+                       children: [
+                         Text(
+                           station["StationGroup"]["StationGroupName"]["Zh_tw"],
+                           style: const TextStyle(
+                             fontSize: 16,
+                             fontWeight: FontWeight.w600,
+                             color: Colors.black87,
+                           ),
+                           maxLines: 1,
+                           overflow: TextOverflow.ellipsis,
+                         ),
+                         const SizedBox(height: 4),
+                         // 站點數量資訊
+                         // if (stationIDs != null && stationIDs.isNotEmpty)
+                         //   Text(
+                         //     '${stationIDs.length} 個站點',
+                         //     style: TextStyle(
+                         //       fontSize: 13,
+                         //       color: Colors.grey[600],
+                         //       fontWeight: FontWeight.w500,
+                         //     ),
+                         //   ),
+                       ],
+                     ),
+                   ),
+
+                   // 導航箭頭
+                   Container(
+                     padding: const EdgeInsets.all(6),
+                     decoration: BoxDecoration(
+                       color: Colors.grey[100],
+                       borderRadius: BorderRadius.circular(8),
+                     ),
+                     child: const Icon(
+                       Icons.arrow_forward_ios_rounded,
+                       size: 14,
+                       color: Colors.grey,
+                     ),
+                   ),
+                 ],
+               ),
+             ),
+           ),
+         ),
+       ),
+     );
+   }
 
   Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
     if (_tabSelect.value == "bus") {

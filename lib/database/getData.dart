@@ -529,56 +529,7 @@ Future<List> getNearTrainStation(double latitude, double longitude, {double maxD
 //   }
 // }
 
-Future<String> getToken() async {
-  String token = "";
 
-  final tokenResponse = await http.get(tokenUri);
-   token = tokenResponse.body;
-  // try {
-  //   // 取得當前時間戳記（ISO 8601 格式）
-  //   String timestamp = DateTime.now().toUtc().toIso8601String();
-  //   String? apiKey = await SecureStorage.getApiKey();
-  //
-  //   if (apiKey == null) {
-  //     // 如果 apiKey 為 null，則儲存新的 apiKey
-  //     await SecureStorage.saveApiKey(
-  //         'PgRQhSulFPbmnccET+l8ykLC1s2k8IAvpAb3NFFwIXA=');
-  //     print('API Key 儲存成功');
-  //   } else {
-  //     print('已存在 API Key: $apiKey');
-  //   }
-  //   final Map<String, String> headers = {
-  //     'Content-Type': 'application/json', // 指定 JSON 格式
-  //     'Authorization': 'Bearer ${await SecureStorage.getApiKey()}', // API 金鑰
-  //     'X-Timestamp': timestamp, // 加入時間戳記
-  //   };
-  //
-  //   final response = await http
-  //       .post(
-  //         tokens,
-  //         headers: headers,
-  //       )
-  //       .timeout(Duration(seconds: 30)); // 設置請求超時（例如 30 秒）
-  //
-  //   if (response.statusCode == 200) {
-  //     final Map<String, dynamic> data = json.decode(response.body);
-  //
-  //     // 確保 API 回應的 key 是 "token"
-  //     if (data.containsKey('token')) {
-  //       token = data['token'];
-  //       print('Token 儲存成功: $token');
-  //     } else {
-  //       throw Exception('回應中未包含 token');
-  //     }
-  //   } else {
-  //     throw Exception('取得 Token 失敗，HTTP 狀態碼: ${response.statusCode}   ${response.body}');
-  //   }
-  // } catch (e) {
-  //   print('請求 Token 時發生錯誤: $e');
-  //   // 可以根據需要返回錯誤訊息
-  // }
-   return token;
-}
 enum RouteDirection { directionOne, directionTwo, none }
 
 Future<Map<String, dynamic>?> getRouteStopsAndDirection(
@@ -662,6 +613,58 @@ Future<Map<String, dynamic>> getRouteStops(String routeName,String direction) as
   // 若只有一個方向，另一個列表會是空的
   return stops;
 }
+
+Future<List<dynamic>> getGeneralTrainTimetable(String originName,String  destinationName) async {
+  // SQL 查詢，根據站牌名稱過濾
+  var query = '''
+SELECT 
+    t.*,
+    s1.StopSequence AS s1_StopSequence,
+    s2.StopSequence AS s2_StopSequence
+FROM 
+    Train.GeneralTrainTimetable t,
+    JSON_TABLE(t.StopTimes, "\$[*]" COLUMNS (
+        StopSequence INT PATH "\$.StopSequence",
+        StationID VARCHAR(20) PATH "\$.StationID",
+        StationNameZh VARCHAR(50) PATH "\$.StationName.Zh_tw"
+    )) AS s1,
+    JSON_TABLE(t.StopTimes, "\$[*]" COLUMNS (
+        StopSequence INT PATH "\$.StopSequence",
+        StationID VARCHAR(20) PATH "\$.StationID", 
+        StationNameZh VARCHAR(50) PATH "\$.StationName.Zh_tw"
+    )) AS s2
+WHERE 
+    s1.StationNameZh = '$originName'
+    AND s2.StationNameZh = '$destinationName'
+    AND s1.StopSequence < s2.StopSequence
+    AND JSON_EXTRACT(t.ServiceDay, '\$.Monday') = 1;
+    ''';
+
+
+
+  // 從資料庫取得資料
+  List<dynamic> stopsList = await mysqlSelect(query); // 先等待 Future 完成
+
+
+
+
+
+  return stopsList;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class RouteValidator {
   late final List<Map<String, dynamic>> _stops;

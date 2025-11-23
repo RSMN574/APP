@@ -521,9 +521,9 @@ return finalList;
     _stationIDs.value= info.map((station) => station["StationID"] as String).toList();// 提取 StationID
 
     for (var i in info) {
-      var stationInfo = await fetchStationInfo(_stationIDs.value, widget.city);
+      List<Map<String, dynamic>> stationInfo = await fetchStationInfo(_stationIDs.value, widget.city);
       for (var stop in stationInfo) {
-        var timeData = await getTimeList(stop);
+        Map<String, dynamic> timeData = await getTimeList(stop);
         stop["time"] = timeData["time"];
         stop["isRed"] = timeData["isRed"];
         stop["color"] = timeData["color"];

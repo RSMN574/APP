@@ -2409,6 +2409,7 @@ class _RoutePageState extends State<RoutePage> {
                                   flex: 3,
                                   child: Column(
                                     children: transports.map((i) {
+                                      print(i['transport']);
                                       return GestureDetector(
                                         onTap: () async {
                                           var trainData = await fetchTrain(

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'Const/regularConst.dart';
 import 'database/flight/getFlight.dart';
@@ -254,7 +255,7 @@ class _PlaneState extends State<Plane>   {
           case "出境航班":
             return _buildDepartureTab();
           case "航班查詢":
-            return _buildSearchField();
+            return _buildSearchTab();
 
         }
         return null;
@@ -294,13 +295,13 @@ class _PlaneState extends State<Plane>   {
   }
   Widget _buildAirportInfoTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. 機場概況卡片
           _buildInfoCard(
-            icon: Icons.info_outline,
+            icon: Icons.info_outline_rounded,
             title: '桃園國際機場概況',
             content: '''
 • IATA代碼：TPE
@@ -309,6 +310,7 @@ class _PlaneState extends State<Plane>   {
 • 年旅客量：約4,500萬人次
 • 24小時服務電話：03-273-5081
           ''',
+            color: const Color(0xFF1A73E8),
           ),
 
           const SizedBox(height: 16),
@@ -329,136 +331,549 @@ class _PlaneState extends State<Plane>   {
       ),
     );
   }
+
   Widget _buildInfoCard({
     required IconData icon,
     required String title,
     required String content,
+    required Color color,
   }) {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 標題區域
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                Icon(icon, color: Colors.blue),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [color, color.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               ],
             ),
-            const Divider(height: 24),
-            Text(
+          ),
+
+          // 分隔線
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  color.withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          // 內容區域
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Text(
               content,
-              style: const TextStyle(height: 1.5),
+              style: TextStyle(
+                fontSize: 15,
+                height: 1.6,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
+
   Widget _buildTransportationCard() {
-    return _buildInfoCard(
-      icon: Icons.directions_transit,
-      title: '交通方式',
-      content: '''
-🚈 機場捷運：
-   • 直達車：35分鐘到台北車站
-   • 普通車：50分鐘到台北車站
-   • 首班車：06:00 | 末班車：23:00
-
-🚍 客運巴士：
-   • 國光客運：1819路往台北車站
-   • 大有巴士：1960路往松山機場
-   • 統聯客運：705路往中壢
-
-🚕 計程車：
-   • 至台北市區約NT\$1,200-1,500
-   • 24小時服務
-
-🚗 自行開車：
-   • 高速公路：國道2號機場支線
-   • 停車費：NT\$30/小時（第一航廈）
-    ''',
-    );
-  }
-  Widget _buildServicesCard() {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                Icon(Icons.room_service, color: Colors.blue),
-                SizedBox(width: 8),
-                Text(
-                  '服務設施',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF34C759), Color(0xFF34C759)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.directions_transit_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '交通資訊',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
               ],
             ),
-            const Divider(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+          ),
+
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFF34C759).withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildServiceChip(Icons.shopping_cart, '免稅店', 'B1/2F/3F'),
-                _buildServiceChip(Icons.restaurant, '餐廳', '1F-4F'),
-                _buildServiceChip(Icons.wifi, '免費WiFi', '全航廈'),
-                _buildServiceChip(Icons.local_atm, '換匯', '1F/3F'),
-                _buildServiceChip(Icons.baby_changing_station, '育嬰室', '各層洗手間旁'),
-                _buildServiceChip(Icons.medical_services, '醫療站', '1F航廈中央'),
-                _buildServiceChip(Icons.luggage, '行李寄存', '1F入境大廳'),
-                _buildServiceChip(Icons.smoke_free, '吸菸區', '1F/3F室外'),
+                _buildTransportItem('機場捷運', '直達台北車站，約35分鐘', Icons.train_rounded),
+                const SizedBox(height: 12),
+                _buildTransportItem('客運巴士', '多條路線通往全台各地', Icons.directions_bus_rounded),
+                const SizedBox(height: 12),
+                _buildTransportItem('計程車', '24小時排班服務', Icons.local_taxi_rounded),
+                const SizedBox(height: 12),
+                _buildTransportItem('租車服務', '各大租車公司進駐', Icons.directions_car_rounded),
               ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransportItem(String title, String subtitle, IconData icon) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // 處理交通項目點擊
+        },
+        borderRadius: BorderRadius.circular(12),
+        splashColor: const Color(0xFF34C759).withOpacity(0.1),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[200]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF34C759).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: const Color(0xFF34C759),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.grey,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildServiceChip(IconData icon, String label, String location) {
-    return Chip(
-      avatar: Icon(icon, size: 18),
-      label: Text('$label ($location)'),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+  Widget _buildServicesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF9500), Color(0xFFFF9500)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.local_activity_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '服務設施',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFFFF9500).withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _buildServiceChip('免稅商店', Icons.shopping_bag_rounded),
+                _buildServiceChip('貴賓室', Icons.star_rounded),
+                _buildServiceChip('餐飲服務', Icons.restaurant_rounded),
+                _buildServiceChip('免費WiFi', Icons.wifi_rounded),
+                _buildServiceChip('貨幣兌換', Icons.currency_exchange_rounded),
+                _buildServiceChip('行李寄存', Icons.luggage_rounded),
+                _buildServiceChip('祈禱室', Icons.people_rounded),
+                _buildServiceChip('育嬰室', Icons.child_care_rounded),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-  Widget _buildEmergencyCard() {
-    return _buildInfoCard(
-      icon: Icons.warning_amber,
-      title: '緊急資訊',
-      content: '''
-🆘 緊急求助：
-   • 航警局：03-398-2261
-   • 醫療中心：03-398-2583
 
-🛂 海關申報：
-   • 免稅額度：NT\$20,000
-   • 禁止物品查詢：03-398-2308
-
-⚠️ 遺失物查詢：
-   • 第一航廈：03-273-5081
-   • 第二航廈：03-273-5082
-    ''',
+  Widget _buildServiceChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF9500).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFFF9500).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: const Color(0xFFFF9500),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFFFF9500),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _buildEmergencyCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF3B30), Color(0xFFFF3B30)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.emergency_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    '緊急資訊',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFFFF3B30).withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildEmergencyItem('機場警察', '03-273-2946', Icons.local_police_rounded),
+                const SizedBox(height: 12),
+                _buildEmergencyItem('醫療中心', '03-273-2945', Icons.medical_services_rounded),
+                const SizedBox(height: 12),
+                _buildEmergencyItem('遺失物協尋', '03-273-2947', Icons.leave_bags_at_home_rounded),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF3B30).withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFF3B30).withOpacity(0.2),
+                    ),
+                  ),
+                  child: const Text(
+                    '緊急情況請撥打：119\n機場服務台：03-273-5081',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmergencyItem(String title, String phone, IconData icon) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // 處理緊急電話撥打
+        },
+        borderRadius: BorderRadius.circular(12),
+        splashColor: const Color(0xFFFF3B30).withOpacity(0.1),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[200]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF3B30).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: const Color(0xFFFF3B30),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      phone,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.phone_rounded,
+                size: 16,
+                color: Color(0xFFFF3B30),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildDepartureTab() {
     return FutureBuilder<List<dynamic>>(
       future: getAirportFIDSDeparture(selectedAirport),
@@ -483,50 +898,145 @@ class _PlaneState extends State<Plane>   {
 
   Widget _buildSearchTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           _buildSearchField(),
           const SizedBox(height: 24),
           _buildSearchResults(),
-
         ],
       ),
     );
   }
 
   Widget _buildSearchField() {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _flightNumberController,
-            decoration: const InputDecoration(
-              labelText: '輸入航班號碼',
-              hintText: '例如：CI123',
-              border: OutlineInputBorder(),
-              suffixIcon: Icon(Icons.search),
-            ),
-            onSubmitted: (value) => _searchFlight(value),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-        ),
-        const SizedBox(width: 12),
-        ElevatedButton(
-          onPressed: () => _searchFlight(_flightNumberController.text),
-          style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.search_rounded,
+                color: Color(0xFF1A73E8),
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                '航班搜尋',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1A73E8),
+                ),
+              ),
+            ],
           ),
-          child: const Text('立即查詢'),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFD),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF1A73E8).withOpacity(0.2),
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _flightNumberController,
+                    decoration: const InputDecoration(
+                      hintText: '輸入航班號碼，例如：CI123',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                    onSubmitted: (value) => _searchFlight(value),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1A73E8).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _searchFlight(_flightNumberController.text),
+                    borderRadius: BorderRadius.circular(12),
+                    splashColor: Colors.white.withOpacity(0.2),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            '查詢',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   void _searchFlight(String number) {
-    if (number.isEmpty) return;
+    if (number.isEmpty) {
+      // 可以添加空輸入的提示
+      return;
+    }
     // 執行搜尋邏輯
     _searchQuery.value = number.trim();
   }
+
   Map<String, String> _parseFlightNumber(String input) {
     // 移除所有空格和特殊字符
     final cleaned = input.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
@@ -544,7 +1054,9 @@ class _PlaneState extends State<Plane>   {
     return ValueListenableBuilder<String>(
       valueListenable: _searchQuery,
       builder: (context, input, _) {
-        if (input.isEmpty) return const SizedBox.shrink();
+        if (input.isEmpty) {
+          return _buildEmptySearchState();
+        }
 
         final flightInfo = _parseFlightNumber(input);
         final airlineId = flightInfo['AirlineID']!;
@@ -558,6 +1070,11 @@ class _PlaneState extends State<Plane>   {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('已自動格式化: $formattedFlightNumber'),
+                backgroundColor: const Color(0xFF1A73E8),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -586,7 +1103,228 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
+  Widget _buildEmptySearchState() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF1A73E8).withOpacity(0.1),
+                  const Color(0xFF1A73E8).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.airplane_ticket_rounded,
+              size: 50,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            '搜尋航班資訊',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '輸入航班號碼查詢即時航班狀態',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A73E8).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '範例：CI123, BR196, JL809',
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFF1A73E8),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildLoadingIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LoadingAnimationWidget.stretchedDots(
+            color: const Color(0xFF1A73E8),
+            size: 40,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '搜尋航班中...',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A73E8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorView(String error) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFFF3B30).withOpacity(0.1),
+                  const Color(0xFFFF3B30).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: Color(0xFFFF3B30),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '搜尋失敗',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFFF3B30),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyView() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFFF9500).withOpacity(0.1),
+                  const Color(0xFFFF9500).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.airline_stops_rounded,
+              size: 40,
+              color: Color(0xFFFF9500),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '未找到航班',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFFF9500),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '請檢查航班號碼是否正確',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 
 
 }

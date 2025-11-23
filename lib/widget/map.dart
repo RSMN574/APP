@@ -14,7 +14,6 @@ class map extends StatefulWidget {
   final Function(CameraPosition)? onCameraMove;
   final Function()? onCameraIdle;
   final bool myLocationEnabled;
-  final LatLng? initialPosition;
 
   const map({
     Key? key,
@@ -22,48 +21,25 @@ class map extends StatefulWidget {
     this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
-    this.initialPosition,
     this.onCameraMove,
     this.onCameraIdle,
   }) : super(key: key);
 
   @override
-  State<map> createState() => _MapScreenState();
+  State<map> createState() => _MapWidgetState();
 }
 
-class _MapScreenState extends State<map> {
-  final String _mapStyle = '''
-  [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, 
-  {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
-  {"featureType": "poi.business", "stylers": [{"visibility": "off"}]}, 
-  {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, 
-  {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}]
-  ''';
+class _MapWidgetState extends State<map>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   GoogleMapController? _mapController;
-  static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
-  LatLng _currentPosition = _initialPosition;
+  static const LatLng _defaultPosition = LatLng(25.0330, 121.5654);
+  LatLng _currentPosition = _defaultPosition;
+  bool _hasAnimatedToCurrent = false;
 
-
-  Future<void> _getCurrentLocation() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      print(position);
-      setState(() {
-        _currentPosition = LatLng(position.latitude, position.longitude);
-      });
-
-      if (_mapController != null) {
-        _mapController!.animateCamera(CameraUpdate.newCameraPosition(
-          CameraPosition(target: _currentPosition, zoom: 15.0),
-        ));
-      }
-    } catch (e) {
-      print('无法获取当前位置: $e');
-    }
-  }
+  final String _mapStyle = ''' [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.business", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}] ''';
 
   @override
   void initState() {
@@ -71,33 +47,55 @@ class _MapScreenState extends State<map> {
     _getCurrentLocation();
   }
 
+  Future<void> _getCurrentLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      _currentPosition = LatLng(position.latitude, position.longitude);
+
+      // 只在第一次定位時 animate camera
+      if (_mapController != null && !_hasAnimatedToCurrent) {
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(target: _currentPosition, zoom: 15),
+          ),
+        );
+        _hasAnimatedToCurrent = true;
+      }
+      setState(() {});
+    } catch (e) {
+      print('無法獲取位置: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin
     return Consumer<MarkerProvider>(
       builder: (context, markerProvider, child) {
         return GoogleMap(
-          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-            Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-          },
           initialCameraPosition: CameraPosition(
             target: _currentPosition,
             zoom: 15,
           ),
           onMapCreated: (controller) {
-            widget.onMapCreated?.call(controller);
-            _mapController = controller;
-            _mapController?.setMapStyle(_mapStyle);
-            _getCurrentLocation(); // 地圖創建完成後再次定位並更新視角
+            if (_mapController == null) {
+              _mapController = controller;
+              _mapController!.setMapStyle(_mapStyle);
+              widget.onMapCreated?.call(controller);
+            }
           },
-          onCameraMove: (CameraPosition position) {
-            widget.onCameraMove?.call(position);
-          },
-          onCameraIdle: () {
-            widget.onCameraIdle?.call(); // 呼叫 onCameraIdle 回调
-          },
-          markers: widget.markers ?? Set<Marker>.of(markerProvider.markers),
+          onCameraMove: widget.onCameraMove,
+          onCameraIdle: widget.onCameraIdle,
+          markers: widget.markers ?? markerProvider.markers,
           myLocationEnabled: widget.myLocationEnabled,
           myLocationButtonEnabled: true,
+          gestureRecognizers: {
+            Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer())
+          },
         );
       },
     );

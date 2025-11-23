@@ -57,8 +57,8 @@ class BusTime extends StatefulWidget {
 
 class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
-  late var stopNamesWithTime1;
-  late var stopNamesWithTime2;
+  late  List<dynamic> stopNamesWithTime1;
+  late  List<dynamic> stopNamesWithTime2;
   late final  TabController _tabController;
   final Set<Marker> markers = {};
   Timer? _timer;
@@ -251,6 +251,7 @@ void _scrollToIndex(int index) {
             print("📍 最近站點：$nearestStop，距離=${minDist.toStringAsFixed(1)}m");
           }
         } else {
+          nearestStop=null;
           if (kDebugMode) print("❌ 沒有站點在 7 公里內");
         }
       } catch (e) {
@@ -275,7 +276,7 @@ void _scrollToIndex(int index) {
         } else {
           print("⚠️ 找不到 highlight 站點");
         }
-      } else if (nearestIndex != null) {
+      } else if (nearestIndex != null &&    nearestStop!=null) {
         scrollTo(nearestIndex);
       }
 
@@ -305,7 +306,7 @@ void _scrollToIndex(int index) {
     List<Map<String, dynamic>> stopNamesWithTime = [];
     String hasPlateNum="";
     if (tabIndex < data.length) {
-      var stopData = json.decode(data[tabIndex]["Stops"]);
+      List<dynamic> stopData = json.decode(data[tabIndex]["Stops"]);
 
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
@@ -1270,6 +1271,7 @@ void _scrollToIndex(int index) {
                           : [],
                     ),
                   ),
+                  if(nearestStop!=null)
                   if (stop["stopName"] == nearestStop) ...[
                     const SizedBox(width: 6),
                     Container(
@@ -1731,8 +1733,7 @@ void _scrollToIndex(int index) {
     var output;
     final result = await dbHelper.addFavorite(StopName:stopId  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
 
-    // output=await  saveList('favoritesBusStop',other["id"] );
-    // stationComparison=await  saveList('favoritesBusStopId',other["id"] );
+
     // 顯示相應的 QuickAlert
     if (result==100) {
       QuickAlert.show(

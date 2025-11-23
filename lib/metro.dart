@@ -65,63 +65,358 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
     return;
   }
 
-// 返回每个隐藏的菜单项
-  SelectView(IconData icon, String text, String id) {
+// 返回每個隱藏的菜單項 - 美化版本
+  PopupMenuItem<String> _buildPopupMenuItem(IconData icon, String text, String id, Color color) {
     return PopupMenuItem<String>(
-        value: id,
+      value: id,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: <Widget>[
-            Icon(icon),
-            Text(text),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
           ],
-        ));
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFD),
       appBar: AppBar(
-        title: const Text("捷運"),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "捷運資訊",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A73E8),
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
         actions: [
-          PopupMenuButton<String>(
-              iconColor: Colors.black,
-              itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                    SelectView(Icons.info, '捷運資訊', 'A'),
-                    SelectView(Icons.airplane_ticket, '車票', 'B'),
-                    SelectView(Icons.schedule, '發車時刻表', 'C'),
-                  ],
-              onSelected: (String action) async {})
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.more_vert_rounded,
+                  size: 20,
+                  color: Color(0xFF1A73E8),
+                ),
+              ),
+              onPressed: _showInfoMenu, // 改為調用底部彈出菜單
+            ),
+          ),
         ],
       ),
       body: Column(
         children: [
-          CustomDropdown<String>(
-            hintText: '選擇城市',
-            items: _list,
-            initialItem: _selectedCity,
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedCity = value; // 更新选中的城市
-                });
-              }
-            },
+          // 城市選擇下拉框
+          Container(
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.location_city_rounded,
+                    size: 18,
+                    color: Color(0xFF1A73E8),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: _selectedCity,
+                    underline: const SizedBox(),
+                    isExpanded: true,
+                    style: const TextStyle(
+                      color: Color(0xFF1A73E8),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    items: _list.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _selectedCity = value;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_drop_down_rounded,
+                  color: Color(0xFF1A73E8),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+
+          const SizedBox(height: 8),
+
           Expanded(
             child: Column(
               children: [
-                // _buildTabBar(),
+                // 水平 TabBar
+
                 Expanded(child: _buildPageView()),
               ],
             ),
           ),
         ],
       ),
+
     );
   }
 
+  void _showInfoMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8, // 限制最大高度
+        ),
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SingleChildScrollView( // 添加滾動支持
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 拖拽指示器
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[400],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+
+
+
+
+              // 選項列表
+              _buildMenuOption(
+                icon: Icons.info_outline_rounded,
+                title: '捷運資訊',
+                subtitle: '查看捷運路線與資訊',
+                color: const Color(0xFF1A73E8),
+                onTap: _navigateToMRTInfo,
+              ),
+              const SizedBox(height: 12),
+              _buildMenuOption(
+                icon: Icons.confirmation_number_rounded,
+                title: '車票資訊',
+                subtitle: '票價與購票說明',
+                color: const Color(0xFF34C759),
+                onTap: _navigateToTicketInfo,
+              ),
+              const SizedBox(height: 12),
+              _buildMenuOption(
+                icon: Icons.schedule_rounded,
+                title: '發車時刻表',
+                subtitle: '查看列車發車時間',
+                color: const Color(0xFFFF9500),
+                onTap: _navigateToSchedule,
+              ),
+              const SizedBox(height: 12),
+              _buildMenuOption(
+                icon: Icons.help_outline_rounded,
+                title: '使用說明',
+                subtitle: '應用程式操作指南',
+                color: const Color(0xFFAF52DE),
+                onTap: _navigateToHelp,
+              ),
+
+              const SizedBox(height: 20),
+
+              // 安全區域底部填充（可選）
+              SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(context); // 關閉底部菜單
+          onTap(); // 執行對應的操作
+        },
+        borderRadius: BorderRadius.circular(16),
+        splashColor: color.withOpacity(0.1),
+        highlightColor: color.withOpacity(0.05),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // 圖標
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [color, color.withOpacity(0.8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 16),
+              // 文字資訊
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 導航箭頭
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+// 對應的導航方法
+  void _navigateToMRTInfo() {
+    // 導航到捷運資訊頁面
+    print('導航到捷運資訊');
+  }
+
+  void _navigateToTicketInfo() {
+    // 導航到車票資訊頁面
+    print('導航到車票資訊');
+  }
+
+  void _navigateToSchedule() {
+    // 導航到發車時刻表頁面
+    print('導航到發車時刻表');
+  }
+
+  void _navigateToHelp() {
+    // 導航到使用說明頁面
+    print('導航到使用說明');
+  }
   Widget _buildPageView() {
     return Container(
       margin: const EdgeInsets.only(top: 30),
@@ -380,10 +675,14 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
                             indicator: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               gradient: const LinearGradient(
-                                colors: [Color(0xFF1A73E8), ],
+                                colors: [
+                                  Color(0xFF1A73E8),
+                                  Color(0xFF1A73E8), // 或改成透明 / 淺色
+                                ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
+
                               boxShadow: [
                                 BoxShadow(
                                   color: const Color(0xFF1A73E8).withOpacity(0.2),
@@ -565,25 +864,33 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
 
 }
 
-// 异步获取车站信息
 Future<List> _getStationInfo(String station) async {
-  // 这里需要添加数据库查询的实际代码
+  // 取得 stationExit
   var stationExit = await mysqlSelect(
-      "SELECT * FROM MRT.MRT_taichung_stationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'");
+      "SELECT * FROM MRT.MRT_taichung_stationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'"
+  );
 
-  var i = (await mysqlSelect(
-      "SELECT info FROM MRT.MRT_Taichung_station WHERE StationNameZh_tw ='$station'"));
+  // 查詢 info
+  var i = await mysqlSelect(
+      "SELECT info FROM MRT.MRT_Taichung_station WHERE StationNameZh_tw LIKE '%$station%'"
+  );
+
+  if (i.isEmpty) {
+    print("⚠ 資料表中未找到站名：$station");
+    facilitiesNotifier.value = [];  // 給預設空陣列避免 UI 爆掉
+    return stationExit;
+  }
 
   try {
     facilitiesNotifier.value = json.decode(i[0]["info"]);
   } catch (e) {
-    print(e);
+    print("❌ JSON decode 失敗：$e");
+    facilitiesNotifier.value = [];
   }
-
-  // 假设你想展示 stationname_zh_tw 和一些其他信息
 
   return stationExit;
 }
+
 // 獲取設施顏色
 Color getFacilityColor(String iconName) {
   switch (iconName) {
@@ -831,10 +1138,22 @@ Widget buildStationInfo(String station) {
                       ),
                     ),
                     // 設施列表
-                    ...facilitiesNotifier.value.map((facility) {
-                      final color = _getFacilityColor(facility['icon']);
-                      return _buildFacilityCard(facility, color);
-                    }).toList(),
+                    ValueListenableBuilder<List< dynamic>>(
+                      valueListenable: facilitiesNotifier,
+                      builder: (context, facilities, _) {
+                        if (facilities.isEmpty) {
+                          return const SizedBox(); // 或 loading
+                        }
+                        return Column(
+                          children: facilities.map((facility) {
+                            final color = _getFacilityColor(facility['icon']);
+                            return _buildFacilityCard(facility, color);
+                          }).toList(),
+                        );
+                      },
+                    )
+
+
                   ],
                 ),
               ),
@@ -935,7 +1254,7 @@ Widget _buildExitCard(dynamic station, int index,context) {
               height: 40,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1A73E8)],
+                  colors: [Color(0xFF1A73E8),Color(0xFF1A73E8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -1031,7 +1350,7 @@ Widget _buildFacilityCard(Map<String, dynamic> facility, Color color) {
                 height: 40,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [color, color.withOpacity(0.8)],
+                    colors: [color, color],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1295,27 +1614,27 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
 
   void _initializeStations() {
     // Create the shared transfer station
-    final cityHallStation = MRTStation('市政府站', Offset(0.5, 0.45), lineColor: Colors.black);
+    final cityHallStation = MRTStation('市政府', Offset(0.5, 0.45), lineColor: Colors.green);
 
     // Green Line stations
     final greenLineStations = [
       MRTStation('北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
-      MRTStation('舊社站', Offset(0.5, 0.10), lineColor: Colors.green),
-      MRTStation('松竹站', Offset(0.5, 0.15), lineColor: Colors.green),
-      MRTStation('四維國小站', Offset(0.5, 0.20), lineColor: Colors.green),
-      MRTStation('文心崇德站', Offset(0.5, 0.25), lineColor: Colors.green),
-      MRTStation('文心中清站', Offset(0.5, 0.30), lineColor: Colors.green),
-      MRTStation('文華高中站', Offset(0.5, 0.35), lineColor: Colors.green),
-      MRTStation('文心櫻花站', Offset(0.5, 0.40), lineColor: Colors.green),
+      MRTStation('舊社', Offset(0.5, 0.10), lineColor: Colors.green),
+      MRTStation('松竹', Offset(0.5, 0.15), lineColor: Colors.green),
+      MRTStation('四維國小', Offset(0.5, 0.20), lineColor: Colors.green),
+      MRTStation('文心崇德', Offset(0.5, 0.25), lineColor: Colors.green),
+      MRTStation('文心中清', Offset(0.5, 0.30), lineColor: Colors.green),
+      MRTStation('文華高中', Offset(0.5, 0.35), lineColor: Colors.green),
+      MRTStation('文心櫻花', Offset(0.5, 0.40), lineColor: Colors.green),
       cityHallStation, // Transfer MRTStation
-      MRTStation('水安宮站', Offset(0.5, 0.50), lineColor: Colors.green),
-      MRTStation('文心森林公園站', Offset(0.5, 0.55), lineColor: Colors.green),
-      MRTStation('南屯站', Offset(0.5, 0.60), lineColor: Colors.green),
-      MRTStation('豐樂公園站', Offset(0.5, 0.7), lineColor: Colors.green),
-      MRTStation('大慶站', Offset(0.501, 0.75), lineColor: Colors.green),
-      MRTStation('九張犁站', Offset(0.45, 0.81), lineColor: Colors.green),
-      MRTStation('九德站', Offset(0.33, 0.85), lineColor: Colors.green),
-      MRTStation('烏日站', Offset(0.24, 0.85), lineColor: Colors.green),
+      MRTStation('水安宮', Offset(0.5, 0.50), lineColor: Colors.green),
+      MRTStation('文心森林公園', Offset(0.5, 0.55), lineColor: Colors.green),
+      MRTStation('南屯', Offset(0.5, 0.60), lineColor: Colors.green),
+      MRTStation('豐樂公園', Offset(0.5, 0.7), lineColor: Colors.green),
+      MRTStation('大慶', Offset(0.501, 0.75), lineColor: Colors.green),
+      MRTStation('九張犁', Offset(0.45, 0.81), lineColor: Colors.green),
+      MRTStation('九德', Offset(0.33, 0.85), lineColor: Colors.green),
+      MRTStation('烏日', Offset(0.24, 0.85), lineColor: Colors.green),
       MRTStation('高鐵台中站', Offset(0.18, 0.85), lineColor: Colors.green),
     ];
 
@@ -1390,7 +1709,8 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
       _timeMap = _calculateTimes(station);
       _stations.forEach((s) => s.displayTime = _timeMap[s]);
     });
-    if (_selectedStation != null) {
+    print(_selectedStation?.name);
+    WidgetsBinding.instance.addPostFrameCallback((_) {if (_selectedStation != null) {
       showBottomSheet(
         context: context,
         builder: (context) {
@@ -1470,7 +1790,7 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
           );
         },
       );
-    };
+    }});
   }
 
   @override

@@ -24,16 +24,16 @@ Future<dynamic> fetchBusTimeByTask(routeName,routeID, city,stopID) async {
 
   var url = "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName"
       "?%24filter=$encodedFilter&%24format=JSON";
-  final token =await  getToken();
+  // final token =await  getToken();
 
   try {
-    await connMysql();
+    // await connMysql();
 
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
+        // 'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );

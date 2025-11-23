@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../../Const/regularConst.dart';
 import '../getData.dart';
+import '../token_manager.dart';
 
 
 Future<dynamic> fetchHSR(String trainNo,DateTime date) async {
@@ -16,8 +17,7 @@ Future<dynamic> fetchHSR(String trainNo,DateTime date) async {
 
   try {
     await  connMysql();
-    final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -58,8 +58,7 @@ Future<List<dynamic>> fetchHSRRoute(departureID,destinationID,time) async {
   try {
 
 
-    final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
@@ -100,8 +99,7 @@ Future<dynamic> fetchAvailableSeatStatus(String departureID,String arrivalID,Str
 
   try {
     await  connMysql();
-    final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),
