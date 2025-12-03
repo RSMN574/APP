@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:animated_list_plus/animated_list_plus.dart';
 import 'package:animated_list_plus/transitions.dart';
 
@@ -36,6 +38,9 @@ class BusStopInfo extends StatefulWidget {
 class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderStateMixin {
   late final  TabController _tabController;
   final StreamController<List<Map<String, dynamic>>> _streamController = StreamController();
+  List<Map<String, dynamic>> processedUp = [];
+  List<Map<String, dynamic>> processedDown = [];
+
 
   final _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
   List<Map<String, dynamic>> data = [];
@@ -44,9 +49,12 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
   @override
   void initState() {
     super.initState();
+
     // _loadData(); // 初次加载数据
-    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab3
-    // 添加監聽器，只更新 ValueNotifier
+    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
+    // 每次頁面重新進入，重置 Tab
+    _tabController.index = 0;
+    _currentTabIndex.value = 0; // 添加監聽器，只更新 ValueNotifier
     _tabController.addListener(() {
       if (_tabController.index != _currentTabIndex.value) {
         _currentTabIndex.value = _tabController.index;
@@ -57,9 +65,32 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     _tabController.dispose(); // 释放 TabController
+print("dispose");
     super.dispose();
   }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    print('didChangeDependencies');
 
+  _tabController.index = 0;
+
+
+
+  }
+
+  Future<void> _loadData() async {
+    // 原本取得資料的 code...
+
+    final data = await fetchBusStopInfo();
+
+    _streamController.add(data); // 向数据流中添加新数据
+
+
+
+
+
+  }
 
   int _timeAscComparator(a, b) {
     if (a["time"] == "即將到站") return -1;
@@ -259,226 +290,467 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
   }
 
   Future<Widget> _buildTabContent(String direction,List<Map<String, dynamic>> stopEstimatedTime) async {
-    List<Map<String, dynamic>> finalList=await _processData(direction,stopEstimatedTime);
+     List<Map<String, dynamic>> finalList=await _processData(direction,stopEstimatedTime);
 
 
 
 
-        return ValueListenableBuilder<SortType>(
-          valueListenable: _sortNotifier,
-          builder: (context, sortType, _) {
-            final sortedList = [...finalList];
-print(sortedList);
-            switch(sortType) {
-              case SortType.nameAsc:
-                sortedList.sort((a, b) => getChineseName(a['RouteName']["Zh_tw"]).compareTo(getChineseName(b['RouteName']["Zh_tw"])));
-                break;
-              case SortType.nameDesc:
-                sortedList.sort((a, b) => getChineseName(b['RouteName']["Zh_tw"]).compareTo(getChineseName(a['RouteName']["Zh_tw"])));
-                break;
-              case SortType.timeAsc:
-                sortedList.sort(_timeAscComparator);
-                break;
-              case SortType.timeDesc:
-                sortedList.sort(_timeDescComparator);
-                break;
-            }
+    return ValueListenableBuilder<SortType>(
+      valueListenable: _sortNotifier,
+      builder: (context, sortType, _) {
+        final sortedList = [...finalList];
 
-            return _buildTabContentUI(direction, sortedList); // 改這裡：傳給 UI builder 而不是 Future
-          },
-        );
+        switch(sortType) {
+          case SortType.nameAsc:
+            sortedList.sort((a, b) => getChineseName(a['RouteName']["Zh_tw"]).compareTo(getChineseName(b['RouteName']["Zh_tw"])));
+            break;
+          case SortType.nameDesc:
+            sortedList.sort((a, b) => getChineseName(b['RouteName']["Zh_tw"]).compareTo(getChineseName(a['RouteName']["Zh_tw"])));
+            break;
+          case SortType.timeAsc:
+            sortedList.sort(_timeAscComparator);
+            break;
+          case SortType.timeDesc:
+            sortedList.sort(_timeDescComparator);
+            break;
+        }
+
+        return _buildTabContentUI(direction, sortedList); // 改這裡：傳給 UI builder 而不是 Future
+      },
+    );
 
 
   }
   Widget _buildTabContentUI(String direction, List<Map<String, dynamic>> finalList) {
     return RefreshIndicator(
-        onRefresh: () async => await _loadData(),
-        child:   ImplicitlyAnimatedList<Map<String, dynamic>>(
-          key: ValueKey(_sortNotifier.value), // 每次排序不同 key
-          items: finalList,
-          areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
-          itemBuilder: (context, animation, stop, index) {
-            final PlateNumb = stop["PlateNumb"];
+      onRefresh: () async => await _loadData(),
+      child:   ImplicitlyAnimatedList<Map<String, dynamic>>(
+        key: ValueKey(_sortNotifier.value), // 每次排序不同 key
+        items: finalList,
+        areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
+        itemBuilder: (context, animation, stop, index) {
+          final PlateNumb = stop["PlateNumb"];
 
-            final color = stop["color"] == '0'
-                ? const Color.fromRGBO(235, 15, 41, 0.85)
-                : (stop["color"] == '2'
-                ? const Color.fromRGBO(225, 85, 104, 0.1)
-                : (stop["color"] == "班次結束"
-                ? const Color.fromRGBO(69, 69, 69, 0.1)
-                : (stop["color"] == "min"
-                ? const Color.fromRGBO(13, 168, 255, 0.1)
-                : const Color.fromRGBO(68, 68, 68, 0.1))));
+          final color = stop["color"] == '0'
+              ? const Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["color"] == '2'
+              ? const Color.fromRGBO(225, 85, 104, 0.1)
+              : (stop["color"] == "班次結束"
+              ? const Color.fromRGBO(69, 69, 69, 0.1)
+              : (stop["color"] == "min"
+              ? const Color.fromRGBO(13, 168, 255, 0.1)
+              : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-            return SizeFadeTransition(
-              animation: animation,
-              curve: Curves.easeInOut,
-              sizeFraction: 0.9,
-              child: Column(
-                children: [
-                  Container(
-                    height: 53.0,
-                    child: ListTile(
-                      onTap: () async {
-                        await GetBusInfo(
-                            routeid: int.parse(stop["RouteID"]),
-                            city: widget.city);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BusTime(
-                              routeName: stop["RouteName"]["Zh_tw"],
-                              departureStopName: stop["DepartureStopName"],
-                              destinationStopName: stop["DestinationStopName"],
-                              operators: "",
-                              routeMapImageUrl: "",
-                              city: widget.city,
-                              routeID: int.parse(stop["RouteID"]),
-                              mark: Mark.fromMap({
-                                "highlight": [widget.stop],
-                                "direction": stop['Direction'] == 0 ? 1 : 0,
-                              }),
-                            ),
-                          ),
-                        );
-                      },
-                      leading: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Text(
-                          stop["time"] ?? "未知",
-                          style: TextStyle(
-
-                            fontSize: 17,
-                            color: stop["color"] == '0'
-                                ? Colors.white
-                                : (stop["color"] == '2'
-                                ? const Color.fromRGBO(255, 85, 104, 1)
-                                : (stop["color"] == "班次結束"
-                                ? const Color.fromRGBO(149, 149, 149, 1.0)
-                                : (stop["color"] == "min"
-                                ? const Color.fromRGBO(13, 168, 255, 1)
-                                : const Color.fromRGBO(
-                                68, 68, 68, 1)))),
+          return SizeFadeTransition(
+            animation: animation,
+            curve: Curves.easeInOut,
+            sizeFraction: 0.9,
+            child: Column(
+              children: [
+                Container(
+                  height: 53.0,
+                  child: ListTile(
+                    onTap: () async {
+                      await GetBusInfo(
+                          routeid: int.parse(stop["RouteID"]),
+                          city: widget.city);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BusTime(
+                            routeName: stop["RouteName"]["Zh_tw"],
+                            departureStopName: stop["DepartureStopName"],
+                            destinationStopName: stop["DestinationStopName"],
+                            operators: "",
+                            routeMapImageUrl: "",
+                            city: widget.city,
+                            routeID: int.parse(stop["RouteID"]),
+                            mark: Mark.fromMap({
+                              "highlight": [widget.stop],
+                              "direction": stop['Direction'] == 0 ? 1 : 0,
+                            }),
                           ),
                         ),
+                      );
+                    },
+                    leading: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                      title: Row(
-                        children: [
-                          Text(
-                            stop["RouteName"]["Zh_tw"] ?? "未知站名",
-                            style: TextStyle(
-                              fontFamily: stop["color"] == "0"
-                                  ? 'MiSans-Semibold'
-                                  : 'MiSans-normal',
-                              fontSize: 17,
-                              color: stop["color"] == "班次結束"
-                                  ? const Color.fromRGBO(136, 136, 136, 1)
-                                  : Colors.black,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "往 ${stop["to"] ?? "未知方向"}",
-                            style: const TextStyle(
-                              fontFamily: 'MiSans-normal',
-                              fontSize: 14,
-                              color: Color.fromRGBO(136, 136, 136, 1),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        stop["time"] ?? "未知",
+                        style: TextStyle(
+
+                          fontSize: 17,
+                          color: stop["color"] == '0'
+                              ? Colors.white
+                              : (stop["color"] == '2'
+                              ? const Color.fromRGBO(255, 85, 104, 1)
+                              : (stop["color"] == "班次結束"
+                              ? const Color.fromRGBO(149, 149, 149, 1.0)
+                              : (stop["color"] == "min"
+                              ? const Color.fromRGBO(13, 168, 255, 1)
+                              : const Color.fromRGBO(
+                              68, 68, 68, 1)))),
+                        ),
                       ),
-                      trailing: PlateNumb != null
-                          ? bubble(plateNum: PlateNumb)
-                          : null,
                     ),
+                    title: Row(
+                      children: [
+                        Text(
+                          stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                          style: TextStyle(
+                            fontFamily: stop["color"] == "0"
+                                ? 'MiSans-Semibold'
+                                : 'MiSans-normal',
+                            fontSize: 17,
+                            color: stop["color"] == "班次結束"
+                                ? const Color.fromRGBO(136, 136, 136, 1)
+                                : Colors.black,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "往 ${stop["to"] ?? "未知方向"}",
+                          style: const TextStyle(
+                            fontFamily: 'MiSans-normal',
+                            fontSize: 14,
+                            color: Color.fromRGBO(136, 136, 136, 1),
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: PlateNumb != null
+                        ? bubble(plateNum: PlateNumb)
+                        : null,
                   ),
-                  const Divider(
-                    color: Color.fromRGBO(231, 231, 231, 1),
-                    height: 9,
-                    thickness: 1,
-                    indent: 20,
-                    endIndent: 20,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+                ),
+                const Divider(
+                  color: Color.fromRGBO(231, 231, 231, 1),
+                  height: 9,
+                  thickness: 1,
+                  indent: 20,
+                  endIndent: 20,
+                ),
+              ],
+            ),
+          );
+        },
+      ),
 
     );
   }
 
+  Future<List<Map<String, dynamic>>> _processData(
+      String stationID,
+      List<Map<String, dynamic>> stopEstimatedTime,
+      ) async {
+    try {
+      // print('=== 開始處理資料，stationID: $stationID ===');
+      // print('原始數據數量: ${stopEstimatedTime.length}');
 
-  Future<List<Map<String, dynamic>>> _processData(String direction, List<Map<String, dynamic>> stopEstimatedTime)async {
-    List<Map<String, dynamic>> directionList = stopEstimatedTime.where((item) => item["Direction"] == direction).toList();
-    // 使用 Map 來確保每個路線只出現一次
-    List<Map<String, dynamic>> uniqueList;
-    final Map<String, Map<String, dynamic>> uniqueRoutes = {};
-    for (var item in stopEstimatedTime) {
-      final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
-      if (!uniqueRoutes.containsKey(routeKey) ||
-          _parseTimeToMinutes(item["time"]) < _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
-        uniqueRoutes[routeKey] = item;
+      /// -----------------------------
+      /// 1. 過濾並去重
+      /// -----------------------------
+      final routeMap = <String, Map<String, dynamic>>{};
+
+      for (final item in stopEstimatedTime) {
+        // 只處理符合 StationID 的項目
+        if (item["StationID"] != stationID) {
+          continue;
+        }
+
+        // print('處理項目: ${item["RouteName"]}, StationID: ${item["StationID"]}');
+
+        final routeNameObj = item["RouteName"];
+        String? routeName;
+
+        // 處理 RouteName 可能是 Map 或 String 的情況
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+          // print('RouteName 是 Map: $routeNameObj, 提取: $routeName');
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+        //  print('RouteName 是 String: $routeName');
+        }
+
+        final direction = item["Direction"];
+
+        if (routeName == null || routeName.isEmpty) {
+        //  print('跳過：routeName 為空');
+          continue;
+        }
+
+        final routeKey = "${routeName}_$direction";
+        final currentTime = _parseTimeToMinutes(item["time"]);
+
+       // print('routeKey: $routeKey, currentTime: $currentTime');
+
+        // 只保留每條路線最近的一班車
+        final existing = routeMap[routeKey];
+        if (existing == null ||
+            (currentTime != -1 && currentTime < _parseTimeToMinutes(existing["time"]))) {
+          routeMap[routeKey] = item;
+      //    print('加入/更新: $routeKey');
+        }
       }
-    }
 
-    uniqueList= uniqueRoutes.values.toList();
+      final stationData = routeMap.values.toList();
+     // print('過濾後數據數量: ${stationData.length}');
 
-    List<Map<String, dynamic>> finalList=[];
-
-    // 按 StationID 分类
-    Map<String, List<Map<String, dynamic>>> groupedData = {};
-    for (var item in uniqueList) {
-      String stationID = item["StationID"];
-      groupedData.putIfAbsent(stationID, () => []).add(item);
-    }
-
-    // 打印分组后的结果
-    groupedData.forEach((stationID, items) {
-      if(stationID==direction){
-        finalList=items;
-        // print("finalList");
-        // print(finalList);
+      if (stationData.isEmpty) {
+     //   print('無數據，返回空列表');
+        return [];
       }
-      // print("StationID: $stationID");
-      // print("Data: $items");
-    });
 
-    for (var i in finalList) {
+      /// -----------------------------
+      /// 2. 批次獲取路線資訊 - 修正查詢方式
+      /// -----------------------------
+      final routeNames = <String>{};
 
-      // 根据方向查找去程或回程的目的地信息
-      if (i['Direction'] == 1) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+      for (final item in stationData) {
+        final routeNameObj = item["RouteName"];
+        String? routeName;
 
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["from"]=result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-        i["to"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-      } else if (i['Direction'] == 0) {
-        var result = await mysqlSelect("SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-        i["to"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";  // 赋值到 'to' 字段
-        i["from"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["RouteID"]=result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        i["DepartureStopName"] = result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        i["DestinationStopName"] = result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+        }
+
+        if (routeName != null && routeName.isNotEmpty) {
+          routeNames.add(routeName);
+        }
       }
+
+     // print('需要查詢的路線名稱: $routeNames');
+
+      final Map<String, Map<String, dynamic>> routeInfoCache = {};
+
+      if (routeNames.isNotEmpty) {
+        try {
+          // 方法1：使用 JSON_UNQUOTE 和 JSON_EXTRACT（最標準）
+          final nameList = routeNames.map((name) => "'$name'").join(',');
+
+        //  print('執行 SQL 查詢，條件: $nameList');
+
+          final query = """
+          SELECT * FROM Bus.Bus_${widget.city}_Route 
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
+        """;
+
+        //  print('SQL 查詢: $query');
+
+          final results = await mysqlSelect(query);
+         // print('查詢結果數量: ${results.length}');
+
+          // 建立路線名稱到數據的映射
+          for (final result in results) {
+          //  print('處理查詢結果: ${result}');
+
+            final routeNameField = result["RouteName"];
+            String? routeName;
+
+            // 解析 RouteName 欄位
+            if (routeNameField is Map) {
+              routeName = routeNameField["Zh_tw"] as String?;
+           //   print('RouteName 是 Map: $routeNameField, 提取: $routeName');
+            } else if (routeNameField is String) {
+              try {
+                // 嘗試解析 JSON 字串
+                final parsed = json.decode(routeNameField) as Map<String, dynamic>;
+                routeName = parsed["Zh_tw"] as String?;
+               // print('RouteName 是 JSON String: $routeNameField, 解析後: $parsed, 提取: $routeName');
+              } catch (e) {
+                routeName = routeNameField;
+              //  print('解析 JSON 失敗，使用原始字串: $routeNameField');
+              }
+            }
+
+            if (routeName != null && routeName.isNotEmpty) {
+              routeInfoCache[routeName] = result;
+             // print('快取路線: $routeName -> ${result["RouteID"]}');
+
+              // 打印詳細資訊以便調試
+            //  print('出發站名: ${result["DepartureStopNameZh"]}');
+            //  print('目的站名: ${result["DestinationStopNameZh"]}');
+            }
+          }
+
+          //print('快取大小: ${routeInfoCache.length}');
+         // print('快取內容: ${routeInfoCache.keys.toList()}');
+
+        } catch (e) {
+          print('批次查詢失敗: $e');
+
+          // 降級方案：逐個查詢
+          print('開始逐個查詢...');
+          for (final routeName in routeNames) {
+            try {
+              print('查詢路線: $routeName');
+
+              // 方法2：使用 LIKE 查詢 JSON
+              final query = """
+              SELECT * FROM Bus.Bus_${widget.city}_Route 
+              WHERE RouteName LIKE '%"Zh_tw": "$routeName"%'
+              OR JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName'
+            """;
+
+              final results = await mysqlSelect(query);
+
+              if (results.isNotEmpty) {
+                routeInfoCache[routeName] = results.first;
+                print('找到路線 $routeName: ${results.first["RouteID"]}');
+              } else {
+                print('未找到路線 $routeName');
+              }
+            } catch (e2) {
+              print('查詢單一路線失敗 $routeName: $e2');
+            }
+          }
+        }
+      }
+
+      /// -----------------------------
+      /// 3. 合併路線資訊
+      /// -----------------------------
+      final List<Map<String, dynamic>> processedData = [];
+
+      print('開始合併路線資訊...');
+
+      for (final item in stationData) {
+        print('處理項目: ${item["RouteName"]}');
+
+        final routeNameObj = item["RouteName"];
+        String? routeName;
+
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+        }
+
+        final direction = item["Direction"];
+
+        if (routeName == null) {
+          print('跳過：routeName 為空');
+          continue;
+        }
+
+        final resultItem = Map<String, dynamic>.from(item);
+        final routeInfo = routeInfoCache[routeName];
+        final hasValidInfo = routeInfo != null && routeInfo.isNotEmpty;
+
+        print('路線 $routeName 找到資訊: $hasValidInfo');
+
+        // 設置路線 ID
+        if (hasValidInfo) {
+          resultItem["RouteID"] = routeInfo!["RouteID"]?.toString() ?? "未知";
+          print('設置 RouteID: ${resultItem["RouteID"]}');
+        } else {
+          resultItem["RouteID"] = "未知";
+          print('未找到路線資訊，設置為未知');
+        }
+
+        // 設置站名資訊
+        String? departureName;
+        String? destinationName;
+
+        if (hasValidInfo) {
+          departureName = routeInfo!["DepartureStopNameZh"]?.toString();
+          destinationName = routeInfo!["DestinationStopNameZh"]?.toString();
+
+          print('出發站名從 DB: $departureName');
+          print('目的站名從 DB: $destinationName');
+
+          // 如果沒有從資料庫獲取到，嘗試其他欄位名稱
+          if (departureName == null) {
+            departureName = routeInfo["DepartureStopName"]?.toString();
+            print('從 DepartureStopName 獲取: $departureName');
+          }
+
+          if (destinationName == null) {
+            destinationName = routeInfo["DestinationStopName"]?.toString();
+            print('從 DestinationStopName 獲取: $destinationName');
+          }
+        }
+
+        resultItem["DepartureStopName"] = departureName ?? "未知出發站";
+        resultItem["DestinationStopName"] = destinationName ?? "未知目的站";
+
+        print('設置 DepartureStopName: ${resultItem["DepartureStopName"]}');
+        print('設置 DestinationStopName: ${resultItem["DestinationStopName"]}');
+
+        // 根據方向設置 "from" 和 "to"
+        final isDirection1 = direction == 1;
+        resultItem["from"] = isDirection1
+            ? destinationName ?? "未知目的地"
+            : departureName ?? "未知出發地";
+        resultItem["to"] = isDirection1
+            ? departureName ?? "未知出發地"
+            : destinationName ?? "未知目的地";
+
+        print('設置 from: ${resultItem["from"]}');
+        print('設置 to: ${resultItem["to"]}');
+
+        processedData.add(resultItem);
+        print('--- 完成處理 ---');
+      }
+
+      print('=== 處理完成，返回 ${processedData.length} 筆資料 ===');
+      return processedData;
+    } catch (e) {
+      print('處理資料失敗: $e');
+      print(e);
+      return [];
     }
-return finalList;
   }
-  Future<void> _loadData() async {
 
+  /// 添加調試用的輔助方法
+  void _debugPrintRouteInfo(Map<String, dynamic> routeInfo) {
+    print('=== 路線資訊調試 ===');
+    for (final entry in routeInfo.entries) {
+      print('${entry.key}: ${entry.value} (類型: ${entry.value.runtimeType})');
+    }
+    print('===================');
+  }
 
+  /// 添加一個測試函數來驗證資料庫查詢
+  Future<void> _testDatabaseQuery() async {
+    try {
+      // 測試一個已知的路線名稱
+      const testRouteName = '11'; // 替換為實際的路線名稱
 
-      final data = await fetchBusStopInfo();
+      print('測試資料庫查詢...');
 
-      _streamController.add(data); // 向数据流中添加新数据
+      // 測試不同查詢方式
+      final queries = [
+        "SELECT * FROM Bus.Bus_${widget.city}_Route WHERE RouteName LIKE '%\"$testRouteName\"%'",
+        "SELECT * FROM Bus.Bus_${widget.city}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$testRouteName'",
+        "SELECT * FROM Bus.Bus_${widget.city}_Route WHERE RouteName->>'\$.Zh_tw' = '$testRouteName'",
+      ];
 
+      for (var i = 0; i < queries.length; i++) {
+        print('\n嘗試查詢方式 ${i + 1}:');
+        print('SQL: ${queries[i]}');
+        try {
+          final results = await mysqlSelect(queries[i]);
+          print('結果數量: ${results.length}');
+          if (results.isNotEmpty) {
+            print('第一筆結果:');
+            _debugPrintRouteInfo(results.first);
+            break;
+          }
+        } catch (e) {
+          print('查詢失敗: $e');
+        }
+      }
+    } catch (e) {
+      print('測試失敗: $e');
+    }
   }
   // 解析时间格式，转换成相对于当前时间的分钟数
   int _parseTimeToMinutes(String? time) {
@@ -647,6 +919,7 @@ return finalList;
   @override
   Widget build(BuildContext context) {
     _loadData();
+
     return Scaffold(
         body:StreamBuilder<List<Map<String, dynamic>>>(
           stream: _streamController.stream,
@@ -669,7 +942,7 @@ return finalList;
                 length: 2,
                 child: Scaffold(
                     appBar: PreferredSize(
-                      preferredSize: const Size.fromHeight(120), // 自定义高度
+                      preferredSize: const Size.fromHeight(150), // 自定义高度
                       child: Container(
                         decoration: BoxDecoration(
 
@@ -818,7 +1091,7 @@ return finalList;
                       ),
                     ),
                     body: TabBarView(
-                       controller: _tabController,  // 加入 controller 綁定
+                      controller: _tabController,  // 加入 controller 綁定
                       children: List.generate(_stationIDs.value.length, (index) {
                         String label = String.fromCharCode(65 + index); // A, B, C...
 
@@ -888,6 +1161,7 @@ return finalList;
                         ? const EdgeInsets.only(right: 8)
                         : EdgeInsets.zero,
                     child: _buildTabButton(
+
                       icon: Icons.directions_bus,
                       text: _stationIDs.value[index],
                       label: label,
