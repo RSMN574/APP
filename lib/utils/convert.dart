@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 String cityNameConverter(String inputCity) {
   // 全台灣縣市對應表
@@ -103,3 +104,21 @@ String getChineseName(String? name) {
   // 移除 () 或 （） 內的文字（含括號）
   return name.replaceAll(RegExp(r'[\(（][^()（）]*[\)）]'), '');
 }
+List<LatLng> parseGeoJsonLine(Map<String, dynamic> geoJson) {
+  List<LatLng> points = [];
+
+  if (geoJson["geometry"]?["type"] == "MultiLineString") {
+    List coords = geoJson["geometry"]["coordinates"];
+
+    for (var line in coords) {
+      for (var pair in line) {
+        double lng = pair[0]; // GeoJSON → Lng
+        double lat = pair[1]; // GeoJSON → Lat
+        points.add(LatLng(lat, lng));
+      }
+    }
+  }
+
+  return points;
+}
+

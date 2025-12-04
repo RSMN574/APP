@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 
 import '../../database/Train/getTrain.dart';
@@ -6,6 +7,7 @@ import '../../database/SQL/schedule.dart';
 import '../../widget/map.dart';
 import '../../widget/train/RoutePalnner.dart';
  final List E500=[115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
+late Set<Polyline> allLines;
 class TrainSchedulePage extends StatelessWidget {
   // 顏色常數定義
   static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
@@ -61,10 +63,19 @@ class TrainSchedulePage extends StatelessWidget {
     return Stack(
         children: [
 
-    const Positioned.fill(
+    Positioned.fill(
     child: SizedBox(
 
-        child: map()
+        child:   FutureBuilder<Set<Polyline>>(
+          future: fetchTrainNetworkLine(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+            final lines = snapshot.data!;
+
+            return map(polylines: lines);
+          },
+        ),
+
     ),
     ),
 

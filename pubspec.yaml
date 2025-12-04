@@ -131,8 +131,8 @@ flutter:
     - assets/icons/commute-outlined.svg
     - assets/icons/ev-station.svg
     - assets/icons/parking.svg
-
-
+    - assets/icons/road.svg
+    - assets/icons/rent.svg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

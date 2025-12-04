@@ -3,15 +3,15 @@ import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
 
 import '../../Const/regularConst.dart';
+import '../token_manager.dart';
 Future<List<dynamic>> fetchConnectorLiveStatus(StationID) async {
   String filter = Uri.encodeComponent("StationID eq '$StationID'");
   var url = "https://tdx.transportdata.tw/api/basic/v1/EV/ConnectorLiveStatus/City/Taichung?\$filter=$filter&\$format=JSON";
 
-print(url);
+
   try {
 
-    final tokenResponse = await http.get(tokenUri);
-    final token=tokenResponse.body;
+    final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
       Uri.parse(url),

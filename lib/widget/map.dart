@@ -9,6 +9,7 @@ import '../Const/regularClass.dart';
 
 class map extends StatefulWidget {
   final Set<Marker>? markers;
+  final Set<Polyline>? polylines; // 新增線條
   final CameraPosition? initialCameraPosition;
   final Function(GoogleMapController)? onMapCreated;
   final Function(CameraPosition)? onCameraMove;
@@ -18,12 +19,14 @@ class map extends StatefulWidget {
   const map({
     Key? key,
     this.markers,
+    this.polylines, // 新增線條
     this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
     this.onCameraMove,
     this.onCameraIdle,
   }) : super(key: key);
+
 
   @override
   State<map> createState() => _MapWidgetState();
@@ -91,6 +94,7 @@ class _MapWidgetState extends State<map>
           onCameraIdle: widget.onCameraIdle,
           markers: widget.markers ?? markerProvider.markers,
           myLocationEnabled: widget.myLocationEnabled,
+          polylines: widget.polylines ?? {}, // <-- 加上線條
           myLocationButtonEnabled: true,
           gestureRecognizers: {
             Factory<OneSequenceGestureRecognizer>(
