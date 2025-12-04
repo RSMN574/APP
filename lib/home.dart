@@ -1377,11 +1377,11 @@ class _HomeState extends State<Home>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Theme.of(context).primaryColor,
-            ),
+          Center( child:
+          LoadingAnimationWidget.stretchedDots(
+            color: Colors.black,
+            size: 40,
+          ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -2925,10 +2925,15 @@ print(busTimeData);
           )
         ],
       ),
-      child: const Column(
+      child:  Column(
         children: [
           SizedBox(height: 20),
-          Center(child: CircularProgressIndicator()),
+          Center( child:
+          LoadingAnimationWidget.stretchedDots(
+            color: Colors.black,
+            size: 40,
+          ),
+          ),
           SizedBox(height: 20),
         ],
       ),
@@ -3047,13 +3052,11 @@ print(busTimeData);
             width: double.infinity,
             child: FilledButton.icon(
               icon: _isRefreshing
-                  ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.teal[800],
-                ),
+                  ?   Center( child:
+              LoadingAnimationWidget.stretchedDots(
+                color: Colors.black,
+                size: 40,
+              ),
               )
                   : Icon(Icons.refresh_rounded, size: 20),
               label: Text(
