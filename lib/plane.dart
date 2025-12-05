@@ -69,7 +69,28 @@ class _PlaneState extends State<Plane>   {
           centerTitle: true,
           iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
           actions: [
-            Container(
+        Container(
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                // 可以添加點擊效果
+              },
+              child: Container(
+
               margin: const EdgeInsets.only(right: 16),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
@@ -89,10 +110,19 @@ class _PlaneState extends State<Plane>   {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
+
                 items: airportList.map((airport) {
+                  final isSelected =selectedAirport == airport;
                   return DropdownMenuItem<String>(
                     value: airport['code'],
-                    child: Row(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  ),
+                  child:Row(
                       children: [
                         Icon(
                           Icons.flight_takeoff_rounded,
@@ -103,7 +133,7 @@ class _PlaneState extends State<Plane>   {
                         Text(airport['name']!),
                       ],
                     ),
-                  );
+                    ) );
                 }).toList(),
                 onChanged: (value) {
                   if (value != null) {
@@ -113,8 +143,7 @@ class _PlaneState extends State<Plane>   {
                   }
                 },
               ),
-            ),
-          ],
+            ))))],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(100), // 只放 TabBar
             child: Container(

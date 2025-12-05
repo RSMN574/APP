@@ -21,7 +21,7 @@ class Metro extends StatefulWidget {
 
 class _MetroState extends State<Metro> with TickerProviderStateMixin {
   late TabController _tabController;
-  var data;
+  late List<Map<String, dynamic>> data;
 
   final List<String> items = [
     "車站",
@@ -51,6 +51,8 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+
     _mrtGreenLinePainter = MRTGreenLinePainter(); // 实例化
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
     _tabController = TabController(length: 2, vsync: this); // 现在有两个标签页
@@ -60,10 +62,15 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
     }
   }
 
-  fetchData() async {
-    data = await mysqlSelect("SELECT * FROM MRT.MRT_taichung_S2STravelTime;");
-    return;
-  }
+
+
+Future<void> _loadTravelTimeData() async {
+  final data = await mysqlSelect(
+      "SELECT * FROM MRT.MRT_Taichung_S2STravelTime;");
+
+  TravelTimeHelper.load(data);
+
+}
 
 // 返回每個隱藏的菜單項 - 美化版本
   PopupMenuItem<String> _buildPopupMenuItem(IconData icon, String text, String id, Color color) {
@@ -534,6 +541,7 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
                 ));
               }
           else if(_selectedCity == "臺中市測試版") {
+                _loadTravelTimeData();
           return MetroMap();
             }else {
                 return _buildCityText(_selectedCity);
@@ -867,7 +875,7 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
 Future<List> _getStationInfo(String station) async {
   // 取得 stationExit
   var stationExit = await mysqlSelect(
-      "SELECT * FROM MRT.MRT_taichung_stationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'"
+      "SELECT * FROM MRT.MRT_Taichung_StationExit WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw'))='$station'"
   );
 
   // 查詢 info
@@ -1024,7 +1032,8 @@ Widget buildStationInfo(String station) {
           ),
         );
       } else if (snapshot.hasData) {
-        var stationI = snapshot.data;
+        List<dynamic>? stationI = snapshot.data;
+
         return SingleChildScrollView(
           // padding: const EdgeInsets.all(20),
           child: Column(
@@ -1151,10 +1160,11 @@ Widget buildStationInfo(String station) {
                           }).toList(),
                         );
                       },
-                    )
+                    ),
+      const SizedBox(height: 16),
+                    _buildMultiImageButton(context,json.decode(stationI ![0]["ExitMapURLs"]))
 
-
-                  ],
+      ],
                 ),
               ),
             ],
@@ -1198,7 +1208,7 @@ Widget buildStationInfo(String station) {
                     color: Color(0xFF1A73E8),
                   ),
                 ),
-                const SizedBox(height: 16),
+
                 const Text(
                   '未找到車站資訊',
                   style: TextStyle(
@@ -1215,16 +1225,425 @@ Widget buildStationInfo(String station) {
     },
   );
 }
+Widget _buildMultiImageButton(BuildContext context, List<dynamic> mapList) {
+  if (mapList == null || mapList.isEmpty) {
+    return const SizedBox.shrink();
+  }
 
+  return Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: () {
+        _showMultiImageDialog(context, mapList);
+      },
+      borderRadius: BorderRadius.circular(16),
+      splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+      highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: const Color(0xFFEEF3FB),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.map_rounded,
+                size: 24,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '車站地圖',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${mapList.length} 張地圖可供查看',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showMultiImageDialog(BuildContext context, List<dynamic> mapList) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.9,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 標題欄
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.map_rounded,
+                    color: Color(0xFF1A73E8),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '車站地圖',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            // 地圖列表
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: mapList.length,
+                itemBuilder: (context, index) {
+                  final mapData = mapList[index];
+                  final mapUrl = mapData["MapURL"] as String?;
+                  final mapName = mapData["MapName"]["Zh_tw"] as String?;
+                  final floorLevel = mapData["FloorLevel"] as String?;
+
+                  return _buildMapListItem(context, mapUrl, mapName, floorLevel, index);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+void _showImageDialog(BuildContext context, String imageUrl, String? title) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: Stack(
+        children: [
+          // 背景遮罩
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              color: Colors.black.withOpacity(0.5),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+          // 圖片容器
+          Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 標題欄
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.image_rounded,
+                          color: Color(0xFF1A73E8),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            title ?? '圖片預覽',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1A73E8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 圖片內容
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(20),
+                      ),
+                      child: InteractiveViewer(
+                        panEnabled: true,
+                        minScale: 0.5,
+                        maxScale: 3,
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                    : null,
+                                color: const Color(0xFF1A73E8),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline_rounded,
+                                    size: 40,
+                                    color: Color(0xFFFF3B30),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    '無法載入圖片',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFFF3B30),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'URL: $imageUrl',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+Widget _buildMapListItem(BuildContext context, String? imageUrl, String? mapName, String? floorLevel, int index) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (imageUrl != null) {
+            Navigator.pop(context); // 關閉列表對話框
+            _showImageDialog(context, imageUrl, mapName);
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.grey[200]!,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              // 序號
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A73E8).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 地圖資訊
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      mapName ?? '未命名地圖',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (floorLevel != null && floorLevel.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          floorLevel,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.grey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 // 構建出口卡片
-Widget _buildExitCard(dynamic station, int index,context) {
+Widget _buildExitCard(dynamic station, int index, BuildContext context) {
+  final exitName = json.decode(station["ExitName"])["Zh_tw"];
+  final locationDescription = station["LocationDescription"] as String?;
+
+  // 判斷設施是否存在
+  final hasStair = station["Stair"] == 1 || station["Stair"] == true;
+  final hasElevator = station["Elevator"] == 1 || station["Elevator"] == true;
+  final hasEscalator = station["Escalator"] == 1;
+  final hasFacilities = hasStair || hasElevator || hasEscalator;
+
   return Material(
     color: Colors.transparent,
     child: InkWell(
       onTap: () {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('點擊了 ${json.decode(station["ExitName"])["Zh_tw"]}'),
+            content: Text('點擊了 $exitName'),
             backgroundColor: const Color(0xFF1A73E8),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -1250,48 +1669,69 @@ Widget _buildExitCard(dynamic station, int index,context) {
           children: [
             // 出口圖標
             Container(
-              width: 40,
-              height: 40,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1A73E8),Color(0xFF1A73E8)],
+                  colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.exit_to_app_rounded,
-                size: 20,
+                size: 24,
                 color: Colors.white,
               ),
             ),
             const SizedBox(width: 12),
+
             // 出口資訊
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 出口名稱
                   Text(
-                    json.decode(station["ExitName"])["Zh_tw"],
+                    exitName,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 4),
+
+                  // 位置描述（如果有的話）
+                  if (locationDescription != null && locationDescription.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        locationDescription,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                  const SizedBox(height: 8),
+
                   // 設施圖標
-                  Row(
-                    children: [
-                      if (int.parse(station["Stair"]) == 1)
-                        _buildFacilityIcon(Icons.stairs_rounded, '樓梯', const Color(0xFF1A73E8)),
-                      if (int.parse(station["Elevator"]) == 1)
-                        _buildFacilityIcon(Icons.elevator_rounded, '電梯', const Color(0xFF34C759)),
-                      if (int.parse(station["Escalator"]) == 1)
-                        _buildFacilityIcon(Icons.escalator_rounded, '手扶梯', const Color(0xFFFF9500)),
-                    ],
-                  ),
+                  if (hasFacilities)
+                    Row(
+                      children: [
+                        if (hasStair)
+                          _buildFacilityIcon(Icons.stairs_rounded, '樓梯', const Color(0xFF1A73E8)),
+                        if (hasElevator)
+                          _buildFacilityIcon(Icons.elevator_rounded, '電梯', const Color(0xFF34C759)),
+                        if (hasEscalator)
+                          _buildFacilityIcon(Icons.escalator_rounded, '手扶梯', const Color(0xFFFF9500)),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -1574,6 +2014,7 @@ class Connection {
   Connection(this.station, this.color);
 }
 class MRTStation {
+  final String  stationId;
   final String name;
   final Offset relativePosition;
   List<Connection> connections;
@@ -1581,6 +2022,7 @@ class MRTStation {
   int? displayTime;
 
   MRTStation(
+      this.stationId,
       this.name,
       this.relativePosition, {
         List<Connection>? connections,
@@ -1613,29 +2055,30 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
   }
 
   void _initializeStations() {
+
     // Create the shared transfer station
-    final cityHallStation = MRTStation('市政府', Offset(0.5, 0.45), lineColor: Colors.green);
+    final cityHallStation = MRTStation("110",'市政府', Offset(0.5, 0.45), lineColor: Colors.green);
 
     // Green Line stations
     final greenLineStations = [
-      MRTStation('北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
-      MRTStation('舊社', Offset(0.5, 0.10), lineColor: Colors.green),
-      MRTStation('松竹', Offset(0.5, 0.15), lineColor: Colors.green),
-      MRTStation('四維國小', Offset(0.5, 0.20), lineColor: Colors.green),
-      MRTStation('文心崇德', Offset(0.5, 0.25), lineColor: Colors.green),
-      MRTStation('文心中清', Offset(0.5, 0.30), lineColor: Colors.green),
-      MRTStation('文華高中', Offset(0.5, 0.35), lineColor: Colors.green),
-      MRTStation('文心櫻花', Offset(0.5, 0.40), lineColor: Colors.green),
+      MRTStation("103a",'北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
+      MRTStation("103",'舊社', Offset(0.5, 0.10), lineColor: Colors.green),
+      MRTStation("104",'松竹', Offset(0.5, 0.15), lineColor: Colors.green),
+      MRTStation("105",'四維國小', Offset(0.5, 0.20), lineColor: Colors.green),
+      MRTStation("106",'文心崇德', Offset(0.5, 0.25), lineColor: Colors.green),
+      MRTStation("107",'文心中清', Offset(0.5, 0.30), lineColor: Colors.green),
+      MRTStation("108",'文華高中', Offset(0.5, 0.35), lineColor: Colors.green),
+      MRTStation("109",'文心櫻花', Offset(0.5, 0.40), lineColor: Colors.green),
       cityHallStation, // Transfer MRTStation
-      MRTStation('水安宮', Offset(0.5, 0.50), lineColor: Colors.green),
-      MRTStation('文心森林公園', Offset(0.5, 0.55), lineColor: Colors.green),
-      MRTStation('南屯', Offset(0.5, 0.60), lineColor: Colors.green),
-      MRTStation('豐樂公園', Offset(0.5, 0.7), lineColor: Colors.green),
-      MRTStation('大慶', Offset(0.501, 0.75), lineColor: Colors.green),
-      MRTStation('九張犁', Offset(0.45, 0.81), lineColor: Colors.green),
-      MRTStation('九德', Offset(0.33, 0.85), lineColor: Colors.green),
-      MRTStation('烏日', Offset(0.24, 0.85), lineColor: Colors.green),
-      MRTStation('高鐵台中站', Offset(0.18, 0.85), lineColor: Colors.green),
+      MRTStation("111",'水安宮', Offset(0.5, 0.50), lineColor: Colors.green),
+      MRTStation("112",'文心森林公園', Offset(0.5, 0.55), lineColor: Colors.green),
+      MRTStation('113','南屯', Offset(0.5, 0.60), lineColor: Colors.green),
+      MRTStation("114",'豐樂公園', Offset(0.5, 0.7), lineColor: Colors.green),
+      MRTStation("115",'大慶', Offset(0.501, 0.75), lineColor: Colors.green),
+      MRTStation("116",'九張犁', Offset(0.45, 0.81), lineColor: Colors.green),
+      MRTStation("117",'九德', Offset(0.33, 0.85), lineColor: Colors.green),
+      MRTStation("118",'烏日', Offset(0.24, 0.85), lineColor: Colors.green),
+      MRTStation("119",'高鐵台中站', Offset(0.18, 0.85), lineColor: Colors.green),
     ];
 
 
@@ -1683,115 +2126,102 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
     }
   }
 
-  Map<MRTStation, int> _calculateTimes(MRTStation start) {
-    Map<MRTStation, int> distances = {};
-    final queue = Queue<MRTStation>();
-    distances[start] = 0;
-    queue.add(start);
-
-    while (queue.isNotEmpty) {
-      final current = queue.removeFirst();
-      for (final connection in current.connections) {
-        final neighborStation = connection.station;
-        if (!distances.containsKey(neighborStation)) {
-          distances[neighborStation] = distances[current]! + 1;
-          queue.add(neighborStation);
-        }
-      }
-    }
-
-    return distances.map((station, distance) => MapEntry(station, distance * 2));
+  Map<MRTStation, int> _calculateTimes(MRTStation station) {
+    return TravelTimeHelper.calculateTimes(station, _stations);
   }
+
 
   void _updateSelectedStation(MRTStation station) {
     setState(() {
       _selectedStation = station;
       _timeMap = _calculateTimes(station);
-      _stations.forEach((s) => s.displayTime = _timeMap[s]);
-    });
-    print(_selectedStation?.name);
-    WidgetsBinding.instance.addPostFrameCallback((_) {if (_selectedStation != null) {
-      showBottomSheet(
-        context: context,
-        builder: (context) {
-          return DraggableScrollableSheet(
-            initialChildSize: 0.4, // 初始高度比例
-            minChildSize: 0.3, // 最小高度比例
-            maxChildSize: 0.8, // 最大高度比例
-            expand: false, // 防止内容展开
-            builder: (BuildContext context,
-                ScrollController scrollController) {
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // 拖动提示线
-                    SingleChildScrollView(
-                      controller:
-                      scrollController, // 使用 ScrollController 使内容可以滚动
-                      child: Column(
-                        children: [
-                          Container(
-                            height: 4, // 提示线高度
-                            width: 40, // 提示线宽度
-                            decoration: BoxDecoration(
-                              color: Colors.grey, // 提示线颜色
-                              borderRadius:
-                              BorderRadius.circular(
-                                  2), // 圆角
-                            ),
-                            margin: const EdgeInsets.only(
-                                bottom: 8), // 提示线与内容之间的间距
-                          ),
-                          Text(
-                            _selectedStation
-                            !.name,
-                            style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
 
-                          TabBar(
-                            controller: _tabController,
-                            labelColor: Colors.black,
-                            unselectedLabelColor: Colors.grey,
-                            indicatorColor: Colors.blue,
-                            tabs: const [
-                              Tab(text: "車站資訊"),
-                              Tab(text: "轉乘資訊"),
-                            ],
-                          ),
-                        ],
+      _stations.forEach((s) {
+        // 將秒數轉換為分鐘（小數）
+        final seconds = _timeMap[s];
+        if (seconds == -1) {
+          s.displayTime = -1; // 保持 -1 表示無法到達
+        } else {
+          s.displayTime = (seconds!/60).round(); // 轉為分鐘
+        }
+      });
+    });
+
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_selectedStation != null) {
+        showBottomSheet(
+          context: context,
+          builder: (context) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.4,
+              minChildSize: 0.3,
+              maxChildSize: 0.8,
+              expand: false,
+              builder: (BuildContext context, ScrollController scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      SingleChildScrollView(
+                        controller: scrollController,
+                        child: Column(
+                          children: [
+                            Container(
+                              height: 4,
+                              width: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                              margin: const EdgeInsets.only(bottom: 8),
+                            ),
+                            Text(
+                              _selectedStation!.name,
+                              style: const TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            TabBar(
+                              controller: _tabController,
+                              labelColor: Colors.black,
+                              unselectedLabelColor: Colors.grey,
+                              indicatorColor: Colors.blue,
+                              tabs: const [
+                                Tab(text: "車站資訊"),
+                                Tab(text: "轉乘資訊"),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          // 将车站信息和转乘信息作为子项传入
-                          SingleChildScrollView(
-                            controller: scrollController,
-                            child: buildStationInfo(
-                                _selectedStation
-                                !.name),
-                          ),
-                          SingleChildScrollView(
-                            controller: scrollController,
-                            child: _buildTransferInfo(),
-                          ),
-                        ],
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            SingleChildScrollView(
+                              controller: scrollController,
+                              child:
+                              buildStationInfo(_selectedStation!.name),
+                            ),
+                            SingleChildScrollView(
+                              controller: scrollController,
+                              child: _buildTransferInfo(),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      );
-    }});
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      }
+    });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -1948,7 +2378,7 @@ class _MetroMapPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final drawnConnections = <Pair<MRTStation, MRTStation>>{};
 
-    // Draw connections
+    // 繪製連接線
     for (final station in stations) {
       for (final connection in station.connections) {
         final pair = Pair(station, connection.station);
@@ -1967,7 +2397,7 @@ class _MetroMapPainter extends CustomPainter {
       }
     }
 
-    // Draw stations
+    // 繪製車站
     for (final station in stations) {
       _drawStation(canvas, station, size);
     }
@@ -1987,17 +2417,24 @@ class _MetroMapPainter extends CustomPainter {
     final outerPaint = Paint()
       ..color = station.lineColor
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(position, stationRadius*0.9, outerPaint);
+    canvas.drawCircle(position, stationRadius * 0.9, outerPaint);
 
-// 內圓（留一個漂亮的圓環邊）
-    const ringWidth = 1.5; // 邊框寬度
+    // 內圓（圓環邊框）
+    const ringWidth = 1.5;
     final innerPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(position, stationRadius*0.9 - ringWidth, innerPaint);
+    canvas.drawCircle(position, stationRadius * 0.9 - ringWidth, innerPaint);
 
+    // 如果是選中的車站，繪製選中效果
+    if (isSelected) {
+      final selectedPaint = Paint()
+        ..color = const Color(0xFFFF3B30).withOpacity(0.3)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(position, stationRadius * 1.2, selectedPaint);
+    }
 
-    // Draw time text
+    // 繪製時間文字（如果有）
     if (station.displayTime != null) {
       final text = station.displayTime.toString();
       final textPainter = TextPainter(
@@ -2005,10 +2442,11 @@ class _MetroMapPainter extends CustomPainter {
           text: text,
           style: TextStyle(
             fontSize: stationRadius * 0.8,
-            color:   Colors.black ,
+            color: Colors.black,
             fontWeight: FontWeight.bold,
           ),
         ),
+        textAlign: TextAlign.center,
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
@@ -2019,26 +2457,252 @@ class _MetroMapPainter extends CustomPainter {
       textPainter.paint(canvas, offset);
     }
 
-    // Draw station name
-    final namePainter = TextPainter(
-      text: TextSpan(
-        text: station.name,
-        style: TextStyle(
-          fontSize: stationRadius * 0.8,
-          color: Colors.black,
+    // 繪製車站名稱（在下方）
+    if (station.name.isNotEmpty) {
+      final namePainter = TextPainter(
+        text: TextSpan(
+          text: station.name,
+          style: TextStyle(
+            fontSize: stationRadius * 0.9, // 稍微放大字體
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    namePainter.layout();
-    namePainter.paint(
-      canvas,
-      Offset(position.dx + stationRadius, position.dy + stationRadius),
-    );
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      );
+      namePainter.layout();
+
+      // 修正位置：在車站正下方
+      final offset = Offset(
+        position.dx - namePainter.width / 2, // 居中對齊
+        position.dy + stationRadius * 1.2,  // 在車站下方
+      );
+      namePainter.paint(canvas, offset);
+    }
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+class TravelTime {
+  final String fromStationId;
+  final String toStationId;
+  final String id;
+  final int runtime;   // 行駛秒數
+  final int stopTime;  // 停靠秒數
 
+  TravelTime({
+    required this.fromStationId,
+    required this.toStationId,
+    required this.id,
+    required this.runtime,
+    required this.stopTime,
+  });
+
+  factory TravelTime.fromJson(Map<String, dynamic> json) {
+    return TravelTime(
+      id: json['id'].toString(),
+      fromStationId: json['traveltimes_fromstationid'].toString(),
+      toStationId: json['traveltimes_tostationid'].toString(),
+      runtime: (json['traveltimes_runtime'] as num).toInt(),
+      stopTime: (json['traveltimes_stoptime'] as num).toInt(),
+    );
+  }
+}
+class TravelTimeHelper {
+  /// sourceId → { targetId → runtimeSec }
+  static final Map<String, Map<String, int>> travelMatrix = {};
+
+  /// 除錯：顯示 travelMatrix 的內容
+  static void debugPrintMatrix() {
+    print("=== travelMatrix 除錯資訊 ===");
+    print("總共有 ${travelMatrix.length} 個起點車站");
+
+    int totalConnections = 0;
+    travelMatrix.forEach((from, connections) {
+      print("$from -> ${connections.length} 個連接: ${connections.keys.toList()}");
+      totalConnections += connections.length;
+    });
+    print("總連接數: $totalConnections");
+
+    // 顯示前幾個連接的詳細資訊
+    int count = 0;
+    travelMatrix.forEach((from, connections) {
+      connections.forEach((to, time) {
+        if (count < 5) {
+          print("$from -> $to : $time 秒");
+          count++;
+        }
+      });
+    });
+  }
+  /// 初始化資料
+  static void load(List<Map<String, dynamic>> data) {
+    travelMatrix.clear();
+
+    for (final row in data) {
+      // 去除字串中的引號
+      final from = _cleanId(row["traveltimes_fromstationid"].toString());
+      final to = _cleanId(row["traveltimes_tostationid"].toString());
+      final runtime = (num.parse(row["traveltimes_runtime"].toString())).toInt();
+
+      travelMatrix.putIfAbsent(from, () => {});
+      travelMatrix[from]![to] = runtime;
+
+      // 如果需要雙向連接，也加上反向
+      travelMatrix.putIfAbsent(to, () => {});
+      travelMatrix[to]![from] = runtime;
+    }
+
+    print("✅ 已載入 travelMatrix，車站ID範例: ${travelMatrix.keys.take(3).toList()}");
+  }
+
+  /// 清理ID：去除多餘的引號和空白
+  static String _cleanId(String id) {
+    return id
+        .replaceAll('"', '')  // 去除雙引號
+        .replaceAll("'", '')   // 去除單引號
+        .trim();               // 去除空白
+  }
+  /// 計算某站到所有站的最短行駛時間
+  /// 計算某站到所有站的最短行駛時間（基本版 Dijkstra）
+  static Map<MRTStation, int> calculateTimes(
+      MRTStation start, List<MRTStation> stations) {
+
+    print("\n======= 開始計算旅行時間 =======");
+    print("起始站: ${start.name} (ID: ${start.stationId})");
+    print("總車站數: ${stations.length}");
+    print("travelMatrix 大小: ${travelMatrix.length}");
+
+    // 先檢查起始站是否在 travelMatrix 中
+    if (!travelMatrix.containsKey(start.stationId)) {
+      print("❌ 錯誤: 起始站 ${start.stationId} 不在 travelMatrix 中!");
+      print("travelMatrix 中的車站ID: ${travelMatrix.keys.toList()}");
+
+      // 檢查是否有相似ID
+      for (var key in travelMatrix.keys) {
+        if (key.replaceAll('"', '').replaceAll("'", "") == start.stationId) {
+          print("⚠️ 發現相似ID: '$key' 可能匹配 '${start.stationId}'");
+        }
+      }
+
+      return {
+        for (var s in stations)
+          s: (s.stationId == start.stationId) ? 0 : -1,
+      };
+    }
+
+    print("✅ 起始站 ${start.stationId} 在 travelMatrix 中");
+    print("起始站的連接數: ${travelMatrix[start.stationId]!.length}");
+    print("起始站連接: ${travelMatrix[start.stationId]!.entries.map((e) => '${e.key}:${e.value}秒').toList()}");
+
+    final Map<String, int> dist = {};
+    final Set<String> visited = {};
+
+    // 初始化距離
+    print("\n初始化距離:");
+    for (var s in stations) {
+      dist[s.stationId] = 999999;
+      print("  ${s.stationId}: 999999");
+    }
+    dist[start.stationId] = 0;
+    print("  ${start.stationId}: 0 (起始站)");
+
+    // 重複直到所有節點都被訪問
+    int iteration = 0;
+    while (visited.length < stations.length) {
+      iteration++;
+      print("\n--- 迭代 $iteration ---");
+      print("已訪問: ${visited.length}/${stations.length}");
+      print("已訪問車站: ${visited.toList()}");
+
+      // 找到未訪問的最小距離節點
+      String? current;
+      int minDist = 999999;
+
+      for (var entry in dist.entries) {
+        if (!visited.contains(entry.key) && entry.value < minDist) {
+          minDist = entry.value;
+          current = entry.key;
+        }
+      }
+
+      if (current == null || minDist == 999999) {
+        print("⚠️ 找不到更多可到達的節點，停止計算");
+        break;
+      }
+
+      print("選擇當前節點: $current (距離: $minDist)");
+      visited.add(current);
+
+      // 如果當前節點沒有連接，跳過
+      if (!travelMatrix.containsKey(current)) {
+        print("❌ $current 在 travelMatrix 中沒有連接");
+        continue;
+      }
+
+      // 更新所有鄰居的距離
+      print("更新 $current 的鄰居:");
+      travelMatrix[current]!.forEach((nextId, runtime) {
+        if (visited.contains(nextId)) {
+          print("  $nextId: 已訪問，跳過");
+          return;
+        }
+
+        // 檢查 nextId 是否在 dist 中
+        if (!dist.containsKey(nextId)) {
+          print("  ❌ $nextId: 不在 dist 映射中！");
+          return;
+        }
+
+        final newDist = dist[current]! + runtime;
+        final oldDist = dist[nextId]!;
+
+        if (newDist < oldDist) {
+          dist[nextId] = newDist;
+          print("  ✅ $nextId: $oldDist → $newDist 秒");
+        } else {
+          print("  $nextId: $oldDist (新距離 $newDist 不小於舊距離)");
+        }
+      });
+    }
+
+    print("\n======= 計算完成 =======");
+    print("總迭代次數: $iteration");
+    print("已訪問車站數: ${visited.length}");
+
+    // 分析結果
+    int reachableCount = 0;
+    int unreachableCount = 0;
+
+    dist.forEach((stationId, time) {
+      if (time == 999999) {
+        unreachableCount++;
+      } else if (time > 0) {
+        reachableCount++;
+      }
+    });
+
+    print("可到達車站: $reachableCount 個");
+    print("無法到達: $unreachableCount 個");
+    print("起始站自己: 1 個");
+
+    // 顯示前幾個車站的結果
+    print("\n前10個車站結果:");
+    int count = 0;
+    for (var s in stations) {
+      if (count >= 10) break;
+      final time = dist[s.stationId]!;
+      print("  ${s.stationId}: ${time == 999999 ? '無法到達' : '$time 秒'}");
+      count++;
+    }
+
+    // 返回結果，將無法到達的標記為 -1
+    return {
+      for (var s in stations)
+        s: dist[s.stationId] == 999999 ? -1 : dist[s.stationId]!,
+    };
+  }
+}

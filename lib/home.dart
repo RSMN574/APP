@@ -40,7 +40,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home>
     with AutomaticKeepAliveClientMixin<Home>, MRTColor {
   DateTime _selectedTime = DateTime.now().add(Duration(minutes: 1));
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   Map<String, dynamic>? _selectedStation; // null 代表沒選任何站點
 
   void _clearSearch() {
@@ -152,7 +152,7 @@ class _HomeState extends State<Home>
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
-    final double _bottomSheetHeightMin = 0.3; // 這個變數應該來自你的程式碼
+    const double _bottomSheetHeightMin = 0.3; // 這個變數應該來自你的程式碼
     final mapHeight = screenHeight -
         (screenHeight * _bottomSheetHeightMin) -
         appBarHeight -
