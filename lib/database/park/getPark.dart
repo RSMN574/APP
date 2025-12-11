@@ -1,42 +1,69 @@
-import 'dart:convert'; // 用于 JSON 解码
-import 'dart:io'; // 用于文件读写
+import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
-import '../../Const/regularConst.dart';
 import '../token_manager.dart';
+
+/// 取得台灣所有動態停車場資訊（市區 + 台鐵車站 + 高鐵車站）
 Future<List<dynamic>> fetchParkLiveStatus(String city) async {
+  final token = await TokenManager().getToken();
 
-  var url = "https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/ParkingAvailability/City/$city?%24format=JSON";
+  /// 三個 API url
+  final urls = [
+    // 市區停車場
+    "https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/ParkingAvailability/City/$city?%24format=JSON",
 
+    // 台鐵車站停車場
+    "https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/ParkingAvailability/Rail/Station/TRA?%24format=JSON",
 
-  try {
+    // 高鐵車站停車場
+    "https://tdx.transportdata.tw/api/basic/v1/Parking/OffStreet/ParkingAvailability/Rail/Station/THSR?%24format=JSON",
+  ];
 
-    final token = await TokenManager().getToken();
-    // 发起 GET 请求
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'accept': 'application/json',
-      },
-    );
+  final List<dynamic> allData = [];
 
-    // 检查响应状态
-    if (response.statusCode != 200) {
-      throw HttpException('HTTP error! status: ${response.statusCode}');
+  for (final url in urls) {
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        print("❌ API 失敗：$url -> ${response.statusCode}");
+        continue;
+      }
+
+      final decoded = jsonDecode(response.body);
+      final list = decoded["ParkingAvailabilities"] as List<dynamic>?;
+
+      if (list != null) {
+        // 加上來源標記
+        final withSource = list.map((e) {
+          final map = Map<String, dynamic>.from(e);
+          map["Source"] = _detectSourceFromURL(url);
+          return map;
+        }).toList();
+
+        allData.addAll(withSource);
+      }
+    } catch (e) {
+      print("❌ 解析錯誤：$url -> $e");
+      continue;
     }
-
-    // 解析 JSON 数据
-    List<dynamic> jsonData = await jsonDecode(response.body)["ParkingAvailabilities"];
-
-    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
-    // 这里你可以根据你的需求来构建 SQL 语句，例如：
-    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
-
-    return jsonData;
-  } catch (e) {
-    print('Error occurred: $e');
-
-    return [];
   }
+
+  print("✅ 合併完成，共 ${allData.length} 筆資料");
+  return allData;
+}
+
+/// 根據 URL 判斷來源：City / TRA / THSR
+String _detectSourceFromURL(String url) {
+  if (url.contains("/City/")) return "City";
+  if (url.contains("/TRA")) return "TRA";
+  if (url.contains("/THSR")) return "THSR";
+  return "Unknown";
 }

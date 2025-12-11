@@ -47,10 +47,32 @@ class _ParkingState extends State<Parking> {
 
     try {
       /// 1. 取得 MySQL 的靜態停車資料 + 強制轉型成 Map<String, dynamic>
-      List<Map<String, dynamic>> data =
+      // 取得 OffStreet
+      List<Map<String, dynamic>> offStreet =
       (await mysqlSelect("SELECT * FROM CarPark.OffStreetCarPark_Taichung;") ?? [])
           .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
           .toList();
+
+// 取得 OnStreet
+      List<Map<String, dynamic>> freeway =
+      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="TXG";') ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+      List<Map<String, dynamic>> tra =
+      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="TXG";') ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+      List<Map<String, dynamic>> thsr =
+      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="TXG";') ?? [])
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
+          .toList();
+// 合併
+      List<Map<String, dynamic>> data = [
+        ...offStreet,
+...freeway,
+        ...tra
+        ,...thsr
+      ];
 
       print("MySQL data: $data");
 

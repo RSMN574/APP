@@ -617,30 +617,19 @@ class BusState extends State<Bus> {
             child: ValueListenableBuilder<String>(
               valueListenable: _dropdownValueNotifier,
               builder: (context, value, child) {
-                return DropdownButtonFormField<String>(
-                  value: value,
-                  onChanged: (String? newValue) {
-                    _dropdownValueNotifier.value = newValue!;
-                  },
-                  decoration: InputDecoration(
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+
+
+                return    SizedBox(
+                  width: 120, // 或者根據需要調整寬度
+                  child: CustomDropdown<String>(
+                    items: ['路線', '站牌'],
+                    initialItem:"路線" ,
+
+                    onChanged: (value) {
+                      _dropdownValueNotifier.value = value!;
+                    },
                   ),
-                  style: const TextStyle(color: Colors.black87, fontSize: 14),
-                  dropdownColor: Colors.white,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                  items: <String>['路線', '站牌']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
                 );
               },
             ),

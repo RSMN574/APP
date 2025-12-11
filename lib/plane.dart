@@ -7,6 +7,192 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'Const/regularConst.dart';
 import 'database/flight/getFlight.dart';
 final PageController pageController = PageController();
+// 定義機場資料模型
+class AirportData {
+  final String name;
+  final String iataCode;
+  final double area; // 公頃
+  final int terminals;
+  final int annualPassengers; // 萬人次
+  final String phone;
+  final Color primaryColor;
+
+  // 交通資訊
+  final List<TransportInfo> transport;
+
+  // 服務設施
+  final List<ServiceInfo> services;
+
+  // 緊急資訊
+  final Map<String, String> emergencyContacts;
+
+  AirportData({
+    required this.name,
+    required this.iataCode,
+    required this.area,
+    required this.terminals,
+    required this.annualPassengers,
+    required this.phone,
+    required this.primaryColor,
+    required this.transport,
+    required this.services,
+    required this.emergencyContacts,
+  });
+}
+
+class TransportInfo {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  TransportInfo({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+}
+
+class ServiceInfo {
+  final String label;
+  final IconData icon;
+
+  ServiceInfo({
+    required this.label,
+    required this.icon,
+  });
+}
+
+// 機場資料庫
+final Map<String, AirportData> airports = {
+  'TPE': AirportData(
+    name: '桃園國際機場',
+    iataCode: 'TPE',
+    area: 1223,
+    terminals: 3, // 2座主航廈 + 1座廉航航廈
+    annualPassengers: 4500,
+    phone: '03-273-5081',
+    primaryColor: const Color(0xFF1A73E8),
+    transport: [
+      TransportInfo(
+        title: '機場捷運',
+        subtitle: '直達台北車站，約35分鐘',
+        icon: Icons.train_rounded,
+      ),
+      TransportInfo(
+        title: '客運巴士',
+        subtitle: '多條路線通往全台各地',
+        icon: Icons.directions_bus_rounded,
+      ),
+      TransportInfo(
+        title: '計程車',
+        subtitle: '24小時排班服務',
+        icon: Icons.local_taxi_rounded,
+      ),
+      TransportInfo(
+        title: '租車服務',
+        subtitle: '各大租車公司進駐',
+        icon: Icons.directions_car_rounded,
+      ),
+    ],
+    services: [
+      ServiceInfo(label: '免稅商店', icon: Icons.shopping_bag_rounded),
+      ServiceInfo(label: '貴賓室', icon: Icons.star_rounded),
+      ServiceInfo(label: '餐飲服務', icon: Icons.restaurant_rounded),
+      ServiceInfo(label: '免費WiFi', icon: Icons.wifi_rounded),
+      ServiceInfo(label: '貨幣兌換', icon: Icons.currency_exchange_rounded),
+      ServiceInfo(label: '行李寄存', icon: Icons.luggage_rounded),
+      ServiceInfo(label: '祈禱室', icon: Icons.people_rounded),
+      ServiceInfo(label: '育嬰室', icon: Icons.child_care_rounded),
+    ],
+    emergencyContacts: {
+      '機場警察': '03-273-2946',
+      '醫療中心': '03-273-2945',
+      '遺失物協尋': '03-273-2947',
+    },
+  ),
+
+  'TSA': AirportData(
+    name: '台北松山機場',
+    iataCode: 'TSA',
+    area: 182,
+    terminals: 1,
+    annualPassengers: 600,
+    phone: '02-8770-3456',
+    primaryColor: Colors.green,
+    transport: [
+      TransportInfo(
+        title: '捷運文湖線',
+        subtitle: '松山機場站，直達市區',
+        icon: Icons.train_rounded,
+      ),
+      TransportInfo(
+        title: '公車',
+        subtitle: '多線公車可達',
+        icon: Icons.directions_bus_rounded,
+      ),
+      TransportInfo(
+        title: '計程車',
+        subtitle: '排班服務',
+        icon: Icons.local_taxi_rounded,
+      ),
+      TransportInfo(
+        title: 'YouBike',
+        subtitle: '機場外有站點',
+        icon: Icons.pedal_bike_rounded,
+      ),
+    ],
+    services: [
+      ServiceInfo(label: '貴賓室', icon: Icons.star_rounded),
+      ServiceInfo(label: '餐飲服務', icon: Icons.restaurant_rounded),
+      ServiceInfo(label: '免費WiFi', icon: Icons.wifi_rounded),
+      ServiceInfo(label: '便利商店', icon: Icons.store_rounded),
+      ServiceInfo(label: '觀景台', icon: Icons.visibility_rounded),
+    ],
+    emergencyContacts: {
+      '機場服務台': '02-8770-3456',
+      '醫療協助': '02-8770-3460',
+      '警察局': '02-8770-3461',
+    },
+  ),
+
+  'RMQ': AirportData(
+    name: '台中清泉崗機場',
+    iataCode: 'RMQ',
+    area: 564,
+    terminals: 1,
+    annualPassengers: 280,
+    phone: '04-2615-5000',
+    primaryColor: Colors.orange,
+    transport: [
+      TransportInfo(
+        title: '公車',
+        subtitle: '多線公車可達市區',
+        icon: Icons.directions_bus_rounded,
+      ),
+      TransportInfo(
+        title: '計程車',
+        subtitle: '排班服務',
+        icon: Icons.local_taxi_rounded,
+      ),
+      TransportInfo(
+        title: '租車服務',
+        subtitle: '機場內提供',
+        icon: Icons.directions_car_rounded,
+      ),
+    ],
+    services: [
+      ServiceInfo(label: '餐飲服務', icon: Icons.restaurant_rounded),
+      ServiceInfo(label: '免費WiFi', icon: Icons.wifi_rounded),
+      ServiceInfo(label: '便利商店', icon: Icons.store_rounded),
+      ServiceInfo(label: '哺乳室', icon: Icons.child_care_rounded),
+    ],
+    emergencyContacts: {
+      '服務中心': '04-2615-5000',
+      '醫療站': '04-2615-5100',
+      '警察隊': '04-2615-5200',
+    },
+  ),
+};
 class Plane extends StatefulWidget {
   const Plane({super.key});
 
@@ -323,6 +509,8 @@ class _PlaneState extends State<Plane>   {
     );
   }
   Widget _buildAirportInfoTab() {
+    final airport = airports[selectedAirport] ?? airports['TPE']!;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -331,31 +519,31 @@ class _PlaneState extends State<Plane>   {
           // 1. 機場概況卡片
           _buildInfoCard(
             icon: Icons.info_outline_rounded,
-            title: '桃園國際機場概況',
+            title: '${airport.name}概況',
             content: '''
-• IATA代碼：TPE
-• 總面積：1,223公頃
-• 航廈數：2座主航廈 + 1座廉航航廈
-• 年旅客量：約4,500萬人次
-• 24小時服務電話：03-273-5081
+• IATA代碼：${airport.iataCode}
+• 總面積：${airport.area.toStringAsFixed(0)}公頃
+• 航廈數：${airport.terminals}座
+• 年旅客量：約${airport.annualPassengers}萬人次
+• 24小時服務電話：${airport.phone}
           ''',
-            color: const Color(0xFF1A73E8),
+            color: airport.primaryColor,
           ),
 
           const SizedBox(height: 16),
 
           // 2. 交通資訊卡片
-          _buildTransportationCard(),
+          _buildTransportationCard(airport),
 
           const SizedBox(height: 16),
 
           // 3. 服務設施卡片
-          _buildServicesCard(),
+          _buildServicesCard(airport),
 
           const SizedBox(height: 16),
 
           // 4. 緊急資訊卡片
-          _buildEmergencyCard(),
+          _buildEmergencyCard(airport),
         ],
       ),
     );
@@ -452,7 +640,7 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildTransportationCard() {
+  Widget _buildTransportationCard(AirportData airport) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -476,8 +664,8 @@ class _PlaneState extends State<Plane>   {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF34C759), Color(0xFF34C759)],
+                    gradient: LinearGradient(
+                      colors: [airport.primaryColor, airport.primaryColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -511,7 +699,7 @@ class _PlaneState extends State<Plane>   {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  const Color(0xFF34C759).withOpacity(0.2),
+                  airport.primaryColor.withOpacity(0.2),
                   Colors.transparent,
                 ],
               ),
@@ -523,13 +711,20 @@ class _PlaneState extends State<Plane>   {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTransportItem('機場捷運', '直達台北車站，約35分鐘', Icons.train_rounded),
-                const SizedBox(height: 12),
-                _buildTransportItem('客運巴士', '多條路線通往全台各地', Icons.directions_bus_rounded),
-                const SizedBox(height: 12),
-                _buildTransportItem('計程車', '24小時排班服務', Icons.local_taxi_rounded),
-                const SizedBox(height: 12),
-                _buildTransportItem('租車服務', '各大租車公司進駐', Icons.directions_car_rounded),
+                ...airport.transport.map((transport) =>
+                    Column(
+                      children: [
+                        _buildTransportItem(
+                          transport.title,
+                          transport.subtitle,
+                          transport.icon,
+                          airport.primaryColor,
+                        ),
+                        if (transport != airport.transport.last)
+                          const SizedBox(height: 12),
+                      ],
+                    )
+                ),
               ],
             ),
           ),
@@ -538,7 +733,7 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildTransportItem(String title, String subtitle, IconData icon) {
+  Widget _buildTransportItem(String title, String subtitle, IconData icon, Color color) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -546,7 +741,7 @@ class _PlaneState extends State<Plane>   {
           // 處理交通項目點擊
         },
         borderRadius: BorderRadius.circular(12),
-        splashColor: const Color(0xFF34C759).withOpacity(0.1),
+        splashColor: color.withOpacity(0.1),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -562,13 +757,13 @@ class _PlaneState extends State<Plane>   {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF34C759).withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: 18,
-                  color: const Color(0xFF34C759),
+                  color: color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -608,7 +803,7 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildServicesCard() {
+  Widget _buildServicesCard(AirportData airport) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -632,8 +827,8 @@ class _PlaneState extends State<Plane>   {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF9500), Color(0xFFFF9500)],
+                    gradient: LinearGradient(
+                      colors: [airport.primaryColor, airport.primaryColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -667,7 +862,7 @@ class _PlaneState extends State<Plane>   {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  const Color(0xFFFF9500).withOpacity(0.2),
+                  airport.primaryColor.withOpacity(0.2),
                   Colors.transparent,
                 ],
               ),
@@ -679,16 +874,9 @@ class _PlaneState extends State<Plane>   {
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
-              children: [
-                _buildServiceChip('免稅商店', Icons.shopping_bag_rounded),
-                _buildServiceChip('貴賓室', Icons.star_rounded),
-                _buildServiceChip('餐飲服務', Icons.restaurant_rounded),
-                _buildServiceChip('免費WiFi', Icons.wifi_rounded),
-                _buildServiceChip('貨幣兌換', Icons.currency_exchange_rounded),
-                _buildServiceChip('行李寄存', Icons.luggage_rounded),
-                _buildServiceChip('祈禱室', Icons.people_rounded),
-                _buildServiceChip('育嬰室', Icons.child_care_rounded),
-              ],
+              children: airport.services.map((service) =>
+                  _buildServiceChip(service.label, service.icon, airport.primaryColor)
+              ).toList(),
             ),
           ),
         ],
@@ -696,14 +884,14 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildServiceChip(String label, IconData icon) {
+  Widget _buildServiceChip(String label, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFF9500).withOpacity(0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFFFF9500).withOpacity(0.3),
+          color: color.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -713,14 +901,14 @@ class _PlaneState extends State<Plane>   {
           Icon(
             icon,
             size: 14,
-            color: const Color(0xFFFF9500),
+            color: color,
           ),
           const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: const Color(0xFFFF9500),
+              color: color,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -729,7 +917,7 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildEmergencyCard() {
+  Widget _buildEmergencyCard(AirportData airport) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -753,8 +941,8 @@ class _PlaneState extends State<Plane>   {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFFF3B30), Color(0xFFFF3B30)],
+                    gradient: LinearGradient(
+                      colors: [airport.primaryColor, airport.primaryColor],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -788,7 +976,7 @@ class _PlaneState extends State<Plane>   {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  const Color(0xFFFF3B30).withOpacity(0.2),
+                  airport.primaryColor.withOpacity(0.2),
                   Colors.transparent,
                 ],
               ),
@@ -800,24 +988,33 @@ class _PlaneState extends State<Plane>   {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildEmergencyItem('機場警察', '03-273-2946', Icons.local_police_rounded),
-                const SizedBox(height: 12),
-                _buildEmergencyItem('醫療中心', '03-273-2945', Icons.medical_services_rounded),
-                const SizedBox(height: 12),
-                _buildEmergencyItem('遺失物協尋', '03-273-2947', Icons.leave_bags_at_home_rounded),
+                ...airport.emergencyContacts.entries.map((entry) =>
+                    Column(
+                      children: [
+                        _buildEmergencyItem(
+                          entry.key,
+                          entry.value,
+                          Icons.phone_rounded,
+                          airport.primaryColor,
+                        ),
+                        if (entry.key != airport.emergencyContacts.entries.last.key)
+                          const SizedBox(height: 12),
+                      ],
+                    )
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFF3B30).withOpacity(0.05),
+                    color: airport.primaryColor.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFFF3B30).withOpacity(0.2),
+                      color: airport.primaryColor.withOpacity(0.2),
                     ),
                   ),
-                  child: const Text(
-                    '緊急情況請撥打：119\n機場服務台：03-273-5081',
-                    style: TextStyle(
+                  child: Text(
+                    '緊急情況請撥打：119\n機場服務台：${airport.phone}',
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: Colors.black87,
@@ -833,7 +1030,7 @@ class _PlaneState extends State<Plane>   {
     );
   }
 
-  Widget _buildEmergencyItem(String title, String phone, IconData icon) {
+  Widget _buildEmergencyItem(String title, String phone, IconData icon, Color color) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -841,7 +1038,7 @@ class _PlaneState extends State<Plane>   {
           // 處理緊急電話撥打
         },
         borderRadius: BorderRadius.circular(12),
-        splashColor: const Color(0xFFFF3B30).withOpacity(0.1),
+        splashColor: color.withOpacity(0.1),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -857,13 +1054,13 @@ class _PlaneState extends State<Plane>   {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFF3B30).withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: 18,
-                  color: const Color(0xFFFF3B30),
+                  color: color,
                 ),
               ),
               const SizedBox(width: 12),
@@ -891,10 +1088,10 @@ class _PlaneState extends State<Plane>   {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.phone_rounded,
                 size: 16,
-                color: Color(0xFFFF3B30),
+                color: color,
               ),
             ],
           ),
@@ -902,7 +1099,6 @@ class _PlaneState extends State<Plane>   {
       ),
     );
   }
-
   Widget _buildDepartureTab() {
     return FutureBuilder<List<dynamic>>(
       future: getAirportFIDSDeparture(selectedAirport),

@@ -542,8 +542,15 @@ Future<void> _loadTravelTimeData() async {
               }
           else if(_selectedCity == "臺中市測試版") {
                 _loadTravelTimeData();
-          return MetroMap();
-            }else {
+          return const MetroMap(key:Key('Taichung'),city: 'Taichung',);
+            }
+              else if(_selectedCity == "臺北市") {
+
+                return const MetroMap(key:Key('Taipei'),city: 'Taipei',);
+              }
+
+
+          else {
                 return _buildCityText(_selectedCity);
               }
             case "map":
@@ -2034,6 +2041,13 @@ class MRTStation {
 
 
 class MetroMap extends StatefulWidget {
+  final String city;
+
+  const MetroMap({
+    Key? key,          // 將 Key 放在這裡
+    required this.city,
+  }) : super(key: key); // 傳給父類別的 key
+
   @override
   _MetroMapScreenState createState() => _MetroMapScreenState();
 }
@@ -2055,75 +2069,76 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
   }
 
   void _initializeStations() {
+    final cityStationsData = <String, List<Map<String, dynamic>>>{
+      'Taichung': [
+        // 綠線
+        {'id': '103a', 'name': '北屯總站', 'pos': Offset(0.5, 0.05), 'color': Colors.green},
+        {'id': '103', 'name': '舊社', 'pos': Offset(0.5, 0.10), 'color': Colors.green},
+        {'id': '104', 'name': '松竹', 'pos': Offset(0.5, 0.15), 'color': Colors.green},
+        {'id': '105', 'name': '四維國小', 'pos': Offset(0.5, 0.20), 'color': Colors.green},
+        {'id': '106', 'name': '文心崇德', 'pos': Offset(0.5, 0.25), 'color': Colors.green},
+        {'id': '107', 'name': '文心中清', 'pos': Offset(0.5, 0.30), 'color': Colors.green},
+        {'id': '108', 'name': '文華高中', 'pos': Offset(0.5, 0.35), 'color': Colors.green},
+        {'id': '109', 'name': '文心櫻花', 'pos': Offset(0.5, 0.40), 'color': Colors.green},
+        {'id': '110', 'name': '市政府', 'pos': Offset(0.5, 0.45), 'color': Colors.green},
+        {'id': '111', 'name': '水安宮', 'pos': Offset(0.5, 0.50), 'color': Colors.green},
+        {'id': '112', 'name': '文心森林公園', 'pos': Offset(0.5, 0.55), 'color': Colors.green},
+        {'id': '113', 'name': '南屯', 'pos': Offset(0.5, 0.60), 'color': Colors.green},
+        {'id': '114', 'name': '豐樂公園', 'pos': Offset(0.5, 0.70), 'color': Colors.green},
+        {'id': '115', 'name': '大慶', 'pos': Offset(0.501, 0.75), 'color': Colors.green},
+        {'id': '116', 'name': '九張犁', 'pos': Offset(0.45, 0.81), 'color': Colors.green},
+        {'id': '117', 'name': '九德', 'pos': Offset(0.33, 0.85), 'color': Colors.green},
+        {'id': '118', 'name': '烏日', 'pos': Offset(0.24, 0.85), 'color': Colors.green},
+        {'id': '119', 'name': '高鐵台中站', 'pos': Offset(0.18, 0.85), 'color': Colors.green},
+      ],
+      'Taipei': [
+        // 紅線淡水信義線
+        {'id': 'R28', 'name': '淡水', 'pos': Offset(0.10, 0.05), 'color': Colors.red},
+        {'id': 'R23', 'name': '北投', 'pos': Offset(0.18, 0.20), 'color': Colors.red},
+        {'id': 'R17', 'name': '劍潭', 'pos': Offset(0.20, 0.30), 'color': Colors.red},
+        {'id': 'R10', 'name': '台北車站', 'pos': Offset(0.45, 0.50), 'color': Colors.red},
+        {'id': 'R05', 'name': '大安', 'pos': Offset(0.55, 0.65), 'color': Colors.red},
+        {'id': 'R02', 'name': '象山', 'pos': Offset(0.60, 0.75), 'color': Colors.red},
+        // 綠線松山新店線
+        {'id': 'G03', 'name': '松山', 'pos': Offset(0.55, 0.10), 'color': Colors.green},
+        {'id': 'G06', 'name': '南京復興', 'pos': Offset(0.55, 0.20), 'color': Colors.green},
+        {'id': 'G10', 'name': '古亭', 'pos': Offset(0.50, 0.45), 'color': Colors.green},
+        {'id': 'G17', 'name': '公館', 'pos': Offset(0.46, 0.65), 'color': Colors.green},
+        {'id': 'G19', 'name': '新店', 'pos': Offset(0.45, 0.80), 'color': Colors.green},
+        // 藍線板南線
+        {'id': 'BL23', 'name': '南港展覽館', 'pos': Offset(0.90, 0.55), 'color': Colors.blue},
+        {'id': 'BL19', 'name': '市政府', 'pos': Offset(0.75, 0.55), 'color': Colors.blue},
+        {'id': 'BL12', 'name': '台北車站', 'pos': Offset(0.45, 0.50), 'color': Colors.blue},
+        {'id': 'BL07', 'name': '龍山寺', 'pos': Offset(0.30, 0.45), 'color': Colors.blue},
+        {'id': 'BL03', 'name': '板橋', 'pos': Offset(0.10, 0.45), 'color': Colors.blue},
+      ],
+    };
 
-    // Create the shared transfer station
-    final cityHallStation = MRTStation("110",'市政府', Offset(0.5, 0.45), lineColor: Colors.green);
-
-    // Green Line stations
-    final greenLineStations = [
-      MRTStation("103a",'北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
-      MRTStation("103",'舊社', Offset(0.5, 0.10), lineColor: Colors.green),
-      MRTStation("104",'松竹', Offset(0.5, 0.15), lineColor: Colors.green),
-      MRTStation("105",'四維國小', Offset(0.5, 0.20), lineColor: Colors.green),
-      MRTStation("106",'文心崇德', Offset(0.5, 0.25), lineColor: Colors.green),
-      MRTStation("107",'文心中清', Offset(0.5, 0.30), lineColor: Colors.green),
-      MRTStation("108",'文華高中', Offset(0.5, 0.35), lineColor: Colors.green),
-      MRTStation("109",'文心櫻花', Offset(0.5, 0.40), lineColor: Colors.green),
-      cityHallStation, // Transfer MRTStation
-      MRTStation("111",'水安宮', Offset(0.5, 0.50), lineColor: Colors.green),
-      MRTStation("112",'文心森林公園', Offset(0.5, 0.55), lineColor: Colors.green),
-      MRTStation('113','南屯', Offset(0.5, 0.60), lineColor: Colors.green),
-      MRTStation("114",'豐樂公園', Offset(0.5, 0.7), lineColor: Colors.green),
-      MRTStation("115",'大慶', Offset(0.501, 0.75), lineColor: Colors.green),
-      MRTStation("116",'九張犁', Offset(0.45, 0.81), lineColor: Colors.green),
-      MRTStation("117",'九德', Offset(0.33, 0.85), lineColor: Colors.green),
-      MRTStation("118",'烏日', Offset(0.24, 0.85), lineColor: Colors.green),
-      MRTStation("119",'高鐵台中站', Offset(0.18, 0.85), lineColor: Colors.green),
-    ];
-
-
-    // Blue Line stations (20 stations, horizontal along Taiwan Boulevard)
-    // final blueLineStations = [
-    //   MRTStation('台中港站 (B1)', Offset(0.10, 0.45), lineColor: Colors.blue),
-    //   MRTStation('梧棲站 (B2)', Offset(0.14, 0.45), lineColor: Colors.blue),
-    //   MRTStation('大庄站 (B3)', Offset(0.18, 0.45), lineColor: Colors.blue),
-    //   MRTStation('沙鹿站 (B4)', Offset(0.22, 0.45), lineColor: Colors.blue),
-    //   MRTStation('竹林站 (B5)', Offset(0.26, 0.45), lineColor: Colors.blue),
-    //   MRTStation('靜宜大學站 (B6)', Offset(0.30, 0.45), lineColor: Colors.blue),
-    //   MRTStation('弘光科大站 (B7)', Offset(0.34, 0.45), lineColor: Colors.blue),
-    //   MRTStation('正英路站 (B8)', Offset(0.38, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('東海別墅站 (B9)', Offset(0.42, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('東海大學站 (B10)', Offset(0.46, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('澄清醫院站 (B11)', Offset(0.48, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('福安站 (B12)', Offset(0.49, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('朝馬站 (B13)', Offset(0.495, 0.45), lineColor: Colors.blue),
-    //   cityHallStation, // Transfer MRTStation (B14)
-    //   // MRTStation('漢口路站 (B15)', Offset(0.505, 0.45), lineColor: Colors.blue),
-    //   // MRTStation('科博館站 (B16)', Offset(0.52, 0.45), lineColor: Colors.blue),
-    //   MRTStation('茄苳腳站 (B17)', Offset(0.56, 0.45), lineColor: Colors.blue),
-    //   MRTStation('第二市場站 (B18)', Offset(0.60, 0.45), lineColor: Colors.blue),
-    //   MRTStation('台中車站 (B19)', Offset(0.64, 0.45), lineColor: Colors.blue),
-    //   MRTStation('帝國製糖廠站 (B20)', Offset(0.68, 0.45), lineColor: Colors.blue),
-    // ];
-    // Add all stations, avoiding duplication of the transfer MRTStation
-    _stations.addAll(greenLineStations);
-    // _stations.addAll(blueLineStations.where((s) => s != cityHallStation));
+    final cityData = cityStationsData[widget.city] ?? [];
+    _stations.clear();
+    for (var s in cityData) {
+      _stations.add(MRTStation(s['id'], s['name'], s['pos'], lineColor: s['color']));
+    }
   }
 
   void _initConnections() {
-    // Green Line connections
-    final greenLineStations = _stations.where((s) => s.lineColor == Colors.green || s.name == '市政府站').toList();
-    for (int i = 0; i < greenLineStations.length - 1; i++) {
-      greenLineStations[i].connections.add(Connection(greenLineStations[i + 1], Colors.green));
-      greenLineStations[i + 1].connections.add(Connection(greenLineStations[i], Colors.green));
+    void connectStations(List<MRTStation> stations, Color color) {
+      for (int i = 0; i < stations.length - 1; i++) {
+        stations[i].connections.add(Connection(stations[i + 1], color));
+        stations[i + 1].connections.add(Connection(stations[i], color));
+      }
     }
 
-    // blue Line connections
-    final blueLineStations = _stations.where((s) => s.lineColor == Colors.blue || s.name == '市政府站').toList();
-    for (int i = 0; i < blueLineStations.length - 1; i++) {
-      blueLineStations[i].connections.add(Connection(blueLineStations[i + 1], Colors.blue));
-      blueLineStations[i + 1].connections.add(Connection(blueLineStations[i], Colors.blue));
+    // 將 stations 按 lineColor 分組
+    final Map<Color, List<MRTStation>> byLine = {};
+    for (var s in _stations) {
+      byLine.putIfAbsent(s.lineColor, () => []);
+      byLine[s.lineColor]!.add(s);
     }
+
+    byLine.forEach((color, stations) {
+      if (stations.length > 1) connectStations(stations, color);
+    });
   }
 
   Map<MRTStation, int> _calculateTimes(MRTStation station) {

@@ -706,24 +706,39 @@ class _StationDetailPageState extends State<StationDetailPage> {
     var connectorMap = <String, MergedConnector>{};
 
     for (final point in points) {
-      for (int i = 0; i < 3; i++) {
-        final type = point['Connectors${i}Type'];
-        if (type == null) continue;
+      final rawConnectors = point['Connectors'];
 
-        // 建立合併識別碼
+      // 判斷型別
+      List<dynamic> connectors;
+      if (rawConnectors is List) {
+        connectors = rawConnectors;
+      } else if (rawConnectors is String && rawConnectors.isNotEmpty) {
+        try {
+          connectors = List<dynamic>.from(jsonDecode(rawConnectors));
+        } catch (e) {
+          connectors = [];
+          print("Connectors parse error: $e");
+        }
+      } else {
+        connectors = [];
+      }
+
+      for (final c in connectors) {
+        final type = c['Type']?.toString() ?? "";
+        final quantity = c['Quantity'] ?? 0;
+
         final key = [
           type,
-          point['Connectors${i}Type'],
-          point['ChargingRate'],
-          point['Floor'],
+          point['ChargingRate'] ?? "",
+          point['Floor'] ?? "",
         ].join('|');
 
         final connector = MergedConnector(
           type: type,
-          power: point['Connectors${i}Type'],
-          rate: point['ChargingRate'],
-          floor: point['Floor'],
-          quantity: int.tryParse(point['Connectors${i}Quantity'] ?? '0') ?? 0,
+          power: type,
+          rate: point['ChargingRate'] ?? "",
+          floor: point['Floor'] ?? "",
+          quantity: quantity,
           points: [point['ChargingPointID']],
         );
 
@@ -734,67 +749,53 @@ class _StationDetailPageState extends State<StationDetailPage> {
         }
       }
     }
-    List<dynamic> connectorLiveStatus=(await fetchConnectorLiveStatus(widget.station["StationID"]));
 
+    List<dynamic> connectorLiveStatus =
+        (await fetchConnectorLiveStatus(widget.station["StationID"])) ?? [];
 
     final mergedConnectors = connectorLiveStatus.map((status) {
-      final connectorType = status["ConnectorType"];
+      final connectorType = status["ConnectorType"]?.toString() ?? "";
 
-      // 若 `connectorType` 無效，則跳過
-      // if (connectorType == null || !connectorMap.containsKey(connectorType)) {
-      //   return null;
-      // }
-      print("connectorMap Keys: ${connectorMap.keys.toList()}");
-      print("Looking for ConnectorType: '$connectorType'");
-
-// 使用模糊匹配查找
       final matchedItem = connectorMap.entries.firstWhere(
             (entry) => entry.key.startsWith("$connectorType|"),
-          orElse: () => MapEntry("", MergedConnector(
-            type: "",
-            power: "",
+        orElse: () => MapEntry(
+          "",
+          MergedConnector(
+            type: connectorType,
+            power: connectorType,
             rate: "",
             floor: "",
             quantity: 0,
             points: [],
             ConnectorStatus: (status["ConnectorStatus"] ?? 0).toString(),
-          )), // 确保返回一个 MergedConnector
+          ),
+        ),
       ).value;
 
-      print("Matched Connector: $matchedItem");
-
-
       return MergedConnector(
-        type: matchedItem.type, // 使用 matchedItem 的 type
-        power: matchedItem.power, // 可能需要转换格式
+        type: matchedItem.type,
+        power: matchedItem.power,
         rate: matchedItem.rate,
         floor: matchedItem.floor,
         quantity: matchedItem.quantity,
         points: matchedItem.points,
-        ConnectorStatus: (status["ConnectorStatus"])  .toString(),
-
-        // 來自 `connectorLiveStatus`
+        ConnectorStatus: (status["ConnectorStatus"] ?? 0).toString(),
       );
-    }).whereType<MergedConnector>().toList(); // 過濾掉 null 項
+    }).toList();
 
-// 輸出結果
-    print(mergedConnectors);
-if(mergedConnectors.isNotEmpty){
-  setState(() {
-    _mergedConnectors = mergedConnectors;
-  });
-}else{
-  setState(() {
-    _mergedConnectors = connectorMap.values.toList();
-  });
-}
+    setState(() {
+      _mergedConnectors = mergedConnectors.isNotEmpty
+          ? mergedConnectors
+          : connectorMap.values.toList();
+    });
 
+    print("Merged Connectors: $_mergedConnectors");
   }
 
   Future<List<Map<String, dynamic>>> _fetchChargingPoints() async {
     try {
       List<Map<String, dynamic>> chargingPoint = await mysqlSelect(
-        "SELECT * FROM EV_Charging.EV_ChargingPoint WHERE StationID='${widget.station["StationID"]}';",
+        "SELECT * FROM EV_Charging.ChargingPoint_Taichung WHERE StationID='${widget.station["StationID"]}';",
       ) ??
           [];
 
