@@ -8,8 +8,19 @@ import 'package:provider/provider.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import 'Const/regularClass.dart';
+import 'database/MRT/getMRTInfo.dart';
 import 'database/getData.dart';
+final List<Map<String, String>> _cityList = [
+  {'value': 'Taipei', 'text': '臺北市'},
+  {'value': 'Taoyuan', 'text': '桃園市'},
+  {'value': 'Taichung', 'text': '臺中市'},
+  {'value': 'Kaohsiung', 'text': '高雄市'},
+  {'value': 'TaichungTest', 'text': '臺中市測試'},
+];
 
+int selectedIndex = -1; // 選中的站點索引
+String _selectedCity = "臺北市"; // 默认选项
+String _selectedCityValue = "Taipei"; // 默认选项
 ValueNotifier<List<dynamic>> facilitiesNotifier = ValueNotifier([]);
 
 class Metro extends StatefulWidget {
@@ -37,15 +48,7 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
   ];
   int current = 0;
   final PageController pageController = PageController();
-  final List<String> _list = [
-    "臺北市",
-    "桃園市",
-    "臺中市",
-    "高雄市",
-    "臺中市測試版",
-  ];
-  int selectedIndex = -1; // 選中的站點索引
-  String _selectedCity = "臺北市"; // 默认选项
+
   late MRTGreenLinePainter _mrtGreenLinePainter; // 用于保存画布绘制器
 
   @override
@@ -57,7 +60,7 @@ class _MetroState extends State<Metro> with TickerProviderStateMixin {
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
     _tabController = TabController(length: 2, vsync: this); // 现在有两个标签页
     // 检查 currentCity 是否在 _list 中
-    if (_list.contains(currentCity)) {
+    if (_cityList.contains(currentCity)) {
       _selectedCity = currentCity; // 正确赋值
     }
   }
@@ -180,29 +183,32 @@ Future<void> _loadTravelTimeData() async {
                 const SizedBox(width: 12),
                 Expanded(
                   child: DropdownButton<String>(
-                    value: _selectedCity,
-                    underline: const SizedBox(),
+                    value: _selectedCityValue,
                     isExpanded: true,
+                    underline: const SizedBox(),
+                    hint: const Text('選擇縣市'),
                     style: const TextStyle(
                       color: Color(0xFF1A73E8),
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
-                    items: _list.map((String value) {
+                    items: _cityList.map((city) {
                       return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
+                        value: city['value'],        // 真正的值
+                        child: Text(city['text']!), // 顯示文字
                       );
                     }).toList(),
                     onChanged: (value) {
                       if (value != null) {
+
                         setState(() {
-                          _selectedCity = value;
+                          _selectedCityValue = value;
                         });
                       }
                     },
                   ),
                 ),
+
                 const Icon(
                   Icons.arrow_drop_down_rounded,
                   color: Color(0xFF1A73E8),
@@ -283,18 +289,19 @@ Future<void> _loadTravelTimeData() async {
               const SizedBox(height: 12),
               _buildMenuOption(
                 icon: Icons.schedule_rounded,
+                title: '發車班距',
+                subtitle: '查看列車發車班距頻率',
+                color: const Color(0xFFFF9500),
+                onTap: () => _navigateToSchedule(context),
+              ),
+
+              const SizedBox(height: 12),
+              _buildMenuOption(
+                icon: Icons.schedule_rounded,
                 title: '發車時刻表',
                 subtitle: '查看列車發車時間',
                 color: const Color(0xFFFF9500),
-                onTap: _navigateToSchedule,
-              ),
-              const SizedBox(height: 12),
-              _buildMenuOption(
-                icon: Icons.help_outline_rounded,
-                title: '使用說明',
-                subtitle: '應用程式操作指南',
-                color: const Color(0xFFAF52DE),
-                onTap: _navigateToHelp,
+                onTap: () => _navigateToSchedule(context),
               ),
 
               const SizedBox(height: 20),
@@ -415,10 +422,19 @@ Future<void> _loadTravelTimeData() async {
     print('導航到車票資訊');
   }
 
-  void _navigateToSchedule() {
-    // 導航到發車時刻表頁面
-    print('導航到發車時刻表');
+  void _navigateToSchedule(BuildContext context) {
+    debugPrint('導航到發車時刻表');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SchedulePage(
+          city:_selectedCityValue,
+        ),
+      ),
+    );
   }
+
 
   void _navigateToHelp() {
     // 導航到使用說明頁面
@@ -435,7 +451,7 @@ Future<void> _loadTravelTimeData() async {
         itemBuilder: (context, index) {
           switch (id[index]) {
             case "station":
-              if (_selectedCity == "臺中市") {
+              if (_selectedCityValue == "Taichung") {
                 return SingleChildScrollView(
                     child: Container(
                   margin: EdgeInsets.only(bottom: 500),
@@ -540,21 +556,21 @@ Future<void> _loadTravelTimeData() async {
                   ),
                 ));
               }
-          else if(_selectedCity == "臺中市測試版") {
+          else if(_selectedCityValue == "TaichungTest") {
                 _loadTravelTimeData();
           return const MetroMap(key:Key('Taichung'),city: 'Taichung',);
             }
-              else if(_selectedCity == "臺北市") {
-
-                return const MetroMap(key:Key('Taipei'),city: 'Taipei',);
-              }
+              // else if(_selectedCity == "臺北市") {
+              //
+              //   return const MetroMap(key:Key('Taipei'),city: 'Taipei',);
+              // }
 
 
           else {
-                return _buildCityText(_selectedCity);
+                return _buildCityText(_selectedCityValue);
               }
             case "map":
-              return _buildCityText(_selectedCity);
+              return _buildCityText(_selectedCityValue);
             default:
               return const Center(child: Text("Unknown"));
           }
@@ -817,19 +833,19 @@ Future<void> _loadTravelTimeData() async {
   Widget _buildCityText(String city) {
     String imageUrl;
     switch (city) {
-      case "臺北市":
+      case "Taipei":
         imageUrl =
             "https://github.com/RSMN574/assets/blob/main/TRTC_map.jpg?raw=true";
         break;
-      case "桃園市":
+      case "Taoyuan":
         imageUrl =
             "https://github.com/RSMN574/assets/blob/main/TYMC_map.jpg?raw=true";
         break;
-      case "臺中市":
+      case "Taichung":
         imageUrl =
             "https://github.com/RSMN574/assets/blob/main/TMRT_map.jpg?raw=true";
         break;
-      case "高雄市":
+      case "Kaohsiung":
         imageUrl =
             "https://github.com/RSMN574/assets/blob/main/KMRT_map.jpg?raw=true";
         break;
@@ -2719,5 +2735,640 @@ class TravelTimeHelper {
       for (var s in stations)
         s: dist[s.stationId] == 999999 ? -1 : dist[s.stationId]!,
     };
+  }
+}
+
+class SchedulePage extends StatelessWidget {
+  final String city;
+
+  const SchedulePage({super.key, required this.city});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFD),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          '發車時刻 / 班距',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A73E8),
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: Color(0xFF1A73E8)),
+      ),
+      body: FutureBuilder<List<dynamic>>(
+        future: getNearMRTFrequency(city),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Color(0xFF1A73E8),
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '載入時刻表中...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            debugPrint('SchedulePage error: ${snapshot.error}');
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 40,
+                      color: Color(0xFFFF3B30),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '載入失敗',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFFF3B30),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '請稍後再試',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final schedules = snapshot.data ?? [];
+
+          if (schedules.isEmpty) {
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 40,
+                      color: Color(0xFF1A73E8),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '暫無時刻表資料',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '該城市目前沒有可用的時刻表',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: schedules.length,
+            itemBuilder: (context, index) {
+              return _ScheduleCard(item: schedules[index]);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ScheduleCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+
+  const _ScheduleCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final serviceDay = item['ServiceDay'] as Map<String, dynamic>? ?? {};
+    final operationTime = item['OperationTime'] as Map<String, dynamic>? ?? {};
+    final headways = item['Headways'] as List<dynamic>? ?? [];
+
+    // 檢查是否在營運時間內
+    final isOperatingNow = _checkIfOperatingNow(operationTime);
+    final now = DateTime.now();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 標題區域
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.train_rounded,
+                    size: 24,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${item['LineNo']} 路線',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['RouteID'] ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 營運狀態標籤
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isOperatingNow
+                        ? const Color(0xFF34C759).withOpacity(0.1)
+                        : const Color(0xFFFF3B30).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isOperatingNow
+                          ? const Color(0xFF34C759).withOpacity(0.3)
+                          : const Color(0xFFFF3B30).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    isOperatingNow ? '營運中' : '未營運',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isOperatingNow
+                          ? const Color(0xFF34C759)
+                          : const Color(0xFFFF3B30),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 分隔線
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFF1A73E8).withOpacity(0.1),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 服務日資訊
+                Row(
+                  children: [
+                    _ServiceDayChip(text: serviceDay['ServiceTag'] ?? ''),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _buildWeekdayText(serviceDay),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // 營運時間卡片
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFD),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFEEF3FB),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.schedule_rounded,
+                          size: 20,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '營運時間',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${operationTime['StartTime']} ～ ${operationTime['EndTime']}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: isOperatingNow
+                                    ? const Color(0xFF34C759)
+                                    : const Color(0xFF1A73E8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 班距時段標題
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.timeline_rounded,
+                      size: 18,
+                      color: Color(0xFF1A73E8),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '班距時段',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // 班距時段列表
+                ...headways.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final headway = entry.value as Map<String, dynamic>;
+                  final isCurrent = _checkIfCurrentTime(headway, now);
+
+                  return _HeadwayRow(
+                    headway: headway,
+                    isCurrent: isCurrent,
+                    isLast: index == headways.length - 1,
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 檢查是否在營運時間內
+  bool _checkIfOperatingNow(Map<String, dynamic> operationTime) {
+    try {
+      final startTime = operationTime['StartTime'] as String?;
+      final endTime = operationTime['EndTime'] as String?;
+
+      if (startTime == null || endTime == null) return false;
+
+      final now = DateTime.now();
+      final currentTimeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      return startTime.compareTo(currentTimeStr) <= 0 &&
+          endTime.compareTo(currentTimeStr) >= 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 檢查是否在當前班距時段內
+  bool _checkIfCurrentTime(Map<String, dynamic> headway, DateTime now) {
+    try {
+      final startTime = headway['StartTime'] as String?;
+      final endTime = headway['EndTime'] as String?;
+
+      if (startTime == null || endTime == null) return false;
+
+      final currentTimeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      return startTime.compareTo(currentTimeStr) <= 0 &&
+          endTime.compareTo(currentTimeStr) >= 0;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 星期轉換
+  String _buildWeekdayText(Map<String, dynamic> sd) {
+    const weekdayMap = {
+      '一': 'Monday',
+      '二': 'Tuesday',
+      '三': 'Wednesday',
+      '四': 'Thursday',
+      '五': 'Friday',
+      '六': 'Saturday',
+      '日': 'Sunday',
+    };
+
+    return weekdayMap.entries
+        .where((e) => sd[e.value] == true)
+        .map((e) => e.key)
+        .join('、');
+  }
+}
+
+class _ServiceDayChip extends StatelessWidget {
+  final String text;
+
+  const _ServiceDayChip({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A73E8).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFF1A73E8).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF1A73E8),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeadwayRow extends StatelessWidget {
+  final Map<String, dynamic> headway;
+  final bool isCurrent;
+  final bool isLast;
+
+  const _HeadwayRow({
+    required this.headway,
+    required this.isCurrent,
+    this.isLast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPeak = headway['PeakFlag'] == '1';
+    final minHeadway = headway['MinHeadwayMins']?.toString() ?? '';
+    final maxHeadway = headway['MaxHeadwayMins']?.toString() ?? '';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            // 點擊處理
+          },
+          borderRadius: BorderRadius.circular(10),
+          splashColor: isCurrent
+              ? const Color(0xFF1A73E8).withOpacity(0.1)
+              : Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isCurrent
+                  ? const Color(0xFF1A73E8).withOpacity(0.05)
+                  : Colors.grey[50],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isCurrent
+                    ? const Color(0xFF1A73E8).withOpacity(0.3)
+                    : Colors.grey[200]!,
+                width: isCurrent ? 1.5 : 1,
+              ),
+              boxShadow: isCurrent
+                  ? [
+                BoxShadow(
+                  color: const Color(0xFF1A73E8).withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                // 尖峰/離峰標籤
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isPeak
+                        ? const Color(0xFFFF3B30).withOpacity(isCurrent ? 0.15 : 0.1)
+                        : const Color(0xFF34C759).withOpacity(isCurrent ? 0.15 : 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isPeak
+                          ? const Color(0xFFFF3B30).withOpacity(0.3)
+                          : const Color(0xFF34C759).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    isPeak ? '尖峰' : '離峰',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isPeak
+                          ? const Color(0xFFFF3B30)
+                          : const Color(0xFF34C759),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 時間範圍
+                Text(
+                  '${headway['StartTime']} - ${headway['EndTime']}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: isCurrent ? const Color(0xFF1A73E8) : Colors.black87,
+                  ),
+                ),
+                const Spacer(),
+                // 現在時間標記（如果是當前時段）
+                if (isCurrent)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A73E8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      '現在',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                // 班距時間
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '$minHeadway-$maxHeadway 分',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1A73E8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

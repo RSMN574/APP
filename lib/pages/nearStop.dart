@@ -1567,7 +1567,7 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                               "highlight": [
                                 _stopName.value,
                               ],
-                              "direction": stop["Direction"],
+                              "direction": (stop["Direction"] == 0) ? 1 : 0,
                             }),
                           ),
                         ),

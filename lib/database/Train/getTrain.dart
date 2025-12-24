@@ -24,7 +24,7 @@ Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
 
   try {
     await  connMysql();
-    final tokenResponse = await http.get(tokenUri);
+
     final token = await TokenManager().getToken();
     // 发起 GET 请求
     final response = await http.get(
@@ -90,6 +90,56 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
 // }
 
 
+
+Future<List<Map<String, dynamic>>> fetchTrainStationByTrainNo(
+    String trainNo,
+
+    ) async {
+  // 🔒 只允許今天查即時
+  final token = await TokenManager().getToken();
+
+
+
+  final url =
+      'https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/TrainLiveBoard/TrainNo/$trainNo'
+      '?%24top=30&%24format=JSON';
+
+  try {
+    print(url);
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'accept': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      debugPrint('LiveBoard API error: ${response.statusCode}');
+      return [];
+    }
+
+    final data = json.decode(response.body);
+
+    final List boards = data['TrainLiveBoards'] ?? [];
+
+    // 🧹 整理成你 UI 好用的格式
+    return boards.map<Map<String, dynamic>>((e) {
+      return {
+        'TrainNo': e['TrainNo'],
+        'StationID': e['StationID'],
+        'StationNameZh': e['StationName']?['Zh_tw'],
+        'StationNameEn': e['StationName']?['En'],
+        'TrainStationStatus': e['TrainStationStatus'],
+        'DelayTime': e['DelayTime'] ?? 0,
+        'UpdateTime': e['UpdateTime'],
+      };
+    }).toList();
+  } catch (e) {
+    debugPrint('fetchTrainStationByTrainNo error: $e');
+    return [];
+  }
+}
 Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
   DateTime now = DateTime.now();
   DateTime targetTime = date;

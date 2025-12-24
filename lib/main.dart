@@ -75,6 +75,7 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => CityProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
       ChangeNotifierProvider(create: (_) => MarkerProvider()),
+      ChangeNotifierProvider(create: (_) => PolylineProvider()),
     ];
   }
 }

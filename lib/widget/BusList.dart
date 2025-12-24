@@ -250,7 +250,8 @@ class _BuslistState extends State<Buslist> {
   Future<void> _navigateToRouteDetails(dynamic route) async {
     await GetBusInfo(
         routeid: int.parse(route["RouteID"]),
-        city: route["City"]
+      city: route['City'] ?? 'InterCity',
+
     );
 
     Navigator.push(
@@ -262,7 +263,7 @@ class _BuslistState extends State<Buslist> {
           destinationStopName: route["DestinationStopNameZh"],
           operators: route["Operators"],
           routeMapImageUrl: route["RouteMapImageUrl"],
-          city: route["City"],
+          city: route['City'] ?? 'InterCity',
           routeID: int.parse(route["RouteID"]),
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {

@@ -13,9 +13,17 @@ import '../token_manager.dart'; // 用于网络请求
 Future<dynamic> fetchBusTime(routeName, city) async {
   int id = await getInfo('routeID');
   int? top = await getInfo('sum');
-  var url =
-      "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
-  final token = await TokenManager().getToken();
+  late String url;
+  if(city=="InterCity"){
+     url =
+        "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
+
+  }else{
+     url =
+        "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
+
+  }
+final token = await TokenManager().getToken();
 
   try {
     await connMysql();
@@ -163,8 +171,7 @@ Future<List<Map<String, dynamic>>?> getHistoryData(String city, String routeId, 
   return data;
 }
 
-Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
-    String routeName, String city, String stopID ,String direction ) async {
+Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(String routeName, String city, String stopID ,String direction ) async {
   try {
     final token = await TokenManager().getToken();// 獲取 Token
     await connMysql(); // 連接 MySQL（如果必要）
@@ -208,3 +215,40 @@ Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
     return []; // 返回空列表，而不是 null，避免影響調用方
   }
 }
+Future<List<dynamic>> getShape(String city, String routeName, int routeID) async {
+  final String url =
+      "https://tdx.transportdata.tw/api/basic/v2/Bus/Shape/City/$city/$routeName?%24format=JSON";
+
+  final tokenResponse = await http.get(tokenUri);
+
+  if (tokenResponse.statusCode != 200) {
+    throw HttpException(
+        'Failed to get token! status: ${tokenResponse.statusCode}');
+  }
+  final token = await TokenManager().getToken();
+  final response = await http.get(
+    Uri.parse(url),
+    headers: {
+      'Authorization': 'Bearer $token',
+      'accept': 'application/json',
+    },
+  );
+
+  if (response.statusCode != 200) {
+    throw HttpException('HTTP error! status: ${response.statusCode}');
+  }
+
+  // 解析 JSON 数据
+  final List<dynamic> jsonData = jsonDecode(response.body);
+
+  // 過濾出 RouteID == routeID 的項目
+  final filteredData = jsonData.where((item) {
+    // RouteID 可能是字串或 int，要對應類型
+    final itemRouteID = item['RouteID'];
+    return itemRouteID != null && int.tryParse(itemRouteID.toString()) == routeID;
+  }).toList();
+
+  print('Filtered JSON: $filteredData');
+  return filteredData;
+}
+

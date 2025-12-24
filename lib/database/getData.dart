@@ -223,32 +223,51 @@ void _startIdleTimer() {
   });
 }
 
-Future<List> GetBus(String city) async {
-  List data = [];
-
+Future<List< dynamic>> getBus(String city) async {
   try {
-    // 構建查詢
-    String query2 = "SELECT * FROM Bus.Bus_${city}_Route";
-    if (city == "all") {
-      query2 = """
-        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-FROM Bus.Bus_Taipei_Route
-UNION ALL
-SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID, ProviderID, SubRoutes, BusRouteType, RouteName, DepartureStopNameZh, DepartureStopNameEn, DestinationStopNameZh, DestinationStopNameEn, RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-FROM Bus.Bus_Taichung_Route;
- """;
+    /// city 對應資料表（白名單）
+    const tableMap = {
+      'Taipei': 'Bus.Bus_Taipei_Route',
+      'Taichung': 'Bus.Bus_Taichung_Route',
+      'TaiwanTrip': 'Bus.Bus_TaiwanTrip_Route',
+      'InterCity': 'Bus.Bus_InterCity_Route',
+    };
+
+    late final String query;
+
+    if (city == 'all') {
+      query = '''
+        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID,
+               ProviderID, SubRoutes, BusRouteType, RouteName,
+               DepartureStopNameZh, DepartureStopNameEn,
+               DestinationStopNameZh, DestinationStopNameEn,
+               RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+        FROM Bus.Bus_Taipei_Route
+        UNION ALL
+        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID,
+               ProviderID, SubRoutes, BusRouteType, RouteName,
+               DepartureStopNameZh, DepartureStopNameEn,
+               DestinationStopNameZh, DestinationStopNameEn,
+               RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
+        FROM Bus.Bus_Taichung_Route
+      ''';
+    } else {
+      final table = tableMap[city];
+      if (table == null) {
+        throw Exception('Unsupported city: $city');
+      }
+      query = 'SELECT * FROM $table';
     }
 
-    data.clear();
-    // 使用改進的查詢執行函數
-    var result = await executeQueryWithRetry(query2);
+    final result = await executeQueryWithRetry(query);
 
-    // 迭代結果並將其儲存到 list 中
-    for (final row in result.rows) {
-      data.add(row.assoc());
-    }
-  } catch (e) {
-    print("GetBus error: $e");
+    return result.rows
+        .map<Map<String, dynamic>>((row) => row.assoc())
+        .toList();
+  } catch (e, stack) {
+    debugPrint('GetBus error: $e');
+    debugPrintStack(stackTrace: stack);
+
     Fluttertoast.showToast(
       msg: "獲取公車資料失敗，請稍後再試",
       toastLength: Toast.LENGTH_SHORT,
@@ -256,9 +275,9 @@ FROM Bus.Bus_Taichung_Route;
       backgroundColor: Colors.red,
       textColor: Colors.white,
     );
-  }
 
-  return data;
+    return [];
+  }
 }
 
 Future<List<Map<String, dynamic>>> GetBusInfo({required int routeid, required String city,}) async {

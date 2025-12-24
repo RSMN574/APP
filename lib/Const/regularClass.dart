@@ -43,7 +43,30 @@ class youbike  {
   @override
   LatLng get location => latLng;
 }
+class PolylineProvider extends ChangeNotifier {
+  Set<Polyline> _polylines = {};
 
+  // 取得 Polyline
+  Set<Polyline> get polylines => _polylines;
+
+  // 設定 Polyline
+  void setPolylines(Set<Polyline> polylines) {
+    _polylines = polylines;
+    notifyListeners();
+  }
+
+  // 新增 Polyline
+  void addPolyline(Polyline polyline) {
+    _polylines.add(polyline);
+    notifyListeners();
+  }
+
+  // 清空 Polyline
+  void clearPolylines() {
+    _polylines.clear();
+    notifyListeners();
+  }
+}
 class MarkerProvider extends ChangeNotifier {
   Set<Marker> _markers = {};
   List<youbike> _items = []; // ClusterManager 需要的是這個

@@ -62,6 +62,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   late final  TabController _tabController;
   final Set<Marker> markers = {};
   Timer? _timer;
+  final ValueNotifier<String> _directionNotifier = ValueNotifier("");
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier = ValueNotifier(null);
   ValueNotifier<bool> isTimerOn = ValueNotifier(false);
   @override
@@ -78,10 +79,12 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       } else {
         // 标签更改已完成
        if(_tabController.index==0){
-
+         _loadShape(1);
          _loadMarkers("stopNamesWithTime1");
        }else  if(_tabController.index==1){
+         _loadShape(0);
          _loadMarkers("stopNamesWithTime2");
+
        }
       }
     });
@@ -113,6 +116,47 @@ void _scrollToIndex(int index) {
   });
 
 }
+  Future<Set<Polyline>> _loadShape(int direction) async {
+    final List< dynamic> data = await getShape(widget.city, widget.routeName,widget.routeID);
+
+    final Set<Polyline> polylines = {};
+
+    for (final item in data) {
+      if (item['Direction'] != direction) continue;
+
+      // 1️⃣ 如果有 EncodedPolyline（TDX 通常有）
+      final encoded = item['EncodedPolyline'];
+      if (encoded is String && encoded.isNotEmpty) {
+        final points = decodePolyline(encoded);
+
+        polylines.add(
+          Polyline(
+            polylineId: PolylineId(
+              '${widget.routeName}_$direction',
+            ),
+            points: points,
+            width: 4,
+            color: Colors.blue,
+          ),
+        );
+      }
+
+      // 2️⃣ 若你想用 Geometry（LINESTRING）也可以（選用）
+      /*
+    final geometry = item['Geometry'];
+    if (geometry is String) {
+      final points = _parseLineString(geometry);
+      ...
+    }
+    */
+    }
+    setState(() {
+      Provider.of<PolylineProvider>(context, listen: false).setPolylines(polylines);
+
+    });
+    return polylines;
+  }
+
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
   Future<void> _loadMarkers(String stopType) async {
 
@@ -285,7 +329,7 @@ void _scrollToIndex(int index) {
 
       // 🗺 載入地圖標記
       _loadMarkers("stopNamesWithTime1");
-
+      _loadShape(1);
       // 📢 通知 UI
       _dataNotifier.value = {
         'routeInfo': routeInfo,
@@ -807,6 +851,10 @@ void _scrollToIndex(int index) {
       onPopInvoked: ( bool didPop ){
         if ( didPop ) {
           Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+
+            Provider.of<PolylineProvider>(context, listen: false).clearPolylines();
+
+
         }
                  // really exit
         else {
@@ -838,14 +886,12 @@ void _scrollToIndex(int index) {
         Stack(
           children: [
 
-        const Positioned.fill(
-        child: SizedBox(
-
-            child: map()
-        ),
+        Positioned.fill(
+        child: map()
         ),
 
-            DraggableScrollableSheet(
+
+        DraggableScrollableSheet(
             initialChildSize: 1,
             minChildSize: 0.2,
             maxChildSize: 1.0,

@@ -72,36 +72,35 @@ class _MapWidgetState extends State<map>
       print('無法獲取位置: $e');
     }
   }
-
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin
-    return Consumer<MarkerProvider>(
-      builder: (context, markerProvider, child) {
-        return GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: _currentPosition,
-            zoom: 15,
-          ),
-          onMapCreated: (controller) {
-            if (_mapController == null) {
-              _mapController = controller;
-              _mapController!.setMapStyle(_mapStyle);
-              widget.onMapCreated?.call(controller);
-            }
-          },
-          onCameraMove: widget.onCameraMove,
-          onCameraIdle: widget.onCameraIdle,
-          markers: widget.markers ?? markerProvider.markers,
-          myLocationEnabled: widget.myLocationEnabled,
-          polylines: widget.polylines ?? {}, // <-- 加上線條
-          myLocationButtonEnabled: true,
-          gestureRecognizers: {
-            Factory<OneSequenceGestureRecognizer>(
-                    () => EagerGestureRecognizer())
-          },
-        );
+
+    final markerProvider = context.watch<MarkerProvider>();
+    final polylineProvider = context.watch<PolylineProvider>();
+
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: _currentPosition,
+        zoom: 15,
+      ),
+      onMapCreated: (controller) {
+        if (_mapController == null) {
+          _mapController = controller;
+          _mapController!.setMapStyle(_mapStyle);
+          widget.onMapCreated?.call(controller);
+        }
+      },
+      onCameraMove: widget.onCameraMove,
+      onCameraIdle: widget.onCameraIdle,
+      markers: widget.markers ?? markerProvider.markers,
+      polylines: widget.polylines ?? polylineProvider.polylines,
+      myLocationEnabled: widget.myLocationEnabled,
+      myLocationButtonEnabled: true,
+      gestureRecognizers: {
+        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer())
       },
     );
   }
+
 }

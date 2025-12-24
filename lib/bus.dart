@@ -33,8 +33,8 @@ class BusState extends State<Bus> {
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
   List busData = [];
-  final List<String> _list = ['全部', '臺中市', '臺北市'];
-  final List<String> _listID = ['all', 'Taichung', 'Taipei'];
+  final List<String> _list = ['全部', '臺中市', '臺北市',"公路客運"];
+  final List<String> _listID = ['all', 'Taichung', 'Taipei',"InterCity"];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
@@ -90,7 +90,7 @@ class BusState extends State<Bus> {
 
   Future<List> _getData() async {
     busCurrentCity = correspondingIDNotifier.value;
-    busData = await GetBus(correspondingIDNotifier.value);
+    busData = await getBus(correspondingIDNotifier.value);
     return [];
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
@@ -9,22 +11,54 @@ import '../../widget/map.dart';
 import '../../widget/train/RoutePalnner.dart';
  final List E500=[115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
 late Set<Polyline> allLines;
-class TrainSchedulePage extends StatelessWidget {
-  // 顏色常數定義
-  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
-  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
-  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
-  static const Color textSecondary = Color(0xFF718096);    // 次要文字
+final ScrollController _stopTimesScrollController = ScrollController();
 
+String? _currentStationId; // 目前車站 ID
+int _liveDelayMinutes = 0;
+class TrainSchedulePage extends StatefulWidget {
   final Map<String, dynamic> trainData;
   final String type;
   final DateTime time;
+
   const TrainSchedulePage({
     Key? key,
     required this.trainData,
     required this.type,
     required this.time,
   }) : super(key: key);
+
+  @override
+  State<TrainSchedulePage> createState() => _TrainSchedulePageState();
+}
+
+class  _TrainSchedulePageState extends State<TrainSchedulePage> {
+  // 顏色常數定義
+  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
+  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
+  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+  static const Color textSecondary = Color(0xFF718096);
+  String? _currentStationId;
+  int _liveDelayMinutes = 0;
+
+  final ScrollController _stopTimesScrollController = ScrollController();
+  Timer? _liveBoardTimer;
+// 次要文字
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    fetchLiveBoardIfToday();
+
+
+  }
+
+  @override
+  void dispose() {
+
+    super.dispose();
+  }
 
   Map printStartEndDepartureTimes(Map<String, dynamic> trainData) {
     // 1. 取出「起站」與「迄站」的中文站名
@@ -56,6 +90,113 @@ class TrainSchedulePage extends StatelessWidget {
       "endDeparture":endDeparture
 
     };
+  }
+
+  void _scrollToCurrentStation() {
+    if (_currentStationId == null) return;
+
+    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
+    final index =
+    stopTimes.indexWhere((s) => s['StationID'] == _currentStationId);
+
+    if (index == -1) return;
+
+    _stopTimesScrollController.animateTo(
+      index * 110.0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+  bool isToday(dynamic serviceDay) {
+    try {
+      // 情況 1：ServiceDay 是 API 給的 bool（TDX 常見）
+      if (serviceDay is bool) return serviceDay;
+
+      // 情況 2：ServiceDay 是 Map（含日期資訊）
+      if (serviceDay is Map<String, dynamic>) {
+        final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+        final start = serviceDay['StartDate'];
+        final end = serviceDay['EndDate'];
+
+        if (start == null || end == null) return false;
+
+        return today.compareTo(start) >= 0 &&
+            today.compareTo(end) <= 0;
+      }
+
+      // 情況 3：ServiceDay 是 String（yyyy-MM-dd）
+      if (serviceDay is String) {
+        final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+        return serviceDay == today;
+      }
+    } catch (e) {
+      debugPrint('isToday error: $e');
+    }
+
+    return false;
+  }
+  bool isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year &&
+        a.month == b.month &&
+        a.day == b.day;
+  }
+
+  Future<void> fetchLiveBoardIfToday() async {
+    // 不是今天 → 清空即時狀態
+    final now = DateTime.now();
+
+    if (!isSameDay(widget.time, now)) {
+      if (!mounted) return;
+      setState(() {
+        _currentStationId = null;
+        _liveDelayMinutes = 0;
+      });
+      return;
+    }
+
+
+    try {
+      final result = await fetchTrainStationByTrainNo(
+        widget.trainData['DailyTrainInfo']['TrainNo'],
+      );
+
+      if (!mounted || result.isEmpty) return;
+
+      final live = result.first;
+
+      final String? stationId = live['StationID'];
+      final int delay =
+      (live['DelayTime'] is int) ? live['DelayTime'] : 0;
+
+      setState(() {
+        _currentStationId = stationId;
+        _liveDelayMinutes = delay;
+      });
+
+      // 自動捲動到目前車站
+      _scrollToCurrentStation();
+    } catch (e) {
+      debugPrint('fetchLiveBoardIfToday error: $e');
+    }
+  }
+
+  void scrollToCurrentStation(List stopTimes) {
+    if (_currentStationId == null) return;
+
+    final index = stopTimes.indexWhere(
+          (s) => s['StationID'] == _currentStationId,
+    );
+
+    if (index == -1) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stopTimesScrollController.animateTo(
+        index * 96.0, // ⚠️ 單列高度（依你 UI 微調）
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   @override
@@ -107,16 +248,16 @@ class TrainSchedulePage extends StatelessWidget {
                     IconButton(onPressed: () async {
 
 // 提取 StationName (中文)
-// List<String> stationNamesZh = trainData["StopTimes"]
+// List<String> stationNamesZh = widget.trainData["StopTimes"]
 //     .map((stop) => stop["StationName"]["Zh_tw"] as String)
 //     .toList();
 //
 // // 提取 StationName (英文)
-// List<String> stationNamesEn = trainData["StopTimes"]
+// List<String> stationNamesEn = widget.trainData["StopTimes"]
 //     .map((stop) => stop["StationName"]["En"] as String)
 //     .toList();
                       // 提取 StationName (英文)
-List<dynamic> stationNames = trainData["StopTimes"]
+List<dynamic> stationNames = widget.trainData["StopTimes"]
     .map((stop) => stop["StationName"] as Map)
     .toList();
 
@@ -146,20 +287,20 @@ List<dynamic> stationNames = trainData["StopTimes"]
                             return 'other';
                         }
                       }
-                      Map timeMap=printStartEndDepartureTimes(trainData);
+                      Map timeMap=printStartEndDepartureTimes(widget.trainData);
                       final schedule = ScheduleModel(
                         type: 'train',
-                        route: trainData['DailyTrainInfo']['TrainNo'],
-                        startingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                        route: widget.trainData['DailyTrainInfo']['TrainNo'],
+                        startingStopName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
                         userStartingStopName: result['departure'],
-                        finalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                        finalStopName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
                         userDestinationStopName: result['destination'],
-                        time: time.toString(),
+                        time: widget.time.toString(),
                         category: getCategory(result['category']),
                         seatNumber: result['seatNumber'],
                         other: {
-                          "DateTime": time.toString(),
-                          "trainType": trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                          "DateTime": widget.time.toString(),
+                          "trainType": widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
                           "category": getCategory(result['category']),
                           "seatNumber": result["seatNumber"],
                           "startDeparture": timeMap["startDeparture"],
@@ -200,14 +341,14 @@ List<dynamic> stationNames = trainData["StopTimes"]
                                 child: Column(
                                   children: [
                                     const Text("列車服務:", style: TextStyle(fontWeight: FontWeight.bold)),
-                                    if (trainData['DailyTrainInfo']['WheelchairFlag'] == 1) const Text("✅ 無障礙設施"),
-                                    if (trainData['DailyTrainInfo']['PackageServiceFlag'] == 1) const Text("✅ 行李服務"),
-                                    if (trainData['DailyTrainInfo']['DiningFlag'] == 1) const Text("✅ 餐飲服務"),
-                                    if (trainData['DailyTrainInfo']['BikeFlag'] == 1) const Text("✅ 自行車車廂"),
-                                    if (trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1) const Text("✅ 哺乳設施"),
-                                    if (trainData['DailyTrainInfo']['DailyFlag'] == 1) const Text("✅ 每日行駛"),
-                                    if (trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1) const Text("✅ 加班列車"),
-                                    if (trainData['DailyTrainInfo']['SuspendedFlag'] == 1) const Text("❌ 停駛"),
+                                    if (widget.trainData['DailyTrainInfo']['WheelchairFlag'] == 1) const Text("✅ 無障礙設施"),
+                                    if (widget.trainData['DailyTrainInfo']['PackageServiceFlag'] == 1) const Text("✅ 行李服務"),
+                                    if (widget.trainData['DailyTrainInfo']['DiningFlag'] == 1) const Text("✅ 餐飲服務"),
+                                    if (widget.trainData['DailyTrainInfo']['BikeFlag'] == 1) const Text("✅ 自行車車廂"),
+                                    if (widget.trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1) const Text("✅ 哺乳設施"),
+                                    if (widget.trainData['DailyTrainInfo']['DailyFlag'] == 1) const Text("✅ 每日行駛"),
+                                    if (widget.trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1) const Text("✅ 加班列車"),
+                                    if (widget.trainData['DailyTrainInfo']['SuspendedFlag'] == 1) const Text("❌ 停駛"),
                                   ],
                                 ),
                               ),
@@ -248,7 +389,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                       ),
                       const SizedBox(height: 16),
                       _buildStopTimesList(),
-                      TrainInfoWidget(trainData: trainData,)
+                      TrainInfoWidget(trainData: widget.trainData,)
                     ],
                   ),
                 ),
@@ -288,7 +429,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
 
   }
   bool _shouldShowDelayInfo() {
-    DateTime? scheduleDate = (time);
+    DateTime? scheduleDate = (widget.time);
 
     // 取得今天的日期（格式化為 yyyy-MM-dd）
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -296,7 +437,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
     return DateFormat('yyyy-MM-dd').format(scheduleDate) == today;
   }
   Widget _buildTrainInfoCard() {
-    final stopTimes = trainData['StopTimes'] as List<dynamic>;
+    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
     bool isCrossDayVar=isCrossDay(stopTimes);
 
     return Container(
@@ -317,7 +458,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '車次 ${trainData['DailyTrainInfo']['TrainNo']}',
+              '車次 ${widget.trainData['DailyTrainInfo']['TrainNo']}',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -328,25 +469,25 @@ List<dynamic> stationNames = trainData["StopTimes"]
             _buildStationInfoRow(
               icon: Icons.place_outlined,
               label: '起站',
-              stationName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+              stationName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
             ),
             const SizedBox(height: 12),
             _buildStationInfoRow(
               icon: Icons.flag_outlined,
               label: '終站',
-              stationName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+              stationName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
             ),
             const SizedBox(height: 20),
             _buildInfoItem(
               '列車種類',
-              "${trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}"
-                  "${E500.contains( int.parse(trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
+              "${widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}"
+                  "${E500.contains( int.parse(widget.trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
             ),
 
             const SizedBox(height: 8),
             _buildInfoItem(
               '備註',
-              "${trainData['DailyTrainInfo']['Note']['Zh_tw']}  ${isCrossDayVar? "跨日" :""}",
+              "${widget.trainData['DailyTrainInfo']['Note']['Zh_tw']}  ${isCrossDayVar? "跨日" :""}",
             ),
           ],
         ),
@@ -354,7 +495,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
     );
   }
   Future<Widget> _buildDelayInfo() async {
-    final delayData = await fetchLiveTrainDelay(trainData['DailyTrainInfo']['TrainNo']);
+    final delayData = await fetchLiveTrainDelay(widget.trainData['DailyTrainInfo']['TrainNo']);
     final hasDelay = delayData.isNotEmpty &&
         (delayData[0]['DelayTime'] != null && delayData[0]['DelayTime'] != 0);
 
@@ -427,7 +568,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
                   const Icon(Icons.train, size: 12, color: Colors.blue),
                   const SizedBox(width: 4),
                   Text(
-                    trainData['DailyTrainInfo']['TrainNo'],
+                    widget.trainData['DailyTrainInfo']['TrainNo'],
                     style: const TextStyle(
                       fontSize: 10,
                       color: Colors.blue,
@@ -515,11 +656,50 @@ List<dynamic> stationNames = trainData["StopTimes"]
     }
     return false;
   }
+  Widget _buildTimelineIcon(bool isCurrent) {
+  if (isCurrent) {
+  return const Icon(
+  Icons.train,
+  color: primaryColor,
+  size: 18,
+  );
+  }
+
+  return Container(
+  width: 12,
+  height: 12,
+  decoration: const BoxDecoration(
+  color: primaryColor,
+  shape: BoxShape.circle,
+  ),
+  );
+  }
+  bool isPassedStation(int index, List stopTimes) {
+  if (_currentStationId == null) return false;
+
+  final currentIndex = stopTimes.indexWhere(
+  (s) => s['StationID'] == _currentStationId,
+  );
+
+  if (currentIndex == -1) return false;
+  return index < currentIndex;
+  }
+
+  bool isCurrentStation(Map stop) =>
+  stop['StationID'] == _currentStationId;
+
+
+  String formatTime(String? time, bool isFuture) {
+  if (time == null) return '--:--';
+  if (!isFuture || _liveDelayMinutes <= 0) return time;
+  return '$time +$_liveDelayMinutes';
+  }
 
   Widget _buildStopTimesList() {
-    final stopTimes = trainData['StopTimes'] as List<dynamic>;
+    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
 
     return ListView.builder(
+      controller: _stopTimesScrollController,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: stopTimes.length,
@@ -527,105 +707,74 @@ List<dynamic> stationNames = trainData["StopTimes"]
         final stop = stopTimes[index];
         final isLast = index == stopTimes.length - 1;
 
+        final passed = isPassedStation(index, stopTimes);
+        final current = isCurrentStation(stop);
+        final isFuture = !passed && !current;
+
+        final textColor = passed
+            ? textSecondary.withOpacity(0.4)
+            : textPrimary;
+
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: current ? primaryColor.withOpacity(0.06) : Colors.white,
             borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: current
+                ? Border.all(color: primaryColor, width: 1)
+                : null,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 時間區塊
+                // ⏱ 時間
                 SizedBox(
                   width: 80,
                   child: Column(
                     children: [
                       Text(
-                        stop['ArrivalTime'] ?? '--:--',
-                        style: const TextStyle(
+                        formatTime(stop['ArrivalTime'], isFuture),
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: textPrimary,
+                          color: textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        stop['DepartureTime'] ?? '--:--',
-                        style: const TextStyle(
+                        formatTime(stop['DepartureTime'], isFuture),
+                        style: TextStyle(
                           fontSize: 14,
-                          color: textSecondary,
+                          color: textColor.withOpacity(0.8),
                         ),
                       ),
                     ],
                   ),
                 ),
-                // 時間軸
+
+                // 🚆 時間軸
                 Column(
                   children: [
                     if (index > 0)
-                      Container(
-                        width: 2,
-                        height: 24,
-                        color: primaryColor.withOpacity(0.3),
-                      ),
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: const BoxDecoration(
-                        color: primaryColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                      Container(width: 2, height: 24, color: primaryColor.withOpacity(0.3)),
+                    _buildTimelineIcon(current),
                     if (!isLast)
-                      Container(
-                        width: 2,
-                        height: 24,
-                        color: primaryColor.withOpacity(0.3),
-                      ),
+                      Container(width: 2, height: 24, color: primaryColor.withOpacity(0.3)),
                   ],
                 ),
+
                 const SizedBox(width: 24),
-                // 車站資訊
+
+                // 車站
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stop['StationName']['Zh_tw'] ?? '未知車站',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (stop['SuspendedFlag'] == 1)
-                        const Text(
-                          '此站暫停停靠',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.redAccent,
-                          ),
-                        )
-                      else
-                        const Text(
-                          '正常停靠',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.green,
-                          ),
-                        ),
-                    ],
+                  child: Text(
+                    stop['StationName']['Zh_tw'],
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
                   ),
                 ),
               ],
@@ -635,6 +784,7 @@ List<dynamic> stationNames = trainData["StopTimes"]
       },
     );
   }
+
 
 }
 
