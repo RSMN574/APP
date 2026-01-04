@@ -224,40 +224,24 @@ void _startIdleTimer() {
 }
 
 Future<List< dynamic>> getBus(String city) async {
+  print(city);
   try {
-    /// city 對應資料表（白名單）
-    const tableMap = {
-      'Taipei': 'Bus.Bus_Taipei_Route',
-      'Taichung': 'Bus.Bus_Taichung_Route',
-      'TaiwanTrip': 'Bus.Bus_TaiwanTrip_Route',
-      'InterCity': 'Bus.Bus_InterCity_Route',
-    };
-
     late final String query;
 
     if (city == 'all') {
       query = '''
-        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID,
-               ProviderID, SubRoutes, BusRouteType, RouteName,
-               DepartureStopNameZh, DepartureStopNameEn,
-               DestinationStopNameZh, DestinationStopNameEn,
-               RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-        FROM Bus.Bus_Taipei_Route
-        UNION ALL
-        SELECT UID, RouteUID, RouteID, HasSubRoutes, Operators, AuthorityID,
-               ProviderID, SubRoutes, BusRouteType, RouteName,
-               DepartureStopNameZh, DepartureStopNameEn,
-               DestinationStopNameZh, DestinationStopNameEn,
-               RouteMapImageUrl, City, CityCode, UpdateTime, VersionID
-        FROM Bus.Bus_Taichung_Route
-      ''';
+    SELECT *
+    FROM Bus.bus_route
+  ''';
     } else {
-      final table = tableMap[city];
-      if (table == null) {
-        throw Exception('Unsupported city: $city');
-      }
-      query = 'SELECT * FROM $table';
+      query = '''
+    SELECT *
+    FROM Bus.bus_route
+    WHERE City = '$city'
+  ''';
     }
+
+
 
     final result = await executeQueryWithRetry(query);
 

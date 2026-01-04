@@ -51,7 +51,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
     super.initState();
 
     // _loadData(); // 初次加载数据
-    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
+    _tabController = TabController(length:  _stationIDs.value.length, vsync: this); // 兩個 Tab
     // 每次頁面重新進入，重置 Tab
     _tabController.index = 0;
     _currentTabIndex.value = 0; // 添加監聽器，只更新 ValueNotifier
@@ -65,7 +65,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     _tabController.dispose(); // 释放 TabController
-print("dispose");
+
     super.dispose();
   }
   @override
@@ -444,10 +444,7 @@ print("dispose");
     );
   }
 
-  Future<List<Map<String, dynamic>>> _processData(
-      String stationID,
-      List<Map<String, dynamic>> stopEstimatedTime,
-      ) async {
+  Future<List<Map<String, dynamic>>> _processData(String stationID, List<Map<String, dynamic>> stopEstimatedTime,) async {
     try {
       // print('=== 開始處理資料，stationID: $stationID ===');
       // print('原始數據數量: ${stopEstimatedTime.length}');
@@ -939,7 +936,7 @@ print("dispose");
               return ErrorPage();
             } else {
               return DefaultTabController(
-                length: 2,
+                length: _stationIDs.value.length,
                 child: Scaffold(
                     appBar: PreferredSize(
                       preferredSize: const Size.fromHeight(150), // 自定义高度
@@ -1177,13 +1174,7 @@ print("dispose");
       ),
     );
   }
-  Widget _buildTabButton({
-    required IconData icon,
-    required String text,
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildTabButton({required IconData icon, required String text, required String label, required bool isSelected, required VoidCallback onTap,}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(

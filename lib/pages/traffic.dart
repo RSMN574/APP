@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../database/traffic/getTraffic.dart';
 
@@ -11,13 +13,18 @@ class Traffic extends StatefulWidget {
   State<Traffic> createState() => _TrafficState();
 }
 
+// 請確定檔案最上方有 import：
+
+
+// 如果你已經在同一檔案有 FreeWayInfoPage、tdxService 等，請保持其他程式碼不變。
+
 class _TrafficState extends State<Traffic> {
   // -----------------------------
   // 範例資料（未來可換成 TDX）
   // -----------------------------
-  String gps = "25.0335, 121.5651"; // 台北101附近
-  String direction = "北上"; // 示範
-  double vdSpeed = 85.0; // VD 模擬車速
+  String gps = "尚未取得";
+  String direction = "—";
+  double vdSpeed = 0.0; // 顯示為 km/h
   String nearestIC = "圓山交流道";
   double nearestICDistance = 1200; // 公尺
   String cmsMessage = "前方道路施工 請減速慢行";
@@ -31,17 +38,23 @@ class _TrafficState extends State<Traffic> {
   ];
 
   bool loading = false;
+  double gpsAccuracy = 0.0; // GPS 精度 (公尺)
 
   Timer? autoTimer;
+
+  // -------- GPS stream & smoothing ----------
+  StreamSubscription<Position>? _positionStreamSub;
+  Position? _lastPosition;
+  final List<double> _speedBuffer = []; // 存放最近幾筆速度 (km/h) 做平滑
+  final int _speedBufferSize = 5; // 移動平均的樣本數，可調整
 
   @override
   void initState() {
     super.initState();
+    _initLocation();
     _loadMockData();
 
-    // -----------------------------
-    // 自動每 5 秒更新
-    // -----------------------------
+    // 如果還要保留自動 mock 更新 (示範目的)，可以保留此 timer。
     autoTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _loadMockData();
     });
@@ -50,8 +63,108 @@ class _TrafficState extends State<Traffic> {
   @override
   void dispose() {
     autoTimer?.cancel();
+    _positionStreamSub?.cancel();
     super.dispose();
   }
+
+  // -----------------------------
+  // 初始化定位權限並開始監聽位置
+  // -----------------------------
+  Future<void> _initLocation() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+      _startPositionStream();
+    } else {
+      setState(() {
+        gps = "定位未授權";
+      });
+    }
+  }
+
+  void _startPositionStream() {
+    // 你可以根據需求調整 accuracy / distanceFilter / intervalDuration
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.bestForNavigation,
+      distanceFilter: 1, // 當移動超過 1 公尺才更新（減少頻率）
+      // Android/iOS 可使用時間間隔設定 (較新 geolocator 版本支援)
+      // timeLimit: Duration(seconds:1) // 若使用舊版可用 getPositionStream(...).listen(...)
+    );
+
+    _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (Position pos) {
+        if (pos == null) return;
+        _onNewPosition(pos);
+      },
+      onError: (e) {
+        // 錯誤處理（可擴充）
+        debugPrint('position stream error: $e');
+      },
+    );
+  }
+
+  // -----------------------------
+  // 當收到新位置時處理
+  // -----------------------------
+  void _onNewPosition(Position pos) {
+    // 更新 GPS 字串
+    final latStr = pos.latitude.toStringAsFixed(6);
+    final lonStr = pos.longitude.toStringAsFixed(6);
+    gps = "$latStr, $lonStr";
+
+    // GPS 精度
+    gpsAccuracy = pos.accuracy; // 公尺
+
+    // 取得方向：優先使用 pos.heading，否則用前一位置算 bearing
+    double bearing = 0.0;
+    if (pos.heading != null && pos.heading.isFinite && pos.heading >= 0) {
+      bearing = pos.heading;
+    } else if (_lastPosition != null) {
+      bearing = _calcBearing(
+          _lastPosition!.latitude,
+          _lastPosition!.longitude,
+          pos.latitude,
+          pos.longitude
+      );
+    }
+    direction = _bearingToDirection(bearing);
+
+    // 取得速度
+    double speedKmh = 0.0;
+    if (pos.speed != null && pos.speed.isFinite && pos.speed >= 0) {
+      speedKmh = pos.speed * 3.6; // m/s -> km/h
+    } else if (_lastPosition != null && pos.timestamp != null && _lastPosition!.timestamp != null) {
+      final distance = Geolocator.distanceBetween(
+          _lastPosition!.latitude,
+          _lastPosition!.longitude,
+          pos.latitude,
+          pos.longitude
+      ); // 公尺
+      final dt = pos.timestamp!.difference(_lastPosition!.timestamp!).inMilliseconds / 1000.0;
+      if (dt > 0) {
+        speedKmh = (distance / dt) * 3.6;
+      }
+    }
+
+    // 僅保留精度 < 10 公尺的速度 (可調整)
+    if (gpsAccuracy <= 10) {
+      _speedBuffer.add(speedKmh);
+    }
+
+    // 平滑速度 (移動平均)
+    if (_speedBuffer.length > _speedBufferSize) _speedBuffer.removeAt(0);
+    vdSpeed = _speedBuffer.isNotEmpty ? (_speedBuffer.reduce((a, b) => a + b) / _speedBuffer.length) : 0.0;
+
+    // 儲存為 last position
+    _lastPosition = pos;
+
+    // 更新 UI
+    setState(() {});
+  }
+
 
   // -----------------------------
   // 模擬資料更新（不接 API）
@@ -59,13 +172,15 @@ class _TrafficState extends State<Traffic> {
   Future<void> _loadMockData() async {
     setState(() => loading = true);
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     setState(() {
-      // 模擬車速變動
-      vdSpeed = 70 + (DateTime.now().second % 20);
+      // 若實際有 GPS 則 vdSpeed 會被上面的 stream 覆蓋，這裡只在沒有 stream 時模擬：
+      if (_positionStreamSub == null) {
+        vdSpeed = 70 + (DateTime.now().second % 20);
+      }
 
-      // 模擬事件是否出現
+      // 模擬事件是否出現（示範）
       if (vdSpeed < 75) {
         frontEvents = [
           {
@@ -81,9 +196,7 @@ class _TrafficState extends State<Traffic> {
       loading = false;
     });
 
-    // -----------------------------
     // 若有事件 → 自動警示
-    // -----------------------------
     if (frontEvents.isNotEmpty) {
       _showWarning(frontEvents.first);
     }
@@ -106,6 +219,160 @@ class _TrafficState extends State<Traffic> {
       );
     });
   }
+
+  // -----------------------------
+  // Bearing / Direction 工具
+  // -----------------------------
+  double _calcBearing(double lat1, double lon1, double lat2, double lon2) {
+    final toRad = (double d) => d * pi / 180.0;
+    final dLon = toRad(lon2 - lon1);
+    final y = sin(dLon) * cos(toRad(lat2));
+    final x = cos(toRad(lat1)) * sin(toRad(lat2)) - sin(toRad(lat1)) * cos(toRad(lat2)) * cos(dLon);
+    final brng = atan2(y, x);
+    return (brng * 180 / pi + 360) % 360;
+  }
+
+  String _bearingToDirection(double bearing) {
+    if (bearing < 22.5 || bearing >= 337.5) return '北';
+    if (bearing < 67.5) return '東北';
+    if (bearing < 112.5) return '東';
+    if (bearing < 157.5) return '東南';
+    if (bearing < 202.5) return '南';
+    if (bearing < 247.5) return '西南';
+    if (bearing < 292.5) return '西';
+    return '西北';
+  }
+
+  // -----------------------------
+  // UI 主體（保持你原本 UI）
+  // -----------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0.4,
+        centerTitle: true,
+        title: const Text(
+          "高速公路行車助理系統 (範例)",
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF3FB),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.more_vert_rounded,
+                  size: 20,
+                  color: Color(0xFF1A73E8),
+                ),
+              ),
+              onPressed: _showInfoMenu, // 改為調用底部彈出菜單
+            ),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadMockData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              _buildCard(
+                "目前位置",
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("GPS：$gps", style: const TextStyle(fontSize: 16)),
+                    Text("精度：約 ${gpsAccuracy.toStringAsFixed(1)} 公尺", style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                    Text("行車方向：$direction", style: const TextStyle(fontSize: 16)),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildCard(
+                "最近交流道",
+                Text(
+                  "$nearestIC（${(nearestICDistance / 1000).toStringAsFixed(2)} km）",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildCard(
+                "可變標誌 CMS",
+                Text(
+                  cmsMessage,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildCard(
+                "即時速度（km/h）",
+                Text(
+                  vdSpeed.toStringAsFixed(1),
+                  style: const TextStyle(
+                      fontSize: 34, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildCard(
+                "前方 3 公里內事件",
+                frontEvents.isEmpty
+                    ? const Text(
+                  "無事故 / 無施工",
+                  style: TextStyle(fontSize: 18),
+                )
+                    : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: frontEvents.map((event) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        "• ${event["type"]}：${event["description"]}（距離 ${(event["distance"] / 1000).toStringAsFixed(2)} km）",
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              CupertinoButton.filled(
+                onPressed: loading ? null : _loadMockData,
+                child: loading
+                    ? const CupertinoActivityIndicator(color: Colors.white)
+                    : const Text("重新整理（示範）"),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // -----------------------------
+  // 以下保持你原本的 menu 與 card 函式（請放回原本實作或保留）
+  // -----------------------------
   Widget _buildMenuOption({
     required IconData icon,
     required String title,
@@ -201,6 +468,7 @@ class _TrafficState extends State<Traffic> {
       ),
     );
   }
+
   void _navigateToFreeWayInfo() {
     Navigator.push(
       context,
@@ -241,12 +509,8 @@ class _TrafficState extends State<Traffic> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
 
-
-
-
-
-              // 選項列表
               _buildMenuOption(
                 icon: Icons.info_outline_rounded,
                 title: '高速公路道路事件資訊',
@@ -254,163 +518,9 @@ class _TrafficState extends State<Traffic> {
                 color: const Color(0xFF1A73E8),
                 onTap: _navigateToFreeWayInfo,
               ),
-              // const SizedBox(height: 12),
-              // _buildMenuOption(
-              //   icon: Icons.confirmation_number_rounded,
-              //   title: '車票資訊',
-              //   subtitle: '票價與購票說明',
-              //   color: const Color(0xFF34C759),
-              //   onTap: _navigateToTicketInfo,
-              // ),
-              // const SizedBox(height: 12),
-              // _buildMenuOption(
-              //   icon: Icons.schedule_rounded,
-              //   title: '發車班距',
-              //   subtitle: '查看列車發車班距頻率',
-              //   color: const Color(0xFFFF9500),
-              //   onTap: () => _navigateToSchedule(context),
-              // ),
-              //
-              // const SizedBox(height: 12),
-              // _buildMenuOption(
-              //   icon: Icons.schedule_rounded,
-              //   title: '發車時刻表',
-              //   subtitle: '查看列車發車時間',
-              //   color: const Color(0xFFFF9500),
-              //   onTap: () => _navigateToSchedule(context),
-              // ),
 
               const SizedBox(height: 20),
-
-              // 安全區域底部填充（可選）
               SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // -----------------------------
-  // UI 主體
-  // -----------------------------
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.4,
-        centerTitle: true,
-        title: const Text(
-          "高速公路行車助理系統 (範例)",
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF3FB),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.more_vert_rounded,
-                  size: 20,
-                  color: Color(0xFF1A73E8),
-                ),
-              ),
-              onPressed: _showInfoMenu, // 改為調用底部彈出菜單
-            ),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadMockData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              _buildCard(
-                "目前位置",
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("GPS：$gps",
-                        style: const TextStyle(fontSize: 16)),
-                    Text("行車方向：$direction",
-                        style: const TextStyle(fontSize: 16)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildCard(
-                "最近交流道",
-                Text(
-                  "$nearestIC（${(nearestICDistance / 1000).toStringAsFixed(2)} km）",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildCard(
-                "可變標誌 CMS",
-                Text(
-                  cmsMessage,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildCard(
-                "VD 即時車速（km/h）",
-                Text(
-                  vdSpeed.toStringAsFixed(1),
-                  style: const TextStyle(
-                      fontSize: 34, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              _buildCard(
-                "前方 3 公里內事件",
-                frontEvents.isEmpty
-                    ? const Text(
-                  "無事故 / 無施工",
-                  style: TextStyle(fontSize: 18),
-                )
-                    : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: frontEvents.map((event) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        "• ${event["type"]}：${event["description"]}（距離 ${(event["distance"] / 1000).toStringAsFixed(2)} km）",
-                        style: const TextStyle(fontSize: 18),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              CupertinoButton.filled(
-                onPressed: loading ? null : _loadMockData,
-                child: loading
-                    ? const CupertinoActivityIndicator(color: Colors.white)
-                    : const Text("重新整理（示範）"),
-              ),
             ],
           ),
         ),
@@ -451,7 +561,6 @@ class _TrafficState extends State<Traffic> {
     );
   }
 }
-
 
 
 

@@ -21,6 +21,7 @@ class AirportData {
 
   // 交通資訊
   final List<TransportInfo> transport;
+  final List<TransportRoute>? transportRoute;
 
   // 服務設施
   final List<ServiceInfo> services;
@@ -39,6 +40,33 @@ class AirportData {
     required this.transport,
     required this.services,
     required this.emergencyContacts,
+    this.transportRoute
+  });
+}
+enum TransportType {
+  bus,     // 公車
+  train,   // 台鐵
+  hsr,     // 高鐵
+  mrt,     // 捷運
+}
+
+class TransportRoute {
+  final TransportType type;   // 公車 / 火車 / 高鐵 / 捷運
+  final String routeId;       // 路線 ID（TDX 用）
+  final String name;          // 顯示名稱（300、機捷A1）
+  final String? operator;      // 業者（TRTC、TYMC、THSR）
+  final String? destination;  // 方向 / 終點
+  final Color? color;         // 捷運路線顏色
+  final String? remark;       // 備註（例：假日行駛）
+
+  TransportRoute({
+    required this.type,
+    required this.routeId,
+    required this.name,
+     this.operator,
+    this.destination,
+    this.color,
+    this.remark,
   });
 }
 
@@ -111,7 +139,9 @@ final Map<String, AirportData> airports = {
       '機場警察': '03-273-2946',
       '醫療中心': '03-273-2945',
       '遺失物協尋': '03-273-2947',
-    },
+    },transportRoute:[
+    TransportRoute(type:TransportType.bus, routeId: '706', name: '706',)
+  ]
   ),
   'TSA': AirportData(
     name: '台北松山機場',

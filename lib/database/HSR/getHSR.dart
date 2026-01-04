@@ -54,7 +54,7 @@ Future<List<dynamic>> fetchHSRRoute(departureID,destinationID,time) async {
 
   // String url="https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/DailyTrainTimetable/OD/Inclusive/$departureID/to/$destinationID/$date?%24&%24format=JSON";
   String url="https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/DailyTimetable/OD/$departureID/to/$destinationID/$time?%24format=JSON";
-  print( Uri.parse(url));
+
   try {
 
 

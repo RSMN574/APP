@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:animated_list_plus/animated_list_plus.dart';
+import 'package:animated_list_plus/transitions.dart';
 import 'package:flutter/material.dart';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -24,6 +26,7 @@ import '../widget/bubble.dart';
 import '../widget/error.dart';
 import '../widget/map.dart';
 import '../widget/tab.dart';
+import 'busStopInfo.dart';
 import 'bus_time.dart';
 
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
@@ -40,10 +43,15 @@ class NearbyStationsPage extends StatefulWidget {
   _NearbyStationsPageState createState() => _NearbyStationsPageState();
 }
 final GlobalKey<_NearbyStationsPageState> mapKey = GlobalKey();
+List<Map<String, dynamic>> processedUp = [];
+List<Map<String, dynamic>> processedDown = [];
 
+
+final _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
    GoogleMapController? _mapController;
 
+   List<Map<String, dynamic>> data = [];
   Future<List<Station>>? _futureNearStations;
   MarkerProvider? _markerProvider;
   void setMapController(GoogleMapController controller) {
@@ -1327,43 +1335,62 @@ class BusStopList extends StatefulWidget {
 class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
   final StreamController<List<Map<String, dynamic>>> _streamController =
       StreamController();
-  final ValueNotifier<TabController?> _tabControllerNotifier = ValueNotifier(null);
-
+  late final  TabController _tabController;
+  final ValueNotifier<int> _currentTabIndex = ValueNotifier<int>(0);
   @override
   void initState() {
     super.initState();
 
     // 初始化 TabController
-    _initTabController();
+    // _initTabController();
     // 加上 listener
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final controller = _tabControllerNotifier.value;
-      if (controller != null) {
-        controller.addListener(() {
-          if (!controller.indexIsChanging) {
-            // 取得當前 Tab 對應的站點 ID
-            final currentStationID = _stationIDs.value[controller.index];
+    _tabController = TabController(length:  _stationIDs.value.length, vsync: this); // 兩個 Tab
+    // 每次頁面重新進入，重置 Tab
+    _tabController.index = 0;
+    _currentTabIndex.value = 0; // 添加監聽器，只更新 ValueNotifier
+    _tabController.addListener(() {
+      if (_tabController.index != _currentTabIndex.value) {
+        _currentTabIndex.value = _tabController.index;
+        final currentStationID = _stationIDs.value[_tabController.index];
 
-            // 更新選中的站點
-            _selectStationID.value = currentStationID;
+        // 更新選中的站點
+        _selectStationID.value = currentStationID;
+        _tabController.animateTo(_tabController.index);
+        print("✅ Tab 切換完成 -> index: ${_tabController.index}, StationID: $currentStationID");
 
-            print("✅ Tab 切換完成 -> index: ${controller.index}, StationID: $currentStationID");
 
-            // 更新 Marker Style
-            _NearbyStationsPageState._updateMarkerStyle(currentStationID);
-          }
-        });
+        // 更新 Marker Style
+        _NearbyStationsPageState._updateMarkerStyle(currentStationID);
       }
     });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   final controller = _tabControllerNotifier.value;
+    //   if (controller != null) {
+    //     controller.addListener(() {
+    //       if (!controller.indexIsChanging) {
+    //         // 取得當前 Tab 對應的站點 ID
+    //         final currentStationID = _stationIDs.value[controller.index];
+    //
+    //         // 更新選中的站點
+    //         _selectStationID.value = currentStationID;
+    //
+    //         print("✅ Tab 切換完成 -> index: ${controller.index}, StationID: $currentStationID");
+    //
+    //         // 更新 Marker Style
+    //         _NearbyStationsPageState._updateMarkerStyle(currentStationID);
+    //       }
+    //     });
+    //   }
+    // });
 
 
     // 監聽 _stationIDs 變化，更新 TabController
-    _stationIDs.addListener(() {
-      if (!mounted) return;
-      _initTabController();
-
-
-    });
+    // _stationIDs.addListener(() {
+    //   if (!mounted) return;
+    //   _initTabController();
+    //
+    //
+    // });
 
     // 監聽 _selectStationID，切換 Tab 並更新 marker 樣式
     _selectStationID.addListener(_onSelectStationChanged);
@@ -1376,8 +1403,7 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     final currentGroupID = _selectStationGroupID.value;
 
     // 若 groupID 沒變且長度也沒變，就不重建
-    if (_tabControllerNotifier.value != null &&
-        _tabControllerNotifier.value!.length == length &&
+    if (_tabController.length == length &&
         _lastGroupID == currentGroupID) {
       return;
     }
@@ -1389,13 +1415,13 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
       final initIndex =
       _stationIDs.value.indexOf(_selectStationID.value); // 找到對應 index
       if (initIndex != -1) {
-        _tabControllerNotifier.value?.index = initIndex; // 設定到指定 Tab
-        _tabControllerNotifier.value!; // 同步更新 marker
+        _tabController.index = initIndex; // 設定到指定 Tab
+        _tabController; // 同步更新 marker
       }
     });
     // 重建 TabController
-    _tabControllerNotifier.value?.dispose();
-    _tabControllerNotifier.value = TabController(length: length, vsync: this);
+    _tabController.dispose();
+    _tabController = TabController(length: length, vsync: this);
 
 
   }
@@ -1408,9 +1434,9 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     final currentStop = _selectStationID.value;
     _stationIDs.value.sort();
     final index = _stationIDs.value.indexOf(currentStop);
-    if (index != -1 && _tabControllerNotifier.value != null) {
+    if (index != -1) {
       _NearbyStationsPageState._updateMarkerStyle(currentStop);
-      _tabControllerNotifier.value!.animateTo(index);
+      _tabController.animateTo(index);
     }
   }
 
@@ -1427,7 +1453,7 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
   void dispose() {
     _streamController.close(); // 关闭 StreamController
     // 釋放 TabController
-    _tabControllerNotifier.value?.dispose();
+    _tabController.dispose();
 
 
     super.dispose();
@@ -1439,119 +1465,349 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     // _streamController.add(data); // 向数据流中添加新数据
     return data;
   }
+  Future<List<Map<String, dynamic>>> _processData(String stationID, List<Map<String, dynamic>> stopEstimatedTime,) async {
+    try {
+      // print('=== 開始處理資料，stationID: $stationID ===');
+      // print('原始數據數量: ${stopEstimatedTime.length}');
 
-  Future<Widget> _buildTabContent(String direction, List<Map<String, dynamic>> stopEstimatedTime) async {
-    List<Map<String, dynamic>> directionList = stopEstimatedTime
-        .where((item) => item["Direction"] == direction)
-        .toList();
-    // 使用 Map 來確保每個路線只出現一次
-    List<Map<String, dynamic>> uniqueList;
-    final Map<String, Map<String, dynamic>> uniqueRoutes = {};
-    for (var item in stopEstimatedTime) {
-      final routeKey = "${item["RouteName"]["Zh_tw"]}_${item["Direction"]}";
-      if (!uniqueRoutes.containsKey(routeKey) ||
-          _parseTimeToMinutes(item["time"]) <
-              _parseTimeToMinutes(uniqueRoutes[routeKey]!["time"])) {
-        uniqueRoutes[routeKey] = item;
+      /// -----------------------------
+      /// 1. 過濾並去重
+      /// -----------------------------
+      final routeMap = <String, Map<String, dynamic>>{};
+
+      for (final item in stopEstimatedTime) {
+        // 只處理符合 StationID 的項目
+        if (item["StationID"] != stationID) {
+          continue;
+        }
+
+        // print('處理項目: ${item["RouteName"]}, StationID: ${item["StationID"]}');
+
+        final routeNameObj = item["RouteName"];
+        String? routeName;
+
+        // 處理 RouteName 可能是 Map 或 String 的情況
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+          // print('RouteName 是 Map: $routeNameObj, 提取: $routeName');
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+          //  print('RouteName 是 String: $routeName');
+        }
+
+        final direction = item["Direction"];
+
+        if (routeName == null || routeName.isEmpty) {
+          //  print('跳過：routeName 為空');
+          continue;
+        }
+
+        final routeKey = "${routeName}_$direction";
+        final currentTime = _parseTimeToMinutes(item["time"]);
+
+        // print('routeKey: $routeKey, currentTime: $currentTime');
+
+        // 只保留每條路線最近的一班車
+        final existing = routeMap[routeKey];
+        if (existing == null ||
+            (currentTime != -1 && currentTime < _parseTimeToMinutes(existing["time"]))) {
+          routeMap[routeKey] = item;
+          //    print('加入/更新: $routeKey');
+        }
       }
-    }
 
-    uniqueList = uniqueRoutes.values.toList();
+      final stationData = routeMap.values.toList();
+      // print('過濾後數據數量: ${stationData.length}');
 
-    List<Map<String, dynamic>> finalList = [];
-
-    // 按 StationID 分类
-    Map<String, List<Map<String, dynamic>>> groupedData = {};
-    for (var item in uniqueList) {
-      String stationID = item["StationID"];
-      groupedData.putIfAbsent(stationID, () => []).add(item);
-    }
-
-    // 打印分组后的结果
-    groupedData.forEach((stationID, items) {
-      if (stationID == direction) {
-        finalList = items;
+      if (stationData.isEmpty) {
+        //   print('無數據，返回空列表');
+        return [];
       }
-    });
 
-    for (int index = 0; index < finalList.length; index++) {
-      var i = finalList[index];
+      /// -----------------------------
+      /// 2. 批次獲取路線資訊 - 修正查詢方式
+      /// -----------------------------
+      final routeNames = <String>{};
 
-      // 根据方向查找去程或回程的目的地信息
-      if (i['Direction'] == 1) {
-        List<dynamic> result = await mysqlSelect(
-            "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
+      for (final item in stationData) {
+        final routeNameObj = item["RouteName"];
+        String? routeName;
 
-        finalList[index]["RouteID"] =
-            result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        finalList[index]["from"] =
-            result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-        finalList[index]["to"] = result.isNotEmpty
-            ? result[0]["DepartureStopNameZh"]
-            : "未知目的地"; // 赋值到 'to' 字段
-        finalList[index]["DepartureStopName"] =
-            result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        finalList[index]["DestinationStopName"] =
-            result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
-      } else if (i['Direction'] == 0) {
-        List<dynamic> result = await mysqlSelect(
-            "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '${i["RouteName"]["Zh_tw"]}'");
-        finalList[index]["to"] = result.isNotEmpty
-            ? result[0]["DestinationStopNameZh"]
-            : "未知目的地"; // 赋值到 'to' 字段
-        finalList[index]["from"] =
-            result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        finalList[index]["RouteID"] =
-            result.isNotEmpty ? result[0]["RouteID"] : "未知";
-        finalList[index]["DepartureStopName"] =
-            result.isNotEmpty ? result[0]["DepartureStopNameZh"] : "未知目的地";
-        finalList[index]["DestinationStopName"] =
-            result.isNotEmpty ? result[0]["DestinationStopNameZh"] : "未知目的地";
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+        }
+
+        if (routeName != null && routeName.isNotEmpty) {
+          routeNames.add(routeName);
+        }
       }
+
+      // print('需要查詢的路線名稱: $routeNames');
+
+      final Map<String, Map<String, dynamic>> routeInfoCache = {};
+
+      if (routeNames.isNotEmpty) {
+        try {
+          // 方法1：使用 JSON_UNQUOTE 和 JSON_EXTRACT（最標準）
+          final nameList = routeNames.map((name) => "'$name'").join(',');
+
+          //  print('執行 SQL 查詢，條件: $nameList');
+
+          final query = """
+          SELECT * FROM Bus.Bus_Taichung_Route 
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
+        """;
+
+          //  print('SQL 查詢: $query');
+
+          final results = await mysqlSelect(query);
+          // print('查詢結果數量: ${results.length}');
+
+          // 建立路線名稱到數據的映射
+          for (final result in results) {
+            //  print('處理查詢結果: ${result}');
+
+            final routeNameField = result["RouteName"];
+            String? routeName;
+
+            // 解析 RouteName 欄位
+            if (routeNameField is Map) {
+              routeName = routeNameField["Zh_tw"] as String?;
+              //   print('RouteName 是 Map: $routeNameField, 提取: $routeName');
+            } else if (routeNameField is String) {
+              try {
+                // 嘗試解析 JSON 字串
+                final parsed = json.decode(routeNameField) as Map<String, dynamic>;
+                routeName = parsed["Zh_tw"] as String?;
+                // print('RouteName 是 JSON String: $routeNameField, 解析後: $parsed, 提取: $routeName');
+              } catch (e) {
+                routeName = routeNameField;
+                //  print('解析 JSON 失敗，使用原始字串: $routeNameField');
+              }
+            }
+
+            if (routeName != null && routeName.isNotEmpty) {
+              routeInfoCache[routeName] = result;
+              // print('快取路線: $routeName -> ${result["RouteID"]}');
+
+              // 打印詳細資訊以便調試
+              //  print('出發站名: ${result["DepartureStopNameZh"]}');
+              //  print('目的站名: ${result["DestinationStopNameZh"]}');
+            }
+          }
+
+          //print('快取大小: ${routeInfoCache.length}');
+          // print('快取內容: ${routeInfoCache.keys.toList()}');
+
+        } catch (e) {
+          print('批次查詢失敗: $e');
+
+          // 降級方案：逐個查詢
+          print('開始逐個查詢...');
+          for (final routeName in routeNames) {
+            try {
+              print('查詢路線: $routeName');
+
+              // 方法2：使用 LIKE 查詢 JSON
+              final query = """
+              SELECT * FROM Bus.Bus_Taichung_Route 
+              WHERE RouteName LIKE '%"Zh_tw": "$routeName"%'
+              OR JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName'
+            """;
+
+              final results = await mysqlSelect(query);
+
+              if (results.isNotEmpty) {
+                routeInfoCache[routeName] = results.first;
+                print('找到路線 $routeName: ${results.first["RouteID"]}');
+              } else {
+                print('未找到路線 $routeName');
+              }
+            } catch (e2) {
+              print('查詢單一路線失敗 $routeName: $e2');
+            }
+          }
+        }
+      }
+
+      /// -----------------------------
+      /// 3. 合併路線資訊
+      /// -----------------------------
+      final List<Map<String, dynamic>> processedData = [];
+
+      print('開始合併路線資訊...');
+
+      for (final item in stationData) {
+        print('處理項目: ${item["RouteName"]}');
+
+        final routeNameObj = item["RouteName"];
+        String? routeName;
+
+        if (routeNameObj is Map<String, dynamic>) {
+          routeName = routeNameObj["Zh_tw"] as String?;
+        } else if (routeNameObj is String) {
+          routeName = routeNameObj;
+        }
+
+        final direction = item["Direction"];
+
+        if (routeName == null) {
+          print('跳過：routeName 為空');
+          continue;
+        }
+
+        final resultItem = Map<String, dynamic>.from(item);
+        final routeInfo = routeInfoCache[routeName];
+        final hasValidInfo = routeInfo != null && routeInfo.isNotEmpty;
+
+        print('路線 $routeName 找到資訊: $hasValidInfo');
+
+        // 設置路線 ID
+        if (hasValidInfo) {
+          resultItem["RouteID"] = routeInfo!["RouteID"]?.toString() ?? "未知";
+          print('設置 RouteID: ${resultItem["RouteID"]}');
+        } else {
+          resultItem["RouteID"] = "未知";
+          print('未找到路線資訊，設置為未知');
+        }
+
+        // 設置站名資訊
+        String? departureName;
+        String? destinationName;
+
+        if (hasValidInfo) {
+          departureName = routeInfo!["DepartureStopNameZh"]?.toString();
+          destinationName = routeInfo!["DestinationStopNameZh"]?.toString();
+
+          print('出發站名從 DB: $departureName');
+          print('目的站名從 DB: $destinationName');
+
+          // 如果沒有從資料庫獲取到，嘗試其他欄位名稱
+          if (departureName == null) {
+            departureName = routeInfo["DepartureStopName"]?.toString();
+            print('從 DepartureStopName 獲取: $departureName');
+          }
+
+          if (destinationName == null) {
+            destinationName = routeInfo["DestinationStopName"]?.toString();
+            print('從 DestinationStopName 獲取: $destinationName');
+          }
+        }
+
+        resultItem["DepartureStopName"] = departureName ?? "未知出發站";
+        resultItem["DestinationStopName"] = destinationName ?? "未知目的站";
+
+        print('設置 DepartureStopName: ${resultItem["DepartureStopName"]}');
+        print('設置 DestinationStopName: ${resultItem["DestinationStopName"]}');
+
+        // 根據方向設置 "from" 和 "to"
+        final isDirection1 = direction == 1;
+        resultItem["from"] = isDirection1
+            ? destinationName ?? "未知目的地"
+            : departureName ?? "未知出發地";
+        resultItem["to"] = isDirection1
+            ? departureName ?? "未知出發地"
+            : destinationName ?? "未知目的地";
+
+        print('設置 from: ${resultItem["from"]}');
+        print('設置 to: ${resultItem["to"]}');
+
+        processedData.add(resultItem);
+        print('--- 完成處理 ---');
+      }
+
+      print('=== 處理完成，返回 ${processedData.length} 筆資料 ===');
+      return processedData;
+    } catch (e) {
+      print('處理資料失敗: $e');
+      print(e);
+      return [];
     }
+  }
 
-    // 对 stop["time"] 按照时间升序排序
-    finalList.sort((a, b) {
-      if (a["time"] == "即將到站") return -1;
-      if (b["time"] == "即將到站") return 1;
-      if (a["time"] == "班次結束") return 1;
-      if (b["time"] == "班次結束") return -1;
+  Future<Widget> _buildTabContent(String direction,List<Map<String, dynamic>> stopEstimatedTime) async {
+    List<Map<String, dynamic>> finalList=await _processData(direction,stopEstimatedTime);
 
-      int aTimeInMinutes = _parseTimeToMinutes(a["time"]);
-      int bTimeInMinutes = _parseTimeToMinutes(b["time"]);
 
-      return aTimeInMinutes.compareTo(bTimeInMinutes);
-    });
 
+
+    return ValueListenableBuilder<SortType>(
+      valueListenable: _sortNotifier,
+      builder: (context, sortType, _) {
+        final sortedList = [...finalList];
+
+        switch(sortType) {
+          case SortType.nameAsc:
+            sortedList.sort((a, b) => getChineseName(a['RouteName']["Zh_tw"]).compareTo(getChineseName(b['RouteName']["Zh_tw"])));
+            break;
+          case SortType.nameDesc:
+            sortedList.sort((a, b) => getChineseName(b['RouteName']["Zh_tw"]).compareTo(getChineseName(a['RouteName']["Zh_tw"])));
+            break;
+          case SortType.timeAsc:
+            sortedList.sort(_timeAscComparator);
+            break;
+          case SortType.timeDesc:
+            sortedList.sort(_timeDescComparator);
+            break;
+        }
+
+        return _buildTabContentUI(direction, sortedList); // 改這裡：傳給 UI builder 而不是 Future
+      },
+    );
+
+
+  }
+  int _timeAscComparator(a, b) {
+    if (a["time"] == "即將到站") return -1;
+    if (b["time"] == "即將到站") return 1;
+    if (a["time"] == "班次結束") return 1;
+    if (b["time"] == "班次結束") return -1;
+    return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
+  }
+
+  int _timeDescComparator(a, b) {
+    if (a["time"] == "即將到站") return 1;
+    if (b["time"] == "即將到站") return -1;
+    if (a["time"] == "班次結束") return -1;
+    if (b["time"] == "班次結束") return 1;
+    return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
+  }
+
+  Widget _buildTabContentUI(String direction, List<Map<String, dynamic>> finalList) {
     return RefreshIndicator(
-        onRefresh: () async {},
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 25), // 设置底部间距
-          child: RefreshIndicator(
-            onRefresh: () async {
-              await _loadData(); // 刷新时重新加载数据
-            },
-            child: ListView.separated(
-              itemCount: finalList.length,
-              itemBuilder: (context, index) {
-                final stop = finalList[index];
-                final PlateNumb = stop["PlateNumb"];
+      onRefresh: () async => await _loadData(),
+      child:   ImplicitlyAnimatedList<Map<String, dynamic>>(
+        key: ValueKey(_sortNotifier.value), // 每次排序不同 key
+        items: finalList,
+        areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
+        itemBuilder: (context, animation, stop, index) {
+          final PlateNumb = stop["PlateNumb"];
 
-                final color = stop["color"] == '0'
-                    ? const Color.fromRGBO(235, 15, 41, 0.85)
-                    : (stop["color"] == '2'
-                        ? const Color.fromRGBO(225, 85, 104, 0.1)
-                        : (stop["color"] == "班次結束"
-                            ? const Color.fromRGBO(69, 69, 69, 0.1)
-                            : (stop["color"] == "min"
-                                ? const Color.fromRGBO(13, 168, 255, 0.1)
-                                : const Color.fromRGBO(68, 68, 68, 0.1))));
+          final color = stop["color"] == '0'
+              ? const Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["color"] == '2'
+              ? const Color.fromRGBO(225, 85, 104, 0.1)
+              : (stop["color"] == "班次結束"
+              ? const Color.fromRGBO(69, 69, 69, 0.1)
+              : (stop["color"] == "min"
+              ? const Color.fromRGBO(13, 168, 255, 0.1)
+              : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-                return Container(
-                  height: 53.0, // 每个列表项的固定高度
+          return SizeFadeTransition(
+            animation: animation,
+            curve: Curves.easeInOut,
+            sizeFraction: 0.9,
+            child: Column(
+              children: [
+                Container(
+                  height: 53.0,
                   child: ListTile(
                     onTap: () async {
-
+                      await GetBusInfo(
+                          routeid: int.parse(stop["RouteID"]),
+                          city: "Taichung");
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1564,10 +1820,8 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                             city: "Taichung",
                             routeID: int.parse(stop["RouteID"]),
                             mark: Mark.fromMap({
-                              "highlight": [
-                                _stopName.value,
-                              ],
-                              "direction": (stop["Direction"] == 0) ? 1 : 0,
+                              "highlight": [widget.stop],
+                              "direction": stop['Direction'] == 0 ? 1 : 0,
                             }),
                           ),
                         ),
@@ -1583,26 +1837,25 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                       child: Text(
                         stop["time"] ?? "未知",
                         style: TextStyle(
-                          fontFamily: 'MiSans-normal',
+
                           fontSize: 17,
                           color: stop["color"] == '0'
                               ? Colors.white
                               : (stop["color"] == '2'
-                                  ? const Color.fromRGBO(255, 85, 104, 1)
-                                  : (stop["color"] == "班次結束"
-                                      ? const Color.fromRGBO(149, 149, 149, 1.0)
-                                      : (stop["color"] == "min"
-                                          ? const Color.fromRGBO(
-                                              13, 168, 255, 1)
-                                          : const Color.fromRGBO(
-                                              68, 68, 68, 1)))),
+                              ? const Color.fromRGBO(255, 85, 104, 1)
+                              : (stop["color"] == "班次結束"
+                              ? const Color.fromRGBO(149, 149, 149, 1.0)
+                              : (stop["color"] == "min"
+                              ? const Color.fromRGBO(13, 168, 255, 1)
+                              : const Color.fromRGBO(
+                              68, 68, 68, 1)))),
                         ),
                       ),
                     ),
                     title: Row(
                       children: [
                         Text(
-                          stop["RouteName"]["Zh_tw"] ?? "未知班次",
+                          stop["RouteName"]["Zh_tw"] ?? "未知站名",
                           style: TextStyle(
                             fontFamily: stop["color"] == "0"
                                 ? 'MiSans-Semibold'
@@ -1613,56 +1866,36 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                                 : Colors.black,
                           ),
                         ),
-                        const SizedBox(width: 8), // 增加站名和方向之間的間距
+                        const SizedBox(width: 8),
                         Text(
                           "往 ${stop["to"] ?? "未知方向"}",
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontFamily: 'MiSans-normal',
                             fontSize: 14,
-                            color: const Color.fromRGBO(136, 136, 136, 1),
+                            color: Color.fromRGBO(136, 136, 136, 1),
                           ),
                         ),
-                        // if (stop["RouteName"]["Zh_tw"]!.contains("車站"))
-                        //   Padding(
-                        //     padding: const EdgeInsets.only(left: 6), // 左侧间距
-                        //     child: SvgPicture.asset(
-                        //       'assets/icons/Taiwan_Railways_Logo.svg',
-                        //       // 自定义SVG路径
-                        //       width: 18, // SVG图标宽度
-                        //       height: 18, // SVG图标高度
-                        //     ),
-                        //   )
-                        // else if (stop["RouteName"]["Zh_tw"]!.contains("捷運"))
-                        //   Padding(
-                        //     padding: const EdgeInsets.only(left: 6), // 左侧间距
-                        //     child: SvgPicture.asset(
-                        //       'assets/icons/tc_MRT.svg', // 自定义SVG路径
-                        //       width: 18, // SVG图标宽度
-                        //       height: 18, // SVG图标高度
-                        //     ),
-                        //   ),
                       ],
                     ),
-                    trailing: bubble(plateNum: PlateNumb),
+                    trailing: PlateNumb != null
+                        ? bubble(plateNum: PlateNumb)
+                        : null,
                   ),
-                );
-              },
-              separatorBuilder: (BuildContext context, int index) {
-                return const Divider(
+                ),
+                const Divider(
                   color: Color.fromRGBO(231, 231, 231, 1),
-                  // 分隔线颜色
                   height: 9,
-                  // 分隔线与上下元素间距
                   thickness: 1,
-                  // 分隔线粗细
                   indent: 20,
-                  // 分隔线左间距
-                  endIndent: 20, // 分隔线右间距
-                );
-              },
+                  endIndent: 20,
+                ),
+              ],
             ),
-          ),
-        ));
+          );
+        },
+      ),
+
+    );
   }
 
   // 解析时间格式，转换成相对于当前时间的分钟数
@@ -1790,45 +2023,117 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
 
   PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
     return PreferredSize(
-      preferredSize: const Size.fromHeight(60),
+      preferredSize: const Size.fromHeight(80),
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white, // 使用白色背景
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: ValueListenableBuilder<TabController?>(
-            valueListenable: _tabControllerNotifier,
-            builder: (context, tabController, child) {
-              return TabBar(
-                controller: _tabControllerNotifier.value,
-                // 添加 controller
-                indicatorColor: Colors.black,
-                // 使用黑色作为指示器颜色
-                labelColor: Colors.black,
-                // 黑色文字
-                unselectedLabelColor: Colors.grey,
-                // 灰色未选中文字
-                indicatorWeight: 2.0,
-                // 更细的指示器
-                indicatorSize: TabBarIndicatorSize.label,
-                // 窄指示器
-                labelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600, // 略轻的加粗，显得现代
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 15, // 未选中标签稍小字体
-                ),
+        child: ValueListenableBuilder<int>(
+          valueListenable: _currentTabIndex,
+          builder: (context, currentIndex, child) {
+            return Row(
+              children: List.generate(_stationIDs.value.length, (index) {
+                String label = String.fromCharCode(65 + index);
+                return Expanded(
+                  child: Padding(
+                    padding: index < _stationIDs.value.length - 1
+                        ? const EdgeInsets.only(right: 8)
+                        : EdgeInsets.zero,
+                    child: _buildTabButton(
 
-                tabs: List.generate(_stationIDs.value.length, (index) {
-                  String label =
-                      String.fromCharCode(65 + index); // 將索引轉為字母 A, B, C...
-                  return Tab(
-                    icon: Icon(Icons.directions_bus, size: 24),
-                    text: _stationIDs.value[index],
-                  );
-                }),
-              );
-            }),
+                      icon: Icons.directions_bus,
+                      text: _stationIDs.value[index],
+                      label: label,
+                      isSelected: currentIndex == index,
+                      onTap: () => _tabController.animateTo(index),
+                    ),
+                  ),
+                );
+              }),
+            );
+          },
+        ),
+      ),
+    );
+  }
+  Widget _buildTabButton({required IconData icon, required String text, required String label, required bool isSelected, required VoidCallback onTap,}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(
+              color: const Color(0xFF1A73E8).withOpacity(0.3),
+              width: 1.5,
+            )
+                : Border.all(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 字母標籤和圖標組合
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[500],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1839,177 +2144,186 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
     super.build(context);
 
     return ValueListenableBuilder<String>(
-        valueListenable: _selectStationGroupID,
-        builder: (context, groupID, _)
-    {
-      return
-        FutureBuilder<List<Map<String, dynamic>>>(
-            future: _loadData(), // 调用异步方法
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: LoadingAnimationWidget.stretchedDots(
-                    color: Colors.black,
-                    size: 40,
-                  ),
-                ); // 加载中的占位组件
-              } else if (snapshot.hasError) {
-                return Center(child: Text('錯誤: ${snapshot.error}')); // 错误提示
-              } else if (!snapshot.hasData || snapshot.data == null) {
-                return const Center(child: Text('沒有資料')); // 无数据占位
-              }
-
-              return DefaultTabController(
-                  length: 2,
-                  child: Column(
-                    children: [
-                      // 自定义 AppBar
-                      SingleChildScrollView(
-                        child: PreferredSize(
-                          preferredSize: const Size.fromHeight(120), // 自定义高度
-                          child: Container(
-                            height: 120,
-                            decoration: BoxDecoration(
-                              borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(16)),
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2), // 微弱阴影
-                                  blurRadius: 8,
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child:PreferredSize(
-                              preferredSize: Size.fromHeight(100), // 視需要調整高度
-                              child: AppBar(
-                                automaticallyImplyLeading: false, // 不顯示默認返回鍵
-                                backgroundColor: Colors.transparent,
-                                elevation: 0,
-                                title: Text(
-                                  _stopName.value,
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
-                                ),
-                                leading: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.black),
-                                  onPressed: () {
-                                    if (_indexNotifier.value > 0) {
-                                      setState(() {
-                                        _indexNotifier.value--; // 返回到上一个索引
-                                      });
-                                      _NearbyStationsPageState._clearMarkerStyle(context,);
-                                      // 更新相關狀態
-                                      _stationIDs.value = [];
-                                      _stopName.value = "";
-                                      _selectStationID.value = "";
-                                      _selectStationGroupID.value="";
-
-                                    }}, // 點 X 返回
-                                ),
-                                actions: [
-                                  IconButton(
-                                    icon: const Icon(Icons.refresh, color: Colors.black),
-                                    onPressed: _loadData,
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert, color: Colors.black),
-                                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                      SelectView(Icons.info, '站牌資訊', 'A'),
-                                      SelectView(Icons.add, '加入收藏', 'B'),
-                                    ],
-                                    onSelected: (String action) async {
-                                      if (action == 'B') {
-                                        favorite_feature dbHelper = favorite_feature();
-                                        final output = await dbHelper.addFavorite(
-                                          StopName: widget.stop,
-                                          table: "FavoritesStop",
-                                          city: 'Taichung',
-                                        );
-                                        if (output == 100) {
-                                          QuickAlert.show(
-                                            context: context,
-                                            type: QuickAlertType.success,
-                                            text: '${widget.stop}已儲存項目',
-                                          );
-                                        } else if (output == -1) {
-                                          QuickAlert.show(
-                                            context: context,
-                                            type: QuickAlertType.warning,
-                                            text: '${widget.stop}已存在於列表中，不會重複添加',
-                                          );
-                                        } else if (output == 200) {
-                                          QuickAlert.show(
-                                            context: context,
-                                            type: QuickAlertType.error,
-                                            title: 'Oops...',
-                                            text: '儲存項目時發生錯誤',
-                                          );
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ],
-                                bottom: _buildTabBar(snapshot.data!),
-                              ),
-                            )
-
-                          ),
-                        ),
-                      ),
-                      // 内容部分
-                      ValueListenableBuilder<TabController?>(
-                      valueListenable: _tabControllerNotifier, // 監聽 TabController
-              builder: (context, tabController, _) {
-              return    Expanded(
-                child: TabBarView(
-                  controller: _tabControllerNotifier.value, // 加入 controller 綁定
-                  children:
-                  List.generate(_stationIDs.value.length, (index) {
-                    String label =
-                    String.fromCharCode(65 + index); // A, B, C...
-                    return FutureBuilder(
-                      future: _buildTabContent(_stationIDs.value[index],
-                          snapshot.data!), // 傳入 A, B, C...
-                      builder: (context, contentSnapshot) {
-                        if (contentSnapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(
-                            child: LoadingAnimationWidget.stretchedDots(
-                              color: Colors.black,
-                              size: 40,
-                            ),
-                          );
-                        }
-
-                        if (contentSnapshot.hasError) {
-                          return Center(
-                            child: Text('Error: ${contentSnapshot.error}'),
-                          );
-                        }
-
-                        if (contentSnapshot.data == null) {
-                          return Center(
-                            child: Text("No content available"),
-                          );
-                        }
-                        return contentSnapshot.data is Widget
-                            ? contentSnapshot.data as Widget
-                            : Center(child: Text("Invalid content"));
-                      },
-                    );
-                  }),
+      valueListenable: _selectStationGroupID,
+      builder: (context, groupID, _) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _loadData(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: LoadingAnimationWidget.stretchedDots(
+                  color: Colors.black,
+                  size: 40,
                 ),
               );
-                      })
-                    ],
-                  ));
-            });
-    });
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('錯誤: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData || snapshot.data == null) {
+              return const Center(child: Text('沒有資料'));
+            }
+
+            // ❗非常重要：Tab 數量為 0 會直接 assert
+            if (_stationIDs.value.isEmpty) {
+              return const SizedBox();
+            }
+
+            return DefaultTabController(
+
+              length: _stationIDs.value.length,
+              child: Column(
+                children: [
+                  // ---------- 自訂 AppBar ----------
+                  PreferredSize(
+
+                    preferredSize: const Size.fromHeight(120),
+                    child: Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: AppBar(
+                        automaticallyImplyLeading: false,
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        title: Text(
+                          _stopName.value,
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        leading: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black),
+                          onPressed: () {
+                            if (_indexNotifier.value > 0) {
+                              setState(() {
+                                _indexNotifier.value--;
+                              });
+                              _NearbyStationsPageState._clearMarkerStyle(context);
+                              _stationIDs.value = [];
+                              _stopName.value = "";
+                              _selectStationID.value = "";
+                              _selectStationGroupID.value = "";
+                            }
+                          },
+                        ),
+                        actions: [
+                          IconButton(
+                            icon: const Icon(Icons.refresh, color: Colors.black),
+                            onPressed: _loadData,
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.black),
+                            itemBuilder: (context) => [
+                              SelectView(Icons.info, '站牌資訊', 'A'),
+                              SelectView(Icons.add, '加入收藏', 'B'),
+                            ],
+                            onSelected: (action) async {
+                              if (action == 'B') {
+                                final dbHelper = favorite_feature();
+                                final output = await dbHelper.addFavorite(
+                                  StopName: widget.stop,
+                                  table: "FavoritesStop",
+                                  city: 'Taichung',
+                                );
+
+                                if (output == 100) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.success,
+                                    text: '${widget.stop}已儲存項目',
+                                  );
+                                } else if (output == -1) {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.warning,
+                                    text: '${widget.stop}已存在於列表中，不會重複添加',
+                                  );
+                                } else {
+                                  QuickAlert.show(
+                                    context: context,
+                                    type: QuickAlertType.error,
+                                    title: 'Oops...',
+                                    text: '儲存項目時發生錯誤',
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ],
+
+                        // ⭐ TabBar 不給 controller
+                        bottom: _buildTabBar(snapshot.data!),
+                      ),
+                    ),
+                  ),
+
+                  // ---------- Tab 內容 ----------
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,  // 加入 controller 綁定
+                      children: List.generate(
+                        _stationIDs.value.length,
+                            (index) {
+                          return FutureBuilder(
+                            future: _buildTabContent(
+                              _stationIDs.value[index],
+                              snapshot.data!,
+                            ),
+                            builder: (context, contentSnapshot) {
+                              if (contentSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                  child:
+                                  LoadingAnimationWidget.stretchedDots(
+                                    color: Colors.black,
+                                    size: 40,
+                                  ),
+                                );
+                              }
+
+                              if (contentSnapshot.hasError) {
+                                return Center(
+                                  child: Text(
+                                      'Error: ${contentSnapshot.error}'),
+                                );
+                              }
+
+                              if (!contentSnapshot.hasData) {
+                                return const Center(
+                                  child: Text("No content available"),
+                                );
+                              }
+
+                              return contentSnapshot.data!;
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
