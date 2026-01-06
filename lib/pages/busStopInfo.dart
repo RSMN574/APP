@@ -352,7 +352,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                   child: ListTile(
                     onTap: () async {
                       await GetBusInfo(
-                          routeid: int.parse(stop["RouteID"]),
+                          routeId: int.parse(stop["RouteID"]),
                           city: widget.city);
                       Navigator.push(
                         context,

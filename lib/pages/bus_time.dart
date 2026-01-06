@@ -233,7 +233,7 @@ void _scrollToIndex(int index) {
       // 🚍 下載站點與時間資料
       final List<Map<String, dynamic>> data = await GetBusInfo(
         city: widget.city,
-        routeid: widget.routeID,
+        routeId: widget.routeID,
       );
 
       final routeInfo = [

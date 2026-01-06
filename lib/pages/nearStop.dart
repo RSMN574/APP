@@ -1806,7 +1806,7 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
                   child: ListTile(
                     onTap: () async {
                       await GetBusInfo(
-                          routeid: int.parse(stop["RouteID"]),
+                          routeId: int.parse(stop["RouteID"]),
                           city: "Taichung");
                       Navigator.push(
                         context,

@@ -224,14 +224,21 @@ void _startIdleTimer() {
 }
 
 Future<List< dynamic>> getBus(String city) async {
-  print(city);
+
   try {
     late final String query;
+
+
 
     if (city == 'all') {
       query = '''
     SELECT *
     FROM Bus.bus_route
+  ''';
+    } else if (city == 'InterCity') {
+      query = '''
+    SELECT *
+    FROM Bus.Bus_InterCity_Route
   ''';
     } else {
       query = '''
@@ -240,6 +247,7 @@ Future<List< dynamic>> getBus(String city) async {
     WHERE City = '$city'
   ''';
     }
+
 
 
 
@@ -264,18 +272,31 @@ Future<List< dynamic>> getBus(String city) async {
   }
 }
 
-Future<List<Map<String, dynamic>>> GetBusInfo({required int routeid, required String city,}) async {
+Future<List<Map<String, dynamic>>> GetBusInfo({required int routeId, required String city,}) async {
   sum = 0;
   List<Map<String, dynamic>> routeName = [];
 
-  routeID = routeid;
-
+  routeID = routeId;
+  late final String query;
   try {
     await connMysql(); // 連接資料庫
+    if (city == 'InterCity') {
+      query = '''
+    SELECT *
+    FROM Bus.Bus_InterCity_Route_Stop
+    WHERE RouteID = $routeId
+  ''';
+    }else{
+      // 使用參數化查詢防止SQL注入
+      query = '''
+  SELECT *
+  FROM Bus.stopOfRoute
+  WHERE City = '$city'
+    AND RouteID = $routeId
+''';
+    }
 
-    // 使用參數化查詢防止SQL注入
-    var query =
-        'SELECT Stops FROM Bus.Bus_${city}_Route_Stop WHERE Routeid = $routeid';
+
 
     // 使用改進的查詢執行函數，包含重試邏輯
     var result = await executeQueryWithRetry(query);

@@ -549,7 +549,7 @@ print("data");
       onTap: () async {
         if (data['type'] == "bus") {
           await GetBusInfo(
-              routeid: data["routeID"], city: cityNameConverter(data['city']));
+              routeId: data["routeID"], city: cityNameConverter(data['city']));
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -829,7 +829,7 @@ print("data");
 
         if (data['type'] == "bus") {
           await GetBusInfo(
-              routeid: data["routeID"], city: cityNameConverter(data['city']));
+              routeId: data["routeID"], city: cityNameConverter(data['city']));
           Navigator.push(
             context,
             MaterialPageRoute(

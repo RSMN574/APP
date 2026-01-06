@@ -1013,7 +1013,7 @@ print((route));
   }
 
   void _navigateToRouteDetails(Map<String, dynamic> route) async {
-    await GetBusInfo(routeid: route["routeID"], city: correspondingIDNotifier.value);
+    await GetBusInfo(routeId: route["routeID"], city: correspondingIDNotifier.value);
     List baseData = await mysqlSelect("SELECT * FROM Bus.Bus_TaiwanTrip_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
 
     Navigator.push(

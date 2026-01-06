@@ -33,8 +33,8 @@ class BusState extends State<Bus> {
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
   List busData = [];
-  final List<String> _list = ['全部', '臺中市', '臺北市',"公路客運"];
-  final List<String> _listID = ['all', 'Taichung', 'Taipei',"InterCity"];
+  final List<String> _list = ['全部', '臺中市', '臺北市','新北市','桃園市',"臺南市","高雄市","公路客運"];
+  final List<String> _listID = ['all', 'Taichung', 'Taipei','NewTaipei',"Taoyuan","Tainan","Kaohsiung","InterCity"];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
@@ -541,7 +541,7 @@ class BusState extends State<Bus> {
           const Spacer(),
           // 為 CustomDropdown 提供明確的寬度約束
           SizedBox(
-            width: 120, // 或者根據需要調整寬度
+            width: 160, // 或者根據需要調整寬度
             child: CustomDropdown<String>(
               items: filteredList,
               initialItem: currentCityNotifier.value == '全部' && !includeAll
@@ -1088,7 +1088,7 @@ class BusState extends State<Bus> {
   }
 
   void _navigateToRouteDetails(Map<String, dynamic> route) async {
-    await GetBusInfo(routeid: route["routeID"], city: correspondingIDNotifier.value);
+    await GetBusInfo(routeId: route["routeID"], city: correspondingIDNotifier.value);
     List baseData = await mysqlSelect("SELECT * FROM Bus.Bus_${correspondingIDNotifier.value}_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
 
     Navigator.push(

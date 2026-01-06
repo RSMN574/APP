@@ -249,7 +249,7 @@ class _BuslistState extends State<Buslist> {
 
   Future<void> _navigateToRouteDetails(dynamic route) async {
     await GetBusInfo(
-        routeid: int.parse(route["RouteID"]),
+        routeId: int.parse(route["RouteID"]),
       city: route['City'] ?? 'InterCity',
 
     );
