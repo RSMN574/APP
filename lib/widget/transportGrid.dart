@@ -37,6 +37,7 @@ class _TransportGridState extends State<TransportGrid> {
      {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
      {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
      {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
+    {'icon': 'assets/icons/motorcycle.svg', 'text': '時速表', 'route': 'speedometer'},
   ];
 
   @override

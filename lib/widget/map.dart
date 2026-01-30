@@ -9,7 +9,7 @@ import '../Const/regularClass.dart';
 
 class map extends StatefulWidget {
   final Set<Marker>? markers;
-  final Set<Polyline>? polylines; // 新增線條
+  final Set<Polyline>? polylines;
   final CameraPosition? initialCameraPosition;
   final Function(GoogleMapController)? onMapCreated;
   final Function(CameraPosition)? onCameraMove;
@@ -19,14 +19,13 @@ class map extends StatefulWidget {
   const map({
     Key? key,
     this.markers,
-    this.polylines, // 新增線條
+    this.polylines,
     this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
     this.onCameraMove,
     this.onCameraIdle,
   }) : super(key: key);
-
 
   @override
   State<map> createState() => _MapWidgetState();
@@ -38,11 +37,44 @@ class _MapWidgetState extends State<map>
   bool get wantKeepAlive => true;
 
   GoogleMapController? _mapController;
+
   static const LatLng _defaultPosition = LatLng(25.0330, 121.5654);
+
+  /// ⚠️ initialCameraPosition 一定要固定
+  static const CameraPosition _initialCameraPosition =
+  CameraPosition(target: _defaultPosition, zoom: 15);
+
   LatLng _currentPosition = _defaultPosition;
   bool _hasAnimatedToCurrent = false;
 
-  final String _mapStyle = ''' [{"featureType": "administrative.land_parcel", "elementType": "labels", "stylers": [{"visibility": "off"}]}, {"featureType": "poi", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.business", "stylers": [{"visibility": "off"}]}, {"featureType": "poi.park", "elementType": "labels.text", "stylers": [{"visibility": "off"}]}, {"featureType": "road.local", "elementType": "labels", "stylers": [{"visibility": "off"}]}] ''';
+  final String _mapStyle = '''
+[
+  {
+    "featureType": "administrative.land_parcel",
+    "elementType": "labels",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "featureType": "poi",
+    "elementType": "labels.text",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "featureType": "poi.business",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "featureType": "poi.park",
+    "elementType": "labels.text",
+    "stylers": [{"visibility": "off"}]
+  },
+  {
+    "featureType": "road.local",
+    "elementType": "labels",
+    "stylers": [{"visibility": "off"}]
+  }
+]
+''';
 
   @override
   void initState() {
@@ -50,40 +82,36 @@ class _MapWidgetState extends State<map>
     _getCurrentLocation();
   }
 
+  /// 只負責移動 camera，不 rebuild UI
   Future<void> _getCurrentLocation() async {
     try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings:
+        const LocationSettings(accuracy: LocationAccuracy.high),
       );
 
       _currentPosition = LatLng(position.latitude, position.longitude);
 
-      // 只在第一次定位時 animate camera
       if (_mapController != null && !_hasAnimatedToCurrent) {
         _mapController!.animateCamera(
-          CameraUpdate.newCameraPosition(
-            CameraPosition(target: _currentPosition, zoom: 15),
-          ),
+          CameraUpdate.newLatLngZoom(_currentPosition, 15),
         );
         _hasAnimatedToCurrent = true;
       }
-      setState(() {});
     } catch (e) {
-      print('無法獲取位置: $e');
+      debugPrint('無法獲取位置: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context); // AutomaticKeepAliveClientMixin
-
-    final markerProvider = context.watch<MarkerProvider>();
-    final polylineProvider = context.watch<PolylineProvider>();
+    super.build(context);
 
     return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: _currentPosition,
-        zoom: 15,
-      ),
+      initialCameraPosition:
+      widget.initialCameraPosition ?? _initialCameraPosition,
+
+      /// 只在第一次建立 Map 時呼叫
       onMapCreated: (controller) {
         if (_mapController == null) {
           _mapController = controller;
@@ -91,16 +119,29 @@ class _MapWidgetState extends State<map>
           widget.onMapCreated?.call(controller);
         }
       },
+
       onCameraMove: widget.onCameraMove,
       onCameraIdle: widget.onCameraIdle,
-      markers: widget.markers ?? markerProvider.markers,
-      polylines: widget.polylines ?? polylineProvider.polylines,
+
+      /// ⚠️ 用 select，避免整張 Map rebuild
+      markers: widget.markers ??
+          context.select<MarkerProvider, Set<Marker>>(
+                (p) => p.markers,
+          ),
+
+      polylines: widget.polylines ??
+          context.select<PolylineProvider, Set<Polyline>>(
+                (p) => p.polylines,
+          ),
+
       myLocationEnabled: widget.myLocationEnabled,
       myLocationButtonEnabled: true,
+
       gestureRecognizers: {
-        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer())
+        Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+        )
       },
     );
   }
-
 }

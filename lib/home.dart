@@ -181,7 +181,7 @@ class _HomeState extends State<Home>
                   onMapCreated: (GoogleMapController controller) {
                     _mapController = controller;
                   },
-                  onCameraMove: (CameraPosition position) {},
+                  // onCameraMove: (CameraPosition position) {},
                   onCameraIdle: () {},
                 ),
               ),

@@ -1556,9 +1556,12 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
           //  print('執行 SQL 查詢，條件: $nameList');
 
           final query = """
-          SELECT * FROM Bus.Bus_Taichung_Route 
-          WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
-        """;
+        SELECT *
+FROM Bus.bus_route
+WHERE City = 'Taichung'
+  AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))
+      IN ($nameList)
+""";
 
           //  print('SQL 查詢: $query');
 

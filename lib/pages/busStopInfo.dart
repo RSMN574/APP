@@ -535,9 +535,12 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
         //  print('執行 SQL 查詢，條件: $nameList');
 
           final query = """
-          SELECT * FROM Bus.Bus_${widget.city}_Route 
-          WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
-        """;
+        SELECT *
+FROM Bus.bus_route
+WHERE City = '${widget.city}'
+  AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))
+      IN ($nameList)
+""";
 
         //  print('SQL 查詢: $query');
 

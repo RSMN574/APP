@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/pages/EV_station.dart';
+import 'package:com.rsmn574.app/pages/other/Speedometer.dart';
 import 'package:com.rsmn574.app/pages/parking.dart';
 import 'package:com.rsmn574.app/pages/traffic.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
@@ -93,6 +94,7 @@ class AppRoutes {
   static const String test = "test";
   static const String parking = "parking";
   static const String traffic = "traffic";
+  static const String speedometer = "speedometer";
 }
 
 void main() async {
@@ -180,6 +182,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
           AppRoutes.parking: (BuildContext context) => (Parking()),
           AppRoutes.traffic: (BuildContext context) => (Traffic()),
+          AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
         },
 
         theme: appTheme,
