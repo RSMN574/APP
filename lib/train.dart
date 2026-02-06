@@ -4,6 +4,7 @@ import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/SelectView.dart';
 import 'package:com.rsmn574.app/widget/train/StationDialog.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'database/getData.dart';
 import 'database/Train/getTrain.dart';
@@ -567,6 +568,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                     (await StationDialog.showStationDialog(context))!;
                 widget.departureController.text =
                     departureSelectedStation['StationName']['Zh_tw'];
+
               },
             ),
             // 加入互換按鈕
@@ -589,6 +591,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 prefixIcon: Icon(Icons.flag, color: textSecondary),
               ),
               onTap: () async {
+
                 destinationSelectedStation =
                     (await StationDialog.showStationDialog(context))!;
                 if (widget.departureController.text ==
@@ -2102,56 +2105,51 @@ class RoutePage extends StatefulWidget {
   State<RoutePage> createState() => _RoutePageState();
 }
 
-class _RoutePageState extends State<RoutePage> {
-  // 在 State 類別中加入以下變數和方法
-  late DateTime _selectedDate;
-  TimeOfDay? _selectedTime;
 
-  late DateTime _selectedDateTime ;
+
+class _RoutePageState extends State<RoutePage> {
+  late DateTime _selectedDateTime;
+
   @override
   void initState() {
     super.initState();
-
-    _selectedDate = widget.date;
     _selectedDateTime = widget.date;
   }
-// 在State类中加入合并后的日期时间参数
 
-
-// 修改时间更新方法
-  void _updateSelectedTime(TimeOfDay newTime) {
+  // =========================
+  // 時間 / 日期處理
+  // =========================
+  void _updateSelectedTime(TimeOfDay time) {
     setState(() {
       _selectedDateTime = DateTime(
         _selectedDateTime.year,
         _selectedDateTime.month,
         _selectedDateTime.day,
-        newTime.hour,
-        newTime.minute,
+        time.hour,
+        time.minute,
       );
     });
   }
 
-// 确保日期比较方法正确
-  bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-// 状态更新方法需要触发重建
-  void _updateSelectedDate(DateTime newDate) {
+  void _updateSelectedDate(DateTime date) {
     setState(() {
-      _selectedDate = newDate; // 确保更新的是 _selectedDate
-      // 同时更新完整日期时间
       _selectedDateTime = DateTime(
-        newDate.year,
-        newDate.month,
-        newDate.day,
+        date.year,
+        date.month,
+        date.day,
         _selectedDateTime.hour,
         _selectedDateTime.minute,
       );
     });
   }
 
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
 
+  // =========================
+  // 日期快捷按鈕
+  // =========================
   List<Widget> _buildDateButtons() {
     final buttons = [
       {'label': '前天', 'days': -2},
@@ -2162,395 +2160,225 @@ class _RoutePageState extends State<RoutePage> {
     ];
 
     return buttons.map((btn) {
-      final date = _selectedDate.add(Duration(days: btn['days'] as int));
-      final isSelected = _isSameDate(date, _selectedDate);
+      final date = DateTime.now().add(Duration(days: btn['days'] as int));
+      final selected = _isSameDate(date, _selectedDateTime);
 
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.blue : Colors.grey[200],
-            borderRadius: BorderRadius.circular(8),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: TextButton(
+          onPressed: () => _updateSelectedDate(date),
+          style: TextButton.styleFrom(
+            backgroundColor: selected ? Colors.blue : Colors.grey.shade200,
+            foregroundColor: selected ? Colors.white : Colors.black87,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          child: TextButton(
-            onPressed: () => _updateSelectedDate(date),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  btn['label'] as String,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isSelected ? Colors.white : Colors.grey[800],
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('M/d').format(date),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isSelected ? Colors.white : Colors.grey[800],
-                  ),
-                ),
-              ],
-            ),
+          child: Column(
+            children: [
+              Text(btn['label'] as String),
+              const SizedBox(height: 4),
+              Text(DateFormat('M/d').format(date)),
+            ],
           ),
         ),
       );
     }).toList();
   }
 
+  // =========================
+  // Train API（核心）
+  // =========================
+  Future<Map<String, dynamic>> queryTrainList() async {
+    final uri = Uri.parse(
+      'http://hidden.rsmn574.com:3920/api/train',
+    ).replace(queryParameters: {
+      'from': widget.departure['StationID'].toString(),
+      'to': widget.destination['StationID'].toString(),
+      'day': (_selectedDateTime.weekday % 7).toString(), // Sunday = 0
+    });
 
+    final response = await http.get(uri);
 
+    if (response.statusCode != 200) {
+      throw Exception('Train API error: ${response.statusCode}');
+    }
 
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return decoded;
+  }
+
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
-    // 将 JSON 字符串解析为 Map
-    Map<String, dynamic> departureJsonData =
-        jsonDecode(widget.departure["StationPosition"]);
-
-    // 获取 PositionLat 和 PositionLon 并转换为 String
-    String departurePositionLat = departureJsonData['PositionLat'].toString();
-    String departurePositionLon = departureJsonData['PositionLon'].toString();
-    Map<String, dynamic> destinationJsonData =
-        jsonDecode(widget.destination["StationPosition"]);
-
-    // 获取 PositionLat 和 PositionLon 并转换为 String
-    String destinationPositionLat =
-        destinationJsonData['PositionLat'].toString();
-    String destinationPositionLon =
-        destinationJsonData['PositionLon'].toString();
-    final DateFormat dateFormatForRoutePage = DateFormat('yyyy-MM-ddTHH:mm:ss');
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-            "${widget.departure["StationName"]["Zh_tw"]}-${widget.destination["StationName"]["Zh_tw"]}"),
-      ),
-
-
-// 修改 Scaffold 的 body 部分
-    body: Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              ElevatedButton(
-                onPressed: () async {
-                  final initialTime = _selectedDateTime != null
-                      ? TimeOfDay(hour: _selectedDateTime.hour, minute: _selectedDateTime!.minute)
-                      : TimeOfDay.now();
-
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: initialTime,
-                  );
-                  if (picked != null) {
-                    _updateSelectedTime(picked);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    _selectedDateTime != null
-                        ? TimeOfDay(hour: _selectedDateTime.hour, minute: _selectedDateTime!.minute)
-                        .format(context)
-                        : '選擇時間',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-
-
-              const SizedBox(width: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(children: _buildDateButtons()),
-                ),
-              ),
-            ],
-          ),
+          '${widget.departure["StationName"]["Zh_tw"]} - ${widget.destination["StationName"]["Zh_tw"]}',
         ),
-        Expanded(
-          child: FutureBuilder<List<dynamic>>(
-              future: fetchTrainRoute(
-                "$departurePositionLat,$departurePositionLon",
-                "$destinationPositionLat,$destinationPositionLon",
-                  dateFormatForRoutePage.format( _selectedDateTime)
+      ),
+      body: Column(
+        children: [
+          // 時間 / 日期列
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+                    );
+                    if (picked != null) {
+                      _updateSelectedTime(picked);
+                    }
+                  },
+                  child: Text(
+                    TimeOfDay.fromDateTime(_selectedDateTime).format(context),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: _buildDateButtons()),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
-              ),
-              key: ValueKey(_selectedDateTime), // 关键点：使用datetime作为key
-
+          // 車次清單
+          Expanded(
+            child: FutureBuilder<Map<String, dynamic>>(
+              future: queryTrainList(),
+              key: ValueKey(_selectedDateTime),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
+                }
+
+                if (snapshot.hasError) {
                   return Center(
                     child: Text(
-                      '載入失敗: ${snapshot.error}',
-                      style: const TextStyle(fontSize: 16, color: Colors.redAccent),
+                      '載入失敗：${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
                     ),
                   );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      '無列車資訊',
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                  );
-                } else {
-                  final data = snapshot.data!;
-                  return ListView.builder(
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      final section = data[index];
-                      final DateFormat dateFormat = DateFormat('HH:mm');
-                      final travel_time = section["travel_time"];
-                      final sections = section["sections"];
-                      print(travel_time);
-                      // 过滤出 type 为 "transit" 的段
-                      List<dynamic> transitSections = section["sections"]
-                          .where((section) => section['type'] == 'transit')
-                          .toList();
+                }
 
-                      // 提取并输出所有的 transport 数据
-                      List<dynamic> transports =
-                      transitSections.map((section) => section).toList();
-                      List<dynamic> arrival = transitSections
-                          .map((section) => section['arrival']["place"]["name"])
-                          .toList();
-                      final start_time = dateFormat.format(
-                          DateTime.parse(transitSections[0]["departure"]["time"]));
-                      final end_time = dateFormat.format(DateTime.parse(
-                          transitSections[transitSections.length - 1]["arrival"]
-                          ["time"]));
-                      bool trainSit = transports.length > 1 ? true : false;
-                      // // 输出结果final now = DateTime.now();
-                      final todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                final data = snapshot.data!;
+                final List<dynamic> direct = (data['direct'] as List<dynamic>?) ?? [];
+                final List<dynamic> transfer = (data['transfer'] as List<dynamic>?) ?? [];
 
-// 將時間字串轉換為 DateTime 物件
-                      final startDateTime = DateTime.parse('$todayDate $start_time');
-                      var endDateTime = DateTime.parse('$todayDate $end_time');
+                final List<dynamic> trains = [
+                  ...direct.map((e) => {...e, 'transfer': false}),
+                  ...transfer.map((e) => {...e, 'transfer': true}),
+                ];
 
-// 如果 endDateTime 早於 startDateTime，表示跨日，需補一天
-                      if (endDateTime.isBefore(startDateTime)) {
-                        endDateTime = endDateTime.add(const Duration(days: 1));
-                      }
+                if (trains.isEmpty) {
+                  return const Center(child: Text('無列車資訊'));
+                }
 
-                      final duration = endDateTime.difference(startDateTime);
-                      final hours = duration.inHours;
-                      final minutes = duration.inMinutes.remainder(60);
+                return ListView.builder(
+                  itemCount: trains.length,
+                  itemBuilder: (context, index) {
+                    final train = trains[index];
+                    final bool isTransfer = train['transfer'] as bool;
 
-                      // print(trainSit);
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 12, horizontal: 16),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 第一行：时间和车次信息
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        start_time, // 出发时间
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        widget.departure["StationName"]
-                                        ["Zh_tw"], // 出发地点
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    children: transports.map((i) {
-                                      print(i['transport']);
-                                      return GestureDetector(
-                                        onTap: () async {
-                                          var trainData = await fetchTrain(
-                                            int.parse(i['transport']["name"]
-                                                .replaceAll(RegExp(r'[^0-9]'), '')),
-                                            DateTime.parse(DateFormat('yyyy-MM-dd')
-                                                .format(DateTime.parse(
-                                                i['arrival']["time"]))),
-                                          );
-
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  TrainSchedulePage(
-                                                    trainData: trainData,
-                                                    type: 'trainNo',
-                                                    time: DateTime.parse(
-                                                        i['arrival']["time"]),
-                                                  ),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0, horizontal: 12.0),
-                                          margin:
-                                          const EdgeInsets.only(bottom: 6.0),
-                                          decoration: BoxDecoration(
-                                            color: surfaceColor,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Column(
-                                            children: [
-                                              Text(
-                                                "${i['transport']["name"]}", // 车次名称
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryColor,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                "${i['arrival']["place"]["name"]}   ${dateFormat.format(DateTime.parse(i['arrival']["time"]))}", // 到达地点和时间
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: textSecondary,
-                                                ),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        end_time, // 到达时间
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: textPrimary,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        widget.destination["StationName"]
-                                        ["Zh_tw"], // 到达地点
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const Divider(
-                              height: 24,
-                              thickness: 1,
-                              color: Color(0xFFE2E8F0),
-                            ),
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isTransfer) ...[
+                            // 直達車
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.access_time,
-                                      size: 16,
-                                      color: textSecondary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    // 假設日期為當天
-
-// 顯示總旅程時間
-                                    Text("總旅程時間: ${hours}hr ${minutes}min",
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: textSecondary,
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  train['depTime'],
+                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                                 ),
-                                trainSit
-                                    ? const Text(
-                                  "需轉乘",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFFE53E3E),
-                                  ),
-                                )
-                                    : const Text(
-                                  "直達車",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF38A169),
-                                  ),
+                                Text(
+                                  train['arrTime'],
+                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '車次 ${train['TrainNo']} · ${train['TrainTypeName']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '行程 ${train['travelTime']}',
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                const Text(
+                                  '直達',
+                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            // 轉乘車
+                            Text(
+                              '轉乘車 - ${train['totalTimeHuman']} (${train['waitMin']} 分鐘轉乘)',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('${train['leg1']['depTime']} → ${train['leg1']['arrTime']}'),
+                                Text('${train['leg1']['TrainNo']} · ${train['leg1']['TrainTypeName']}'),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('${train['leg2']['depTime']} → ${train['leg2']['arrTime']}'),
+                                Text('${train['leg2']['TrainNo']} · ${train['leg2']['TrainTypeName']}'),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '轉乘站：${train['transferStation']['name']}',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
                           ],
-                        ),
-                      );
-                    },
-                  );
-                }
-              }),
-        ),
-      ],
-    ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+

@@ -853,7 +853,8 @@ WHERE City = '${widget.city}'
         ],
       ),
     );
-  }void _showStopInfo(BuildContext context) {
+  }
+  void _showStopInfo(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

@@ -189,6 +189,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             final stopName = station.stationNameZh;
             final stopID = station.stationID;
             final stationGroupID = station.stationGroupID;
+            // ⭐ 先判斷 stationGroupID 是否相同
+            // if (_selectStationGroupID.value == stationGroupID) {
+            //   // stationGroup 沒變 → 只切換 tab
+            //   _indexNotifier.value = 1;
+            //   return;
+            // }
+
             try {
               // 取得該站點的所有停靠資料
               final data = await cache.getBusStopInfo(stopName);
@@ -2140,8 +2147,174 @@ WHERE City = 'Taichung'
       ),
     );
   }
+  void _showSortDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 標題
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A73E8).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.sort_rounded,
+                        size: 24,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "選擇排序方式",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A73E8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
 
+                // 排序選項
+                _buildSortOption('站序 1→10', SortType.nameAsc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
+                _buildSortOption('站序 10→1', SortType.nameDesc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
+                _buildSortOption('時間 早→晚', SortType.timeAsc, Icons.access_time_rounded, const Color(0xFF34C759)),
+                _buildSortOption('時間 晚→早', SortType.timeDesc, Icons.access_time_rounded, const Color(0xFFFF9500)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildSortOption(String title, SortType type, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            _sortNotifier.value = type;
+            Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(12),
+          splashColor: color.withOpacity(0.1),
+          highlightColor: color.withOpacity(0.05),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _sortNotifier.value == type ? color.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: _sortNotifier.value == type
+                  ? Border.all(color: color.withOpacity(0.3), width: 1.5)
+                  : Border.all(color: Colors.grey[200]!, width: 1),
+            ),
+            child: Row(
+              children: [
+                // 圖標
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _sortNotifier.value == type ? color : color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 18,
+                    color: _sortNotifier.value == type ? Colors.white : color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // 標題
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: _sortNotifier.value == type ? color : Colors.black87,
+                    ),
+                  ),
+                ),
+
+                // 選取指示器
+                if (_sortNotifier.value == type)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _buildPopupMenuItem({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -2226,47 +2399,98 @@ WHERE City = 'Taichung'
                           },
                         ),
                         actions: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh, color: Colors.black),
-                            onPressed: _loadData,
+                          // 刷新按鈕
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            child: IconButton(
+                              icon: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF3FB),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.refresh_rounded, size: 20),
+                              ),
+                              onPressed: _loadData,
+                            ),
                           ),
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, color: Colors.black),
-                            itemBuilder: (context) => [
-                              SelectView(Icons.info, '站牌資訊', 'A'),
-                              SelectView(Icons.add, '加入收藏', 'B'),
-                            ],
-                            onSelected: (action) async {
-                              if (action == 'B') {
-                                final dbHelper = favorite_feature();
-                                final output = await dbHelper.addFavorite(
-                                  StopName: widget.stop,
-                                  table: "FavoritesStop",
-                                  city: 'Taichung',
-                                );
+                          // 更多選項按鈕
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            child: PopupMenuButton<String>(
+                              icon: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF3FB),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.more_vert_rounded, size: 20),
+                              ),
+                              color: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: Colors.grey[200]!,
+                                  width: 1,
+                                ),
+                              ),
+                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                _buildPopupMenuItem(
+                                  icon: Icons.info_outline_rounded,
+                                  title: '站牌資訊',
+                                  value: 'info',
+                                  color: const Color(0xFF1A73E8),
+                                ),
+                                _buildPopupMenuItem(
+                                  icon: Icons.favorite_border_rounded,
+                                  title: '加入收藏',
+                                  value: 'favorite',
+                                  color: const Color(0xFFFF3B30),
+                                ),
+                                _buildPopupMenuItem(
+                                  icon: Icons.sort_rounded,
+                                  title: '排序方式',
+                                  value: 'sort',
+                                  color: const Color(0xFF34C759),
+                                ),
+                              ],
+                              onSelected: (String action) async {
+                                if (action == 'favorite') {
+                                  favorite_feature dbHelper = favorite_feature();
+                                  final output = await dbHelper.addFavorite(
+                                    StopName: widget.stop,
+                                    table: "FavoritesStop",
+                                    city: "Taichung",
+                                  );
 
-                                if (output == 100) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.success,
-                                    text: '${widget.stop}已儲存項目',
-                                  );
-                                } else if (output == -1) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.warning,
-                                    text: '${widget.stop}已存在於列表中，不會重複添加',
-                                  );
-                                } else {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.error,
-                                    title: 'Oops...',
-                                    text: '儲存項目時發生錯誤',
-                                  );
+                                  if (output == 100) {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.success,
+                                      text: '${widget.stop}已儲存項目',
+                                    );
+                                  } else if (output == -1) {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.warning,
+                                      text: '${widget.stop}已存在於列表中，不會重複添加',
+                                    );
+                                  } else if (output == 200) {
+                                    QuickAlert.show(
+                                      context: context,
+                                      type: QuickAlertType.error,
+                                      title: 'Oops...',
+                                      text: '儲存項目時發生錯誤',
+                                    );
+                                  }
+                                } else if (action == 'sort') {
+                                  _showSortDialog(context);
+                                } else if (action == 'info') {
+                                  // 處理站牌資訊
+
                                 }
-                              }
-                            },
+                              },
+                            ),
                           ),
                         ],
 
