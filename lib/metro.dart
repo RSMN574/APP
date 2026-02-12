@@ -2105,7 +2105,7 @@ class _MetroMapScreenState extends State<MetroMap>with TickerProviderStateMixin 
         {'id': '116', 'name': '九張犁', 'pos': Offset(0.45, 0.81), 'color': Colors.green},
         {'id': '117', 'name': '九德', 'pos': Offset(0.33, 0.85), 'color': Colors.green},
         {'id': '118', 'name': '烏日', 'pos': Offset(0.24, 0.85), 'color': Colors.green},
-        {'id': '119', 'name': '高鐵台中站', 'pos': Offset(0.18, 0.85), 'color': Colors.green},
+        {'id': '119', 'name': '高鐵臺中站', 'pos': Offset(0.18, 0.85), 'color': Colors.green},
       ],
       'Taipei': [
         // 紅線淡水信義線

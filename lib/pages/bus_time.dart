@@ -672,7 +672,7 @@ void _scrollToIndex(int index) {
       DepartureStopNameZh: routeInfo[1],
       DestinationStopNameZh: routeInfo[2],
       routeName: routeInfo[0],
-      city: "Taichung",
+      city: widget.city,
       routeID: widget.routeID,
       table: "FavoritesRoute",
     );
@@ -1777,7 +1777,7 @@ void _scrollToIndex(int index) {
   Future<void> _addToFavorites(BuildContext context, String stopId) async {
     favorite_feature dbHelper = favorite_feature(); // 创建实例
     var output;
-    final result = await dbHelper.addFavorite(StopName:stopId  ,city:"Taichung", table: 'FavoritesStop', routeID: null);
+    final result = await dbHelper.addFavorite(StopName:stopId  ,city:widget.city, table: 'FavoritesStop', routeID: null);
 
 
     // 顯示相應的 QuickAlert

@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../database/SQL/schedule.dart';
 import '../../widget/train/RoutePalnner.dart';
 
 class HSRSchedulePage extends StatelessWidget {
-  // 高鐵風格顏色定義
-  static const Color primaryColor = Color(0xFFFF6600);     // 高鐵主色調
-  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
-  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
-  static const Color textSecondary = Color(0xFF718096);    // 次要文字
+  // 高鐵主題色 - 保留高鐵橘
+  static const Color primaryHSR = Color(0xFFDC5321); // 高鐵標準橘
+  static const Color backgroundLight = Color(0xFFF8FAFD); // 通知中心背景色
+  static const Color surfaceColor = Color(0xFFEEF3FB); // 通知中心表面色
+  static const Color textPrimary = Color(0xFF2D3748); // 主要文字
+  static const Color textSecondary = Color(0xFF718096); // 次要文字
+  static const Color successGreen = Color(0xFF34C759); // 成功綠色
+  static const Color errorRed = Color(0xFFFF3B30); // 錯誤紅色
+  static const Color warningOrange = Color(0xFFFF9500); // 警告橘色
 
   final Map<String, dynamic> trainData;
   final String type;
   final DateTime time;
+
   const HSRSchedulePage({
     super.key,
     required this.trainData,
@@ -22,108 +28,147 @@ class HSRSchedulePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final trainNo = trainData['DailyTrainInfo']['TrainNo'];
+
     return Scaffold(
+      backgroundColor: backgroundLight,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
         title: const Text(
           '高鐵列車時刻表',
           style: TextStyle(
-            color: textPrimary,
-            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: primaryHSR,
+            letterSpacing: -0.5,
           ),
         ),
-
         centerTitle: true,
-        elevation: 1,
-        backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: textPrimary),
+        iconTheme: const IconThemeData(color: primaryHSR),
         actions: [
-          IconButton(onPressed: () async {
+          // 加入行程按鈕
+          Container(
+            margin: const EdgeInsets.only(right: 4),
+            child: IconButton(
+              onPressed: () async {
+                List<dynamic> stationNames = trainData["StopTimes"]
+                    .map((stop) => stop["StationName"] as Map)
+                    .toList();
 
-// 提取 StationName (中文)
-// List<String> stationNamesZh = trainData["StopTimes"]
-//     .map((stop) => stop["StationName"]["Zh_tw"] as String)
-//     .toList();
-//
-// // 提取 StationName (英文)
-// List<String> stationNamesEn = trainData["StopTimes"]
-//     .map((stop) => stop["StationName"]["En"] as String)
-//     .toList();
-            // 提取 StationName (英文)
-            List<dynamic> stationNames = trainData["StopTimes"]
-                .map((stop) => stop["StationName"] as Map)
-                .toList();
+                final result = await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return StationSelectionDialog(stationNames: stationNames);
+                  },
+                );
 
-// 顯示彈窗並等待用戶輸入
-            final result = await showDialog(
-              context: context,
-              builder: (context) {
-                return StationSelectionDialog(stationNames:stationNames);
+                if (result != null) {
+                  String getCategory(String category) {
+                    switch (category) {
+                      case '上班通勤':
+                        return 'commute';
+                      case '旅行':
+                        return 'trip';
+                      default:
+                        return 'other';
+                    }
+                  }
+
+                  final schedule = ScheduleModel(
+                    userStartingStopName: result['departure'],
+                    userDestinationStopName: result['destination'],
+                    startingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                    finalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                    route: trainData['DailyTrainInfo']['TrainNo'],
+                    type: 'HSR',
+                    category: getCategory(result['category']),
+                    time: time.toString(),
+                    seatNumber: result["seatNumber"],
+                    other: {
+                      "DateTime": time.toString(),
+                      "trainType": "台灣高鐵700T",
+                      "category": getCategory(result['category'])
+                    },
+                  );
+
+                  final output = await ScheduleService.instance.addSchedule(schedule);
+
+                  if (output == -1) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('該行程已經存在'),
+                        backgroundColor: warningOrange,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  } else if (output == 100) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('行程添加成功'),
+                        backgroundColor: successGreen,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('添加行程失敗'),
+                        backgroundColor: errorRed,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  }
+                }
               },
-            );
-
-
-            // 處理用戶選擇的結果
-            if (result != null) {
-              print('出發站: ${result['departure']}');
-              print('到達站: ${result['destination']}');
-              print('類型: ${result['category']}');
-            }
-
-            String getCategory(String category) {
-              switch (category) {
-                case '上班通勤':
-                  return 'commute';
-                case '旅行':
-                  return 'trip';
-                default:
-                  return 'other';
-              }
-            }
-
-            final schedule = ScheduleModel(
-                userStartingStopName: result['departure'],
-                userDestinationStopName: result['destination'],
-                startingStopName:trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                finalStopName:trainData['DailyTrainInfo']['EndingStationName']['Z1h_tw'],
-                route: trainData['DailyTrainInfo']['TrainNo'], type: 'HSR',
-                category:getCategory(result['category']),
-                time:(time).toString(),
-                seatNumber: result["seatNumber"],
-                other:{"DateTime":  (time).toString(),"trainType":"台灣高鐵700T","category":getCategory(result['category'])}
-
-            );
-
-// 调用 updateSchedule 来更新现有的排程
-            final output = await ScheduleService.instance.addSchedule(schedule);
-
-// 根据 addSchedule 方法返回的结果进行处理
-            if (output == -1) {
-              // 如果已经存在相同的记录，提示用户
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('該行程已經存在。'))
-              );
-            } else if (output == 100) {
-              // 成功添加行程，提示用户8
-              ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('行程添加成功！'))
-              );
-            } else {
-              // 添加行程失败，提示用户
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('添加行程失敗。'))
-              );
-            }
-          }, icon: const Icon(Icons.add)),
-          IconButton(
-            onPressed: () {
-
-            },
-            icon: Icon(Icons.info),
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  size: 20,
+                  color: primaryHSR,
+                ),
+              ),
+            ),
+          ),
+          // 列車資訊按鈕
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              onPressed: () {
+                _showTrainInfoDialog(context);
+              },
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: primaryHSR,
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -131,133 +176,347 @@ class HSRSchedulePage extends StatelessWidget {
             const SizedBox(height: 32),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                '停靠站資訊',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimary,
-                ),
+              child: Row(
+                children: [
+                  Icon(Icons.timeline_rounded, size: 20, color: primaryHSR),
+                  SizedBox(width: 8),
+                  Text(
+                    '停靠站資訊',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: primaryHSR,
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             _buildStopTimesList(),
+
+            // 高鐵列車介紹卡片
+            _buildHSRInfoCard(),
           ],
         ),
       ),
-      backgroundColor: surfaceColor,
+    );
+  }
 
+  // 顯示列車資訊對話框
+  void _showTrainInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primaryHSR.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.train_rounded,
+                        color: primaryHSR,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      '台灣高鐵700T',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: primaryHSR,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildInfoRow('列車編組', '12節車廂（9M3T）'),
+                _buildInfoRow('列車長度', '304.2m'),
+                _buildInfoRow('最高時速', '300km/h'),
+                _buildInfoRow('營運速度', '295km/h'),
+                _buildInfoRow('座位配置', '標準座艙 + 商務座艙'),
+                _buildInfoRow('無障礙設施', '第5車廂'),
+                _buildInfoRow('哺集乳室', '第5車廂'),
+                const SizedBox(height: 20),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      '關閉',
+                      style: TextStyle(
+                        color: primaryHSR,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              color: textSecondary,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: textPrimary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTrainInfoCard() {
+    final trainNo = trainData['DailyTrainInfo']['TrainNo'];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '車次 ${trainData['DailyTrainInfo']['TrainNo']}',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
+            // 車次標題
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [primaryHSR, primaryHSR.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    trainNo,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '台灣高鐵',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: primaryHSR.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '700T 列車',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: primaryHSR,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 起站/終站
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: primaryHSR.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.place_rounded,
+                                size: 16,
+                                color: primaryHSR,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '起站',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 20,
+                      color: primaryHSR,
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text(
+                              '終站',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: successGreen.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.flag_rounded,
+                                size: 16,
+                                color: successGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                          textAlign: TextAlign.end,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            _buildStationInfoRow(
-              icon: Icons.place_outlined,
-              label: '起站',
-              stationName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-            ),
-            const SizedBox(height: 12),
-            _buildStationInfoRow(
-              icon: Icons.flag_outlined,
-              label: '終站',
-              stationName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-            ),
-            const SizedBox(height: 20),
-            _buildInfoItem(
-              '列車種類',
-              trainData['DailyTrainInfo']['TrainTypeName']?['Zh_tw'] ?? '台灣高鐵700T',
-            ),
+
+            // 備註
             if (trainData['DailyTrainInfo']['Note']?['Zh_tw'] != null)
-              const SizedBox(height: 8),
-            _buildInfoItem(
-              trainData['DailyTrainInfo']['Note']?['Zh_tw'] != null
-                  ? '備註: ${trainData['DailyTrainInfo']['Note']['Zh_tw']}'
-                  : '',
-
-
-              trainData['DailyTrainInfo']['Note']?['Zh_tw'] ?? '',
-            ),
+              Container(
+                margin: const EdgeInsets.only(top: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        trainData['DailyTrainInfo']['Note']['Zh_tw'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStationInfoRow({
-    required IconData icon,
-    required String label,
-    required String stationName,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: primaryColor, size: 24),
-        const SizedBox(width: 12),
-        Text(
-          '$label：',
-          style: TextStyle(
-            fontSize: 16,
-            color: textSecondary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          stationName,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            color: textPrimary,
-          ),
-        ),
-      ],
     );
   }
 
@@ -273,102 +532,304 @@ class HSRSchedulePage extends StatelessWidget {
         final isLast = index == stopTimes.length - 1;
 
         return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 時間區塊
-                SizedBox(
-                  width: 80,
-                  child: Column(
-                    children: [
-                      Text(
-                        stop['ArrivalTime'] ?? '--:--',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        stop['DepartureTime'] ?? '--:--',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 時間軸
-                Column(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 時間
+              SizedBox(
+                width: 100,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (index > 0)
-                      Container(
-                        width: 2,
-                        height: 24,
-                        color: primaryColor.withOpacity(0.3),
-                      ),
                     Container(
-                      width: 12,
-                      height: 12,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: primaryColor,
-                        shape: BoxShape.circle,
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            stop['ArrivalTime'] ?? '--:--',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: primaryHSR,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            stop['DepartureTime'] ?? '--:--',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    if (!isLast)
-                      Container(
-                        width: 2,
-                        height: 24,
-                        color: primaryColor.withOpacity(0.3),
-                      ),
                   ],
                 ),
-                const SizedBox(width: 24),
-                // 車站資訊
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stop['StationName']['Zh_tw'] ?? '未知車站',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textPrimary,
-                        ),
+              ),
+              const SizedBox(width: 16),
+
+              // 時間軸
+              Column(
+                children: [
+                  if (index > 0)
+                    Container(
+                      width: 2,
+                      height: 24,
+                      color: primaryHSR.withOpacity(0.3),
+                    ),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [primaryHSR, primaryHSR.withOpacity(0.8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryHSR.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isLast)
+                    Container(
+                      width: 2,
+                      height: 24,
+                      color: primaryHSR.withOpacity(0.3),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 16),
+
+              // 車站
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stop['StationName']['Zh_tw'] ?? '未知車站',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: successGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
                         '正常停靠',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.green,
+                          fontSize: 11,
+                          color: successGreen,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // 里程（高鐵特有）
+              if (stop['Distance'] != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${stop['Distance']}km',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildHSRInfoCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 32, bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.train_rounded,
+                  size: 20,
+                  color: primaryHSR,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '台灣高鐵700T',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: primaryHSR,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  primaryHSR.withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              _buildHSRFeature(
+                icon: Icons.speed_rounded,
+                title: '最高時速',
+                value: '300 km/h',
+              ),
+              _buildHSRFeature(
+                icon: Icons.timer_rounded,
+                title: '北高時間',
+                value: '90 分鐘',
+              ),
+              _buildHSRFeature(
+                icon: Icons.event_seat_rounded,
+                title: '座位數',
+                value: '989 席',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHSRFeature({
+    required IconData icon,
+    required String title,
+    required String value,
+  }) {
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, size: 24, color: primaryHSR),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStationInfoRow({
+    required IconData icon,
+    required String label,
+    required String stationName,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: primaryHSR, size: 20),
+        const SizedBox(width: 12),
+        Text(
+          '$label：',
+          style: TextStyle(
+            fontSize: 15,
+            color: textSecondary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          stationName,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            color: textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

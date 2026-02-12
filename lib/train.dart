@@ -6,6 +6,7 @@ import 'package:com.rsmn574.app/widget/train/StationDialog.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'database/getData.dart';
 import 'database/Train/getTrain.dart';
 
@@ -240,12 +241,6 @@ class TripNumberSearchPage extends StatefulWidget {
 }
 
 class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
-  // 顏色常數定義
-  static const Color primaryColor = Color(0xFF2A5CAA); // 主色調
-  static const Color surfaceColor = Color(0xFFF3F5F7); // 背景色
-  static const Color textPrimary = Color(0xFF2D3748); // 主要文字
-  static const Color textSecondary = Color(0xFF718096); // 次要文字
-
   DateTime selectedDate = DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
@@ -253,22 +248,28 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
-      firstDate:  DateTime.now(),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
-              primary: primaryColor,
+              primary: Color(0xFF1A73E8),
               onPrimary: Colors.white,
-              surface: surfaceColor,
-              onSurface: textPrimary,
+              surface: Colors.white,
+              onSurface: Color(0xFF1A73E8),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: primaryColor,
+                foregroundColor: Color(0xFF1A73E8),
               ),
-            ), dialogTheme: const DialogThemeData(backgroundColor: surfaceColor),
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+            ),
           ),
           child: child!,
         );
@@ -284,122 +285,340 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 車次輸入框
-            TextField(
-              controller: widget.controller,
-              decoration: InputDecoration(
-                labelText: '輸入車次',
-                labelStyle: TextStyle(color: textSecondary),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor),
-                ),
-                filled: true,
-                fillColor: surfaceColor,
-                prefixIcon: Icon(Icons.train, color: textSecondary),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 日期選擇按鈕
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: surfaceColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextButton(
-                onPressed: () => _selectDate(context),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  '選擇日期: ${dateFormat.format(selectedDate)}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // 查詢按鈕
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (widget.controller.text == '') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('請輸入車次')),
-                    );
-                  }
-                  var trainData = await fetchTrain(
-                    int.parse(widget.controller.text),
-                    selectedDate,
-                  );
-                  if (trainData == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('無此車次')),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TrainSchedulePage(
-                          trainData: trainData,
-                          type: 'trainNo',
-                          time: selectedDate,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFD),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 標題
+                Container(
+                  margin: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.search_rounded,
+                          size: 40,
+                          color: Colors.white,
                         ),
                       ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '車次查詢',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '輸入車次號碼查詢時刻表',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  elevation: 4,
-                  shadowColor: primaryColor.withOpacity(0.3),
                 ),
-                child: const Text(
-                  '立即查詢',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2),
+
+                // 查詢卡片
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // 車次輸入框
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFEEF3FB),
+                            width: 1,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: widget.controller,
+                          decoration: InputDecoration(
+                            hintText: '輸入車次號碼，例如：101',
+                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            prefixIcon: Container(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.train_rounded,
+                                color: const Color(0xFF1A73E8),
+                              ),
+                            ),
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 日期選擇按鈕
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _selectDate(context),
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFEEF3FB),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 18,
+                                    color: Color(0xFF1A73E8),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    dateFormat.format(selectedDate),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_drop_down_rounded,
+                                  color: Color(0xFF1A73E8),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // 查詢按鈕
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1A73E8).withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () async {
+                              if (widget.controller.text.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('請輸入車次號碼'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              try {
+                                var trainData = await fetchTrain(
+                                  int.parse(widget.controller.text),
+                                  selectedDate,
+                                );
+
+                                if (trainData == null || trainData.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('查無此車次資訊'),
+                                      backgroundColor: const Color(0xFFFF9500),
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TrainSchedulePage(
+                                        trainData: trainData,
+                                        type: 'trainNo',
+                                        time: selectedDate,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('查詢失敗: $e'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            splashColor: Colors.white.withOpacity(0.2),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '立即查詢',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+                // 提示資訊
+                Container(
+                  margin: const EdgeInsets.only(top: 24),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFEEF3FB),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '使用提示',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A73E8),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '請輸入完整的車次號碼進行查詢',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
 class RouteSearchPage extends StatefulWidget {
   final TextEditingController departureController;
   final TextEditingController destinationController;
@@ -415,10 +634,6 @@ class RouteSearchPage extends StatefulWidget {
 }
 
 class _RouteSearchPageState extends State<RouteSearchPage> {
-  // 定義縣市和站名選擇
-  String? selectedCity;
-  Map<String, dynamic> departureSelectedStation = {};
-  Map<String, dynamic> destinationSelectedStation = {};
   // 縣市和對應站名資料
   final Map<String, List<String>> stationData = {
     '台北市': ['台北車站', '松山車站', '板橋車站'],
@@ -426,28 +641,39 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     '高雄市': ['高雄車站', '鳳山車站', '新左營車站'],
   };
 
+  Map<String, dynamic> departureSelectedStation = {};
+  Map<String, dynamic> destinationSelectedStation = {};
   DateTime? selectedDate;
-  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
+  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
+
+  // 新增：追蹤選擇狀態
+  bool _isDepartureSelected = false;
+  bool _isDestinationSelected = false;
 
   Future<void> _selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
-      firstDate:  DateTime.now(),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
-              primary: primaryColor, // 主色調
-              onPrimary: Colors.white, // 主色調上的文字
-              surface: surfaceColor, // 對話框背景
-              onSurface: textPrimary, // 對話框文字
+              primary: Color(0xFF1A73E8),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF1A73E8),
             ),
-            dialogBackgroundColor: surfaceColor, // 背景色
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+            ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: primaryColor, // 按鈕文字
+                foregroundColor: Color(0xFF1A73E8),
               ),
             ),
           ),
@@ -464,34 +690,34 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           return Theme(
             data: ThemeData.light().copyWith(
               colorScheme: const ColorScheme.light(
-                primary: primaryColor,
+                primary: Color(0xFF1A73E8),
                 onPrimary: Colors.white,
-                surface: surfaceColor,
-                onSurface: textPrimary,
+                surface: Colors.white,
+                onSurface: Color(0xFF1A73E8),
               ),
               timePickerTheme: TimePickerThemeData(
-                backgroundColor: surfaceColor,
-                hourMinuteTextColor: textPrimary,
-                dayPeriodTextColor: textPrimary, // AM/PM 文字顏色
-                dayPeriodColor: surfaceColor.withOpacity(0.5), // AM/PM 背景色
+                backgroundColor: Colors.white,
+                hourMinuteTextColor: const Color(0xFF1A73E8),
+                dayPeriodTextColor: const Color(0xFF1A73E8),
+                dayPeriodColor: const Color(0xFF1A73E8).withOpacity(0.1),
                 dayPeriodShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // AM/PM 圓角
+                  borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: primaryColor.withOpacity(0.3), // AM/PM 邊框
+                    color: const Color(0xFF1A73E8).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
-                hourMinuteColor: surfaceColor.withOpacity(0.8), // 小時/分鐘背景色
+                hourMinuteColor: const Color(0xFF1A73E8).withOpacity(0.05),
                 hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // 小時/分鐘圓角
+                  borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: primaryColor.withOpacity(0.3), // 小時/分鐘邊框
+                    color: const Color(0xFF1A73E8).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
-                dialBackgroundColor: surfaceColor.withOpacity(0.8), // 時鐘背景色
-                dialTextColor: textPrimary, // 時鐘文字顏色
-                entryModeIconColor: primaryColor, // 切換圖標顏色
+                dialBackgroundColor: const Color(0xFFF8FAFD),
+                dialTextColor: const Color(0xFF1A73E8),
+                entryModeIconColor: const Color(0xFF1A73E8),
               ),
             ),
             child: child!,
@@ -512,8 +738,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       }
     }
   }
+
   void _swapStations() {
-    // 檢查是否有選擇車站
     if (departureSelectedStation.isEmpty && destinationSelectedStation.isEmpty) {
       return;
     }
@@ -530,197 +756,625 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       departureSelectedStation = destinationSelectedStation;
       destinationSelectedStation = tempStation;
 
-      // 檢查是否相同
-      if (widget.departureController.text == widget.destinationController.text) {
+      // 交換選擇狀態
+      final tempSelected = _isDepartureSelected;
+      _isDepartureSelected = _isDestinationSelected;
+      _isDestinationSelected = tempSelected;
+
+      if (widget.departureController.text == widget.destinationController.text &&
+          widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('出發地和目的地不能相同')),
+          SnackBar(
+            content: const Text('出發地和目的地不能相同'),
+            backgroundColor: const Color(0xFFFF3B30),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
     });
   }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 出發地輸入框
-            TextField(
-              readOnly: true,
-              controller: widget.departureController,
-              decoration: InputDecoration(
-                labelText: '出發地',
-                labelStyle: const TextStyle(color: textSecondary),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: primaryColor),
-                ),
-                filled: true,
-                fillColor: surfaceColor,
-                prefixIcon: const Icon(Icons.train, color: textSecondary),
-              ),
-              onTap: () async {
-                departureSelectedStation =
-                    (await StationDialog.showStationDialog(context))!;
-                widget.departureController.text =
-                    departureSelectedStation['StationName']['Zh_tw'];
-
-              },
-            ),
-            // 加入互換按鈕
-            const SizedBox(height: 24),
-
-            // 目的地輸入框
-            TextField(
-              readOnly: true,
-              controller: widget.destinationController,
-              decoration: InputDecoration(
-                labelText: '目的地',
-                labelStyle: TextStyle(color: textSecondary),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor),
-                ),
-                filled: true,
-                fillColor: surfaceColor,
-                prefixIcon: Icon(Icons.flag, color: textSecondary),
-              ),
-              onTap: () async {
-
-                destinationSelectedStation =
-                    (await StationDialog.showStationDialog(context))!;
-                if (widget.departureController.text ==
-                    destinationSelectedStation['StationName']['Zh_tw']) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('出發地和目的地不能相同')),
-                  );
-                }
-                widget.destinationController.text =
-                    destinationSelectedStation['StationName']['Zh_tw'];
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // 日期選擇按鈕
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: surfaceColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextButton(
-                onPressed: () => _selectDateTime(context),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  '選擇日期: ${selectedDate != null ? dateFormat.format(selectedDate!) : "現在時間"}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              child: IconButton(
-
-                icon: Transform.rotate(
-                  angle: 90 * (3.1415926535 / 180), // 旋轉90度
-                  child: Icon(
-                    Icons.swap_vert,
-                    color: primaryColor,
-                    size: 32,
-                  ),
-                ),
-                onPressed: _swapStations,
-              ),
-            ),
-
-            // 查詢按鈕
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (departureSelectedStation.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('請選擇出發地')),
-                    );
-                    return;
-                  }
-
-                  if (destinationSelectedStation.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('請選擇目的地')),
-                    );
-                    return;
-                  }
-
-                  if (selectedDate == null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoutePage(
-                            departure: departureSelectedStation,
-                            destination: destinationSelectedStation,
-                            date: DateTime.now().add(const Duration(minutes: 1))),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFD),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 標題區域
+                Container(
+                  margin: const EdgeInsets.only(bottom: 24),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.route_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
                       ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoutePage(
-                            departure: departureSelectedStation,
-                            destination: destinationSelectedStation,
-                            date: selectedDate!),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '站站查詢',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                        ),
                       ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 8),
+                      Text(
+                        '選擇出發地、目的地與時間',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  elevation: 4,
-                  shadowColor: primaryColor.withOpacity(0.3),
                 ),
-                child: const Text(
-                  '立即查詢',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2),
+
+                // 查詢卡片
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // 出發地
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () async {
+                            final selectedStation = await StationDialog.showStationDialog(context);
+                            if (selectedStation != null) {
+                              setState(() {
+                                departureSelectedStation = selectedStation;
+                                _isDepartureSelected = true;
+                                widget.departureController.text =
+                                    departureSelectedStation['StationName']['Zh_tw'] ??
+                                        departureSelectedStation['StationName'] ??
+                                        '未知車站';
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isDepartureSelected
+                                  ? const Color(0xFF1A73E8).withOpacity(0.05)
+                                  : const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _isDepartureSelected
+                                    ? const Color(0xFF1A73E8).withOpacity(0.3)
+                                    : const Color(0xFFEEF3FB),
+                                width: _isDepartureSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _isDepartureSelected
+                                        ? const Color(0xFF1A73E8)
+                                        : const Color(0xFF1A73E8).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.train_rounded,
+                                    size: 20,
+                                    color: _isDepartureSelected
+                                        ? Colors.white
+                                        : const Color(0xFF1A73E8),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '出發地',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _isDepartureSelected
+                                              ? const Color(0xFF1A73E8)
+                                              : Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _isDepartureSelected
+                                            ? widget.departureController.text
+                                            : '請選擇出發站',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: _isDepartureSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: _isDepartureSelected
+                                              ? const Color(0xFF1A73E8)
+                                              : Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (_isDepartureSelected)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // 交換按鈕
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: IconButton(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A73E8).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Transform.rotate(
+                              angle: 90 * (3.1415926535 / 180),
+                              child: const Icon(
+                                Icons.swap_vert_rounded,
+                                color: Color(0xFF1A73E8),
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          onPressed: _swapStations,
+                        ),
+                      ),
+
+                      // 目的地
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () async {
+                            final selectedStation = await StationDialog.showStationDialog(context);
+                            if (selectedStation != null) {
+                              setState(() {
+                                destinationSelectedStation = selectedStation;
+                                _isDestinationSelected = true;
+                                widget.destinationController.text =
+                                    destinationSelectedStation['StationName']['Zh_tw'] ??
+                                        destinationSelectedStation['StationName'] ??
+                                        '未知車站';
+                              });
+
+                              // 檢查是否與出發地相同
+                              if (widget.departureController.text == widget.destinationController.text) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('出發地和目的地不能相同'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFF34C759).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isDestinationSelected
+                                  ? const Color(0xFF34C759).withOpacity(0.05)
+                                  : const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _isDestinationSelected
+                                    ? const Color(0xFF34C759).withOpacity(0.3)
+                                    : const Color(0xFFEEF3FB),
+                                width: _isDestinationSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _isDestinationSelected
+                                        ? const Color(0xFF34C759)
+                                        : const Color(0xFF34C759).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.flag_rounded,
+                                    size: 20,
+                                    color: _isDestinationSelected
+                                        ? Colors.white
+                                        : const Color(0xFF34C759),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '目的地',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _isDestinationSelected
+                                              ? const Color(0xFF34C759)
+                                              : Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _isDestinationSelected
+                                            ? widget.destinationController.text
+                                            : '請選擇目的站',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: _isDestinationSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: _isDestinationSelected
+                                              ? const Color(0xFF34C759)
+                                              : Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (_isDestinationSelected)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF34C759).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Color(0xFF34C759),
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // 日期時間選擇
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _selectDateTime(context),
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFFFF9500).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selectedDate != null
+                                  ? const Color(0xFFFF9500).withOpacity(0.05)
+                                  : const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedDate != null
+                                    ? const Color(0xFFFF9500).withOpacity(0.3)
+                                    : const Color(0xFFEEF3FB),
+                                width: selectedDate != null ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: selectedDate != null
+                                        ? const Color(0xFFFF9500)
+                                        : const Color(0xFFFF9500).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 20,
+                                    color: selectedDate != null
+                                        ? Colors.white
+                                        : const Color(0xFFFF9500),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '出發時間',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: selectedDate != null
+                                              ? const Color(0xFFFF9500)
+                                              : Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        selectedDate != null
+                                            ? dateFormat.format(selectedDate!)
+                                            : '現在時間',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: selectedDate != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                          color: selectedDate != null
+                                              ? const Color(0xFFFF9500)
+                                              : Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (selectedDate != null)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFF9500).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit_calendar_rounded,
+                                      size: 18,
+                                      color: Color(0xFFFF9500),
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.edit_calendar_rounded,
+                                    size: 20,
+                                    color: Color(0xFFFF9500),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // 查詢按鈕
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1A73E8).withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              if (!_isDepartureSelected) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('請選擇出發地'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              if (!_isDestinationSelected) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('請選擇目的地'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => RoutePage(
+                                    departure: departureSelectedStation,
+                                    destination: destinationSelectedStation,
+                                    date: selectedDate ?? DateTime.now().add(const Duration(minutes: 1)),
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            splashColor: Colors.white.withOpacity(0.2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '查詢班次',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+                // 提示資訊
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFEEF3FB),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '查詢提示',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A73E8),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '可選擇出發時間，預設為最近班次',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
 class StationSearchPage extends StatefulWidget {
   final TextEditingController controller;
 
@@ -731,12 +1385,6 @@ class StationSearchPage extends StatefulWidget {
 }
 
 class _StationSearchPageState extends State<StationSearchPage> {
-  // 顏色常數定義
-  static const Color primaryColor = Color(0xFF2A5CAA); // 主色調
-  static const Color surfaceColor = Color(0xFFF3F5F7); // 背景色
-  static const Color textPrimary = Color(0xFF2D3748); // 主要文字
-  static const Color textSecondary = Color(0xFF718096); // 次要文字
-
   final TextEditingController _controller = TextEditingController();
   final Map<String, List<String>> stations = {
     '台北市': ['台北車站', '大安站', '松山站'],
@@ -746,32 +1394,38 @@ class _StationSearchPageState extends State<StationSearchPage> {
     '台南市': ['台南車站', '新營站', '善化站'],
     '高雄市': ['高雄車站', '左營站', '楠梓站'],
   };
+
   String? selectedCity;
   Map<String, dynamic>? selectedStation;
-
   DateTime? selectedDate;
-  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
+  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
 
   Future<void> _selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate ?? DateTime.now(),
-      firstDate:  DateTime.now(),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
             colorScheme: const ColorScheme.light(
-              primary: primaryColor, // 主色調
-              onPrimary: Colors.white, // 主色調上的文字
-              surface: surfaceColor, // 對話框背景
-              onSurface: textPrimary, // 對話框文字
-            ), // 背景色
+              primary: Color(0xFF1A73E8),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF1A73E8),
+            ),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(20)),
+              ),
+            ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: primaryColor, // 按鈕文字
+                foregroundColor: Color(0xFF1A73E8),
               ),
-            ), dialogTheme: const DialogThemeData(backgroundColor: surfaceColor),
+            ),
           ),
           child: child!,
         );
@@ -786,34 +1440,34 @@ class _StationSearchPageState extends State<StationSearchPage> {
           return Theme(
             data: ThemeData.light().copyWith(
               colorScheme: const ColorScheme.light(
-                primary: primaryColor,
+                primary: Color(0xFF1A73E8),
                 onPrimary: Colors.white,
-                surface: surfaceColor,
-                onSurface: textPrimary,
+                surface: Colors.white,
+                onSurface: Color(0xFF1A73E8),
               ),
               timePickerTheme: TimePickerThemeData(
-                backgroundColor: surfaceColor,
-                hourMinuteTextColor: textPrimary,
-                dayPeriodTextColor: textPrimary, // AM/PM 文字顏色
-                dayPeriodColor: surfaceColor.withOpacity(0.5), // AM/PM 背景色
+                backgroundColor: Colors.white,
+                hourMinuteTextColor: const Color(0xFF1A73E8),
+                dayPeriodTextColor: const Color(0xFF1A73E8),
+                dayPeriodColor: const Color(0xFF1A73E8).withOpacity(0.1),
                 dayPeriodShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // AM/PM 圓角
+                  borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: primaryColor.withOpacity(0.3), // AM/PM 邊框
+                    color: const Color(0xFF1A73E8).withOpacity(0.3),
                     width: 1,
                   ),
                 ),
-                hourMinuteColor: surfaceColor.withOpacity(0.8), // 小時/分鐘背景色
+                hourMinuteColor: const Color(0xFF1A73E8).withOpacity(0.05),
                 hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8), // 小時/分鐘圓角
+                  borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
-                    color: primaryColor.withOpacity(0.3), // 小時/分鐘邊框
+                    color: const Color(0xFF1A73E8).withOpacity(0.2),
                     width: 1,
                   ),
                 ),
-                dialBackgroundColor: surfaceColor.withOpacity(0.8), // 時鐘背景色
-                dialTextColor: textPrimary, // 時鐘文字顏色
-                entryModeIconColor: primaryColor, // 切換圖標顏色
+                dialBackgroundColor: const Color(0xFFF8FAFD),
+                dialTextColor: const Color(0xFF1A73E8),
+                entryModeIconColor: const Color(0xFF1A73E8),
               ),
             ),
             child: child!,
@@ -837,136 +1491,485 @@ class _StationSearchPageState extends State<StationSearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 車站名稱輸入框
-            TextField(
-              controller: _controller,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: '輸入車站名稱',
-                labelStyle: const TextStyle(color: textSecondary),
-
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: primaryColor),
-                ),
-                filled: true,
-                fillColor: surfaceColor,
-                prefixIcon: const Icon(Icons.train, color: textSecondary),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-              ),
-              onTap: () async {
-                selectedStation =
-                    await StationDialog.showStationDialog(context);
-                if (selectedStation != null) {
-                  _controller.text = selectedStation?['StationName']['Zh_tw'];
-                }
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // 日期選擇按鈕
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: surfaceColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: TextButton(
-                onPressed: () => _selectDateTime(context),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  '選擇日期: ${selectedDate != null ? dateFormat.format(selectedDate!) : "現在時間"}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            // 查詢按鈕
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (selectedStation != null) {
-                    if (selectedDate == null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StationPage(
-                              stationName: selectedStation?['StationName']
-                                  ['Zh_tw'],
-                              stationID: selectedStation?["StationID"],
-                              datetime: DateTime.now()),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFD),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 標題區域
+                Container(
+                  margin: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      );
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StationPage(
-                              stationName: selectedStation?['StationName']
-                                  ['Zh_tw'],
-                              stationID: selectedStation?["StationID"],
-                              datetime: selectedDate!),
+                        child: const Icon(
+                          Icons.location_city_rounded,
+                          size: 40,
+                          color: Colors.white,
                         ),
-                      );
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('請選擇車站')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 4,
-                  shadowColor: primaryColor.withOpacity(0.3),
-                ),
-                child: const Text(
-                  '立即查詢',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '車站查詢',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '輸入車站名稱查詢列車時刻',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+
+                // 查詢卡片
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      // 車站名稱選擇
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () async {
+                            selectedStation = await StationDialog.showStationDialog(context);
+                            if (selectedStation != null) {
+                              setState(() {
+                                _controller.text = selectedStation?['StationName']['Zh_tw'] ?? '';
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selectedStation != null
+                                  ? const Color(0xFF1A73E8).withOpacity(0.05)
+                                  : const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedStation != null
+                                    ? const Color(0xFF1A73E8).withOpacity(0.3)
+                                    : const Color(0xFFEEF3FB),
+                                width: selectedStation != null ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: selectedStation != null
+                                        ? const Color(0xFF1A73E8)
+                                        : const Color(0xFF1A73E8).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.train_rounded,
+                                    size: 20,
+                                    color: selectedStation != null
+                                        ? Colors.white
+                                        : const Color(0xFF1A73E8),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '車站名稱',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: selectedStation != null
+                                              ? const Color(0xFF1A73E8)
+                                              : Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        selectedStation != null
+                                            ? _controller.text
+                                            : '請選擇車站',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: selectedStation != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w400,
+                                          color: selectedStation != null
+                                              ? const Color(0xFF1A73E8)
+                                              : Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (selectedStation != null)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  )
+                                else
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // 日期時間選擇
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _selectDateTime(context),
+                          borderRadius: BorderRadius.circular(12),
+                          splashColor: const Color(0xFFFF9500).withOpacity(0.1),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: selectedDate != null
+                                  ? const Color(0xFFFF9500).withOpacity(0.05)
+                                  : const Color(0xFFF8FAFD),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selectedDate != null
+                                    ? const Color(0xFFFF9500).withOpacity(0.3)
+                                    : const Color(0xFFEEF3FB),
+                                width: selectedDate != null ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: selectedDate != null
+                                        ? const Color(0xFFFF9500)
+                                        : const Color(0xFFFF9500).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 20,
+                                    color: selectedDate != null
+                                        ? Colors.white
+                                        : const Color(0xFFFF9500),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '出發時間',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: selectedDate != null
+                                              ? const Color(0xFFFF9500)
+                                              : Colors.grey,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        selectedDate != null
+                                            ? dateFormat.format(selectedDate!)
+                                            : '現在時間',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: selectedDate != null
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                          color: selectedDate != null
+                                              ? const Color(0xFFFF9500)
+                                              : Colors.grey[500],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.edit_calendar_rounded,
+                                  size: 20,
+                                  color: selectedDate != null
+                                      ? const Color(0xFFFF9500)
+                                      : Colors.grey[400],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // 查詢按鈕
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1A73E8).withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              if (selectedStation == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('請選擇車站'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => StationPage(
+                                    stationName: selectedStation?['StationName']['Zh_tw'],
+                                    stationID: selectedStation?["StationID"],
+                                    datetime: selectedDate ?? DateTime.now(),
+                                  ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            splashColor: Colors.white.withOpacity(0.2),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '查詢列車',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 提示資訊
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFEEF3FB),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF1A73E8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '查詢提示',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1A73E8),
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              '選擇車站後可設定查詢時間，預設為最近班次',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 熱門車站快速選擇
+                Container(
+                  margin: const EdgeInsets.only(top: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(left: 4, bottom: 12),
+                        child: Text(
+                          '熱門車站',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1A73E8),
+                          ),
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          '台北車站',
+                          '高雄車站',
+                          '台中車站',
+                          '板橋車站',
+                          '左營站',
+                          '桃園車站',
+                        ].map((stationName) {
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                // TODO: 設置熱門車站
+                                _controller.text = stationName;
+                                // 這裡可以設置對應的 selectedStation
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEEF3FB),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(0xFF1A73E8).withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  stationName,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF1A73E8),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
-
 class StationPage extends StatefulWidget {
   final String stationName;
   final String stationID;
@@ -2106,279 +3109,969 @@ class RoutePage extends StatefulWidget {
 }
 
 
-
 class _RoutePageState extends State<RoutePage> {
-  late DateTime _selectedDateTime;
+  // =============================
+  // 篩選條件
+  // =============================
+  bool onlyDirect = false;
+  bool onlyTransfer = false;
+  int maxTotalMinutes = 999;
+  Set<String> allowedTrainTypes = {};
+
+  // =============================
+  // 滾動控制器
+  // =============================
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
+
+  // =============================
+  // 滾動狀態追蹤
+  // =============================
+  bool _shouldAutoScroll = true;
+  DateTime? _lastScrollTime;
+  DateTime? _previousDate;
+
+  // 通知中心主題色
+  static const Color primaryBlue = Color(0xFF1A73E8);
+  static const Color successGreen = Color(0xFF34C759);
+  static const Color warningOrange = Color(0xFFFF9500);
+  static const Color errorRed = Color(0xFFFF3B30);
+  static const Color purple = Color(0xFFAF52DE);
+  static const Color backgroundLight = Color(0xFFF8FAFD);
+  static const Color surfaceColor = Color(0xFFEEF3FB);
+
+  @override
+  void didUpdateWidget(RoutePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.date != oldWidget.date) {
+      _shouldAutoScroll = true;
+      _previousDate = oldWidget.date;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _selectedDateTime = widget.date;
+    _previousDate = widget.date;
   }
 
-  // =========================
-  // 時間 / 日期處理
-  // =========================
-  void _updateSelectedTime(TimeOfDay time) {
-    setState(() {
-      _selectedDateTime = DateTime(
-        _selectedDateTime.year,
-        _selectedDateTime.month,
-        _selectedDateTime.day,
-        time.hour,
-        time.minute,
-      );
-    });
+  // =============================
+  // API
+  // =============================
+  Future<Map<String, dynamic>> queryTrainList() async {
+    final weekday = widget.date.weekday % 7;
+    final url =
+        'http://hidden.rsmn574.com:3920/api/train'
+        '?from=${widget.departure["StationID"]}'
+        '&to=${widget.destination["StationID"]}'
+        '&day=$weekday';
+
+    final res = await http.get(Uri.parse(url));
+    if (res.statusCode != 200) {
+      throw Exception('API ${res.statusCode}');
+    }
+    return jsonDecode(res.body);
   }
 
-  void _updateSelectedDate(DateTime date) {
-    setState(() {
-      _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        _selectedDateTime.hour,
-        _selectedDateTime.minute,
-      );
-    });
+  // =============================
+  // 時間處理
+  // =============================
+  int _timeToMinutes(String hhmm) {
+    final p = hhmm.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
   }
 
-  bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+  int _selectedMinutes() {
+    return widget.date.hour * 60 + widget.date.minute;
   }
 
-  // =========================
-  // 日期快捷按鈕
-  // =========================
-  List<Widget> _buildDateButtons() {
-    final buttons = [
-      {'label': '前天', 'days': -2},
-      {'label': '昨天', 'days': -1},
-      {'label': '今天', 'days': 0},
-      {'label': '明天', 'days': 1},
-      {'label': '後天', 'days': 2},
+  int trainDepMinutes(dynamic t) {
+    final timeStr = t['transfer'] == true
+        ? t['leg1']['depTime']
+        : t['depTime'];
+    return _timeToMinutes(timeStr);
+  }
+
+  // =============================
+  // 合併、排序、篩選
+  // =============================
+  List<dynamic> buildTrains(List direct, List transfer) {
+    final all = [
+      ...direct.map((e) => {...e, 'transfer': false}),
+      ...transfer.map((e) => {...e, 'transfer': true}),
     ];
 
-    return buttons.map((btn) {
-      final date = DateTime.now().add(Duration(days: btn['days'] as int));
-      final selected = _isSameDate(date, _selectedDateTime);
+    return all.where((t) {
+      if (onlyDirect && t['transfer']) return false;
+      if (onlyTransfer && !t['transfer']) return false;
 
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: TextButton(
-          onPressed: () => _updateSelectedDate(date),
-          style: TextButton.styleFrom(
-            backgroundColor: selected ? Colors.blue : Colors.grey.shade200,
-            foregroundColor: selected ? Colors.white : Colors.black87,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: Column(
+      if (t['transfer'] &&
+          t['totalTimeMin'] != null &&
+          t['totalTimeMin'] > maxTotalMinutes) {
+        return false;
+      }
+
+      final types = t['transfer']
+          ? [
+        t['leg1']['TrainTypeName'],
+        t['leg2']['TrainTypeName'],
+      ]
+          : [t['TrainTypeName']];
+
+      if (allowedTrainTypes.isNotEmpty &&
+          !types.any((e) => allowedTrainTypes.contains(e))) {
+        return false;
+      }
+
+      return true;
+    }).toList()
+      ..sort(
+            (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
+      );
+  }
+
+  // =============================
+  // 找最接近選擇時間的 index
+  // =============================
+  int findClosestTrainIndex(List<dynamic> trains) {
+    final base = _selectedMinutes();
+    for (int i = 0; i < trains.length; i++) {
+      if (trainDepMinutes(trains[i]) >= base) {
+        return i;
+      }
+    }
+    return trains.isNotEmpty ? trains.length - 1 : 0;
+  }
+
+  // =============================
+  // 檢查是否需要滾動
+  // =============================
+  bool _shouldScrollToClosest() {
+    if (_shouldAutoScroll) return true;
+    if (_previousDate != null && widget.date != _previousDate) return true;
+    if (_lastScrollTime == null ||
+        DateTime.now().difference(_lastScrollTime!) > const Duration(seconds: 2)) {
+      return true;
+    }
+    return false;
+  }
+
+  // =============================
+  // 取得車種顏色
+  // =============================
+  Color _getTrainTypeColor(String trainType) {
+    if (trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣')) {
+      return primaryBlue;
+    } else if (trainType.contains('莒光')) {
+      return successGreen;
+    } else if (trainType.contains('區間') || trainType.contains('復興')) {
+      return warningOrange;
+    } else {
+      return purple;
+    }
+  }
+
+  // =============================
+  // UI 卡片 - 直達車
+  // =============================
+  Widget directCard(dynamic t) {
+    final trainType = t['TrainTypeName'] ?? '';
+    final typeColor = _getTrainTypeColor(trainType);
+    final trainNo = t['TrainNo'];
+
+    return InkWell(
+      onTap: () async {
+        try {
+          var trainData = await fetchTrain(
+            int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), '')),
+            widget.date,
+          );
+          if (context.mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TrainSchedulePage(
+                  trainData: trainData,
+                  type: 'trainNo',
+                  time: widget.date,
+                ),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('查詢車次詳情失敗: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('查詢車次 $trainNo 失敗'),
+                backgroundColor: errorRed,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+          }
+        }
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 時間區
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(btn['label'] as String),
-              const SizedBox(height: 4),
-              Text(DateFormat('M/d').format(date)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('出發', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    t['depTime'],
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.directions_railway_rounded, size: 16, color: successGreen),
+                    const SizedBox(width: 4),
+                    const Text(
+                      '直達',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: successGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('抵達', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    t['arrTime'],
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-        ),
-      );
-    }).toList();
-  }
+          const SizedBox(height: 16),
 
-  // =========================
-  // Train API（核心）
-  // =========================
-  Future<Map<String, dynamic>> queryTrainList() async {
-    final uri = Uri.parse(
-      'http://hidden.rsmn574.com:3920/api/train',
-    ).replace(queryParameters: {
-      'from': widget.departure['StationID'].toString(),
-      'to': widget.destination['StationID'].toString(),
-      'day': (_selectedDateTime.weekday % 7).toString(), // Sunday = 0
-    });
-
-    final response = await http.get(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('Train API error: ${response.statusCode}');
-    }
-
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    return decoded;
-  }
-
-  // =========================
-  // UI
-  // =========================
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${widget.departure["StationName"]["Zh_tw"]} - ${widget.destination["StationName"]["Zh_tw"]}',
-        ),
-      ),
-      body: Column(
-        children: [
-          // 時間 / 日期列
-          Padding(
-            padding: const EdgeInsets.all(8),
+          // 車次資訊
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Row(
               children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    final picked = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
-                    );
-                    if (picked != null) {
-                      _updateSelectedTime(picked);
-                    }
-                  },
-                  child: Text(
-                    TimeOfDay.fromDateTime(_selectedDateTime).format(context),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [typeColor, typeColor.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.train_rounded, size: 18, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '車次 $trainNo',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        trainType,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(children: _buildDateButtons()),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: typeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: typeColor.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    _getTravelTime(t['depTime'], t['arrTime']),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: typeColor,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
-            ),
-          ),
-
-          // 車次清單
-          Expanded(
-            child: FutureBuilder<Map<String, dynamic>>(
-              future: queryTrainList(),
-              key: ValueKey(_selectedDateTime),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      '載入失敗：${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                final data = snapshot.data!;
-                final List<dynamic> direct = (data['direct'] as List<dynamic>?) ?? [];
-                final List<dynamic> transfer = (data['transfer'] as List<dynamic>?) ?? [];
-
-                final List<dynamic> trains = [
-                  ...direct.map((e) => {...e, 'transfer': false}),
-                  ...transfer.map((e) => {...e, 'transfer': true}),
-                ];
-
-                if (trains.isEmpty) {
-                  return const Center(child: Text('無列車資訊'));
-                }
-
-                return ListView.builder(
-                  itemCount: trains.length,
-                  itemBuilder: (context, index) {
-                    final train = trains[index];
-                    final bool isTransfer = train['transfer'] as bool;
-
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (!isTransfer) ...[
-                            // 直達車
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  train['depTime'],
-                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  train['arrTime'],
-                                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '車次 ${train['TrainNo']} · ${train['TrainTypeName']}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '行程 ${train['travelTime']}',
-                                  style: const TextStyle(color: Colors.grey),
-                                ),
-                                const Text(
-                                  '直達',
-                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ] else ...[
-                            // 轉乘車
-                            Text(
-                              '轉乘車 - ${train['totalTimeHuman']} (${train['waitMin']} 分鐘轉乘)',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${train['leg1']['depTime']} → ${train['leg1']['arrTime']}'),
-                                Text('${train['leg1']['TrainNo']} · ${train['leg1']['TrainTypeName']}'),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${train['leg2']['depTime']} → ${train['leg2']['arrTime']}'),
-                                Text('${train['leg2']['TrainNo']} · ${train['leg2']['TrainTypeName']}'),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '轉乘站：${train['transferStation']['name']}',
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
             ),
           ),
         ],
       ),
     );
   }
-}
 
+  // =============================
+  // 計算旅行時間
+  // =============================
+  String _getTravelTime(String dep, String arr) {
+    final depMin = _timeToMinutes(dep);
+    final arrMin = _timeToMinutes(arr);
+    final diff = arrMin - depMin;
+    return '${diff ~/ 60}小時${diff % 60}分';
+  }
+
+  // =============================
+  // UI 卡片 - 轉乘車
+  // =============================
+  Widget transferTimeline(dynamic t) {
+    final tight = t['isTight'] == true;
+    final totalMin = t['totalTimeMin'] ?? 0;
+    final leg1 = t['leg1'];
+    final leg2 = t['leg2'];
+    final trainNo1 = leg1['TrainNo'];
+    final trainNo2 = leg2['TrainNo'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 總時間標籤
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: tight ? errorRed.withOpacity(0.1) : warningOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: tight ? errorRed.withOpacity(0.3) : warningOrange.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    tight ? Icons.warning_amber_rounded : Icons.timeline_rounded,
+                    size: 16,
+                    color: tight ? errorRed : warningOrange,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    t['totalTimeHuman'] ?? '${totalMin ~/ 60}小時${totalMin % 60}分',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: tight ? errorRed : warningOrange,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '轉乘 ${t['waitMin']} 分',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // 時間軸
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 時間軸圖標
+            Column(
+              children: [
+                _buildTimelineDot(successGreen),
+                _buildTimelineLine(),
+                _buildTimelineDot(tight ? errorRed : warningOrange),
+                _buildTimelineLine(),
+                _buildTimelineDot(primaryBlue),
+              ],
+            ),
+            const SizedBox(width: 12),
+
+            // 行程內容
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 第一段車程 - 可點擊
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () async {
+                        await _navigateToTrainDetail(trainNo1);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      splashColor: _getTrainTypeColor(leg1['TrainTypeName']).withOpacity(0.1),
+                      child: _buildLegCard(leg1, isFirst: true),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTransferStationCard(t['transferStation'], tight),
+                  const SizedBox(height: 8),
+                  // 第二段車程 - 可點擊
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () async {
+                        await _navigateToTrainDetail(trainNo2);
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      splashColor: _getTrainTypeColor(leg2['TrainTypeName']).withOpacity(0.1),
+                      child: _buildLegCard(leg2, isFirst: false),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+// 新增：車次詳情導航方法
+  Future<void> _navigateToTrainDetail(String trainNo) async {
+    try {
+      var trainData = await fetchTrain(
+        int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), '')),
+        widget.date,
+      );
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TrainSchedulePage(
+              trainData: trainData,
+              type: 'trainNo',
+              time: widget.date,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('查詢車次詳情失敗: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('查詢車次 $trainNo 失敗'),
+            backgroundColor: errorRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildTimelineDot(Color color) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, color.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimelineLine() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      width: 2,
+      height: 24,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.grey[400]!, Colors.grey[300]!],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegCard(dynamic leg, {required bool isFirst}) {
+    final trainType = leg['TrainTypeName'] ?? '';
+    final typeColor = _getTrainTypeColor(trainType);
+    final trainNo = leg['TrainNo'];
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [typeColor, typeColor.withOpacity(0.8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isFirst ? Icons.departure_board_rounded : Icons.train_rounded,
+              size: 16,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${leg['depTime']} → ${leg['arrTime']}',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: typeColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '車次 $trainNo',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: typeColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  trainType,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildTransferStationCard(dynamic station, bool tight) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tight ? errorRed.withOpacity(0.05) : warningOrange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: tight ? errorRed.withOpacity(0.2) : warningOrange.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: tight ? errorRed.withOpacity(0.1) : warningOrange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.transfer_within_a_station_rounded,
+              size: 16,
+              color: tight ? errorRed : warningOrange,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '轉乘站 ${station['name']}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: tight ? errorRed : warningOrange,
+                  ),
+                ),
+                if (tight)
+                  Text(
+                    '轉乘時間較短，請留意',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: errorRed,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =============================
+  // 顯示日期的格式
+  // =============================
+  String _formatDate(DateTime date) {
+    final weekday = ['一', '二', '三', '四', '五', '六', '日'][date.weekday - 1];
+    return '${date.year}年${date.month}月${date.day}日 週$weekday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  // =============================
+  // 畫面
+  // =============================
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: backgroundLight,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.train_rounded, size: 20, color: primaryBlue),
+            const SizedBox(width: 8),
+            Text(
+              '${widget.departure["StationName"]["Zh_tw"]}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              child: const Icon(Icons.arrow_forward_rounded, size: 16, color: primaryBlue),
+            ),
+            Text(
+              '${widget.destination["StationName"]["Zh_tw"]}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: primaryBlue),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: queryTrainList(),
+        key: ValueKey('${widget.date.day}-${widget.date.hour}-${widget.date.minute}'),
+        builder: (_, s) {
+          if (s.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '查詢列車資訊中...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: primaryBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (s.hasError) {
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [errorRed.withOpacity(0.1), errorRed.withOpacity(0.05)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.error_outline_rounded, size: 40, color: errorRed),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '載入失敗',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: errorRed,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '請檢查網路連線後重試',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final data = s.data!;
+          final trains = buildTrains(data['direct'] ?? [], data['transfer'] ?? []);
+
+          if (trains.isEmpty) {
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [primaryBlue.withOpacity(0.1), primaryBlue.withOpacity(0.05)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.train_outlined, size: 50, color: primaryBlue),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      '無符合條件的列車',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '請調整篩選條件後重新查詢',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (_shouldScrollToClosest() && trains.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final closestIndex = findClosestTrainIndex(trains);
+              if (closestIndex >= 0 && closestIndex < trains.length) {
+                _itemScrollController.scrollTo(
+                  index: closestIndex,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  alignment: 0.2,
+                );
+                _lastScrollTime = DateTime.now();
+                _shouldAutoScroll = false;
+                _previousDate = widget.date;
+              }
+            });
+          }
+
+          return Column(
+            children: [
+              // 日期時間標籤
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                margin: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: primaryBlue.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: primaryBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.calendar_today_rounded, size: 16, color: primaryBlue),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _formatDate(widget.date),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: primaryBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 列表
+              Expanded(
+                child: ScrollablePositionedList.builder(
+                  itemScrollController: _itemScrollController,
+                  itemPositionsListener: _itemPositionsListener,
+                  itemCount: trains.length,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  itemBuilder: (_, i) {
+                    final t = trains[i];
+                    final isClosest = i == findClosestTrainIndex(trains);
+                    final isAfterSelectedTime = trainDepMinutes(t) >= _selectedMinutes();
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(isClosest ? 0.1 : 0.04),
+                            blurRadius: isClosest ? 20 : 12,
+                            offset: Offset(0, isClosest ? 6 : 4),
+                          ),
+                        ],
+                        border: isClosest
+                            ? Border.all(color: primaryBlue, width: 2)
+                            : !isAfterSelectedTime
+                            ? Border.all(color: Colors.grey[300]!, width: 1)
+                            : null,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+
+                          borderRadius: BorderRadius.circular(20),
+                          splashColor: primaryBlue.withOpacity(0.1),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            child: t['transfer'] ? transferTimeline(t) : directCard(t),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

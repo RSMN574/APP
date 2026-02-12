@@ -189,12 +189,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             final stopName = station.stationNameZh;
             final stopID = station.stationID;
             final stationGroupID = station.stationGroupID;
-            // ⭐ 先判斷 stationGroupID 是否相同
-            // if (_selectStationGroupID.value == stationGroupID) {
-            //   // stationGroup 沒變 → 只切換 tab
-            //   _indexNotifier.value = 1;
-            //   return;
-            // }
+            print(_stationIDs.value);
 
             try {
               // 取得該站點的所有停靠資料
@@ -211,12 +206,20 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 debugPrint('無有效站點 ID，無法更新');
                 return;
               }
+              if (_isSameStationGroup(_stationIDs.value, stationIDs)) {  // ⚠️ 注意這裡要比較新舊值！
+                print("stationGroup 沒變 → 只切換 tab");
+                _selectStationID.value = stopID;
+                _indexNotifier.value = 1;
+                return;
+              }else{
+                // 更新相關狀態
+                _stationIDs.value = stationIDs;
+                _stopName.value = stopName;
+                _selectStationID.value = stopID;
+                _selectStationGroupID.value=stationGroupID;
+              }
 
-              // 更新相關狀態
-              _stationIDs.value = stationIDs;
-              _stopName.value = stopName;
-              _selectStationID.value = stopID;
-              _selectStationGroupID.value=stationGroupID;
+
               // 聚焦到該站點位置
               _mapController?.animateCamera(
                 CameraUpdate.newCameraPosition(
@@ -241,6 +244,31 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     // Provider.of<MarkerProvider>(context, listen: false).setMarker(markers);
   }
+// ✅ 正確的輔助函數
+  bool _isSameStationGroup(List<String>? oldList, List<String>? newList) {
+    // 兩個都是 null 或兩個都是空列表 → 視為相同
+    if ((oldList == null || oldList.isEmpty) &&
+        (newList == null || newList.isEmpty)) {
+      return false;
+    }
+
+    // 其中一個是 null 或空，另一個不是 → 不同
+    if (oldList == null || oldList.isEmpty) return false;
+    if (newList == null || newList.isEmpty) return false;
+
+    // 長度不同 → 不同
+    if (oldList.length != newList.length) return false;
+
+    // 排序後比較內容
+    final sortedOld = List.of(oldList)..sort();
+    final sortedNew = List.of(newList)..sort();
+
+    for (int i = 0; i < sortedOld.length; i++) {
+      if (sortedOld[i] != sortedNew[i]) return false;
+    }
+    return true;
+  }
+
 
   Future<void> _loadMarkers(BuildContext context, List<dynamic>? stations) async {
     if (stations == null || stations.isEmpty) {
@@ -1370,72 +1398,15 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
         _NearbyStationsPageState._updateMarkerStyle(currentStationID);
       }
     });
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   final controller = _tabControllerNotifier.value;
-    //   if (controller != null) {
-    //     controller.addListener(() {
-    //       if (!controller.indexIsChanging) {
-    //         // 取得當前 Tab 對應的站點 ID
-    //         final currentStationID = _stationIDs.value[controller.index];
-    //
-    //         // 更新選中的站點
-    //         _selectStationID.value = currentStationID;
-    //
-    //         print("✅ Tab 切換完成 -> index: ${controller.index}, StationID: $currentStationID");
-    //
-    //         // 更新 Marker Style
-    //         _NearbyStationsPageState._updateMarkerStyle(currentStationID);
-    //       }
-    //     });
-    //   }
-    // });
 
-
-    // 監聽 _stationIDs 變化，更新 TabController
-    // _stationIDs.addListener(() {
-    //   if (!mounted) return;
-    //   _initTabController();
-    //
-    //
-    // });
 
     // 監聽 _selectStationID，切換 Tab 並更新 marker 樣式
     _selectStationID.addListener(_onSelectStationChanged);
   }
 
-  String? _lastGroupID; // 加在 class 中
-
-  void _initTabController() {
-    final length = _stationIDs.value.length;
-    final currentGroupID = _selectStationGroupID.value;
-
-    // 若 groupID 沒變且長度也沒變，就不重建
-    if (_tabController.length == length &&
-        _lastGroupID == currentGroupID) {
-      return;
-    }
-
-    // 記錄目前的 groupID
-    _lastGroupID = currentGroupID;
-    // 初始化時，直接跳到對應 tab
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final initIndex =
-      _stationIDs.value.indexOf(_selectStationID.value); // 找到對應 index
-      if (initIndex != -1) {
-        _tabController.index = initIndex; // 設定到指定 Tab
-        _tabController; // 同步更新 marker
-      }
-    });
-    // 重建 TabController
-    _tabController.dispose();
-    _tabController = TabController(length: length, vsync: this);
-
-
-  }
-
-
 
   void _onSelectStationChanged() {
+    print("_onSelectStationChanged");
     if (!mounted || _stationIDs.value.isEmpty) return;
 
     final currentStop = _selectStationID.value;
@@ -1631,7 +1602,7 @@ WHERE City = 'Taichung'
 
               if (results.isNotEmpty) {
                 routeInfoCache[routeName] = results.first;
-                print('找到路線 $routeName: ${results.first["RouteID"]}');
+                // print('找到路線 $routeName: ${results.first["RouteID"]}');
               } else {
                 print('未找到路線 $routeName');
               }
@@ -1650,7 +1621,7 @@ WHERE City = 'Taichung'
       print('開始合併路線資訊...');
 
       for (final item in stationData) {
-        print('處理項目: ${item["RouteName"]}');
+
 
         final routeNameObj = item["RouteName"];
         String? routeName;
@@ -1677,10 +1648,10 @@ WHERE City = 'Taichung'
         // 設置路線 ID
         if (hasValidInfo) {
           resultItem["RouteID"] = routeInfo!["RouteID"]?.toString() ?? "未知";
-          print('設置 RouteID: ${resultItem["RouteID"]}');
+
         } else {
           resultItem["RouteID"] = "未知";
-          print('未找到路線資訊，設置為未知');
+
         }
 
         // 設置站名資訊
@@ -1691,26 +1662,24 @@ WHERE City = 'Taichung'
           departureName = routeInfo!["DepartureStopNameZh"]?.toString();
           destinationName = routeInfo!["DestinationStopNameZh"]?.toString();
 
-          print('出發站名從 DB: $departureName');
-          print('目的站名從 DB: $destinationName');
+
 
           // 如果沒有從資料庫獲取到，嘗試其他欄位名稱
           if (departureName == null) {
             departureName = routeInfo["DepartureStopName"]?.toString();
-            print('從 DepartureStopName 獲取: $departureName');
+
           }
 
           if (destinationName == null) {
             destinationName = routeInfo["DestinationStopName"]?.toString();
-            print('從 DestinationStopName 獲取: $destinationName');
+
           }
         }
 
         resultItem["DepartureStopName"] = departureName ?? "未知出發站";
         resultItem["DestinationStopName"] = destinationName ?? "未知目的站";
 
-        print('設置 DepartureStopName: ${resultItem["DepartureStopName"]}');
-        print('設置 DestinationStopName: ${resultItem["DestinationStopName"]}');
+
 
         // 根據方向設置 "from" 和 "to"
         final isDirection1 = direction == 1;
@@ -1721,11 +1690,8 @@ WHERE City = 'Taichung'
             ? departureName ?? "未知出發地"
             : destinationName ?? "未知目的地";
 
-        print('設置 from: ${resultItem["from"]}');
-        print('設置 to: ${resultItem["to"]}');
-
         processedData.add(resultItem);
-        print('--- 完成處理 ---');
+
       }
 
       print('=== 處理完成，返回 ${processedData.length} 筆資料 ===');
@@ -1736,7 +1702,334 @@ WHERE City = 'Taichung'
       return [];
     }
   }
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
 
+    return ValueListenableBuilder<String>(
+      valueListenable: _selectStationGroupID,
+      builder: (context, groupID, _) {
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _loadData(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: LoadingAnimationWidget.stretchedDots(
+                  color: Colors.black,
+                  size: 40,
+                ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(child: Text('錯誤: ${snapshot.error}'));
+            }
+
+            if (!snapshot.hasData || snapshot.data == null) {
+              return const Center(child: Text('沒有資料'));
+            }
+
+            if (_stationIDs.value.isEmpty) {
+              return const SizedBox();
+            }
+
+            return DefaultTabController(
+              length: _stationIDs.value.length,
+              child: Builder(
+                builder: (context) {
+                  final tabController = _tabController;
+                  return Column(
+                    children: [
+                      // ---------- 自訂 AppBar ----------
+                      PreferredSize(
+                        preferredSize: const Size.fromHeight(120),
+                        child: Container(
+                          height: 160,
+                          decoration: BoxDecoration(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: AppBar(
+                            automaticallyImplyLeading: false,
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            title: Text(
+                              _stopName.value,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                            leading: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.black),
+                              onPressed: () {
+                                if (_indexNotifier.value > 0) {
+                                  setState(() {
+                                    _indexNotifier.value--;
+                                  });
+                                  _NearbyStationsPageState._clearMarkerStyle(context);
+                                  _stationIDs.value = [];
+                                  _stopName.value = "";
+                                  _selectStationID.value = "";
+                                  _selectStationGroupID.value = "";
+                                }
+                              },
+                            ),
+                            actions: [
+                              // 刷新按鈕
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                child: IconButton(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEEF3FB),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.refresh_rounded, size: 20),
+                                  ),
+                                  onPressed: _loadData,
+                                ),
+                              ),
+                              // 更多選項按鈕
+                              Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                child: PopupMenuButton<String>(
+                                  icon: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEEF3FB),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.more_vert_rounded, size: 20),
+                                  ),
+                                  color: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: Colors.grey[200]!,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                    _buildPopupMenuItem(
+                                      icon: Icons.info_outline_rounded,
+                                      title: '站牌資訊',
+                                      value: 'info',
+                                      color: const Color(0xFF1A73E8),
+                                    ),
+                                    _buildPopupMenuItem(
+                                      icon: Icons.favorite_border_rounded,
+                                      title: '加入收藏',
+                                      value: 'favorite',
+                                      color: const Color(0xFFFF3B30),
+                                    ),
+                                    _buildPopupMenuItem(
+                                      icon: Icons.sort_rounded,
+                                      title: '排序方式',
+                                      value: 'sort',
+                                      color: const Color(0xFF34C759),
+                                    ),
+                                  ],
+                                  onSelected: (String action) async {
+                                    if (action == 'favorite') {
+                                      favorite_feature dbHelper = favorite_feature();
+                                      final output = await dbHelper.addFavorite(
+                                        StopName: widget.stop,
+                                        table: "FavoritesStop",
+                                        city: "Taichung",
+                                      );
+
+                                      if (output == 100) {
+                                        QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.success,
+                                          text: '${widget.stop}已儲存項目',
+                                        );
+                                      } else if (output == -1) {
+                                        QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.warning,
+                                          text: '${widget.stop}已存在於列表中，不會重複添加',
+                                        );
+                                      } else if (output == 200) {
+                                        QuickAlert.show(
+                                          context: context,
+                                          type: QuickAlertType.error,
+                                          title: 'Oops...',
+                                          text: '儲存項目時發生錯誤',
+                                        );
+                                      }
+                                    } else if (action == 'sort') {
+                                      _showSortDialog(context);
+                                    } else if (action == 'info') {
+                                      // 處理站牌資訊
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                            bottom: _buildTabBar(snapshot.data!, tabController),
+                          ),
+                        ),
+                      ),
+                      // ---------- Tab 內容 ----------
+                      Expanded(
+                        child: TabBarView(
+                          children: List.generate(
+                            _stationIDs.value.length,
+                                (index) {
+                              return FutureBuilder(
+                                future: _buildTabContent(
+                                  _stationIDs.value[index],
+                                  snapshot.data!,
+                                ),
+                                builder: (context, contentSnapshot) {
+                                  if (contentSnapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(
+                                      child: LoadingAnimationWidget.stretchedDots(
+                                        color: Colors.black,
+                                        size: 40,
+                                      ),
+                                    );
+                                  }
+
+                                  if (contentSnapshot.hasError) {
+                                    return Center(
+                                      child: Text('Error: ${contentSnapshot.error}'),
+                                    );
+                                  }
+
+                                  if (!contentSnapshot.hasData) {
+                                    return const Center(
+                                      child: Text("No content available"),
+                                    );
+                                  }
+
+                                  return contentSnapshot.data!;
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  PreferredSize _buildTabBar(List<Map<String, dynamic>> station, TabController? tabController) {
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(80),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: tabController == null
+            ? const Center(child: CircularProgressIndicator())
+            : AnimatedBuilder(
+          animation: tabController,
+          builder: (context, child) {
+            final currentIndex = tabController.index;
+            return Row(
+              children: List.generate(_stationIDs.value.length, (index) {
+                String label = String.fromCharCode(65 + index);
+                final isSelected = currentIndex == index;
+
+                return Expanded(
+                  child: Padding(
+                    padding: index < _stationIDs.value.length - 1
+                        ? const EdgeInsets.only(right: 8)
+                        : EdgeInsets.zero,
+                    child: GestureDetector(
+                      onTap: () => tabController.animateTo(index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF1A73E8).withOpacity(0.1)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF1A73E8)
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.directions_bus,
+                              size: 20,
+                              color: isSelected
+                                  ? const Color(0xFF1A73E8)
+                                  : Colors.grey[600],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? const Color(0xFF1A73E8)
+                                    : Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _stationIDs.value[index],
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isSelected
+                                    ? const Color(0xFF1A73E8)
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            );
+          },
+        ),
+      ),
+    );
+  }
   Future<Widget> _buildTabContent(String direction,List<Map<String, dynamic>> stopEstimatedTime) async {
     List<Map<String, dynamic>> finalList=await _processData(direction,stopEstimatedTime);
 
@@ -2031,123 +2324,7 @@ WHERE City = 'Taichung'
     }
   }
 
-  PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(80),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ValueListenableBuilder<int>(
-          valueListenable: _currentTabIndex,
-          builder: (context, currentIndex, child) {
-            return Row(
-              children: List.generate(_stationIDs.value.length, (index) {
-                String label = String.fromCharCode(65 + index);
-                return Expanded(
-                  child: Padding(
-                    padding: index < _stationIDs.value.length - 1
-                        ? const EdgeInsets.only(right: 8)
-                        : EdgeInsets.zero,
-                    child: _buildTabButton(
-
-                      icon: Icons.directions_bus,
-                      text: _stationIDs.value[index],
-                      label: label,
-                      isSelected: currentIndex == index,
-                      onTap: () => _tabController.animateTo(index),
-                    ),
-                  ),
-                );
-              }),
-            );
-          },
-        ),
-      ),
-    );
-  }
-  Widget _buildTabButton({required IconData icon, required String text, required String label, required bool isSelected, required VoidCallback onTap,}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: isSelected
-                ? Border.all(
-              color: const Color(0xFF1A73E8).withOpacity(0.3),
-              width: 1.5,
-            )
-                : Border.all(
-              color: Colors.grey[300]!,
-              width: 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 字母標籤和圖標組合
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[500],
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  void _showSortDialog(BuildContext context) {
+    void _showSortDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2315,243 +2492,7 @@ WHERE City = 'Taichung'
       ),
     );
   }
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
 
-    return ValueListenableBuilder<String>(
-      valueListenable: _selectStationGroupID,
-      builder: (context, groupID, _) {
-        return FutureBuilder<List<Map<String, dynamic>>>(
-          future: _loadData(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: LoadingAnimationWidget.stretchedDots(
-                  color: Colors.black,
-                  size: 40,
-                ),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Center(child: Text('錯誤: ${snapshot.error}'));
-            }
-
-            if (!snapshot.hasData || snapshot.data == null) {
-              return const Center(child: Text('沒有資料'));
-            }
-
-            // ❗非常重要：Tab 數量為 0 會直接 assert
-            if (_stationIDs.value.isEmpty) {
-              return const SizedBox();
-            }
-
-            return DefaultTabController(
-
-              length: _stationIDs.value.length,
-              child: Column(
-                children: [
-                  // ---------- 自訂 AppBar ----------
-                  PreferredSize(
-
-                    preferredSize: const Size.fromHeight(120),
-                    child: Container(
-                      height: 160,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: AppBar(
-                        automaticallyImplyLeading: false,
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        title: Text(
-                          _stopName.value,
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                        leading: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.black),
-                          onPressed: () {
-                            if (_indexNotifier.value > 0) {
-                              setState(() {
-                                _indexNotifier.value--;
-                              });
-                              _NearbyStationsPageState._clearMarkerStyle(context);
-                              _stationIDs.value = [];
-                              _stopName.value = "";
-                              _selectStationID.value = "";
-                              _selectStationGroupID.value = "";
-                            }
-                          },
-                        ),
-                        actions: [
-                          // 刷新按鈕
-                          Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            child: IconButton(
-                              icon: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEEF3FB),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.refresh_rounded, size: 20),
-                              ),
-                              onPressed: _loadData,
-                            ),
-                          ),
-                          // 更多選項按鈕
-                          Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            child: PopupMenuButton<String>(
-                              icon: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEEF3FB),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.more_vert_rounded, size: 20),
-                              ),
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: Colors.grey[200]!,
-                                  width: 1,
-                                ),
-                              ),
-                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                                _buildPopupMenuItem(
-                                  icon: Icons.info_outline_rounded,
-                                  title: '站牌資訊',
-                                  value: 'info',
-                                  color: const Color(0xFF1A73E8),
-                                ),
-                                _buildPopupMenuItem(
-                                  icon: Icons.favorite_border_rounded,
-                                  title: '加入收藏',
-                                  value: 'favorite',
-                                  color: const Color(0xFFFF3B30),
-                                ),
-                                _buildPopupMenuItem(
-                                  icon: Icons.sort_rounded,
-                                  title: '排序方式',
-                                  value: 'sort',
-                                  color: const Color(0xFF34C759),
-                                ),
-                              ],
-                              onSelected: (String action) async {
-                                if (action == 'favorite') {
-                                  favorite_feature dbHelper = favorite_feature();
-                                  final output = await dbHelper.addFavorite(
-                                    StopName: widget.stop,
-                                    table: "FavoritesStop",
-                                    city: "Taichung",
-                                  );
-
-                                  if (output == 100) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.success,
-                                      text: '${widget.stop}已儲存項目',
-                                    );
-                                  } else if (output == -1) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.warning,
-                                      text: '${widget.stop}已存在於列表中，不會重複添加',
-                                    );
-                                  } else if (output == 200) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Oops...',
-                                      text: '儲存項目時發生錯誤',
-                                    );
-                                  }
-                                } else if (action == 'sort') {
-                                  _showSortDialog(context);
-                                } else if (action == 'info') {
-                                  // 處理站牌資訊
-
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-
-                        // ⭐ TabBar 不給 controller
-                        bottom: _buildTabBar(snapshot.data!),
-                      ),
-                    ),
-                  ),
-
-                  // ---------- Tab 內容 ----------
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,  // 加入 controller 綁定
-                      children: List.generate(
-                        _stationIDs.value.length,
-                            (index) {
-                          return FutureBuilder(
-                            future: _buildTabContent(
-                              _stationIDs.value[index],
-                              snapshot.data!,
-                            ),
-                            builder: (context, contentSnapshot) {
-                              if (contentSnapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return Center(
-                                  child:
-                                  LoadingAnimationWidget.stretchedDots(
-                                    color: Colors.black,
-                                    size: 40,
-                                  ),
-                                );
-                              }
-
-                              if (contentSnapshot.hasError) {
-                                return Center(
-                                  child: Text(
-                                      'Error: ${contentSnapshot.error}'),
-                                );
-                              }
-
-                              if (!contentSnapshot.hasData) {
-                                return const Center(
-                                  child: Text("No content available"),
-                                );
-                              }
-
-                              return contentSnapshot.data!;
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   bool get wantKeepAlive => true;
@@ -2635,7 +2576,7 @@ class BusStopCache {
       }
 
       // 快取未命中時，取得遠端資料
-      print('[Cache] 請求遠程數據 $cacheKey');
+      // print('[Cache] 請求遠程數據 $cacheKey');
       final data = await _fetchData(stationName);
       _updateCache(cacheKey, data);
       return data;

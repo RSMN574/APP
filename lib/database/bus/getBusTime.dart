@@ -107,6 +107,7 @@ Future<List<Station>> getNearStation(String location) async {
   }
 
   final List rawData = json.decode(response.body);
+  print(rawData);
   late final List<Station> stations;
   try {
     stations = rawData.map((e) => Station.fromJson(e)).toList();

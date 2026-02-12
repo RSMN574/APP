@@ -9,12 +9,18 @@ import '../../database/Train/getTrain.dart';
 import '../../database/SQL/schedule.dart';
 import '../../widget/map.dart';
 import '../../widget/train/RoutePalnner.dart';
- final List E500=[115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
+
+final List E500 = [115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
+final List EMU3000 = [123, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295];
+final List EMU900 = [123, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295];
+final List TzeChiangLimited = [105, 110, 115, 120, 125, 130, 135, 140, 145, 150];
+
 late Set<Polyline> allLines;
 final ScrollController _stopTimesScrollController = ScrollController();
 
-String? _currentStationId; // 目前車站 ID
+String? _currentStationId;
 int _liveDelayMinutes = 0;
+
 class TrainSchedulePage extends StatefulWidget {
   final Map<String, dynamic> trainData;
   final String type;
@@ -31,46 +37,72 @@ class TrainSchedulePage extends StatefulWidget {
   State<TrainSchedulePage> createState() => _TrainSchedulePageState();
 }
 
-class  _TrainSchedulePageState extends State<TrainSchedulePage> {
-  // 顏色常數定義
-  static const Color primaryColor = Color(0xFF2A5CAA);     // 主色調
-  static const Color surfaceColor = Color(0xFFF3F5F7);     // 背景色
-  static const Color textPrimary = Color(0xFF2D3748);      // 主要文字
+class _TrainSchedulePageState extends State<TrainSchedulePage> {
+  // 通知中心主題色
+  static const Color primaryBlue = Color(0xFF1A73E8);
+  static const Color successGreen = Color(0xFF34C759);
+  static const Color warningOrange = Color(0xFFFF9500);
+  static const Color errorRed = Color(0xFFFF3B30);
+  static const Color purple = Color(0xFFAF52DE);
+  static const Color backgroundLight = Color(0xFFF8FAFD);
+  static const Color surfaceColor = Color(0xFFEEF3FB);
+  static const Color textPrimary = Color(0xFF2D3748);
   static const Color textSecondary = Color(0xFF718096);
+
   String? _currentStationId;
   int _liveDelayMinutes = 0;
+  String? _trainModel; // 列車車型
+  String? _trainModelDescription; // 車型說明
 
   final ScrollController _stopTimesScrollController = ScrollController();
   Timer? _liveBoardTimer;
-// 次要文字
-
 
   @override
   void initState() {
     super.initState();
-
     fetchLiveBoardIfToday();
-
-
+    _getTrainModel();
   }
 
   @override
   void dispose() {
-
+    _liveBoardTimer?.cancel();
     super.dispose();
   }
 
+  // 獲取列車車型
+  void _getTrainModel() {
+    final trainNo = widget.trainData['DailyTrainInfo']['TrainNo'];
+    final cleanTrainNo = int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''));
+
+    setState(() {
+      if (E500.contains(cleanTrainNo)) {
+        _trainModel = 'E500';
+        _trainModelDescription = '電力機車頭，最高時速130km/h';
+      } else if (EMU3000.contains(cleanTrainNo)) {
+        _trainModel = 'EMU3000';
+        _trainModelDescription = '城際電聯車，最高時速130km/h，12節編組';
+      } else if (EMU900.contains(cleanTrainNo)) {
+        _trainModel = 'EMU900';
+        _trainModelDescription = '區間通勤電聯車，最高時速130km/h，10節編組';
+      } else if (TzeChiangLimited.contains(cleanTrainNo)) {
+        _trainModel = '推拉式自強號';
+        _trainModelDescription = '推拉式電聯車，最高時速130km/h，12節編組';
+      } else {
+        _trainModel = null;
+        _trainModelDescription = null;
+      }
+    });
+  }
+
   Map printStartEndDepartureTimes(Map<String, dynamic> trainData) {
-    // 1. 取出「起站」與「迄站」的中文站名
     final dailyInfo = trainData['DailyTrainInfo'] as Map<String, dynamic>;
     final startZh = dailyInfo['StartingStationName']['Zh_tw'] as String;
-    final endZh   = dailyInfo['EndingStationName']['Zh_tw']   as String;
+    final endZh = dailyInfo['EndingStationName']['Zh_tw'] as String;
 
-    // 2. 停靠時間列表（看你 API 回來叫什麼，這邊假設是 StopTimes）
     final stops = (trainData['StopTimes'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
 
-    // 3. 找到對應站名的那筆 stop，並回傳它的 DepartureTime
     String? findDeparture(String stationZh) {
       final stop = stops.firstWhere(
             (s) => s['StationName']['Zh_tw'] == stationZh,
@@ -80,15 +112,11 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
     }
 
     final startDeparture = findDeparture(startZh);
-    final endDeparture   = findDeparture(endZh);
+    final endDeparture = findDeparture(endZh);
 
-    // 4. 印出來看看
-    print('起站 $startZh 的 DepartureTime：$startDeparture');
-    print('迄站 $endZh 的 DepartureTime：$startDeparture');
     return {
-      "startDeparture":startDeparture,
-      "endDeparture":endDeparture
-
+      "startDeparture": startDeparture,
+      "endDeparture": endDeparture
     };
   }
 
@@ -96,8 +124,7 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
     if (_currentStationId == null) return;
 
     final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
-    final index =
-    stopTimes.indexWhere((s) => s['StationID'] == _currentStationId);
+    final index = stopTimes.indexWhere((s) => s['StationID'] == _currentStationId);
 
     if (index == -1) return;
 
@@ -107,25 +134,17 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
       curve: Curves.easeInOut,
     );
   }
+
   bool isToday(dynamic serviceDay) {
     try {
-      // 情況 1：ServiceDay 是 API 給的 bool（TDX 常見）
       if (serviceDay is bool) return serviceDay;
-
-      // 情況 2：ServiceDay 是 Map（含日期資訊）
       if (serviceDay is Map<String, dynamic>) {
         final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
         final start = serviceDay['StartDate'];
         final end = serviceDay['EndDate'];
-
         if (start == null || end == null) return false;
-
-        return today.compareTo(start) >= 0 &&
-            today.compareTo(end) <= 0;
+        return today.compareTo(start) >= 0 && today.compareTo(end) <= 0;
       }
-
-      // 情況 3：ServiceDay 是 String（yyyy-MM-dd）
       if (serviceDay is String) {
         final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
         return serviceDay == today;
@@ -133,17 +152,14 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
     } catch (e) {
       debugPrint('isToday error: $e');
     }
-
     return false;
   }
+
   bool isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year &&
-        a.month == b.month &&
-        a.day == b.day;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   Future<void> fetchLiveBoardIfToday() async {
-    // 不是今天 → 清空即時狀態
     final now = DateTime.now();
 
     if (!isSameDay(widget.time, now)) {
@@ -155,7 +171,6 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
       return;
     }
 
-
     try {
       final result = await fetchTrainStationByTrainNo(
         widget.trainData['DailyTrainInfo']['TrainNo'],
@@ -166,15 +181,13 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
       final live = result.first;
 
       final String? stationId = live['StationID'];
-      final int delay =
-      (live['DelayTime'] is int) ? live['DelayTime'] : 0;
+      final int delay = (live['DelayTime'] is int) ? live['DelayTime'] : 0;
 
       setState(() {
         _currentStationId = stationId;
         _liveDelayMinutes = delay;
       });
 
-      // 自動捲動到目前車站
       _scrollToCurrentStation();
     } catch (e) {
       debugPrint('fetchLiveBoardIfToday error: $e');
@@ -192,397 +205,745 @@ class  _TrainSchedulePageState extends State<TrainSchedulePage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _stopTimesScrollController.animateTo(
-        index * 96.0, // ⚠️ 單列高度（依你 UI 微調）
+        index * 96.0,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeOutCubic,
       );
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-
-    return Stack(
-        children: [
-
-    Positioned.fill(
-    child: SizedBox(
-
-        child:   FutureBuilder<Set<Polyline>>(
-          future: fetchTrainNetworkLine(),
+  // 修正 bottomNavigationBar 顯示問題
+  Widget _buildBottomBar() {
+    return ValueListenableBuilder(
+      valueListenable: ValueNotifier(_shouldShowDelayInfo()),
+      builder: (context, showDelayInfo, child) {
+        if (!showDelayInfo) return const SizedBox.shrink();
+        return FutureBuilder<Widget>(
+          future: _buildDelayInfo(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return   Center( child:
-            LoadingAnimationWidget.stretchedDots(
-              color: Colors.black,
-              size: 40,
-            ),
-            );
-            final lines = snapshot.data!;
-
-            return map(polylines: lines);
-          },
-        ),
-
-    ),
-    ),
-
-          DraggableScrollableSheet(
-            initialChildSize: 1,
-            minChildSize: 0.2,
-            maxChildSize: 1.0,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return Scaffold(
-                appBar: AppBar(
-                  title: const Text(
-                    '列車時刻表',
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontWeight: FontWeight.bold,
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Container(
+                height: 60,
+                color: Colors.white,
+                child: const Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: primaryBlue,
                     ),
                   ),
-                  centerTitle: true,
-                  elevation: 1,
-                  backgroundColor: Colors.white,
-                  iconTheme: const IconThemeData(color: textPrimary),
-                  actions: [
-                    IconButton(onPressed: () async {
-
-// 提取 StationName (中文)
-// List<String> stationNamesZh = widget.trainData["StopTimes"]
-//     .map((stop) => stop["StationName"]["Zh_tw"] as String)
-//     .toList();
-//
-// // 提取 StationName (英文)
-// List<String> stationNamesEn = widget.trainData["StopTimes"]
-//     .map((stop) => stop["StationName"]["En"] as String)
-//     .toList();
-                      // 提取 StationName (英文)
-List<dynamic> stationNames = widget.trainData["StopTimes"]
-    .map((stop) => stop["StationName"] as Map)
-    .toList();
-
-// 顯示彈窗並等待用戶輸入
-              final result = await showDialog(
-              context: context,
-              builder: (context) {
-              return StationSelectionDialog(stationNames:stationNames);
-              },
+                ),
               );
+            }
+            if (snapshot.hasError) {
+              return const SizedBox.shrink();
+            }
+            return snapshot.data ?? const SizedBox.shrink();
+          },
+        );
+      },
+    );
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: SizedBox(
+            child: FutureBuilder<Set<Polyline>>(
+              future: fetchTrainNetworkLine(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(
+                    child: LoadingAnimationWidget.stretchedDots(
+                      color: primaryBlue,
+                      size: 40,
+                    ),
+                  );
+                }
+                final lines = snapshot.data!;
+                return map(polylines: lines);
+              },
+            ),
+          ),
+        ),
+        DraggableScrollableSheet(
+          initialChildSize: 1,
+          minChildSize: 0.2,
+          maxChildSize: 1.0,
+          builder: (BuildContext context, ScrollController scrollController) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              appBar: AppBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                title: const Text(
+                  '列車時刻表',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: primaryBlue,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                centerTitle: true,
+                iconTheme: const IconThemeData(color: primaryBlue),
+                actions: [
+                  // 加入行程按鈕
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    child: IconButton(
+                      onPressed: () async {
+                        List<dynamic> stationNames = widget.trainData["StopTimes"]
+                            .map((stop) => stop["StationName"] as Map)
+                            .toList();
 
-              // 處理用戶選擇的結果
-              if (result != null) {
-              print('出發站: ${result['departure']}');
-              print('到達站: ${result['destination']}');
-              print('類型: ${result['category']}');
-              }
+                        final result = await showDialog(
+                          context: context,
+                          builder: (context) {
+                            return StationSelectionDialog(stationNames: stationNames);
+                          },
+                        );
 
-                      String getCategory(String category) {
-                        switch (category) {
-                          case '上班通勤':
-                            return 'commute';
-                          case '旅行':
-                            return 'trip';
-                          default:
-                            return 'other';
+                        if (result != null) {
+                          String getCategory(String category) {
+                            switch (category) {
+                              case '上班通勤':
+                                return 'commute';
+                              case '旅行':
+                                return 'trip';
+                              default:
+                                return 'other';
+                            }
+                          }
+
+                          Map timeMap = printStartEndDepartureTimes(widget.trainData);
+                          final schedule = ScheduleModel(
+                            type: 'train',
+                            route: widget.trainData['DailyTrainInfo']['TrainNo'],
+                            startingStopName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                            userStartingStopName: result['departure'],
+                            finalStopName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                            userDestinationStopName: result['destination'],
+                            time: widget.time.toString(),
+                            category: getCategory(result['category']),
+                            seatNumber: result['seatNumber'],
+                            other: {
+                              "DateTime": widget.time.toString(),
+                              "trainType": widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                              "category": getCategory(result['category']),
+                              "seatNumber": result["seatNumber"],
+                              "startDeparture": timeMap["startDeparture"],
+                              "endDeparture": timeMap["endDeparture"]
+                            },
+                          );
+
+                          final output = await ScheduleService.instance.addSchedule(schedule);
+
+                          if (output == -1) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('該行程已經存在'),
+                                backgroundColor: warningOrange,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          } else if (output == 100) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('行程添加成功'),
+                                backgroundColor: successGreen,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('添加行程失敗'),
+                                backgroundColor: errorRed,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          }
                         }
-                      }
-                      Map timeMap=printStartEndDepartureTimes(widget.trainData);
-                      final schedule = ScheduleModel(
-                        type: 'train',
-                        route: widget.trainData['DailyTrainInfo']['TrainNo'],
-                        startingStopName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                        userStartingStopName: result['departure'],
-                        finalStopName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-                        userDestinationStopName: result['destination'],
-                        time: widget.time.toString(),
-                        category: getCategory(result['category']),
-                        seatNumber: result['seatNumber'],
-                        other: {
-                          "DateTime": widget.time.toString(),
-                          "trainType": widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
-                          "category": getCategory(result['category']),
-                          "seatNumber": result["seatNumber"],
-                          "startDeparture": timeMap["startDeparture"],
-                          "endDeparture": timeMap["endDeparture"]
-                        },
-                      );
-
-                      final output = await ScheduleService.instance.addSchedule(schedule);
-
-
-// 根据 addSchedule 方法返回的结果进行处理
-                      if (output == -1) {
-                        // 如果已经存在相同的记录，提示用户
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('該行程已經存在。'))
-                        );
-                      } else if (output == 100) {
-                        // 成功添加行程，提示用户
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('行程添加成功！'))
-                        );
-                      } else {
-                        // 添加行程失败，提示用户
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('添加行程失敗。'))
-                        );
-                      }
-                    }, icon: const Icon(Icons.add)),
-                    IconButton(
+                      },
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.add_rounded, size: 20, color: primaryBlue),
+                      ),
+                    ),
+                  ),
+                  // 列車資訊按鈕
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: IconButton(
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text("列車資訊"),
-                              content: SizedBox(
-                                height: 400,
+                            return Dialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(24),
                                 child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text("列車服務:", style: TextStyle(fontWeight: FontWeight.bold)),
-                                    if (widget.trainData['DailyTrainInfo']['WheelchairFlag'] == 1) const Text("✅ 無障礙設施"),
-                                    if (widget.trainData['DailyTrainInfo']['PackageServiceFlag'] == 1) const Text("✅ 行李服務"),
-                                    if (widget.trainData['DailyTrainInfo']['DiningFlag'] == 1) const Text("✅ 餐飲服務"),
-                                    if (widget.trainData['DailyTrainInfo']['BikeFlag'] == 1) const Text("✅ 自行車車廂"),
-                                    if (widget.trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1) const Text("✅ 哺乳設施"),
-                                    if (widget.trainData['DailyTrainInfo']['DailyFlag'] == 1) const Text("✅ 每日行駛"),
-                                    if (widget.trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1) const Text("✅ 加班列車"),
-                                    if (widget.trainData['DailyTrainInfo']['SuspendedFlag'] == 1) const Text("❌ 停駛"),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: primaryBlue.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: const Icon(
+                                            Icons.info_rounded,
+                                            color: primaryBlue,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text(
+                                          "列車資訊",
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: primaryBlue,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _buildServiceItem(
+                                      "無障礙設施",
+                                      widget.trainData['DailyTrainInfo']['WheelchairFlag'] == 1,
+                                      Icons.accessible_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "行李服務",
+                                      widget.trainData['DailyTrainInfo']['PackageServiceFlag'] == 1,
+                                      Icons.luggage_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "餐飲服務",
+                                      widget.trainData['DailyTrainInfo']['DiningFlag'] == 1,
+                                      Icons.restaurant_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "自行車車廂",
+                                      widget.trainData['DailyTrainInfo']['BikeFlag'] == 1,
+                                      Icons.directions_bike_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "哺乳設施",
+                                      widget.trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1,
+                                      Icons.child_care_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "每日行駛",
+                                      widget.trainData['DailyTrainInfo']['DailyFlag'] == 1,
+                                      Icons.calendar_today_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "加班列車",
+                                      widget.trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1,
+                                      Icons.add_alert_rounded,
+                                    ),
+                                    _buildServiceItem(
+                                      "停駛",
+                                      widget.trainData['DailyTrainInfo']['SuspendedFlag'] == 1,
+                                      Icons.block_rounded,
+                                      isError: true,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Center(
+                                      child: TextButton(
+                                        onPressed: () => Navigator.of(context).pop(),
+                                        child: const Text(
+                                          "關閉",
+                                          style: TextStyle(
+                                            color: primaryBlue,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: const Text("確定"),
-                                ),
-                              ],
                             );
                           },
                         );
                       },
-                      icon: const Icon(Icons.info),
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.info_outline_rounded, size: 20, color: primaryBlue),
+                      ),
                     ),
+                  ),
+                ],
+              ),
+              body: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildTrainInfoCard(),
+                    const SizedBox(height: 32),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Row(
+                        children: [
+                          Icon(Icons.timeline_rounded, size: 20, color: primaryBlue),
+                          SizedBox(width: 8),
+                          Text(
+                            '停靠站資訊',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: primaryBlue,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildStopTimesList(),
+                    TrainInfoWidget(trainData: widget.trainData),
                   ],
                 ),
-                body: SingleChildScrollView(
-                  controller: scrollController, // 使用 DraggableScrollableSheet 的滾動控制器
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTrainInfoCard(),
-                      const SizedBox(height: 32),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(
-                          '停靠站資訊',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: textPrimary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildStopTimesList(),
-                      TrainInfoWidget(trainData: widget.trainData,)
-                    ],
-                  ),
-                ),
-                backgroundColor: Colors.white,
-                bottomNavigationBar:FutureBuilder<Widget>(
-                  future: _shouldShowDelayInfo() ? _buildDelayInfo() : Future.value(SizedBox.shrink()),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return Container(
-                        height: 10,
-                        color: Colors.white,
-                      );
-                    } else if (snapshot.hasError) {
-                      return Container(
-                        height: 10,
-                        color: Colors.red[100],
-                      );
-                    } else {
-                      return Container(
-                        constraints: const BoxConstraints(
-                          maxHeight: 40,
-                        ),
-                        child: snapshot.data ?? SizedBox.shrink(),
-                      );
-                    }
-                  },
-                ),
-
-
-
-              );
-            },
-          ),
-
-
-        ]);
-
+              ),
+              bottomNavigationBar: _buildBottomBar(), // 修正後的底部欄
+            );
+          },
+        ),
+      ],
+    );
   }
+
+  Widget _buildServiceItem(String title, bool isAvailable, IconData icon, {bool isError = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isAvailable
+                  ? (isError ? errorRed.withOpacity(0.1) : successGreen.withOpacity(0.1))
+                  : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: isAvailable
+                  ? (isError ? errorRed : successGreen)
+                  : Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                color: isAvailable
+                    ? (isError ? errorRed : Colors.black87)
+                    : Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isAvailable
+                  ? (isError ? errorRed.withOpacity(0.1) : successGreen.withOpacity(0.1))
+                  : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              isAvailable ? '提供' : '無',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isAvailable
+                    ? (isError ? errorRed : successGreen)
+                    : Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _shouldShowDelayInfo() {
-    DateTime? scheduleDate = (widget.time);
-
-    // 取得今天的日期（格式化為 yyyy-MM-dd）
+    DateTime scheduleDate = widget.time;
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
     return DateFormat('yyyy-MM-dd').format(scheduleDate) == today;
   }
+
   Widget _buildTrainInfoCard() {
     final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
-    bool isCrossDayVar=isCrossDay(stopTimes);
+    bool isCrossDayVar = isCrossDay(stopTimes);
+    final trainNo = widget.trainData['DailyTrainInfo']['TrainNo'];
+    final cleanTrainNo = int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''));
+    final isE500 = E500.contains(cleanTrainNo);
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '車次 ${widget.trainData['DailyTrainInfo']['TrainNo']}',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
+            // 車次標題 + 列車車型
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [primaryBlue, Color(0xFF0D47A1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    trainNo,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (_trainModel != null)
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isE500 ? warningOrange.withOpacity(0.1) : purple.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _trainModel!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isE500 ? warningOrange : purple,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            if (_trainModelDescription != null)
+                              Expanded(
+                                child: Text(
+                                  _trainModelDescription!,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // 起站/終站
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: primaryBlue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.place_rounded,
+                                size: 16,
+                                color: primaryBlue,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '起站',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 20,
+                      color: primaryBlue,
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            const Text(
+                              '終站',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textSecondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: successGreen.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.flag_rounded,
+                                size: 16,
+                                color: successGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: textPrimary,
+                          ),
+                          textAlign: TextAlign.end,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            _buildStationInfoRow(
-              icon: Icons.place_outlined,
-              label: '起站',
-              stationName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-            ),
-            const SizedBox(height: 12),
-            _buildStationInfoRow(
-              icon: Icons.flag_outlined,
-              label: '終站',
-              stationName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-            ),
-            const SizedBox(height: 20),
-            _buildInfoItem(
-              '列車種類',
-              "${widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw']}"
-                  "${E500.contains( int.parse(widget.trainData['DailyTrainInfo']['TrainNo'] .replaceAll(RegExp(r'[^0-9]'), ''))) ? '（E500 車頭）' : ''}",
-            ),
 
-            const SizedBox(height: 8),
-            _buildInfoItem(
-              '備註',
-              "${widget.trainData['DailyTrainInfo']['Note']['Zh_tw']}  ${isCrossDayVar? "跨日" :""}",
-            ),
+            const SizedBox(height: 16),
+
+            // 備註
+            if (widget.trainData['DailyTrainInfo']['Note']['Zh_tw'] != null ||
+                isCrossDayVar)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isCrossDayVar
+                      ? warningOrange.withOpacity(0.1)
+                      : surfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isCrossDayVar
+                        ? warningOrange.withOpacity(0.3)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      isCrossDayVar ? Icons.nights_stay_rounded : Icons.info_outline_rounded,
+                      size: 18,
+                      color: isCrossDayVar ? warningOrange : textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${widget.trainData['DailyTrainInfo']['Note']['Zh_tw']}${isCrossDayVar ? ' 跨日行駛' : ''}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isCrossDayVar ? warningOrange : textPrimary,
+                          fontWeight: isCrossDayVar ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+
   Future<Widget> _buildDelayInfo() async {
-    final delayData = await fetchLiveTrainDelay(widget.trainData['DailyTrainInfo']['TrainNo']);
-    final hasDelay = delayData.isNotEmpty &&
-        (delayData[0]['DelayTime'] != null && delayData[0]['DelayTime'] != 0);
+    try {
+      final delayData = await fetchLiveTrainDelay(widget.trainData['DailyTrainInfo']['TrainNo']);
+      final hasDelay = delayData.isNotEmpty &&
+          (delayData[0]['DelayTime'] != null && delayData[0]['DelayTime'] != 0);
+      final delayMinutes = hasDelay ? delayData[0]['DelayTime'] as int : 0;
 
-    final delayMinutes = hasDelay ? delayData[0]['DelayTime'] as int : 0;
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // 極小padding
+      return Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 3,
-              offset: const Offset(0, -1),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
             ),
           ],
         ),
         child: Row(
           children: [
-            // 狀態標籤
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: hasDelay ? Colors.amber.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: hasDelay ? Colors.amber.withOpacity(0.3) : Colors.green.withOpacity(0.3),
-                  width: 0.5,
-                ),
+                color: hasDelay ? errorRed.withOpacity(0.1) : successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Icon(
+                hasDelay ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
+                size: 18,
+                color: hasDelay ? errorRed : successGreen,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    hasDelay ? Icons.warning_amber_rounded : Icons.check_circle,
-                    size: 12, // 極小圖示
-                    color: hasDelay ? Colors.orange[600] : Colors.teal[600],
-                  ),
-                  const SizedBox(width: 4),
                   Text(
-                    hasDelay ? '延誤 $delayMinutes 分鐘' : '準點',
+                    hasDelay ? '延誤 $delayMinutes 分鐘' : '準點運行',
                     style: TextStyle(
-                      fontSize: 10, // 極小字體
-                      fontWeight: FontWeight.w500,
-                      color: hasDelay ? Colors.orange[600] : Colors.teal[600],
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: hasDelay ? errorRed : successGreen,
+                    ),
+                  ),
+                  Text(
+                    '車次 ${widget.trainData['DailyTrainInfo']['TrainNo']}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
-            const Spacer(),
-            // 車次編號
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: Colors.blue.withOpacity(0.3),
-                  width: 0.5,
-                ),
+                color: primaryBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.train, size: 12, color: Colors.blue),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.trainData['DailyTrainInfo']['TrainNo'],
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              child: Text(
+                '即時資訊',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: primaryBlue,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      return const SizedBox.shrink();
+    }
   }
+
   Widget _buildStationInfoRow({
     required IconData icon,
     required String label,
@@ -590,12 +951,12 @@ List<dynamic> stationNames = widget.trainData["StopTimes"]
   }) {
     return Row(
       children: [
-        Icon(icon, color: primaryColor, size: 24),
+        Icon(icon, color: primaryBlue, size: 20),
         const SizedBox(width: 12),
         Text(
           '$label：',
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             color: textSecondary,
           ),
         ),
@@ -604,7 +965,7 @@ List<dynamic> stationNames = widget.trainData["StopTimes"]
           stationName,
           style: const TextStyle(
             fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
         ),
@@ -612,36 +973,13 @@ List<dynamic> stationNames = widget.trainData["StopTimes"]
     );
   }
 
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            color: textPrimary,
-          ),
-        ),
-      ],
-    );
-  }
   bool isCrossDay(List<dynamic> stopTimes) {
     int? previousTimeInMinutes;
 
     for (final stop in stopTimes) {
-      // 這裡以 DepartureTime 為例，如果需要，也可以使用 ArrivalTime
       final timeStr = stop['DepartureTime'] as String;
       final parts = timeStr.split(':');
-      if (parts.length != 2) continue; // 若格式不正確，就略過
+      if (parts.length != 2) continue;
 
       final hours = int.tryParse(parts[0]) ?? 0;
       final minutes = int.tryParse(parts[1]) ?? 0;
@@ -649,50 +987,66 @@ List<dynamic> stationNames = widget.trainData["StopTimes"]
 
       if (previousTimeInMinutes != null &&
           currentTimeInMinutes < previousTimeInMinutes) {
-        // 如果當前的分鐘數小於上一站的分鐘數，則可能跨天了
         return true;
       }
       previousTimeInMinutes = currentTimeInMinutes;
     }
     return false;
   }
-  Widget _buildTimelineIcon(bool isCurrent) {
-  if (isCurrent) {
-  return const Icon(
-  Icons.train,
-  color: primaryColor,
-  size: 18,
-  );
+
+  Widget _buildTimelineIcon(bool isCurrent, {bool isPassed = false}) {
+    if (isCurrent) {
+      return Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: primaryBlue,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: primaryBlue.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.train_rounded,
+            size: 10,
+            color: Colors.white,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        color: isPassed ? Colors.grey[400] : primaryBlue,
+        shape: BoxShape.circle,
+      ),
+    );
   }
 
-  return Container(
-  width: 12,
-  height: 12,
-  decoration: const BoxDecoration(
-  color: primaryColor,
-  shape: BoxShape.circle,
-  ),
-  );
-  }
   bool isPassedStation(int index, List stopTimes) {
-  if (_currentStationId == null) return false;
+    if (_currentStationId == null) return false;
 
-  final currentIndex = stopTimes.indexWhere(
-  (s) => s['StationID'] == _currentStationId,
-  );
+    final currentIndex = stopTimes.indexWhere(
+          (s) => s['StationID'] == _currentStationId,
+    );
 
-  if (currentIndex == -1) return false;
-  return index < currentIndex;
+    if (currentIndex == -1) return false;
+    return index < currentIndex;
   }
 
-  bool isCurrentStation(Map stop) =>
-  stop['StationID'] == _currentStationId;
-
+  bool isCurrentStation(Map stop) => stop['StationID'] == _currentStationId;
 
   String formatTime(String? time, bool isFuture) {
-  if (time == null) return '--:--';
-  if (!isFuture || _liveDelayMinutes <= 0) return time;
-  return '$time +$_liveDelayMinutes';
+    if (time == null) return '--:--';
+    if (!isFuture || _liveDelayMinutes <= 0) return time;
+    return time;
   }
 
   Widget _buildStopTimesList() {
@@ -711,89 +1065,164 @@ List<dynamic> stationNames = widget.trainData["StopTimes"]
         final current = isCurrentStation(stop);
         final isFuture = !passed && !current;
 
-        final textColor = passed
-            ? textSecondary.withOpacity(0.4)
-            : textPrimary;
+        final textColor = passed ? Colors.grey[400]! : textPrimary;
+        final lineColor = passed
+            ? Colors.grey[300]!
+            : (current ? primaryBlue : primaryBlue.withOpacity(0.5));
 
         return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          decoration: BoxDecoration(
-            color: current ? primaryColor.withOpacity(0.06) : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: current
-                ? Border.all(color: primaryColor, width: 1)
-                : null,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              children: [
-                // ⏱ 時間
-                SizedBox(
-                  width: 80,
-                  child: Column(
-                    children: [
-                      Text(
-                        formatTime(stop['ArrivalTime'], isFuture),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        formatTime(stop['DepartureTime'], isFuture),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: textColor.withOpacity(0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // 🚆 時間軸
-                Column(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 時間
+              SizedBox(
+                width: 100,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (index > 0)
-                      Container(width: 2, height: 24, color: primaryColor.withOpacity(0.3)),
-                    _buildTimelineIcon(current),
-                    if (!isLast)
-                      Container(width: 2, height: 24, color: primaryColor.withOpacity(0.3)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: current
+                            ? primaryBlue.withOpacity(0.1)
+                            : (passed ? Colors.grey[100] : surfaceColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            formatTime(stop['ArrivalTime'], isFuture),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: current ? FontWeight.w700 : FontWeight.w600,
+                              color: current ? primaryBlue : textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            formatTime(stop['DepartureTime'], isFuture),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: current
+                                  ? primaryBlue.withOpacity(0.8)
+                                  : textColor.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_liveDelayMinutes > 0 && isFuture && !passed && !current)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: errorRed.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '+$_liveDelayMinutes',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: errorRed,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
+              ),
+              const SizedBox(width: 16),
 
-                const SizedBox(width: 24),
-
-                // 車站
-                Expanded(
-                  child: Text(
-                    stop['StationName']['Zh_tw'],
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
+              // 時間軸
+              Column(
+                children: [
+                  if (index > 0)
+                    Container(
+                      width: 2,
+                      height: 24,
+                      color: lineColor.withOpacity(passed ? 0.3 : 0.5),
                     ),
+                  _buildTimelineIcon(current, isPassed: passed),
+                  if (!isLast)
+                    Container(
+                      width: 2,
+                      height: 24,
+                      color: lineColor.withOpacity(passed ? 0.3 : 0.5),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 16),
+
+              // 車站
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stop['StationName']['Zh_tw'],
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: current ? FontWeight.w700 : FontWeight.w600,
+                        color: current ? primaryBlue : textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (_currentStationId != null && current)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '目前位置',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: primaryBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // 延誤標記
+              if (_liveDelayMinutes > 0 && current)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: errorRed.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: errorRed,
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         );
       },
     );
   }
-
-
 }
 
 class TrainInfoWidget extends StatelessWidget {
   final Map<String, dynamic> trainData;
 
-  // 火车风格配色
-  static const Color primaryColor = Color(0xFF2A5CAA);
-  static const Color surfaceColor = Color(0xFFF3F5F7);
+  // 通知中心主題色
+  static const Color primaryBlue = Color(0xFF1A73E8);
+  static const Color successGreen = Color(0xFF34C759);
+  static const Color warningOrange = Color(0xFFFF9500);
+  static const Color errorRed = Color(0xFFFF3B30);
+  static const Color purple = Color(0xFFAF52DE);
+  static const Color backgroundLight = Color(0xFFF8FAFD);
+  static const Color surfaceColor = Color(0xFFEEF3FB);
   static const Color textPrimary = Color(0xFF2D3748);
   static const Color textSecondary = Color(0xFF718096);
 
@@ -851,129 +1280,251 @@ class TrainInfoWidget extends StatelessWidget {
     if (trainInfo.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: _buildContent(trainInfo),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.train_rounded,
+                    size: 20,
+                    color: primaryBlue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  '列車編組資訊',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: primaryBlue,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  primaryBlue.withOpacity(0.2),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: _buildContent(trainInfo),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildContent(Map<String, dynamic> trainInfo) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 新增列车型号显示
-          _buildInfoRow("列車型號", trainInfo['TrainTypeName']),
-          _buildDivider(),  // 保持分割线样式一致
-
-          _buildInfoRow("列車編組", trainInfo['formation']),
-          _buildDivider(),
-          _buildInfoRow("列車長度", _getTrainLength(trainInfo)),
-          _buildDivider(),
-          _buildInfoRow("最高時速", trainInfo['maxSpeed'], isHighlighted: true),
-
-          if (trainInfo['Parent-childCarriage'] != null || trainInfo['bicycle'] != null) ...[
-            _buildDivider(),
-            _buildCombinedRow([
-              _buildSpecialCarriage(trainInfo),
-              _buildItem("車長室", trainInfo['officeCar']),
-            ]),
-          ],
-
-          if (trainInfo['Parent-childCarriage'] == null && trainInfo['bicycle'] == null) ...[
-            _buildDivider(),
-            _buildInfoRow("車長室", trainInfo['officeCar']),
-          ],
-
-          _buildDivider(),
-          _buildCombinedRow([
-            _buildItem("無障礙車廂", trainInfo['accessibleCar']),
-            _buildItem("哺集乳室", trainInfo['nursingCar']),
-          ]),
-        ],
-      ),
-    );
-  }
-  String _getTrainLength(Map<String, dynamic> trainInfo) {
     final trainNo = trainData['DailyTrainInfo']['TrainNo'].replaceAll(RegExp(r'[^0-9]'), '');
-    return (E500.contains(int.parse(trainNo))) ? '285.14m' : trainInfo['length'];
-  }
+    final isE500 = E500.contains(int.parse(trainNo));
+    final isEMU3000 = EMU3000.contains(int.parse(trainNo));
+    final isEMU900 = EMU900.contains(int.parse(trainNo));
 
-  Widget _buildSpecialCarriage(Map<String, dynamic> trainInfo) {
-    return trainInfo['Parent-childCarriage'] == null
-        ? _buildItem('自行車車廂', trainInfo['bicycle'])
-        : _buildItem("親子車廂", trainInfo['Parent-childCarriage']);
-  }
+    String length = trainInfo['length'];
+    if (isE500) {
+      length = '285.14m';
+    } else if (isEMU3000) {
+      length = '298.5m';
+    } else if (isEMU900) {
+      length = '205.0m';
+    }
 
-  Widget _buildInfoRow(String title, String value, {bool isHighlighted = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: _titleStyle),
-          Text(value, style: isHighlighted ? _highlightValueStyle : _normalValueStyle),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildInfoRow("列車型號", trainInfo['TrainTypeName'],
+          icon: Icons.directions_railway_rounded,
+          color: primaryBlue,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoRow("列車編組", trainInfo['formation'],
+          icon: Icons.train_rounded,
+          color: textPrimary,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoRow("列車長度", length,
+          icon: Icons.straighten_rounded,
+          color: textPrimary,
+        ),
+        const SizedBox(height: 16),
+        _buildInfoRow("最高時速", trainInfo['maxSpeed'],
+          icon: Icons.speed_rounded,
+          color: warningOrange,
+          isHighlighted: true,
+        ),
+        const SizedBox(height: 16),
+        _buildDivider(),
+        const SizedBox(height: 16),
+
+        // 車廂配置
+        Row(
+          children: [
+            Expanded(
+              child: _buildCompartmentInfo(
+                title: "無障礙車廂",
+                value: trainInfo['accessibleCar'] ?? '-',
+                icon: Icons.accessible_rounded,
+                color: successGreen,
+              ),
+            ),
+            Container(width: 1, height: 40, color: Colors.grey[200]),
+            Expanded(
+              child: _buildCompartmentInfo(
+                title: "哺集乳室",
+                value: trainInfo['nursingCar'] ?? '-',
+                icon: Icons.child_care_rounded,
+                color: purple,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildDivider(),
+        const SizedBox(height: 16),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildCompartmentInfo(
+                title: "車長室",
+                value: trainInfo['officeCar'] ?? '-',
+                icon: Icons.business_center_rounded,
+                color: warningOrange,
+              ),
+            ),
+            Container(width: 1, height: 40, color: Colors.grey[200]),
+            Expanded(
+              child: _buildCompartmentInfo(
+                title: trainInfo['Parent-childCarriage'] != null ? "親子車廂" : "自行車車廂",
+                value: trainInfo['Parent-childCarriage'] ?? trainInfo['bicycle'] ?? '-',
+                icon: trainInfo['Parent-childCarriage'] != null
+                    ? Icons.family_restroom_rounded
+                    : Icons.directions_bike_rounded,
+                color: trainInfo['Parent-childCarriage'] != null
+                    ? const Color(0xFFFF9500)
+                    : const Color(0xFF34C759),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _buildCombinedRow(List<Widget> children) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: children,
-      ),
+  Widget _buildInfoRow(String title, String value,
+      {required IconData icon, required Color color, bool isHighlighted = false}) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              color: textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w600,
+            color: isHighlighted ? color : textPrimary,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildItem(String title, String value) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: _titleStyle),
-          Text(value, style: _normalValueStyle),
-        ],
-      ),
+  Widget _buildCompartmentInfo({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                color: textSecondary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildDivider() {
-    return Divider(
+    return Container(
       height: 1,
-      thickness: 1,
-      color: Colors.grey[200],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.grey[300]!,
+            Colors.transparent,
+          ],
+        ),
+      ),
     );
   }
-
-  // 文字樣式
-  TextStyle get _titleStyle => const TextStyle(
-    fontSize: 16,
-    color: textSecondary,
-  );
-
-  TextStyle get _normalValueStyle => const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w500,
-    color: textPrimary,
-  );
-
-  TextStyle get _highlightValueStyle => const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.w600,
-    color: primaryColor,
-  );
 }
