@@ -13,6 +13,7 @@ import '../Const/regularClass.dart';
 import '../database/EV_station/EV_station.dart';
 import '../database/park/getPark.dart';
 import '../utils/convert.dart';
+import '../utils/share.dart';
 import '../widget/map.dart';
 
 class Parking extends StatefulWidget {
@@ -729,7 +730,7 @@ class _ParkingState extends State<Parking> {
                         icon: Icons.phone_rounded,
                         label: "聯絡",
                         color: const Color(0xFF34C759),
-                        onTap: () => _makeCall(park["Telephone"]),
+                        onTap: () => StationActions.makeCall(park['Telephone']),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -738,7 +739,13 @@ class _ParkingState extends State<Parking> {
                         icon: Icons.directions_rounded,
                         label: "導航",
                         color: const Color(0xFF1A73E8),
-                        onTap: () => _navigateToPark(lat,lon),
+                        onTap: () {
+                          // 確保轉換為 double，若轉換失敗則給予預設值 0.0
+                          double lat = double.tryParse(park['PositionLat'].toString()) ?? 0.0;
+                          double lng = double.tryParse(park['PositionLon'].toString()) ?? 0.0;
+
+                          StationActions.openNavigation(lat, lng, park['StationName'] ?? '未知名稱');
+                        },
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -747,7 +754,7 @@ class _ParkingState extends State<Parking> {
                         icon: Icons.share_rounded,
                         label: "分享",
                         color: const Color(0xFFAF52DE),
-                        onTap: () => _shareParkInfo(park),
+                        onTap: () => StationActions.shareStation(park),
                       ),
                     ),
                   ],
@@ -999,34 +1006,7 @@ class _ParkingState extends State<Parking> {
   }
 
 
-  /// 📞 撥打電話
-  void _makeCall(String? phoneNumber) async {
-    if (phoneNumber == null || phoneNumber.isEmpty) {
-      print("沒有提供電話號碼");
-      return;
-    }
 
-    final Uri uri = Uri(scheme: 'tel', path: phoneNumber);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      print("撥打: $phoneNumber");
-    } else {
-      print("⚠ 無法撥打電話: $phoneNumber");
-    }
-  }
-
-  void _navigateToPark(double lat, double lon) async {
-    // 使用 Google Maps 開啟導航
-    final Uri navUri = Uri.parse(
-        "https://www.google.com/maps/dir/?api=1&destination=$lat,$lon&travelmode=driving");
-
-    if (await canLaunchUrl(navUri)) {
-      await launchUrl(navUri, mode: LaunchMode.externalApplication);
-    } else {
-      print("無法開啟導航");
-    }
-  }
 
   void _openInMaps(double lat, double lon) async {
     // 打開地圖（不啟動導航）
@@ -1086,7 +1066,7 @@ class StationDetailPage extends StatelessWidget {
                 color: Color(0xFF1A73E8),
               ),
             ),
-            onPressed: () => _shareStationInfo(),
+            onPressed: () =>  StationActions.shareStation(stationName),
           ),
         ],
       ),
@@ -1512,7 +1492,13 @@ class StationDetailPage extends StatelessWidget {
                 color: Color(0xFF1A73E8),
               ),
             ),
-            onPressed: () => _openInMaps(lat, lon),
+            onPressed: () {
+    // 確保轉換為 double，若轉換失敗則給予預設值 0.0
+    double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
+    double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
+
+    StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
+    },
           ),
         ],
       ),
@@ -1533,7 +1519,7 @@ class StationDetailPage extends StatelessWidget {
               icon: Icons.phone_rounded,
               label: '撥打電話',
               color: const Color(0xFF34C759),
-              onTap: () => _makeCall(station["Telephone"]),
+              onTap: () =>  StationActions.makeCall(station['Telephone']),
             ),
           ),
           const SizedBox(width: 12),
@@ -1542,7 +1528,13 @@ class StationDetailPage extends StatelessWidget {
               icon: Icons.directions_rounded,
               label: '開始導航',
               color: const Color(0xFF1A73E8),
-              onTap: () => _openMapLocation(json.decode(station["CarParkName"])["Zh_tw"]),
+              onTap: () {
+                // 確保轉換為 double，若轉換失敗則給予預設值 0.0
+                double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
+                double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
+
+                StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
+              },
             ),
           ),
         ],
@@ -1610,58 +1602,12 @@ class StationDetailPage extends StatelessWidget {
     return list.toString();
   }
 
-  void _shareStationInfo() {
-    final stationName = json.decode(station["CarParkName"])["Zh_tw"] ?? "停車場";
-    // 分享邏輯
-    print("分享: $stationName");
-  }
-
-  /// 📞 撥打電話
-  void _makeCall(String? phoneNumber) async {
-    if (phoneNumber == null || phoneNumber.isEmpty) {
-      print("沒有提供電話號碼");
-      return;
-    }
-
-    final Uri uri = Uri(scheme: 'tel', path: phoneNumber);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      print("撥打: $phoneNumber");
-    } else {
-      print("⚠ 無法撥打電話: $phoneNumber");
-    }
-  }
 
 
 
 
-  /// 打開地圖並以名稱搜尋位置（Google Maps）
-  Future<void> _openMapLocation(String name) async {
-    // URL encode 名稱，避免空格或特殊字元出錯
-    final encodedName = Uri.encodeComponent(name);
-    final googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=$encodedName";
-    final uri = Uri.parse(googleMapsUrl);
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      print("打開地圖搜尋: $name");
-    } else {
-      print("⚠ 無法打開地圖");
-    }
-  }
-
-
-  void _openInMaps(double lat, double lon) async {
-    // 打開地圖（不啟動導航）
-    final Uri mapsUri =
-    Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
-
-    if (await canLaunchUrl(mapsUri)) {
-      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
-    } else {
-      print("無法開啟地圖");
-    }}}
+ }
 class ParkingTypeHelper {
   // ---------------------------
   // 停車場類型

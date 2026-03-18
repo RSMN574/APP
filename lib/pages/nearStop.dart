@@ -184,43 +184,41 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             snippet: station.stationID ?? 'Unknown',
           ),
           onTap: () async {
-
-            final cache = BusStopCache();
             final stopName = station.stationNameZh;
             final stopID = station.stationID;
             final stationGroupID = station.stationGroupID;
-            print(_stationIDs.value);
 
             try {
-              // 取得該站點的所有停靠資料
-              final data = await cache.getBusStopInfo(stopName);
+              // 1. 先獲取數據，不要急著更新 UI 變數
+              final data = await BusStopCache().getBusStopInfo(stopName);
 
-              // 提取 StationID 並過濾無效資料
               final stationIDs = data
                   .map((item) => item['StationID']?.toString())
                   .whereType<String>()
                   .where((id) => id.isNotEmpty)
                   .toList();
 
-              if (stationIDs.isEmpty) {
-                debugPrint('無有效站點 ID，無法更新');
-                return;
-              }
-              if (_isSameStationGroup(_stationIDs.value, stationIDs)) {  // ⚠️ 注意這裡要比較新舊值！
-                print("stationGroup 沒變 → 只切換 tab");
+              if (stationIDs.isEmpty) return;
+
+              // 2. 檢查 Context 是否還存在 (避免非同步回傳後頁面已銷毀)
+              if (!context.mounted) return;
+
+              // 3. 邏輯判定
+              if (_isSameStationGroup(_stationIDs.value, stationIDs)) {
                 _selectStationID.value = stopID;
                 _indexNotifier.value = 1;
-                return;
-              }else{
-                // 更新相關狀態
-                _stationIDs.value = stationIDs;
+              } else {
+                // 建議：如果是複雜狀態，考慮將這些封裝成一個實體類，一次性通知更新
                 _stopName.value = stopName;
                 _selectStationID.value = stopID;
-                _selectStationGroupID.value=stationGroupID;
+                _selectStationGroupID.value = stationGroupID;
+                _stationIDs.value = stationIDs; // 最後更新數據主體
+
+                // 4. 先切換頁面索引，確保數據已經到位
+                _indexNotifier.value = 1;
               }
 
-
-              // 聚焦到該站點位置
+              // 5. 地圖動畫（放在最後，不阻塞 UI 邏輯）
               _mapController?.animateCamera(
                 CameraUpdate.newCameraPosition(
                   CameraPosition(
@@ -229,9 +227,6 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   ),
                 ),
               );
-
-              // 切換 UI 顯示內容
-              _indexNotifier.value = 1;
             } catch (e) {
               debugPrint('取得站點資料失敗: $e');
             }

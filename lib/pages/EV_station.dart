@@ -9,6 +9,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../Const/regularClass.dart';
 import '../database/EV_station/EV_station.dart';
 import '../utils/convert.dart';
+import '../utils/share.dart';
 import '../widget/map.dart';
 
 class EVStation extends StatefulWidget {
@@ -569,7 +570,6 @@ class _EVStationState extends State<EVStation> {
 
                 const SizedBox(height: 16),
 
-                // 操作按鈕
                 Row(
                   children: [
                     if (station['Telephone'] != null)
@@ -577,24 +577,31 @@ class _EVStationState extends State<EVStation> {
                         icon: Icons.phone_rounded,
                         label: '聯絡',
                         color: const Color(0xFF1A73E8),
-                        onTap: () => print(station),
+                        onTap: () => StationActions.makeCall(station['Telephone']),
                       ),
                     const SizedBox(width: 12),
                     _buildActionChip(
                       icon: Icons.directions_rounded,
                       label: '導航',
                       color: const Color(0xFF34C759),
-                      onTap: () => print(station),
+                      // 假設你的 station 資料中有 PositionLat 和 PositionLon
+                      onTap: () {
+                        // 確保轉換為 double，若轉換失敗則給予預設值 0.0
+                        double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
+                        double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
+
+                        StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
+                      },
                     ),
                     const SizedBox(width: 12),
                     _buildActionChip(
                       icon: Icons.share_rounded,
                       label: '分享',
                       color: const Color(0xFFAF52DE),
-                      onTap: () => print(station),
+                      onTap: () => StationActions.shareStation(station),
                     ),
                   ],
-                ),
+                )
               ],
             ),
           ),

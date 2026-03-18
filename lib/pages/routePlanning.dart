@@ -15,9 +15,10 @@ class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderS
   String selectedTransport = '公車';
 
   // 城市数据
-  List<String> cities = [ '臺中市'];
-  String selectedCity = '臺中市';
-
+  List<String> cities = [ '臺中市',"臺北市"];
+  List<String> citiesID = [ 'Taichung', 'Taipei'];
+  ValueNotifier<String> selectedCityNotifier = ValueNotifier<String>("臺中市");
+  ValueNotifier<String> selectedCityIDNotifier = ValueNotifier<String>("Taichung");
   // 公车数据
   ValueNotifier<List<Map<String, dynamic>>> busRoutesNotifier = ValueNotifier([]);
   String? selectedRoute;
@@ -54,7 +55,7 @@ String? routeArrivalStation;
 
   Future<void> fetchBusRoutes() async {
     try {
-      List result = await mysqlSelect("SELECT RouteName,RouteID FROM Bus.Bus_Taichung_Route;");
+      List result = await mysqlSelect("SELECT RouteName,RouteID FROM Bus.bus_route WHERE City = '${selectedCityIDNotifier.value}'");
 
       List<Map<String, dynamic>> routes=[];
       for(var a in result){
@@ -77,7 +78,7 @@ String? routeArrivalStation;
       filteredStops = [];
     } else {
       filteredStops = busStopsByRoute[selectedRoute!]!;
-      selectedCity;
+      selectedCityNotifier.value;
     }
     departureController.clear();
     destinationController.clear();
@@ -155,146 +156,211 @@ String? routeArrivalStation;
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: ValueListenableBuilder<List<Map<String, dynamic>>>(
         valueListenable: busRoutesNotifier,
         builder: (context, busRoutes, child) {
           if (busRoutes.isEmpty) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(strokeWidth: 3, color: Colors.blue),
+                  SizedBox(height: 16),
+                  Text('正在載入路線數據...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
           }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 城市选择
-              const Text('選擇城市', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                value: selectedCity,
-                onChanged: (String? newCity) {
-                  setState(() {
-                    selectedCity = newCity!;
-                  });
-                },
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                items: cities.map((String city) {
-                  return DropdownMenuItem<String>(
-                    value: city,
-                    child: Text(city),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
 
-              // 路线选择
-              const Text('選擇路線', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              TextButton(
-                onPressed: () {
-                  showRoutePicker();
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  side: BorderSide(color: Colors.grey.shade400),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: Colors.white,
+          return SingleChildScrollView( // 加入滾動確保小螢幕不溢出
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch, // 讓按鈕填滿寬度
+              children: [
+                _buildSectionHeader(Icons.location_city, '選擇城市'),
+                const SizedBox(height: 10),
+                _buildDropdownField(),
+
+                const SizedBox(height: 24),
+                _buildSectionHeader(Icons.directions_bus, '選擇路線'),
+                const SizedBox(height: 10),
+                _buildPickerButton(
+                  label: selectedRoute ?? '請選擇路線',
+                  onPressed: () => showRoutePicker(),
+                  isPlaceholder: selectedRoute == null,
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      selectedRoute ?? '請選擇路線',
-                      style: const TextStyle(color: Colors.black),
+
+                if (selectedRoute != null) ...[
+                  const SizedBox(height: 24),
+                  // 使用 Stack 或 Row 營造「站點連接」的視覺感
+                  _buildStationTimeline(),
+                ],
+
+                const SizedBox(height: 40),
+                // 确认按钮
+                if (selectedDepartureStation != null && selectedArrivalStation != null)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    child: ElevatedButton(
+                      onPressed: () => confirmRouteSelection(
+                          selectedCityNotifier.value, selectedRoute!, selectedDepartureStation!, selectedArrivalStation!),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        shadowColor: Colors.blue.withOpacity(0.4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      child: const Text('確認行程', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                  ],
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+// --- 輔助組件，保持邏輯不變，僅美化外觀 ---
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.blue.shade700),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: DropdownButtonFormField<String>(
+        value:  selectedCityNotifier.value,
+        onChanged: (String? newCity) {
+          if (newCity != null) {
+            // 1. 找到新城市在列表中的索引
+            int index = cities.indexOf(newCity);
+
+            // 2. 同步更新兩個 ValueNotifier
+            // 注意：ValueNotifier 不需要放在 setState 裡面，它會自動通知監聽者
+
+
+  selectedCityNotifier.value = newCity;
+  selectedCityIDNotifier.value = citiesID[index];
+            fetchBusRoutes();
+          }
+        },
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        ),
+        items: cities.map((city) => DropdownMenuItem(value: city, child: Text(city))).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPickerButton({required String label, required VoidCallback onPressed, required bool isPlaceholder}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isPlaceholder ? Colors.grey.shade300 : Colors.blue.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: TextStyle(fontSize: 16, color: isPlaceholder ? Colors.grey : Colors.black87, fontWeight: isPlaceholder ? FontWeight.normal : FontWeight.w500)),
+              Icon(Icons.unfold_more, color: Colors.grey.shade400, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStationTimeline() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(Icons.trip_origin, '行程規畫'),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.all(10), // 為左側連接線留空間
+          child: Column(
+            children: [
+              _buildTimelineStep(
+                title: '出發站',
+                content: selectedDepartureStation ?? '請選擇出發站',
+                onTap: () => showStationPicker("departure"),
+                isLast: false,
+                isActive: true,
+              ),
+              if (selectedDepartureStation != null)
+                _buildTimelineStep(
+                  title: '到達站',
+                  content: selectedArrivalStation ?? '請選擇到達站',
+                  onTap: () => showStationPicker2(),
+                  isLast: true,
+                  isActive: selectedArrivalStation != null,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineStep({
+    required String title,
+    required String content,
+    required VoidCallback onTap,
+    required bool isLast,
+    required bool isActive,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 12, height: 12,
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.blue : Colors.grey.shade300,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // 出發站选择
-              if (selectedRoute != null) ...[
-                const Text('選擇出發站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: () {
-                    showStationPicker("departure");
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    side: BorderSide(color: Colors.grey.shade400),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: Colors.white,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        selectedDepartureStation ?? '請選擇出發站',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // 到达站选择
-              if (selectedDepartureStation != null) ...[
-                const Text('選擇到達站', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                TextButton(
-                  onPressed: () {
-                    showStationPicker2();
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    side: BorderSide(color: Colors.grey.shade400),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: Colors.white,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        selectedArrivalStation ?? '請選擇到達站',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // 确认按钮
-              if (selectedDepartureStation != null && selectedArrivalStation != null) ...[
-                ElevatedButton(
-                  onPressed: () {
-                    // 确认按钮逻辑，执行所需的操作
-                   confirmRouteSelection(selectedCity,selectedRoute!,selectedDepartureStation!,selectedArrivalStation!);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('確認'),
-                ),
-              ],
+              if (!isLast)
+                Expanded(child: Container(width: 2, color: Colors.grey.shade300)),
             ],
-          );
-
-
-
-
-
-
-
-        },
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                const SizedBox(height: 4),
+                _buildPickerButton(label: content, onPressed: onTap, isPlaceholder: content.contains('請選擇')),
+                if (!isLast) const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -323,295 +389,92 @@ String? routeArrivalStation;
     );
   }
 
-  void showStationPicker2( ) async {
-    // 查詢路線和站點信息
+  // 獲取路線基本資訊與所有停靠站
+  Future<Map<String, dynamic>> _fetchBusRouteData(String routeName) async {
     var routeQuery = await mysqlSelect(
-      "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+      "SELECT * FROM Bus.bus_route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName';",
     );
     var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
+      "SELECT Stops FROM Bus.stopOfRoute WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName';",
     );
-
-    // 路線方向信息
-   late  List<dynamic> departureStops;
-    if(routeDepartureStation== routeQuery[0]["DepartureStopNameZh"]){
-      try {
-        // 尝试解析 stopsQuery[1]["Stops"]
-        departureStops = json.decode(stopsQuery[1]["Stops"]);
-      } catch (e) {
-        // 如果解析 stopsQuery[1]["Stops"] 失败，则使用 stopsQuery[0]["Stops"]
-        print("解析 stopsQuery[1][\"Stops\"] 失败: $e");
-        departureStops = json.decode(stopsQuery[0]["Stops"]);
-      }
-    }else   if(routeDepartureStation== routeQuery[0]["DestinationStopNameZh"]){
-      departureStops = json.decode(stopsQuery[0]["Stops"]);
-    }
-    List<String> routeInfo = [
-      routeQuery[0]["DepartureStopNameZh"],
-      routeQuery[0]["DestinationStopNameZh"],
-    ];
-
-    // 初始站點列表
-
-
-
-    // 搜尋結果
-    ValueNotifier<List<dynamic>> filteredDepartureStops = ValueNotifier(departureStops);
-
-
-    // 選擇的站點
-    String? selected;
-
-
-
-
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            '選擇站點',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    child:
-                        // 第一個 Tab (出發站)
-                        Column(
-                          children: [
-                            _buildSearchBox(
-                              onSearch: (query) {
-                                filteredDepartureStops.value = departureStops
-                                    .where((stop) => stop["StopName"]["Zh_tw"]
-                                    .toString()
-                                    .contains(query))
-                                    .toList();
-                              },
-                            ),
-                            Expanded(
-                              child: ValueListenableBuilder<List<dynamic>>(
-                                valueListenable: filteredDepartureStops,
-                                builder: (context, stops, _) {
-                                  return _buildStationList(
-                                    stops: stops,
-                                    onStationSelected: (station) {
-                                      selected = station;
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        // 第二個 Tab (到達站)
-
-
-                  ),
-                ],
-              ),
-
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Colors.red)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('確認', style: TextStyle(color: Colors.green)),
-            ),
-          ],
-        );
-      },
-    );
-
-
-
-    if (routeDepartureStation == routeQuery[0]["DepartureStopNameZh"]) {
-      if (stopsQuery.length > 1 && json.encode(departureStops) == stopsQuery[1]["Stops"]) {
-        selectDirection = 0;
-      } else {
-        selectDirection = 1;
-      }
-    } else {
-      selectDirection = 1;
-    }
-      setState(() {
-        if (selected != null) selectedArrivalStation = selected!;
-        // routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
-        // routeArrivalStation=  routeQuery[0]["DepartureStopNameZh"];
-        //
-        // selectDirection='arrival';
-      });
-
+    return {'route': routeQuery[0], 'stops': stopsQuery};
   }
   void showStationPicker(String type) async {
-    // 查詢路線和站點信息
-    var routeQuery = await mysqlSelect(
-      "SELECT * FROM Bus.Bus_Taichung_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
-    );
-    var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$selectedRoute';",
-    );
+    final data = await _fetchBusRouteData(selectedRoute!);
+    final route = data['route'];
+    final stops = data['stops'];
 
-    // 路線方向信息
-    List<String> routeInfo = [
-      routeQuery[0]["DepartureStopNameZh"],
-      routeQuery[0]["DestinationStopNameZh"],
-    ];
-print(stopsQuery);
-    // 初始站點列表
-    List<dynamic> departureStops = [];
-    List<dynamic> arrivalStops = json.decode(stopsQuery[0]["Stops"]);
-    try {
-      // 尝试解析 stopsQuery[1]["Stops"]
-      departureStops = json.decode(stopsQuery[1]["Stops"]);
-    } catch (e) {
-      // 如果发生错误，尝试解析 stopsQuery[0]["Stops"]
-      departureStops = json.decode(stopsQuery[0]["Stops"]);
-    }
-    // 搜尋結果
-    ValueNotifier<List<dynamic>> filteredDepartureStops = ValueNotifier(departureStops);
-    ValueNotifier<List<dynamic>> filteredArrivalStops = ValueNotifier(arrivalStops);
+    // 解析兩側方向的站點
+    List<dynamic> dir0Stops = json.decode(stops[0]["Stops"]);
+    List<dynamic> dir1Stops = (stops.length > 1) ? json.decode(stops[1]["Stops"]) : dir0Stops;
 
-    // 選擇的站點
-    String? selected;
-    String? selectedArrival;
-
-
-
-    await showDialog<void>(
+    // 使用剛才封裝的 StationPickerDialog (需微調支援 Tab 或分兩次)
+    // 這裡我們直接呼叫 Dialog
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            '選擇站點',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: DefaultTabController(
-              length: 2,
-              initialIndex: tabController.index,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildTabBar(routeInfo),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.5,
-                    child: TabBarView(
-                      controller: tabController, // 關聯 TabController
-                      children: [
-                        // 第一個 Tab (出發站)
-                        Column(
-                          children: [
-                            _buildSearchBox(
-                              onSearch: (query) {
-                                filteredDepartureStops.value = departureStops
-                                    .where((stop) => stop["StopName"]["Zh_tw"]
-                                    .toString()
-                                    .contains(query))
-                                    .toList();
-                              },
-                            ),
-                            Expanded(
-                              child: ValueListenableBuilder<List<dynamic>>(
-                                valueListenable: filteredDepartureStops,
-                                builder: (context, stops, _) {
-                                  return _buildStationList(
-                                    stops: stops,
-                                    onStationSelected: (station) {
-                                      selected = station;
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        // 第二個 Tab (到達站)
-                        Column(
-                          children: [
-                            _buildSearchBox(
-                              onSearch: (query) {
-                                filteredArrivalStops.value = arrivalStops
-                                    .where((stop) => stop["StopName"]["Zh_tw"]
-                                    .toString()
-                                    .contains(query))
-                                    .toList();
-                              },
-                            ),
-                            Expanded(
-                              child: ValueListenableBuilder<List<dynamic>>(
-                                valueListenable: filteredArrivalStops,
-                                builder: (context, stops, _) {
-                                  return _buildStationList(
-                                    stops: stops,
-                                    onStationSelected: (station) {
-                                      selected = station;
-                                    },
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消', style: TextStyle(color: Colors.red)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('確認', style: TextStyle(color: Colors.green)),
-            ),
-          ],
-        );
-      },
+      builder: (context) => StationPickerDialog(
+        // 如果你要支援兩邊方向，建議傳入目前 Tab 對應的列表
+        stations: tabController.index == 0 ? dir0Stops : dir1Stops,
+        title: '選擇出發站 (${tabController.index == 0 ? route["DepartureStopNameZh"] : route["DestinationStopNameZh"]} 方向)',
+      ),
     );
 
-    // 根據選擇的 Tab 和類型設置對應的站點
-    String selectedTab = tabController.index == 0 ? 'A' : 'B';
-
-    if (selectedTab == "A") {
+    if (result != null) {
       setState(() {
-        if (selected != null) {
-          selectedDepartureStation = selected!;
-          routeDepartureStation=  routeQuery[0]["DepartureStopNameZh"];
-          routeArrivalStation=  routeQuery[0]["DestinationStopNameZh"];
+        selectedDepartureStation = result["StopName"]["Zh_tw"];
 
-
+        // 根據 Tab 紀錄方向邏輯
+        if (tabController.index == 0) {
+          routeDepartureStation = route["DepartureStopNameZh"];
+          routeArrivalStation = route["DestinationStopNameZh"];
+          selectDirection = 0; // 假設 0 是去程
+        } else {
+          routeDepartureStation = route["DestinationStopNameZh"];
+          routeArrivalStation = route["DepartureStopNameZh"];
+          selectDirection = 1; // 假設 1 是回程
         }
-      });
-    } else if (selectedTab == "B") {
-      setState(() {
-        if (selected != null) selectedDepartureStation = selected!;
-        routeDepartureStation=  routeQuery[0]["DestinationStopNameZh"];
-        routeArrivalStation=  routeQuery[0]["DepartureStopNameZh"];
-
       });
     }
   }
+  void showStationPicker2() async {
+    final data = await _fetchBusRouteData(selectedRoute!);
+    final route = data['route'];
+    final stops = data['stops'];
 
+    List<dynamic> targetStops = [];
+
+    // 根據當前選擇的出發站 terminal 決定使用哪一組 Stops 資料
+    if (routeDepartureStation == route["DepartureStopNameZh"]) {
+      // 如果出發總站是去程起點
+      targetStops = json.decode(stops[0]["Stops"]);
+    } else {
+      // 否則使用回程資料 (index 1)
+      targetStops = (stops.length > 1) ? json.decode(stops[1]["Stops"]) : json.decode(stops[0]["Stops"]);
+    }
+
+    // 呼叫封裝好的 Dialog
+    final result = await showDialog<dynamic>(
+      context: context,
+      builder: (context) => StationPickerDialog(
+        stations: targetStops,
+        title: '選擇到達站',
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        selectedArrivalStation = result["StopName"]["Zh_tw"];
+
+        // 自動計算 API 需要的 Direction
+        // 邏輯：比對選中的 List 是否與 stops[1] 內容一致
+        if (stops.length > 1 && json.encode(targetStops) == stops[1]["Stops"]) {
+          selectDirection = 1;
+        } else {
+          selectDirection = 0;
+        }
+      });
+    }
+  }
 
 // 構建搜索框
   Widget _buildSearchBox({required Function(String) onSearch}) {
@@ -824,5 +687,193 @@ print(stopsQuery);
         );
       },
     );
+  }
+}
+
+class StationPickerDialog extends StatefulWidget {
+  final List<dynamic> stations; // 原始站點列表
+  final String title;
+  final dynamic initialSelection; // 初始選中的站點
+
+  const StationPickerDialog({
+    super.key,
+    required this.stations,
+    this.title = '選擇站點',
+    this.initialSelection,
+  });
+
+  @override
+  State<StationPickerDialog> createState() => _StationPickerDialogState();
+}
+
+class _StationPickerDialogState extends State<StationPickerDialog> {
+  late List<dynamic> _filteredStops;
+  dynamic _tempSelected;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredStops = widget.stations;
+    _tempSelected = widget.initialSelection;
+  }
+
+  void _runFilter(String query) {
+    setState(() {
+      _filteredStops = widget.stations
+          .where((stop) => stop["StopName"]["Zh_tw"]
+          .toString()
+          .toLowerCase()
+          .contains(query.toLowerCase()))
+          .toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      titlePadding: EdgeInsets.zero,
+      title: _buildHeader(),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 16),
+            _buildSearchField(),
+            const SizedBox(height: 12),
+            _buildStationList(),
+          ],
+        ),
+      ),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: _buildActions(),
+    );
+  }
+
+  // 1. 美化標題區
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade600,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on, color: Colors.white, size: 24),
+          const SizedBox(width: 12),
+          Text(
+            widget.title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2. 美化搜尋框
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      onChanged: _runFilter,
+      decoration: InputDecoration(
+        hintText: '輸入站名搜尋...',
+        prefixIcon: const Icon(Icons.search, color: Colors.blue),
+        suffixIcon: _searchController.text.isNotEmpty
+            ? IconButton(
+          icon: const Icon(Icons.clear, size: 20),
+          onPressed: () {
+            _searchController.clear();
+            _runFilter('');
+          },
+        )
+            : null,
+        filled: true,
+        fillColor: Colors.grey.shade100,
+        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  // 3. 美化列表
+  Widget _buildStationList() {
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.4,
+      ),
+      child: _filteredStops.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+        shrinkWrap: true,
+        itemCount: _filteredStops.length,
+        itemBuilder: (context, index) {
+          final station = _filteredStops[index];
+          final String name = station["StopName"]["Zh_tw"];
+          final bool isSelected = _tempSelected == station;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: ListTile(
+              onTap: () => setState(() => _tempSelected = station),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              tileColor: isSelected ? Colors.blue.shade50 : Colors.transparent,
+              leading: Icon(
+                isSelected ? Icons.check_circle : Icons.circle_outlined,
+                color: isSelected ? Colors.blue : Colors.grey,
+              ),
+              title: Text(
+                name,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 40),
+      child: Text('找不到相關站點', style: TextStyle(color: Colors.grey)),
+    );
+  }
+
+  // 4. 操作按鈕
+  List<Widget> _buildActions() {
+    return [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
+      ),
+      ElevatedButton(
+        onPressed: _tempSelected == null
+            ? null
+            : () => Navigator.pop(context, _tempSelected),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+        child: const Text('確認選擇'),
+      ),
+    ];
   }
 }
