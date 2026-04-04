@@ -434,7 +434,7 @@ class _EVStationState extends State<EVStation> {
 
   Widget _buildModernStationCard(Map<String, dynamic> station) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16, left: 4, right: 4), // 增加左右微距防止陰影切到
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -450,8 +450,6 @@ class _EVStationState extends State<EVStation> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-          highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -459,32 +457,28 @@ class _EVStationState extends State<EVStation> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16), // 縮減 padding 爭取空間
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 標題列
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center, // 對齊中心
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF34C759), Color(0xFF34C759)],
+                          colors: [Color(0xFF34C759), Color(0xFF28A745)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.ev_station_rounded,
-                        size: 24,
-                        color: Colors.white,
-                      ),
+                      child: const Icon(Icons.ev_station_rounded, size: 22, color: Colors.white),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,77 +486,53 @@ class _EVStationState extends State<EVStation> {
                           Text(
                             station['StationNameZh_tw'] ?? '未命名充電站',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: Colors.black87,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 14,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  '${station['LocationCityRoadCity']} ${station['LocationCityRoadTown']}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 2),
+                          Text(
+                            '${station['LocationCityRoadCity'] ?? ''}${station['LocationCityRoadTown'] ?? ''}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEEF3FB),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: Color(0xFF1A73E8),
-                      ),
-                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                   ],
                 ),
                 const SizedBox(height: 16),
 
-                // 資訊網格
+                // 資訊網格：改用 Expanded 防止費率內容撐爆橫向空間
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFD),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildInfoItem(
-                        icon: Icons.bolt_rounded,
-                        title: '充電費率',
-                        value: station['ChargingRate'] ?? '-',
-                        color: const Color(0xFF1A73E8),
+                      Expanded(
+                        child: _buildInfoItem(
+                          icon: Icons.bolt_rounded,
+                          title: '充電費率',
+                          value: station['ChargingRate'] ?? '詳情見App',
+                          color: const Color(0xFF1A73E8),
+                        ),
                       ),
-                      Container(
-                        height: 30,
-                        width: 1,
-                        color: Colors.grey[300],
-                      ),
-                      _buildInfoItem(
-                        icon: Icons.local_parking_rounded,
-                        title: '停車費率',
-                        value: station['ParkingRate'] ?? '-',
-                        color: const Color(0xFF34C759),
+                      Container(height: 24, width: 1, color: Colors.grey[300]),
+                      Expanded(
+                        child: _buildInfoItem(
+                          icon: Icons.local_parking_rounded,
+                          title: '停車費率',
+                          value: station['ParkingRate'] ?? '依現場為準',
+                          color: const Color(0xFF34C759),
+                        ),
                       ),
                     ],
                   ),
@@ -570,30 +540,29 @@ class _EVStationState extends State<EVStation> {
 
                 const SizedBox(height: 16),
 
-                Row(
+                // 按鈕列：使用 Wrap 確保在小螢幕下會自動換行，不會出現 Yellow Tape (溢出錯誤)
+                Wrap(
+                  spacing: 8, // 水平間距
+                  runSpacing: 8, // 垂直間距 (如果換行的話)
+                  alignment: WrapAlignment.start,
                   children: [
-                    if (station['Telephone'] != null)
+                    if (station['Telephone'] != null && station['Telephone'] != "")
                       _buildActionChip(
                         icon: Icons.phone_rounded,
                         label: '聯絡',
                         color: const Color(0xFF1A73E8),
                         onTap: () => StationActions.makeCall(station['Telephone']),
                       ),
-                    const SizedBox(width: 12),
                     _buildActionChip(
                       icon: Icons.directions_rounded,
                       label: '導航',
                       color: const Color(0xFF34C759),
-                      // 假設你的 station 資料中有 PositionLat 和 PositionLon
                       onTap: () {
-                        // 確保轉換為 double，若轉換失敗則給予預設值 0.0
                         double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
                         double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
-
-                        StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
+                        StationActions.openNavigation(lat, lng, station['StationNameZh_tw'] ?? '充電站');
                       },
                     ),
-                    const SizedBox(width: 12),
                     _buildActionChip(
                       icon: Icons.share_rounded,
                       label: '分享',
@@ -610,33 +579,25 @@ class _EVStationState extends State<EVStation> {
     );
   }
 
-  Widget _buildInfoItem({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
+// 輔助組件微調：確保文字不會擠壓到圖示
+  Widget _buildInfoItem({required IconData icon, required String title, required String value, required Color color}) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(title, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          ],
         ),
         const SizedBox(height: 4),
         Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
+          value,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );

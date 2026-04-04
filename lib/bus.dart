@@ -33,8 +33,8 @@ class BusState extends State<Bus> {
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
   List busData = [];
-  final List<String> _list = ['全部', '臺中市', '臺北市','新北市','桃園市',"臺南市","高雄市","公路客運"];
-  final List<String> _listID = ['all', 'Taichung', 'Taipei','NewTaipei',"Taoyuan","Tainan","Kaohsiung","InterCity"];
+  final List<String> _list = ['全部', '臺中市', '臺北市','新北市','桃園市',"臺南市","高雄市","基隆市","新竹市","公路客運"];
+  final List<String> _listID = ['all', 'Taichung', 'Taipei','NewTaipei',"Taoyuan","Tainan","Kaohsiung","Keelung","Hsinchu","InterCity"];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
   final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
@@ -49,6 +49,8 @@ class BusState extends State<Bus> {
   final Color _textColor = Colors.black87;
   final Color _greyColor = Colors.grey;
 
+  Future? _suggestionFuture; // 用來存住請求的結果
+  String _lastQuery = "";      // 用來紀錄上次搜尋的內容，避免重複請求
   Future<int> updateCurrent() async {
     favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
     favoriteStops.value = await _loadFavorites("FavoritesStop", city: correspondingIDNotifier.value);
@@ -1055,14 +1057,30 @@ class BusState extends State<Bus> {
 
   Widget _buildSuggestionsList() {
     if (_dropdownValueNotifier.value == "路線") {
+      // 關鍵：如果 _suggestionFuture 是空的，或是搜尋關鍵字變了，才重新抓取
+      // 假設你的搜尋文字存在 _searchController.text
+      if (_suggestionFuture == null || _lastQuery != busIdController.text) {
+        _lastQuery = busIdController.text;
+        _suggestionFuture = _updateSuggestions('route');
+      }
+
       return FutureBuilder(
-        future: _updateSuggestions('route'),
+        future: _suggestionFuture, // 使用存好的變數，返回時它依然是同一個對象
         builder: (context, snapshot) {
+          // 如果已經有舊資料了，即便在 loading 也不要顯示轉圈圈（這樣返回才不會閃爍）
+          if (snapshot.hasData) {
+            return Buslist(
+              suggestions: snapshot.data ?? [],
+              city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+
           return Buslist(
-            suggestions: snapshot.data ?? [],
+            suggestions: const [],
             city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
           );
         },
@@ -1095,6 +1113,29 @@ WHERE City = '${correspondingIDNotifier.value}'
   AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))
       = '${route["routeName"]}'
 """);
+// 1. 取得原始資料
+    String rawCity = correspondingIDNotifier.value;
+    String rawRouteID = route["RouteID"].toString();
+
+    // 2. 判斷城市並決定是否補 0
+    // 定義需要補 0 的城市清單 (依據 TDX 經驗，基隆、新竹、新竹縣、屏東較常需要)
+    final List<String> needsPaddingCities = [
+      'Keelung',
+      'Hsinchu',
+      'HsinchuCounty',
+      'Pingtung',
+      'InterCity' // 公路客運也建議檢查
+    ];
+
+    String finalRouteID;
+    if (needsPaddingCities.contains(rawCity)) {
+      // 如果在清單內，補足 4 位數
+      finalRouteID = rawRouteID.padLeft(4, '0');
+      print("📍 城市 $rawCity 需要補0，轉換後 ID: $finalRouteID");
+    } else {
+      finalRouteID = rawRouteID;
+    }
+
 
     Navigator.push(
       context,
@@ -1106,7 +1147,7 @@ WHERE City = '${correspondingIDNotifier.value}'
           operators: "",
           routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
           city: correspondingIDNotifier.value,
-          routeID: route["routeID"],
+          routeID: finalRouteID,
         ),
       ),
     );

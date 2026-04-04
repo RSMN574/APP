@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:com.rsmn574.app/database/token_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
@@ -16,11 +17,11 @@ Timer? _idleTimer;
 const int idleTimeout = 30; // 30秒無操作超時
 var result;
 MySQLConnection? conn;
-var busid;
-List busName = [];
+
+
 int? sum = 0;
 List jsonData = [];
-int routeID = 0;
+
 String busCurrentCity = 'Taichung';
 
 // 全局連接池
@@ -120,45 +121,6 @@ Future<void> connMysql() async {
   }
 }
 
-// 改進的查詢執行函數，包含重試邏輯
-Future<IResultSet> executeQueryWithRetry(String query, {int maxRetries = 3}) async {
-  int attempts = 0;
-
-  while (attempts < maxRetries) {
-    try {
-      // 確保連接存在且有效
-      if (conn == null || !(await checkConnection())) {
-        await disconnect(); // 確保舊連接已關閉
-        await connMysql(); // 重新連接
-      }
-
-      // 執行查詢
-      var result = await conn!.execute(query);
-      _startIdleTimer(); // 重置閒置計時器
-      return result;
-    } catch (e) {
-      attempts++;
-      print("Query error (attempt $attempts): $e");
-
-      // 如果是連接問題，嘗試重新連接
-      if (e.toString().contains("connection closed")) {
-        await disconnect();
-        await connMysql();
-      }
-
-      // 如果已達到最大重試次數，拋出異常
-      if (attempts >= maxRetries) {
-        throw Exception(
-            "Failed to execute query after $maxRetries attempts: $e");
-      }
-
-      // 等待短暫時間後重試
-      await Future.delayed(Duration(milliseconds: 500 * attempts));
-    }
-  }
-
-  throw Exception("Unexpected error in executeQueryWithRetry");
-}
 
 Future<bool> checkConnection() async {
   try {
@@ -271,12 +233,66 @@ Future<List< dynamic>> getBus(String city) async {
     return [];
   }
 }
+Future<IResultSet> executeQueryWithRetry(
+    String query, {
+      List<dynamic>? params,
+      int maxRetries = 3,
+    }) async {
+  int attempts = 0;
+  Duration delay = const Duration(milliseconds: 500); // 初始延遲
 
-Future<List<Map<String, dynamic>>> GetBusInfo({required int routeId, required String city,}) async {
-  sum = 0;
+  while (attempts < maxRetries) {
+    try {
+      // 確保連接存在且有效
+      if (conn == null || !(await checkConnection())) {
+        await disconnect(); // 關閉舊連接
+        await connMysql(); // 重新連接
+      }
+
+      // 執行查詢（支援參數化）
+      final result = params != null && params.isNotEmpty
+          ? await conn!.execute(query, params as Map<String, dynamic>?)
+          : await conn!.execute(query);
+
+      _startIdleTimer(); // 重置閒置計時器
+      return result;
+    } catch (e) {
+      attempts++;
+      print("Query error (attempt $attempts/$maxRetries): $e");
+
+      // 判斷是否為連接相關錯誤
+      final errorMsg = e.toString().toLowerCase();
+      final isConnectionError = errorMsg.contains('connection closed') ||
+          errorMsg.contains('lost connection') ||
+          errorMsg.contains('dead') ||
+          errorMsg.contains('socket') ||
+          errorMsg.contains('timeout');
+
+      if (isConnectionError) {
+        await disconnect(); // 強制關閉無效連接
+        await connMysql(); // 重新建立連接
+      }
+
+      // 若已達最大重試次數，拋出異常
+      if (attempts >= maxRetries) {
+        throw Exception(
+            "Failed to execute query after $maxRetries attempts: $e");
+      }
+
+      // 指數退避策略：延遲時間遞增
+      await Future.delayed(delay);
+      delay = Duration(
+          milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
+    }
+  }
+
+  // 理論上不會執行到此處，但為完整性保留
+  throw Exception("Unexpected error in executeQueryWithRetry");
+}
+Future<List<Map<String, dynamic>>> GetBusInfo({required String routeId, required String city,}) async {
+
   List<Map<String, dynamic>> routeName = [];
 
-  routeID = routeId;
   late final String query;
   try {
     await connMysql(); // 連接資料庫
@@ -337,17 +353,11 @@ Future<List<Map<String, dynamic>>> GetBusInfo({required int routeId, required St
   }
 }
 
-getInfo(data) {
-  if (data == 'sum') {
-    return sum;
-  } else if (data == 'routeInfo') {
-    return jsonData;
-  } else if (data == 'routeID') {
-    return routeID;
-  }
-}
 
-Future<List<Map<String, dynamic>>> GetBusStopInfo(String stopName, String city,) async {
+Future<List<Map<String, dynamic>>> GetBusStopInfo({
+  required String stopName,
+  required String city,
+}) async {
   await connMysql(); // 連接資料庫
 
   var query =
@@ -368,12 +378,17 @@ Future<List<Map<String, dynamic>>> GetBusStopInfo(String stopName, String city,)
 }
 
 Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
-  // var url="https://tdx.transportdata.tw/api/basic/v2/Bus/Alert/City/Taichung?%24top=10&%24format=JSON";
+  // 參數驗證
+  if (url.isEmpty) {
+    print('fetchTdxDataByUrl: URL 不能為空');
+    return null;
+  }
+
   try {
-    await connMysql(); // 連接資料庫
-    final tokenResponse = await http.get(tokenUri);
-    final token = tokenResponse.body;
-    // 发起 GET 请求
+    // 獲取 Token（使用統一的 TokenManager）
+    final token = await TokenManager().getToken();
+
+    // 發起請求
     final response = await http.get(
       Uri.parse(url),
       headers: {
@@ -382,24 +397,18 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
       },
     );
 
-    // 检查响应状态
+    // 檢查響應狀態
     if (response.statusCode != 200) {
-      throw HttpException('HTTP error! status: ${response.statusCode}');
+      throw HttpException('HTTP 錯誤: ${response.statusCode} - ${response.body}');
     }
 
-    // 解析 JSON 数据
-    final jsonData = await jsonDecode(response.body);
-
-    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
-    // 这里你可以根据你的需求来构建 SQL 语句，例如：
-    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
-
-    return jsonData;
+    // 解析 JSON
+    final dynamic data = jsonDecode(response.body);
+    return data;
   } catch (e) {
-    print('Error occurred: $e');
-  } finally {
-    // 重置閒置計時器
-    _startIdleTimer();
+    print('fetchTdxDataByUrl 錯誤: $e');
+    // 可根據需要拋出異常，此處返回 null 讓調用方處理
+    return null;
   }
 }
 
@@ -428,7 +437,7 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
 
     // 重置闲置计时器
     _startIdleTimer();
-    print("combinedData $combinedData");
+
     return combinedData;
   } catch (e, stackTrace) {
     // 捕获并记录错误

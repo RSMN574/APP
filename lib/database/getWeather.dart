@@ -1,63 +1,47 @@
-import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
-import 'package:mysql_client/mysql_client.dart';
-import '../Const/regularClass.dart';
+import 'dart:convert';
 
-MySQLConnection? _conn;
+import '../models/WeatherData.dart';
 
-Future<Map<String, dynamic>> getWeatherInfo( context) async {
-  String currentCity = Provider.of<CityProvider>(context, listen: false).city;
-  String? recentWeatherStatus;
-  String? recentMinTemp;
-  String? recentMaxTemp;
-  String unit = "°C"; // 假设温度单位为摄氏度
+Future<WeatherInfo?> fetchWeather(String cityName) async {
+  const String apiKey = 'CWA-5150C3FB-47F0-4156-8441-02FDEFC90A22';
+  // 以「今明三十六小時天氣預報」為例
+  final url = Uri.parse(
+      'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=$apiKey&locationName=$cityName'
+  );
 
   try {
-    // 建立 MySQL 连接
-    _conn = await MySQLConnection.createConnection(
-      host: "hidden.rsmn574.com",
-      port: 3306,
-      userName: "onlyForApiRead",
-      password: "@Nick0319Lucas0221",
-      databaseName: "Weather",
-    );
-    await _conn!.connect();
-    print("MySQL connection established.");
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final location = data['records']['location'][0];
+      final elements = location['weatherElement'];
 
-    // 获取当前时间
-    final now = DateTime.now();
-    final currentTimeString = now.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+      // 取得天氣現象、降雨機率、氣溫
+      String wx = elements[0]['time'][0]['parameter']['parameterName']; // Wx
+      String pop = elements[1]['time'][0]['parameter']['parameterName']; // PoP
+      String minT = elements[2]['time'][0]['parameter']['parameterName']; // MinT
+      String maxT = elements[4]['time'][0]['parameter']['parameterName']; // MaxT
 
-    // 查询 startTime 和 endTime 在当前时间范围内的所有天气数据
-    final results = await _conn?.execute(
-      'SELECT * FROM weather ',
-
-    );
-    // 处理结果
-    if (results != null) {
-      for (var row in results) {
-        print(row);
-        // recentWeatherStatus = row[4]; // 假设天气状态在第5列
-        // recentMinTemp = row[5]; // 假设最小温度在第6列
-        // recentMaxTemp = row[6]; // 假设最大温度在第7列
-        // print('Resource ID: ${row[0]}, Location: ${row[1]}, Start Time: ${row[2]}, End Time: ${row[3]}');
-      }
-    } else {
-      print("No weather data found for the current time.");
+      return WeatherInfo(
+        description: wx,
+        pop: pop,
+        temperature: '$minT° - $maxT°',
+        icon: _getWeatherIcon(wx),
+      );
     }
   } catch (e) {
-    print("Error: $e");
-  } finally {
-    // 关闭连接
-    await _conn?.close();
+    print('Weather Error: $e');
   }
+  return null;
+}
 
-  return {
-    "city": currentCity,
-    "recentWeatherStatus": recentWeatherStatus ?? "N/A",
-    "recentMinTemp": recentMinTemp != null ? '$recentMinTemp$unit' : "N/A",
-    "recentMaxTemp": recentMaxTemp != null ? '$recentMaxTemp$unit' : "N/A",
-  };
+// 根據文字對應圖示
+IconData _getWeatherIcon(String wx) {
+  if (wx.contains('晴')) return Icons.wb_sunny_rounded;
+  if (wx.contains('雨')) return Icons.umbrella_rounded;
+  if (wx.contains('雲')) return Icons.cloud_rounded;
+  return Icons.wb_cloudy_rounded;
 }

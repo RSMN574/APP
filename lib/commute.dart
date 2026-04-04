@@ -572,7 +572,7 @@ class _CommuteState extends State<Commute> {
             onTap: () async {
               if (data['type'] == "bus") {
                 await GetBusInfo(
-                    routeId: data["routeID"], city: cityNameConverter(data['city']));
+                    routeId: (data["routeID"]).toString(), city: cityNameConverter(data['city']));
                 if (!context.mounted) return;
                 Navigator.push(
                   context,
@@ -583,7 +583,7 @@ class _CommuteState extends State<Commute> {
                       destinationStopName: data["FinalStopName"],
                       operators: "",
                       city: cityNameConverter(data['city']),
-                      routeID: data["routeID"],
+                      routeID: data["routeID"].toString(),
                     ),
                   ),
                 );
@@ -1192,7 +1192,7 @@ class _CommuteState extends State<Commute> {
 
   @override
   Widget build(BuildContext context) {
-    scheduleTodayReminders();
+    // scheduleTodayReminders();
     final List<Widget> pages = [
       _buildCommutePage("commute"),
       _buildCommutePage("trip"),

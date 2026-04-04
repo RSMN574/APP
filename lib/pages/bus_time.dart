@@ -45,7 +45,7 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
   final city;
-  final int routeID;
+  final String routeID;
   final Mark? mark;
 
   const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark })
@@ -230,56 +230,58 @@ void _scrollToIndex(int index) {
 
   Future<void> _loadData() async {
     try {
-      // 🚍 下載站點與時間資料
+      // 1. 下載基礎資料
       final List<Map<String, dynamic>> data = await GetBusInfo(
         city: widget.city,
         routeId: widget.routeID,
       );
 
-      final routeInfo = [
-        widget.routeName,
-        widget.departureStopName,
-        widget.destinationStopName,
-      ];
+      final busTimeData = await fetchBusTime(widget.routeName, widget.city,widget.routeID);
 
-      final busTimeData = await fetchBusTime(widget.routeName, widget.city);
+      // 📌 封裝過濾與抓取邏輯
+      Future<List<dynamic>> fetchStopsByDir(int primary, int fallback) async {
+        // 修正：定義過濾函數並直接使用
+        List<dynamic> filter(int d) => busTimeData.where((s) => s['Direction'] == d).toList();
 
-      // 📌 包一個方法：主方向失敗時用備援方向
-      Future<List<dynamic>> fetchStops(int primary, int fallback) async {
-        final filterStops = (int dir) =>
-            busTimeData.where((s) => s['Direction'] == dir).toList();
 
         try {
-          return await fetchStopNamesWithTime(primary, filterStops(primary), data);
+          var res = await fetchStopNamesWithTime(primary, filter(primary), data);
+          if (res.isEmpty) throw Exception("Empty Data"); // 避免回傳空列表但不進 catch
+          return res;
         } catch (_) {
-          return await fetchStopNamesWithTime(fallback, filterStops(fallback), data);
+          return await fetchStopNamesWithTime(fallback, filter(fallback), data);
         }
       }
 
-      // 🔄 設定 Tab (根據 direction)
+      // 🔄 設定 Tab 位置
       final int? direction = widget.mark?.direction;
-      if (direction != null) _tabController.animateTo(direction);
+      if (direction != null) {
+        _tabController.animateTo(direction);
+      }
 
-      // 📌 抓雙向資料
-      stopNamesWithTime1 = await fetchStops(1, 0);
-      stopNamesWithTime2 = await fetchStops(0, 1);
+      // 📌 抓取雙向資料 (對齊索引建議：Time1 對應 Dir 0, Time2 對應 Dir 1)
+      stopNamesWithTime1 = await fetchStopsByDir(1, 0); // 這裡調整為 0 優先
+      stopNamesWithTime2 = await fetchStopsByDir(0, 1); // 這裡調整為 1 優先
 
-      final List<dynamic> stops = direction == 0 ? stopNamesWithTime1 : stopNamesWithTime2;
-      final List<dynamic> nearStops = direction == 0 ? stopNamesWithTime2 : stopNamesWithTime1;
+      // 根據當前 Tab 決定主顯示列表
+      final bool isDir0 = _tabController.index == 0;
+      final List<dynamic> currentStops = isDir0 ? stopNamesWithTime1 : stopNamesWithTime2;
 
-      // 📍 找最近站點
+      // 📍 最近站點定位邏輯
       int? nearestIndex;
-      double? nearestDistance;
       try {
-        final loc = Provider.of<LocationProvider>(context, listen: false);
-        final userLat = loc.latitude, userLon = loc.longitude;
+        if (!mounted) return; // 🛡️ 安全檢查：確保 widget 還在畫面上
 
+        final loc = Provider.of<LocationProvider>(context, listen: false);
         double minDist = double.infinity;
-        for (int i = 0; i < nearStops.length; i++) {
-          final pos = nearStops[i]['StopPosition'];
+
+        // 修正：應該從「當前顯示的列表 (currentStops)」中找最近站點，滾動才不會出錯
+        for (int i = 0; i < currentStops.length; i++) {
+          final pos = currentStops[i]['StopPosition'];
           if (pos?['PositionLat'] != null && pos?['PositionLon'] != null) {
             final dist = calculateApproxDistance(
-              userLat, userLon, pos['PositionLat'], pos['PositionLon'],
+              loc.latitude, loc.longitude,
+              pos['PositionLat'], pos['PositionLon'],
             );
             if (dist < minDist) {
               minDist = dist;
@@ -288,59 +290,58 @@ void _scrollToIndex(int index) {
           }
         }
 
+        // 7公里範圍判斷
         if (nearestIndex != null && minDist <= 7000) {
-          nearestStop = nearStops[nearestIndex]['stopName'];
-          nearestDistance = minDist;
-          if (kDebugMode) {
-            print("📍 最近站點：$nearestStop，距離=${minDist.toStringAsFixed(1)}m");
-          }
+          nearestStop = currentStops[nearestIndex]['stopName'];
         } else {
-          nearestStop=null;
-          if (kDebugMode) print("❌ 沒有站點在 7 公里內");
+          nearestStop = null;
+          nearestIndex = null; // 距離太遠則不執行自動滾動
         }
-      } catch (e) {
-        print("⚠️ 定位錯誤: $e");
+            } catch (e) {
+        debugPrint("⚠️ 定位獲取失敗: $e");
       }
 
-      // 🎯 滾動到 highlight 或最近站點
-      void scrollTo(int index) {
+      // 🎯 執行滾動邏輯 (封裝成小函式)
+      void safeScrollToIndex(int index) {
+        if (!mounted) return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToIndex(index);
         });
       }
 
+      // 優先權 1：外部傳入的 Highlight (例如從地圖點擊過來)
       if (widget.mark?.highlight?.isNotEmpty ?? false) {
-        final highlightStation = widget.mark!.highlight!.first;
-        final stopNames = stops.map((e) => e["stopName"]).toList();
-        final highlightedIndex = stopNames.indexOf(highlightStation);
-        globalHighlightedIndex = highlightedIndex;
+        final String highlightStation = widget.mark!.highlight!.first;
+        final int hIndex = currentStops.indexWhere((e) => e["stopName"] == highlightStation);
 
-        if (highlightedIndex != -1) {
-          scrollTo(highlightedIndex);
-        } else {
-          print("⚠️ 找不到 highlight 站點");
+        if (hIndex != -1) {
+          globalHighlightedIndex = hIndex;
+          safeScrollToIndex(hIndex);
         }
-      } else if (nearestIndex != null &&    nearestStop!=null) {
-        scrollTo(nearestIndex);
+      }
+      // 優先權 2：定位到的最近站點
+      else if (nearestIndex != null) {
+        safeScrollToIndex(nearestIndex);
       }
 
       // ⏱ 啟動自動刷新
       if (isTimerOn.value) _startAutoReload();
 
-      // 🗺 載入地圖標記
-      _loadMarkers("stopNamesWithTime1");
-      _loadShape(1);
-      // 📢 通知 UI
+      // 🗺 載入地圖資源 (根據當前 Tab 方向載入)
+      _loadMarkers(isDir0 ? "stopNamesWithTime1" : "stopNamesWithTime2");
+      _loadShape(isDir0 ? 0 : 1);
+
+      // 📢 通知 UI 更新
       _dataNotifier.value = {
-        'routeInfo': routeInfo,
+        'routeInfo': [widget.routeName, widget.departureStopName, widget.destinationStopName],
         'stopNamesWithTime1': stopNamesWithTime1,
         'stopNamesWithTime2': stopNamesWithTime2,
       };
+
     } catch (e, s) {
-      print("❌ _loadData 發生錯誤: $e\n$s");
+      debugPrint("❌ _loadData 發生重大錯誤: $e\n$s");
     }
   }
-
 
 
 
@@ -354,8 +355,10 @@ void _scrollToIndex(int index) {
 
       for (var stop in stopData) {
         String stopName = stop["StopName"]["Zh_tw"];
+        String stopUID = stop["StopUID"];
 
-        Map<String, dynamic> nextBusTime = await getTimeList(stopName, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
+        Map<String, dynamic> nextBusTime = await getTimeList(stopUID, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
+
         bool isHighlighted = false;
         if (widget.mark != null && widget.mark!.highlight != null) {
           isHighlighted = widget.mark!.highlight!.contains(stopName) && tabIndex != widget.mark!.direction;
@@ -410,98 +413,98 @@ void _scrollToIndex(int index) {
     return stopNamesWithTime;
   }
 
-  Future<Map<String, dynamic>> getTimeList(String stopName, List<dynamic> busTimeData) async {
-    List<dynamic> a = busTimeData.where((stop) => stop['StopName']["Zh_tw"] == stopName).toList();
+  Future<Map<String, dynamic>> getTimeList(String stopUID, List<dynamic> busTimeData) async {
+    // 1. 尋找對應的站點資料 (使用 firstWhere 效能更好)
+    final stop = busTimeData.firstWhere(
+          (s) => s['StopUID'] == stopUID,
+      orElse: () => null,
+    );
 
-    if (a.isNotEmpty) {
-      if (a[0]["EstimateTime"] != null) {
-        if (a[0]["EstimateTime"] == 0) {
-          String plateNumb = a[0]["PlateNumb"] ?? "";
-          isTimerOn.value=true;
-          return {"time": "即將到站", "color": '0', "PlateNumb": plateNumb,"Estimates": a[0]["Estimates"],
-            "StopPosition":a[0]["StopPosition"]?? "" .toString(),
-            "StopID":a[0]['StopID']};
+    // 如果找不到站點，直接回傳錯誤狀態
+    if (busTimeData.isEmpty) {
+
+      return _buildResult("無資料", "班次結束", "", null);
+    }
+
+    // 2. 處理「預估到站時間」(EstimateTime)
+    if (stop["EstimateTime"] != null) {
+      isTimerOn.value = true;
+      int estimateTime = stop["EstimateTime"];
+
+      if (estimateTime == 0) {
+        return _buildResult("即將到站", "0", stop["PlateNumb"] ?? "", stop);
+      }
+
+      int result = (estimateTime / 60).floor();
+      return _buildResult(
+        result < 1 ? "即將到站" : "$result 分鐘",
+        result < 3 ? "2" : "min",
+        result < 3 ? (stop["PlateNumb"] ?? "") : "",
+        stop,
+      );
+    }
+
+    // 3. 處理「下一班車時間」(NextBusTime)
+    if (stop["NextBusTime"] != null) {
+      DateTime nextBusTime = DateTime.parse(stop["NextBusTime"]).toLocal(); // 確保轉換為在地時間
+      Duration difference = nextBusTime.difference(DateTime.now());
+
+      // 使用「總分鐘數」判斷，最準確
+      int totalMinutes = difference.inMinutes;
+
+      if (totalMinutes < 0) {
+        // 情況 A：時間已經過了 (現在 06:01，班次 06:00)
+        // 建議顯示「已過站」，若過太久(如超過 5 分鐘)顯示班次結束
+        return _buildResult(totalMinutes > -5 ? "已過站" : "班次結束", "班次結束", "", stop);
+
+      } else if (totalMinutes < 60) {
+        // 情況 B：一小時內會到的班次 (顯示倒數)
+        isTimerOn.value = true;
+
+        if (totalMinutes < 1) {
+          return _buildResult("即將到站", "0", stop["PlateNumb"] ?? "", stop);
+        } else if (totalMinutes < 3) {
+          // 1-2 分鐘，進站中樣式
+          return _buildResult("$totalMinutes 分鐘", "2", stop["PlateNumb"] ?? "", stop);
         } else {
-          int result = (a[0]["EstimateTime"] / 60).floor();
-
-
-          isTimerOn.value=true;
-            return {
-              "time": result < 1 ? "即將到站" : "$result 分鐘",
-              "color": result < 3 ? "2" : "min",
-              "PlateNumb": result < 3 ?  a[0]["PlateNumb"] : "",
-              "Estimates": a[0]["Estimates"],
-              "StopPosition":a[0]["StopPosition"]?? "",
-              "StopID":a[0]['StopID']
-            };
-
-
+          // 3-59 分鐘，一般倒數
+          return _buildResult("$totalMinutes 分鐘", "min", "", stop);
         }
-      } else if (a[0]["NextBusTime"] != null) {
-        Duration difference = DateTime.parse(a[0]["NextBusTime"]).difference(DateTime.now());
 
-        if (difference.inHours == 0) {
-          if(difference.inMinutes.remainder(60)<3 && difference.inMinutes.remainder(60)>0){
-
-         if(difference.inMinutes.remainder(60) <= 0){
-
-         }else{
-           isTimerOn.value=true;
-         }
-
-              return {
-
-
-                "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
-                "color": '2',
-                "PlateNumb": a[0]["PlateNumb"],
-                "Estimates": a[0]["Estimates"],
-                "StopPosition":a[0]["StopPosition"]?? "",
-                "StopID":a[0]['StopID']
-              };
-
-
-          }else{
-            if(difference.inMinutes.remainder(60) <= 0){
-
-            }else{
-              isTimerOn.value=true;
-            }
-
-            return {
-
-
-              "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
-              "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
-            "PlateNumb": "",
-              "Estimates": a[0]["Estimates"],
-              "StopPosition":a[0]["StopPosition"]?? "",
-              "StopID":a[0]['StopID']
-            };
-          }
-
-        } else {
-          DateTime nextBusTime = DateTime.now().add(difference);
-          return {
-            "time": "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
-            "color": '',
-            "PlateNumb": "",
-            "Estimates": a.isNotEmpty && a[0]["Estimates"] != null ? a[0]["Estimates"] : "",
-
-            "StopPosition":a[0]["StopPosition"]?? "",
-            "StopID":a[0]['StopID']
-          };
-        }
       } else {
-        return {"time": "班次結束", "color": "班次結束", "PlateNumb": "","Estimates": a[0]["Estimates"],
-          "StopPosition":a[0]["StopPosition"]?? "","StopID":a[0]['StopID']
-};
+        // 情況 C：距離現在超過 60 分鐘 (如 5 點看 6 點 21 分的車)
+        // 直接顯示發車時刻 HH:mm
+        String formattedTime = "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}";
+        return _buildResult(formattedTime, "", "", stop);
       }
     }
-    return {"time": "error", "color": "班次結束", "PlateNumb": "","Estimates":  "",
 
-      "StopPosition": "", "StopID":''
-};
+    // 4. 無時間資料，預設回傳班次結束
+    return _buildResult("班次結束", "班次結束", "", stop);
+  }
+
+// ==========================================
+// 輔助方法：統一封裝回傳 Map，避免每次都要重寫相同的 Key
+// ==========================================
+  Map<String, dynamic> _buildResult(String time, String color, String plateNumb, dynamic stop) {
+    if (stop == null) {
+      return {
+        "time": time,
+        "color": color,
+        "PlateNumb": plateNumb,
+        "Estimates": "",
+        "StopPosition": "",
+        "StopID": "",
+      };
+    }
+    return {
+      "time": time,
+      "color": color,
+      "PlateNumb": plateNumb,
+      "Estimates": stop["Estimates"] ?? "",
+      "StopPosition": stop["StopPosition"]?.toString() ?? "",
+      "StopID": stop['StopID'] ?? "",
+    };
   }
 // 返回每个隐藏的菜单项
   SelectView(IconData icon, String text, String id) {
@@ -1219,7 +1222,7 @@ void _scrollToIndex(int index) {
 
   // 构建每个 Tab 的内容
   Widget _buildTabContent(List stopNamesWithTime) {
-    final List<GlobalKey> _itemKeys = [];
+    // final List<GlobalKey> _itemKeys = [];
     return RefreshIndicator(
 
     onRefresh: () async {
@@ -1231,9 +1234,9 @@ void _scrollToIndex(int index) {
       controller: _scrollController,
       itemCount: stopNamesWithTime.length,
       itemBuilder: (context, index) {
-        if (_itemKeys.length <= index) {
-          _itemKeys.add(GlobalKey());
-        }
+        // if (_itemKeys.length <= index) {
+        //   _itemKeys.add(GlobalKey());
+        // }
         final stop = stopNamesWithTime[index];
         final PlateNumb = stop["PlateNumb"];
 
@@ -1248,6 +1251,8 @@ void _scrollToIndex(int index) {
             : const Color.fromRGBO(68, 68, 68, 0.1))));
 
         return Container(
+          // ✅ 使用 StopUID 作為 Key，效能更好且不會洩漏記憶體
+            key: ValueKey(stop['StopUID'] ?? index.toString()),
             margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
             decoration:
                BoxDecoration(

@@ -8,54 +8,32 @@ import '../../Const/regularConst.dart';
 import '../../models/Station.dart';
 import '../../utils/convert.dart';
 import '../getData.dart';
+import '../tdx_api_client.dart';
 import '../token_manager.dart'; // 用于网络请求
 
-Future<dynamic> fetchBusTime(routeName, city) async {
-  int id = await getInfo('routeID');
-  int? top = await getInfo('sum');
-  late String url;
-  if(city=="InterCity"){
-     url =
-        "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
+Future<List<dynamic>> fetchBusTime(
+    String routeName,
+    String city,
+    String routeID,
+    ) async {
+  final client = TdxApiClient();
+  final path = city == 'InterCity'
+      ? '/api/basic/v2/Bus/EstimatedTimeOfArrival/InterCity/$routeName'
+      : '/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName';
 
-  }else{
-     url =
-        "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName?%24filter=RouteID%20eq%20%27$id%27&%24top=$top&%24format=JSON";
-
-  }
-final token = await TokenManager().getToken();
+  final queryParams = {
+    '\$filter': "RouteID eq '$routeID'",
+    '\$format': 'JSON',
+  };
 
   try {
-    await connMysql();
-
-    // 发起 GET 请求
-    final response = await http.get(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'accept': 'application/json',
-      },
-    );
-
-    // 检查响应状态
-    if (response.statusCode != 200) {
-      throw HttpException('HTTP error! status: ${response.statusCode}');
-    }
-
-    // 解析 JSON 数据
-    final jsonData = await jsonDecode(response.body);
-
-    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
-    // 这里你可以根据你的需求来构建 SQL 语句，例如：
-    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
-
-    print('JSON fetched successfully: $jsonData');
-    return jsonData;
+    return await client.get(path, queryParams: queryParams) as List<dynamic>;
   } catch (e) {
-    print('Error occurred: $e');
+    // 記錄錯誤，返回空列表或拋出異常由調用方處理
+    print('fetchBusTime 錯誤: $e');
+    return [];
   }
 }
-
 Future<Map<String, dynamic>> getDirections(String origin, String destination, time, Map<String, dynamic> option) async {
   List<String> transportModes = option["TransportModes"]; // 假設這是 List
 
@@ -216,7 +194,7 @@ Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(String routeName, Stri
     return []; // 返回空列表，而不是 null，避免影響調用方
   }
 }
-Future<List<dynamic>> getShape(String city, String routeName, int routeID) async {
+Future<List<dynamic>> getShape(String city, String routeName, String routeID) async {
   final String url =
       "https://tdx.transportdata.tw/api/basic/v2/Bus/Shape/City/$city/$routeName?%24format=JSON";
 
@@ -249,7 +227,7 @@ Future<List<dynamic>> getShape(String city, String routeName, int routeID) async
     return itemRouteID != null && int.tryParse(itemRouteID.toString()) == routeID;
   }).toList();
 
-  print('Filtered JSON: $filteredData');
+
   return filteredData;
 }
 

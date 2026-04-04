@@ -17,7 +17,7 @@ class Buslist extends StatefulWidget {
   State<Buslist> createState() => _BuslistState();
 }
 
-class _BuslistState extends State<Buslist> {
+class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
   List<String> favoritesBusRoute = [];
 
   // 航班主題顏色
@@ -249,7 +249,7 @@ class _BuslistState extends State<Buslist> {
 
   Future<void> _navigateToRouteDetails(dynamic route) async {
     await GetBusInfo(
-        routeId: int.parse(route["RouteID"]),
+      routeId: (route["RouteID"]),
       city: route['City'] ?? 'InterCity',
 
     );
@@ -264,7 +264,7 @@ class _BuslistState extends State<Buslist> {
           operators: route["Operators"],
           routeMapImageUrl: route["RouteMapImageUrl"],
           city: route['City'] ?? 'InterCity',
-          routeID: int.parse(route["RouteID"]),
+          routeID: (route["RouteID"]),
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
@@ -305,4 +305,7 @@ class _BuslistState extends State<Buslist> {
       },
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // 保持頁面狀態3
 }

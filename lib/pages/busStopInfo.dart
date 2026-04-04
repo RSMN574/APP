@@ -353,7 +353,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                   child: ListTile(
                     onTap: () async {
                       await GetBusInfo(
-                          routeId: int.parse(stop["RouteID"]),
+                          routeId: (stop["RouteID"]),
                           city: widget.city);
                       Navigator.push(
                         context,
@@ -365,7 +365,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                             operators: "",
                             routeMapImageUrl: "",
                             city: widget.city,
-                            routeID: int.parse(stop["RouteID"]),
+                            routeID: stop["RouteID"],
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
@@ -788,7 +788,7 @@ WHERE City = '${widget.city}'
   // 获取公交站信息的异步方法
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
 
-    List<dynamic> info = await GetBusStopInfo(widget.stop, widget.city);
+    List<dynamic> info = await GetBusStopInfo(stopName:widget.stop, city:widget.city);
     List<Map<String, dynamic>> tempData = [];
 
     _stationIDs.value= info.map((station) => station["StationID"] as String).toList();// 提取 StationID

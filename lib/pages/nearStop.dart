@@ -145,7 +145,21 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       }
     }
   }
+   void _updateMarkerSelection() {
+     final currentSelected = _selectStationID.value;
 
+     // ⚠️ 關鍵：必須 map 出一個全新的 Set，GoogleMap 才會偵測到對象改變
+     _markers.value = _markers.value.map((marker) {
+       final isSelected = marker.markerId.value == currentSelected;
+
+       return marker.copyWith(
+         iconParam: BitmapDescriptor.defaultMarkerWithHue(
+           isSelected ? 210.0 : BitmapDescriptor.hueRed, // 選中變藍色
+         ),
+         zIndexParam: isSelected ? 1.0 : 0.0, // 確保選中的在最上面
+       );
+     }).toSet();
+   }
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -217,7 +231,20 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 // 4. 先切換頁面索引，確保數據已經到位
                 _indexNotifier.value = 1;
               }
+              if (_isSameStationGroup(_stationIDs.value, stationIDs)) {
+                _selectStationID.value = stopID;
+              } else {
+                _stopName.value = stopName;
+                _selectStationID.value = stopID;
+                _selectStationGroupID.value = stationGroupID;
+                _stationIDs.value = stationIDs;
+              }
 
+              // 關鍵修復 1：手動觸發地圖 Marker 變色
+              _NearbyStationsPageState._updateMarkerStyle();
+
+              // 關鍵修復 2：先切換頁面索引
+              _indexNotifier.value = 1;
               // 5. 地圖動畫（放在最後，不阻塞 UI 邏輯）
               _mapController?.animateCamera(
                 CameraUpdate.newCameraPosition(
@@ -309,18 +336,15 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   static void _updateMarkerStyle([String? selectedIndex]) {
-
-    // 遍歷所有 markers，更新樣式
+    // 遍歷所有 markers，根據 _selectStationID 更新樣式
     _markers.value = _markers.value.map((marker) {
       if (marker.markerId.value == _selectStationID.value) {
-        // 更新為選中樣式
         return marker.copyWith(
-          iconParam: BitmapDescriptor.defaultMarkerWithHue(190.0), // 使用柔和藍色
+          iconParam: BitmapDescriptor.defaultMarkerWithHue(190.0), // 選中顏色
         );
       } else {
-        // 恢復為普通樣式
         return marker.copyWith(
-          iconParam: BitmapDescriptor.defaultMarker,
+          iconParam: BitmapDescriptor.defaultMarker, // 恢復預設
         );
       }
     }).toSet();
@@ -392,7 +416,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               DraggableScrollableSheet(
                 controller: _scrollController,
                 initialChildSize: 0.43,
-                minChildSize: 0.25,
+                minChildSize: 0.3,
                 maxChildSize: 0.96,
                 builder:
                     (BuildContext context, ScrollController scrollController) {
@@ -469,620 +493,256 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   _tabSelect.value = "bus";
                                                   return // 滚动内容区域
 
-                                                      SingleChildScrollView(
-                                                    controller:
-                                                        scrollController,
-                                                    child: FutureBuilder<List<Station>>(
-                                                      future: _futureNearStations,
-                                                      builder:
-                                                          (context, snapshot) {
-                                                        if (snapshot.connectionState ==
-                                                            ConnectionState
-                                                                .waiting) {
-                                                          return Center(
-                                                            child: LoadingAnimationWidget
-                                                                .stretchedDots(
-                                                              color:
-                                                                  Colors.black,
-                                                              size: 40,
-                                                            ),
-                                                          );
-                                                        } else if (snapshot
-                                                            .hasError) {
-                                                          return Center(
-                                                            child: Column(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
-                                                              children: [
-                                                                const Text(
-                                                                  "找不到附近的站牌",
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: Colors
-                                                                        .black54,
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                  ),
+                                                    SingleChildScrollView(
+
+                                                      controller: scrollController,
+                                                      child: FutureBuilder<List<Station>>(
+                                                        future: _futureNearStations,
+                                                        builder: (context, snapshot) {
+                                                          // 1. 等待狀態
+                                                          if (snapshot.connectionState == ConnectionState.waiting) {
+                                                            return Center(
+                                                              child: Padding(
+                                                                padding: const EdgeInsets.only(top: 40),
+                                                                child: LoadingAnimationWidget.stretchedDots(
+                                                                  color: Colors.black,
+                                                                  size: 40,
                                                                 ),
-                                                                const SizedBox(
-                                                                    height: 16),
-                                                                ElevatedButton
-                                                                    .icon(
-                                                                  onPressed:
-                                                                      () {
-                                                                    setState(
-                                                                        () {
-                                                                      // 重新觸發 FutureBuilder 的 future
-                                                                      getNearMRTStation(
-                                                                        Uri.encodeComponent(
-                                                                            "${locationProvider.latitude},${locationProvider.longitude}"),
-                                                                      );
-                                                                    });
-                                                                  },
-                                                                  icon:
-                                                                      const Icon(
-                                                                    Icons
-                                                                        .refresh,
-                                                                    color: Colors
-                                                                        .black,
-                                                                  ),
-                                                                  label:
-                                                                      const Text(
-                                                                    "重試",
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .black,
-                                                                        fontSize:
-                                                                            14),
-                                                                  ),
-                                                                  style: ElevatedButton
-                                                                      .styleFrom(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .white,
-                                                                    foregroundColor:
-                                                                        Colors
-                                                                            .black,
-                                                                    elevation:
-                                                                        3,
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                        horizontal:
-                                                                            20,
-                                                                        vertical:
-                                                                            12),
-                                                                    shape:
-                                                                        RoundedRectangleBorder(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              12),
-                                                                    ),
-                                                                    shadowColor:
-                                                                        Colors.grey[
-                                                                            300],
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        } else if (snapshot
-                                                                .hasData &&
-                                                            snapshot.data !=
-                                                                null &&
-                                                            snapshot.data!
-                                                                .isNotEmpty) {
-                                                          // 使用 Map 分组
-                                                          Map<
-                                                                  String,
-                                                                  List<
-                                                                      Map<String,
-                                                                          dynamic>>>
-                                                              groupedStations =
-                                                              {};
-                                                          for (var station
-                                                              in snapshot
-                                                                  .data!) {
-                                                            String stationName =
-                                                                station
-                                                                    .stationNameZh;
-                                                            if (!groupedStations
-                                                                .containsKey(
-                                                                    stationName)) {
-                                                              groupedStations[
-                                                                  stationName] = [];
-                                                            }
-                                                            groupedStations[
-                                                                    stationName]!
-                                                                .add(station
-                                                                    .toJson());
+                                                              ),
+                                                            );
                                                           }
 
-                                                          // 转换为指定格式
-                                                          List<
-                                                                  Map<String,
-                                                                      dynamic>>
-                                                              result =
-                                                              groupedStations
-                                                                  .entries
-                                                                  .map((entry) {
-                                                            return {
-                                                              "StationGroup": {
-                                                                "StationGroupName":
-                                                                    {
-                                                                  "Zh_tw":
-                                                                      entry.key
-                                                                },
-                                                                "Stations":
-                                                                    entry.value
+                                                          // 2. 錯誤處理狀態
+                                                          if (snapshot.hasError) {
+                                                            return Center(
+                                                              child: Column(
+                                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                                children: [
+                                                                  const SizedBox(height: 40),
+                                                                  const Text(
+                                                                    "找不到附近的站牌",
+                                                                    style: TextStyle(
+                                                                      color: Colors.black54,
+                                                                      fontSize: 16,
+                                                                      fontWeight: FontWeight.w500,
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(height: 16),
+                                                                  ElevatedButton.icon(
+                                                                    onPressed: () {
+                                                                      setState(() {
+                                                                        // 重新觸發與原本邏輯一致
+                                                                        getNearMRTStation(
+                                                                          Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
+                                                                        );
+                                                                      });
+                                                                    },
+                                                                    icon: const Icon(Icons.refresh, color: Colors.black),
+                                                                    label: const Text("重試", style: TextStyle(color: Colors.black, fontSize: 14)),
+                                                                    style: ElevatedButton.styleFrom(
+                                                                      backgroundColor: Colors.white,
+                                                                      foregroundColor: Colors.black,
+                                                                      elevation: 3,
+                                                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                                      shadowColor: Colors.grey[300],
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
+
+                                                          // 3. 有資料且不為空的狀態
+                                                          if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
+                                                            // --- 資料分組邏輯 (保持不變) ---
+                                                            final Map<String, List<Map<String, dynamic>>> groupedStations = {};
+                                                            for (var station in snapshot.data!) {
+                                                              String stationName = station.stationNameZh;
+                                                              if (!groupedStations.containsKey(stationName)) {
+                                                                groupedStations[stationName] = [];
                                                               }
-                                                            };
-                                                          }).toList();
+                                                              groupedStations[stationName]!.add(station.toJson());
+                                                            }
 
-                                                          // 加载标记
-                                                          // WidgetsBinding
-                                                          //     .instance
-                                                          //     .addPostFrameCallback(
-                                                          //         (_) {
-                                                          //   _loadBusMarkers(
-                                                          //       context,
-                                                          //       snapshot.data!);
-                                                          // });
+                                                            // 轉換為原本指定的 List<Map> 格式
+                                                            final List<Map<String, dynamic>> result = groupedStations.entries.map((entry) {
+                                                              return {
+                                                                "StationGroup": {
+                                                                  "StationGroupName": {"Zh_tw": entry.key},
+                                                                  "Stations": entry.value
+                                                                }
+                                                              };
+                                                            }).toList();
 
-                                                          return Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(16.0),
-                                                            child: Column(
-                                                              children:
-                                                                  List.generate(
-                                                                result.length,
-                                                                (index) {
-                                                                  final station =
-                                                                      result[
-                                                                          index];
-                                                                  return _stationCard(
-                                                                      station:
-                                                                          station);
-                                                                },
+                                                            // --- UI 渲染 ---
+                                                            return Padding(
+                                                              padding: const EdgeInsets.all(16.0),
+                                                              child: Column(
+                                                                children: [
+                                                                  for (var station in result)
+                                                                    _stationCard(station: station),
+                                                                ],
+                                                              ),
+                                                            );
+                                                          }
+
+                                                          // 4. 空資料或其他狀態
+                                                          return Container(
+                                                            margin: const EdgeInsets.only(top: 20),
+                                                            child: const Center(
+                                                              child: Text(
+                                                                "找不到附近的站牌",
+                                                                style: TextStyle(color: Colors.grey, fontSize: 16),
                                                               ),
                                                             ),
                                                           );
-                                                        } else {
-                                                          return Container(
-                                                              margin:  EdgeInsets.only(top: 20), // 可调数值
-                                                              child: Center(
-                                                                child: Text(
-                                                                  "找不到附近的站牌",
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .grey,
-                                                                      fontSize: 16),
-                                                                ),
-                                                              ));
-                                                        }
-                                                      },
-                                                    ),
-                                                  );
-
-//                                                 case 1:
-//                                                   _tabSelect.value = "metro";
-// ///////////////////////////////////////////////////////
+                                                        },
+                                                      ),
+                                                    );
 //
-//                                                   return SingleChildScrollView(
-//                                                     controller:
-//                                                         scrollController,
-//                                                     child: FutureBuilder<List<MRTStation>>(
-//                                                       future: getNearMRTStation(
-//                                                         Uri.encodeComponent(
-//                                                             "${locationProvider.latitude},${locationProvider.longitude}"),
-//                                                       ),
-//                                                       builder:
-//                                                           (context, snapshot) {
-//                                                         if (snapshot.connectionState ==
-//                                                             ConnectionState
-//                                                                 .waiting) {
-//                                                           return Center(
-//                                                             child: LoadingAnimationWidget
-//                                                                 .stretchedDots(
-//                                                               color:
-//                                                                   Colors.black,
-//                                                               size: 40,
-//                                                             ),
-//                                                           );
-//                                                         } else if (snapshot
-//                                                             .hasError) {
-//                                                           return Center(
-//                                                             child: Column(
-//                                                               mainAxisAlignment:
-//                                                                   MainAxisAlignment
-//                                                                       .center,
-//                                                               children: [
-//                                                                 const Icon(
-//                                                                   Icons.location_off_outlined,
-//                                                                   size: 64,
-//                                                                   color: Colors.orangeAccent,
-//                                                                 ),
-//                                                                 const SizedBox(height: 24),
-//                                                                 RichText(
-//                                                                   textAlign: TextAlign.center,
-//                                                                   text: TextSpan(
-//                                                                     children: [
-//                                                                       TextSpan(
-//                                                                         text: "暫時找不到附近的站牌\n",
-//                                                                         style: TextStyle(
-//                                                                           color: Colors.grey[700],
-//                                                                           fontSize: 18,
-//                                                                           fontWeight: FontWeight.w600,
-//                                                                           height: 1.5,
-//                                                                         ),
-//                                                                       ),
-//                                                                       TextSpan(
-//                                                                         text: "請確認定位權限已開啟，\n或嘗試手動刷新",
-//                                                                         style: TextStyle(
-//                                                                           color: Colors.grey[500],
-//                                                                           fontSize: 14,
-//                                                                           fontWeight: FontWeight.w400,
-//                                                                         ),
-//                                                                       ),
-//                                                                     ],
-//                                                                   ),
-//                                                                 ),
-//                                                                 const SizedBox(height: 32),
-//                                                                 ElevatedButton.icon(
-//                                                                   onPressed: () {
-//                                                                     setState(() {
-//                                                                       getNearMRTStation(
-//                                                                         Uri.encodeComponent(
-//                                                                             "${locationProvider.latitude},${locationProvider.longitude}"),
-//                                                                       );
-//                                                                     });
-//                                                                   },
-//                                                                   icon: const Icon(
-//                                                                     Icons.refresh_rounded,
-//                                                                     size: 20,
-//                                                                     color: Colors.white,
-//                                                                   ),
-//                                                                   label: const Text(
-//                                                                     "重新嘗試搜尋",
-//                                                                     style: TextStyle(
-//                                                                       color: Colors.white,
-//                                                                       fontSize: 15,
-//                                                                       fontWeight: FontWeight.w500,
-//                                                                       letterSpacing: 0.8,
-//                                                                     ),
-//                                                                   ),
-//                                                                   style: ElevatedButton.styleFrom(
-//                                                                     backgroundColor: Colors.blueAccent,
-//                                                                     foregroundColor: Colors.white,
-//                                                                     elevation: 4,
-//                                                                     padding: const EdgeInsets.symmetric(
-//                                                                       horizontal: 28,
-//                                                                       vertical: 16,
-//                                                                     ),
-//                                                                     shape: RoundedRectangleBorder(
-//                                                                       borderRadius: BorderRadius.circular(16),
-//                                                                     ),
-//                                                                     shadowColor: Colors.blueAccent.withOpacity(0.3),
-//                                                                     animationDuration: const Duration(milliseconds: 200),
-//                                                                   ),
-//                                                                 ),
-//                                                               ],
-//                                                             ),
-//                                                           );
-//                                                         } else if (snapshot
-//                                                                 .hasData &&
-//                                                             snapshot.data !=
-//                                                                 null &&
-//                                                             snapshot.data!
-//                                                                 .isNotEmpty) {
-//                                                           // 使用 Map 分组
-//                                                           Map<
-//                                                                   String,
-//                                                                   List<
-//                                                                       Map<String,
-//                                                                           dynamic>>>
-//                                                               groupedStations =
-//                                                               {};
-//                                                           for (var station
-//                                                               in snapshot
-//                                                                   .data!) {
-//                                                             String stationName =
-//                                                                 station
-//                                                                     .stationNameZh;
-//                                                             if (!groupedStations
-//                                                                 .containsKey(
-//                                                                     stationName)) {
-//                                                               groupedStations[
-//                                                                   stationName] = [];
-//                                                             }
-//                                                             groupedStations[
-//                                                                     stationName]!
-//                                                                 .add(station
-//                                                                     .toJson());
-//                                                           }
-//
-//                                                           // 转换为指定格式
-//                                                           List<
-//                                                                   Map<String,
-//                                                                       dynamic>>
-//                                                               result =
-//                                                               groupedStations
-//                                                                   .entries
-//                                                                   .map((entry) {
-//                                                             return {
-//                                                               "StationGroup": {
-//                                                                 "StationGroupName":
-//                                                                     {
-//                                                                   "Zh_tw":
-//                                                                       entry.key
-//                                                                 },
-//                                                                 "Stations":
-//                                                                     entry.value
-//                                                               }
-//                                                             };
-//                                                           }).toList();
-//
-//                                                           // 加载标记
-//                                                           // WidgetsBinding.instance.addPostFrameCallback((_) {
-//                                                           //   _loadMarkers(context, snapshot.data!);
-//                                                           // });
-//
-//                                                           return Padding(
-//                                                             padding:
-//                                                                 const EdgeInsets
-//                                                                     .all(16.0),
-//                                                             child: Column(
-//                                                               children:
-//                                                                   List.generate(
-//                                                                 result.length,
-//                                                                 (index) {
-//                                                                   final station =
-//                                                                       result[
-//                                                                           index];
-//                                                                   return _stationCard(
-//                                                                       station:
-//                                                                           station);
-//                                                                 },
-//                                                               ),
-//                                                             ),
-//                                                           );
-//                                                         } else {
-//                                                           return Container(
-//                                                               margin:  EdgeInsets.only(top: 20), // 可调数值
-//                                                             child: Center(
-//                                                             child: Text(
-//                                                               "找不到附近的站牌",
-//                                                               style: TextStyle(
-//                                                                   color: Colors
-//                                                                       .grey,
-//                                                                   fontSize: 16),
-//                                                             ),
-//                                                           ));
-//                                                         }
-//                                                       },
-//                                                     ),
-//                                                   );
-
                                                 case 2:
                                                   _tabSelect.value = "train";
                                                   return SingleChildScrollView(
-                                                    controller:
-                                                        scrollController,
+                                                    controller: scrollController,
                                                     child: FutureBuilder<List<dynamic>>(
-                                                      future:
-                                                          getNearTrainStation(  locationProvider.latitude,locationProvider.longitude),
-                                                      builder:
-                                                          (context, snapshot) {
-                                                        if (snapshot
-                                                                .connectionState ==
-                                                            ConnectionState
-                                                                .waiting) {
+                                                      future: getNearTrainStation(
+                                                        locationProvider.latitude,
+                                                        locationProvider.longitude,
+                                                      ),
+                                                      builder: (context, snapshot) {
+                                                        // 1. 載入中狀態
+                                                        if (snapshot.connectionState == ConnectionState.waiting) {
                                                           return Center(
-                                                            child: LoadingAnimationWidget
-                                                                .stretchedDots(
-                                                              color:
-                                                                  Colors.black,
+                                                            child: LoadingAnimationWidget.stretchedDots(
+                                                              color: Colors.black,
                                                               size: 40,
                                                             ),
                                                           );
-                                                        } else if (snapshot
-                                                            .hasError) {
+                                                        }
+
+                                                        // 2. 發生錯誤狀態
+                                                        else if (snapshot.hasError) {
                                                           return Center(
                                                             child: Column(
-                                                              mainAxisAlignment:
-                                                                  MainAxisAlignment
-                                                                      .center,
+                                                              mainAxisAlignment: MainAxisAlignment.center,
                                                               children: [
                                                                 const Text(
                                                                   "找不到附近的站牌",
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: Colors
-                                                                        .black54,
-                                                                    fontSize:
-                                                                        16,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
+                                                                  style: TextStyle(
+                                                                    color: Colors.black54,
+                                                                    fontSize: 16,
+                                                                    fontWeight: FontWeight.w500,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                    height: 16),
-                                                                ElevatedButton
-                                                                    .icon(
-                                                                  onPressed:
-                                                                      () {
-                                                                    setState(
-                                                                        () {
-                                                                      getNearTrainStation(  locationProvider.latitude,locationProvider.longitude);
+                                                                const SizedBox(height: 16),
+                                                                ElevatedButton.icon(
+                                                                  onPressed: () {
+                                                                    setState(() {
+                                                                      getNearTrainStation(
+                                                                        locationProvider.latitude,
+                                                                        locationProvider.longitude,
+                                                                      );
                                                                     });
                                                                   },
-                                                                  icon: const Icon(
-                                                                      Icons
-                                                                          .refresh,
-                                                                      color: Colors
-                                                                          .black),
-                                                                  label:
-                                                                      const Text(
+                                                                  icon: const Icon(Icons.refresh, color: Colors.black),
+                                                                  label: const Text(
                                                                     "重試",
-                                                                    style: TextStyle(
-                                                                        color: Colors
-                                                                            .black,
-                                                                        fontSize:
-                                                                            14),
+                                                                    style: TextStyle(color: Colors.black, fontSize: 14),
                                                                   ),
-                                                                  style: ElevatedButton
-                                                                      .styleFrom(
-                                                                    backgroundColor:
-                                                                        Colors
-                                                                            .white,
-                                                                    foregroundColor:
-                                                                        Colors
-                                                                            .black,
-                                                                    elevation:
-                                                                        3,
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                        horizontal:
-                                                                            20,
-                                                                        vertical:
-                                                                            12),
-                                                                    shape:
-                                                                        RoundedRectangleBorder(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              12),
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: Colors.white,
+                                                                    foregroundColor: Colors.black,
+                                                                    elevation: 3,
+                                                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                                                    shape: RoundedRectangleBorder(
+                                                                      borderRadius: BorderRadius.circular(12),
                                                                     ),
-                                                                    shadowColor:
-                                                                        Colors.grey[
-                                                                            300],
+                                                                    shadowColor: Colors.grey[300],
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
                                                           );
-                                                        } else if (snapshot
-                                                            .hasData) {
+                                                        }
 
-
+                                                        // 3. 有資料狀態
+                                                        else if (snapshot.hasData) {
                                                           return Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(16.0),
+                                                            padding: const EdgeInsets.all(16.0),
                                                             child: Column(
-                                                              children:
-                                                                  List.generate(
-                                                                    snapshot.data
-                                                                    !.length,
-                                                                (index) {
-                                                                  final station =
-                                                                  snapshot.data
-                                                                  ![
-                                                                          index];
-                                                                  print(
-                                                                      station);
+                                                              children: List.generate(
+                                                                snapshot.data!.length,
+                                                                    (index) {
+                                                                  final station = snapshot.data![index];
                                                                   return GestureDetector(
-                                                                      onTap:
-                                                                          () {
-                                                                        // 跳转到 StationPage 并传递选中的车站名称
-                                                                        DateTime
-                                                                            today =
-                                                                            DateTime.now();
-                                                                        // 输出当前的日期和时间
+                                                                    onTap: () {
+                                                                      DateTime today = DateTime.now();
+                                                                      DateTime todayDate = DateTime(today.year, today.month, today.day);
 
-// 如果你只需要日期部分（没有时间）
-                                                                        DateTime todayDate = DateTime(
-                                                                            today.year,
-                                                                            today.month,
-                                                                            today.day);
-                                                                        // 输出当前的日期，不包含时间部分
-                                                                        Navigator
-                                                                            .push(
-                                                                          context,
-                                                                          MaterialPageRoute(
-                                                                            builder: (context) =>
-                                                                                StationPage(
-                                                                              stationName: json.decode(station["StationName"])["Zh_tw"],
-                                                                              stationID: (station["StationID"]),
-                                                                              datetime: todayDate, // 将选中的车站名称传递给 StationPage
+                                                                      Navigator.push(
+                                                                        context,
+                                                                        MaterialPageRoute(
+                                                                          builder: (context) => StationPage(
+                                                                            stationName: json.decode(station["StationName"])["Zh_tw"],
+                                                                            stationID: (station["StationID"]),
+                                                                            datetime: todayDate,
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                    child: Container(
+                                                                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                                      decoration: BoxDecoration(
+                                                                        color: Colors.white,
+                                                                        borderRadius: BorderRadius.circular(12),
+                                                                        boxShadow: [
+                                                                          BoxShadow(
+                                                                            color: Colors.black.withOpacity(0.05),
+                                                                            blurRadius: 8,
+                                                                            offset: const Offset(0, 4),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      child: Column(
+                                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                                        children: [
+                                                                          Text(
+                                                                            json.decode(station["StationName"])["Zh_tw"],
+                                                                            style: const TextStyle(
+                                                                              fontSize: 16,
+                                                                              fontWeight: FontWeight.w400,
+                                                                              color: Colors.black,
                                                                             ),
                                                                           ),
-                                                                        );
-                                                                      },
-                                                                      child:
-                                                                          Container(
-                                                                        margin: const EdgeInsets
-                                                                            .symmetric(
-                                                                            vertical:
-                                                                                8,
-                                                                            horizontal:
-                                                                                12),
-                                                                        padding: const EdgeInsets
-                                                                            .symmetric(
-                                                                            vertical:
-                                                                                12,
-                                                                            horizontal:
-                                                                                16),
-                                                                        decoration:
-                                                                            BoxDecoration(
-                                                                          color:
-                                                                              Colors.white,
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(12),
-                                                                          boxShadow: [
-                                                                            BoxShadow(
-                                                                              color: Colors.black.withOpacity(0.05),
-                                                                              blurRadius: 8,
-                                                                              offset: const Offset(0, 4),
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                        child:
-                                                                            Column(
-                                                                          crossAxisAlignment:
-                                                                              CrossAxisAlignment.start,
-                                                                          children: [
-                                                                            Text(
-                                                                              json.decode(station["StationName"])["Zh_tw"],
-                                                                              style: const TextStyle(
-                                                                                fontSize: 16,
-                                                                                fontWeight: FontWeight.w400,
-                                                                                color: Colors.black,
-                                                                              ),
-                                                                            ),
-                                                                            const SizedBox(height: 8),
-                                                                            Divider(
-                                                                                color: Colors.grey[300],
-                                                                                thickness: 0.5),
-                                                                          ],
-                                                                        ),
-                                                                      ));
+                                                                          const SizedBox(height: 8),
+                                                                          Divider(color: Colors.grey[300], thickness: 0.5),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  );
                                                                 },
                                                               ),
                                                             ),
                                                           );
                                                         }
+
+                                                        // 4. 其他預設狀態 (如無資料)
                                                         else {
                                                           return Container(
-                                                              margin:  EdgeInsets.only(top: 20), // 可调数值
-                                                              child: Center(
-                                                                child: Text(
-                                                                  "找不到附近的站牌",
-                                                                  style: TextStyle(
-                                                                      color: Colors
-                                                                          .grey,
-                                                                      fontSize: 16),
-                                                                ),
-                                                              ));
+                                                            margin: const EdgeInsets.only(top: 20),
+                                                            child: Center(
+                                                              child: Text(
+                                                                "找不到附近的站牌",
+                                                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                                                              ),
+                                                            ),
+                                                          );
                                                         }
                                                       },
                                                     ),
                                                   );
-
                                                 case 3:
                                                   _tabSelect.value = "HSR";
                                                   return const Center(
@@ -1308,6 +968,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
    }
 
   Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
+    print("_selectStationGroupID.value");print(_stopName.value);
     if (_tabSelect.value == "bus") {
 
       return Container(
@@ -1319,7 +980,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           controller: scrollController, // 绑定 PrimaryScrollController
           child: BusStopList(
             _stopName.value,
-            key: ValueKey(_selectStationGroupID.value),
+            key: ValueKey(_stopName.value),
           ),
         ),
       );
@@ -1371,34 +1032,21 @@ class _BusStopListState extends State<BusStopList> with TickerProviderStateMixin
   void initState() {
     super.initState();
 
-    // 初始化 TabController
-    // _initTabController();
-    // 加上 listener
-    _tabController = TabController(length:  _stationIDs.value.length, vsync: this); // 兩個 Tab
-    // 每次頁面重新進入，重置 Tab
-    _tabController.index = 0;
-    _currentTabIndex.value = 0; // 添加監聽器，只更新 ValueNotifier
-    _tabController.addListener(() {
-      if (_tabController.index != _currentTabIndex.value) {
-        _currentTabIndex.value = _tabController.index;
-        final currentStationID = _stationIDs.value[_tabController.index];
+    // 關鍵修復 3：計算初始 Index (確保與排序後的列表一致)
+    final sortedIDs = List<String>.from(_stationIDs.value)..sort();
+    int initialIndex = sortedIDs.indexOf(_selectStationID.value);
+    if (initialIndex == -1) initialIndex = 0;
 
-        // 更新選中的站點
-        _selectStationID.value = currentStationID;
-        _tabController.animateTo(_tabController.index);
-        print("✅ Tab 切換完成 -> index: ${_tabController.index}, StationID: $currentStationID");
+    // 初始化 TabController 時帶入 initialIndex
+    _tabController = TabController(
+      length: _stationIDs.value.length,
+      vsync: this,
+      initialIndex: initialIndex, // 這裡設定初始位置
+    );
 
-
-        // 更新 Marker Style
-        _NearbyStationsPageState._updateMarkerStyle(currentStationID);
-      }
-    });
-
-
-    // 監聽 _selectStationID，切換 Tab 並更新 marker 樣式
+    // 監聽器邏輯保持，但要注意內部也要使用排序後的列表來找 index
     _selectStationID.addListener(_onSelectStationChanged);
   }
-
 
   void _onSelectStationChanged() {
     print("_onSelectStationChanged");
@@ -1739,7 +1387,7 @@ WHERE City = 'Taichung'
                       PreferredSize(
                         preferredSize: const Size.fromHeight(120),
                         child: Container(
-                          height: 160,
+                          height: 120,
                           decoration: BoxDecoration(
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(16),
@@ -1881,6 +1529,7 @@ WHERE City = 'Taichung'
                       // ---------- Tab 內容 ----------
                       Expanded(
                         child: TabBarView(
+                          controller: tabController,
                           children: List.generate(
                             _stationIDs.value.length,
                                 (index) {
@@ -1928,21 +1577,15 @@ WHERE City = 'Taichung'
       },
     );
   }
-
   PreferredSize _buildTabBar(List<Map<String, dynamic>> station, TabController? tabController) {
     return PreferredSize(
+      // 1. 高度縮小至 60
       preferredSize: const Size.fromHeight(80),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: const BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          // 2. 移除陰影 (No Shadow)
         ),
         child: tabController == null
             ? const Center(child: CircularProgressIndicator())
@@ -1952,7 +1595,7 @@ WHERE City = 'Taichung'
             final currentIndex = tabController.index;
             return Row(
               children: List.generate(_stationIDs.value.length, (index) {
-                String label = String.fromCharCode(65 + index);
+                final label = String.fromCharCode(65 + index);
                 final isSelected = currentIndex == index;
 
                 return Expanded(
@@ -1962,54 +1605,63 @@ WHERE City = 'Taichung'
                         : EdgeInsets.zero,
                     child: GestureDetector(
                       onTap: () => tabController.animateTo(index),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
+                          // 3. 美化：選中時使用淺藍背景，未選中時使用極淡灰色或透明
                           color: isSelected
-                              ? const Color(0xFF1A73E8).withOpacity(0.1)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
+                              ? const Color(0xFF1A73E8).withOpacity(0.08)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF1A73E8)
-                                : Colors.transparent,
-                            width: 1.5,
+                                : Colors.grey[200]!,
+                            width: 1.2,
                           ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.directions_bus,
-                              size: 20,
-                              color: isSelected
-                                  ? const Color(0xFF1A73E8)
-                                  : Colors.grey[600],
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.directions_bus,
+                                  size: 14, // 縮小圖示以符合高度
+                                  color: isSelected
+                                      ? const Color(0xFF1A73E8)
+                                      : Colors.grey[500],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  "站牌 $label",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF1A73E8)
+                                        : Colors.grey[700],
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w500,
-                                color: isSelected
-                                    ? const Color(0xFF1A73E8)
-                                    : Colors.grey[700],
-                              ),
-                            ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               _stationIDs.value[index],
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 10, // 縮小字體節省空間
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
                                 color: isSelected
-                                    ? const Color(0xFF1A73E8)
-                                    : Colors.grey[600],
+                                    ? const Color(0xFF1A73E8).withOpacity(0.8)
+                                    : Colors.grey[500],
                               ),
                             ),
                           ],
@@ -2104,7 +1756,7 @@ WHERE City = 'Taichung'
                   child: ListTile(
                     onTap: () async {
                       await GetBusInfo(
-                          routeId: int.parse(stop["RouteID"]),
+                          routeId: (stop["RouteID"]),
                           city: "Taichung");
                       Navigator.push(
                         context,
@@ -2116,7 +1768,7 @@ WHERE City = 'Taichung'
                             operators: "",
                             routeMapImageUrl: "",
                             city: "Taichung",
-                            routeID: int.parse(stop["RouteID"]),
+                            routeID: (stop["RouteID"]),
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
@@ -2583,7 +2235,7 @@ class BusStopCache {
 
   // 實際數據獲取方法（此處應調用實際 API，示例中用 GetBusStopInfo）
   Future<List<Map<String, dynamic>>> _fetchData(String stationName) async {
-    return await GetBusStopInfo(stationName, _currentCity);
+    return await GetBusStopInfo(stopName:stationName, city:_currentCity);
   }
 
   // 更新快取（並透過 LRU 機制管理）
@@ -2686,7 +2338,7 @@ class StopInfoCache {
 
     // 快取未命中或資料過期，呼叫 API 取得新資料
     print('[Cache] 快取未命中或過期，請求遠端資料 $key');
-    List<dynamic> info = await GetBusStopInfo(stop, city);
+    List<dynamic> info = await GetBusStopInfo(stopName:stop, city:city);
     _updateCache(key, info);
     return info;
   }
