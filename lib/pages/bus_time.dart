@@ -45,10 +45,11 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
   final city;
+  final  hasSubRoutes;
   final String routeID;
   final Mark? mark;
 
-  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark })
+  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark,required this.hasSubRoutes })
       : super(key: key);
 
   @override
@@ -68,9 +69,17 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
+    print(widget.hasSubRoutes);
      _loadData(); // 初始加载数据
-    _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
+    // 根據是否有子路線決定 Tab 數量
+
+
+
+    if(widget.hasSubRoutes=='false') {
+      _tabController = TabController(length: 1, vsync: this); // 兩個 Tab
+    }else{
+      _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
+    }
 // 添加监听器
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
@@ -117,46 +126,69 @@ void _scrollToIndex(int index) {
 
 }
   Future<Set<Polyline>> _loadShape(int direction) async {
-    final List< dynamic> data = await getShape(widget.city, widget.routeName,widget.routeID);
+    // 檢查 widget 是否還在活動狀態
+    if (!mounted) return {};
 
-    final Set<Polyline> polylines = {};
+    try {
+      final List<dynamic> data = await getShape(
+          widget.city,
+          widget.routeName,
+          widget.routeID
+      );
 
-    for (final item in data) {
-      if (item['Direction'] != direction) continue;
+      // 再次檢查，因為 await 後 widget 可能已被銷毀
+      if (!mounted) return {};
 
-      // 1️⃣ 如果有 EncodedPolyline（TDX 通常有）
-      final encoded = item['EncodedPolyline'];
-      if (encoded is String && encoded.isNotEmpty) {
-        final points = decodePolyline(encoded);
+      final Set<Polyline> polylines = {};
 
-        polylines.add(
-          Polyline(
-            polylineId: PolylineId(
-              '${widget.routeName}_$direction',
+      for (final item in data) {
+        if (item['Direction'] != direction) continue;
+
+        // 1️⃣ 如果有 EncodedPolyline（TDX 通常有）
+        final encoded = item['EncodedPolyline'];
+        if (encoded is String && encoded.isNotEmpty) {
+          final points = decodePolyline(encoded);
+
+          polylines.add(
+            Polyline(
+              polylineId: PolylineId(
+                '${widget.routeName}_$direction',
+              ),
+              points: points,
+              width: 4,
+              color: Colors.blue,
             ),
-            points: points,
-            width: 4,
-            color: Colors.blue,
-          ),
-        );
+          );
+        }
       }
 
-      // 2️⃣ 若你想用 Geometry（LINESTRING）也可以（選用）
-      /*
-    final geometry = item['Geometry'];
-    if (geometry is String) {
-      final points = _parseLineString(geometry);
-      ...
-    }
-    */
-    }
-    setState(() {
-      Provider.of<PolylineProvider>(context, listen: false).setPolylines(polylines);
+      // ✅ 安全地更新 UI 和 Provider
+      if (mounted) {
+        setState(() {
+          // 注意：Provider 不應該在 setState 內呼叫
+          // 將 Provider 更新移到外面
+        });
 
-    });
-    return polylines;
+        // ✅ 更新 Provider（不需要 setState 包裝）
+        final polylineProvider = Provider.of<PolylineProvider>(context, listen: false);
+        if (polylineProvider != null) {
+          polylineProvider.setPolylines(polylines);
+        }
+      }
+
+      return polylines;
+
+    } catch (e) {
+      debugPrint('載入路線形狀失敗: $e');
+      if (mounted) {
+        // 可選：顯示錯誤訊息
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('載入路線失敗: $e')),
+        );
+      }
+      return {};
+    }
   }
-
   ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
   Future<void> _loadMarkers(String stopType) async {
 
@@ -179,7 +211,7 @@ void _scrollToIndex(int index) {
       );
       markers.add(marker);
     }
-  }else   if(stopType=="stopNamesWithTime2"){
+  }else   if(stopType=="stopNamesWithTime2" &&stopNamesWithTime2.isEmpty==false ){
 
     for (var stop in stopNamesWithTime2) {
 
@@ -258,10 +290,15 @@ void _scrollToIndex(int index) {
       if (direction != null) {
         _tabController.animateTo(direction);
       }
+      if(widget.hasSubRoutes=='false') {
+        stopNamesWithTime1 = await fetchStopsByDir(0, 1); // 這裡調整為 0 優先
+        stopNamesWithTime2 =[];
+      }else{
+        // 📌 抓取雙向資料 (對齊索引建議：Time1 對應 Dir 0, Time2 對應 Dir 1)
+        stopNamesWithTime1 = await fetchStopsByDir(1, 0); // 這裡調整為 0 優先
+        stopNamesWithTime2 = await fetchStopsByDir(0, 1); // 這裡調整為 1 優先
+      }
 
-      // 📌 抓取雙向資料 (對齊索引建議：Time1 對應 Dir 0, Time2 對應 Dir 1)
-      stopNamesWithTime1 = await fetchStopsByDir(1, 0); // 這裡調整為 0 優先
-      stopNamesWithTime2 = await fetchStopsByDir(0, 1); // 這裡調整為 1 優先
 
       // 根據當前 Tab 決定主顯示列表
       final bool isDir0 = _tabController.index == 0;
@@ -328,15 +365,18 @@ void _scrollToIndex(int index) {
       if (isTimerOn.value) _startAutoReload();
 
       // 🗺 載入地圖資源 (根據當前 Tab 方向載入)
+
       _loadMarkers(isDir0 ? "stopNamesWithTime1" : "stopNamesWithTime2");
       _loadShape(isDir0 ? 0 : 1);
 
-      // 📢 通知 UI 更新
-      _dataNotifier.value = {
-        'routeInfo': [widget.routeName, widget.departureStopName, widget.destinationStopName],
-        'stopNamesWithTime1': stopNamesWithTime1,
-        'stopNamesWithTime2': stopNamesWithTime2,
-      };
+        // 📢 通知 UI 更新
+        _dataNotifier.value = {
+          'routeInfo': [widget.routeName, widget.departureStopName, widget.destinationStopName],
+          'stopNamesWithTime1': stopNamesWithTime1,
+          'stopNamesWithTime2': stopNamesWithTime2,
+        };
+
+
 
     } catch (e, s) {
       debugPrint("❌ _loadData 發生重大錯誤: $e\n$s");
@@ -425,7 +465,17 @@ void _scrollToIndex(int index) {
 
       return _buildResult("無資料", "班次結束", "", null);
     }
+ try{
 
+
+   if (stop.containsKey("EstimateTime") ){
+
+
+
+   }
+ }catch(e){
+   return _buildResult("未營運", "0","", stop);
+ }
     // 2. 處理「預估到站時間」(EstimateTime)
     if (stop["EstimateTime"] != null) {
       isTimerOn.value = true;
@@ -911,13 +961,14 @@ void _scrollToIndex(int index) {
                   length: 2,
                   child: Scaffold(
 
-                    appBar: AppBar(
-                      backgroundColor: Colors.white,
+                    appBar:  AppBar(
+                     
                       elevation: 0,
                       leading: Container(
-                        margin: const EdgeInsets.all(8),
+                    height: 150,
+                        margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF3FB),
+                          color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
@@ -938,9 +989,10 @@ void _scrollToIndex(int index) {
                       centerTitle: true,
                       actions: [
                         Container(
-                          margin: const EdgeInsets.all(8),
+                          margin: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEEF3FB),
+                            color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
+
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: PopupMenuButton<String>(
@@ -1007,7 +1059,7 @@ void _scrollToIndex(int index) {
                             controller: _tabController,
                             children: [
                               if (stopNamesWithTime1.isEmpty==false) _buildTabContent(stopNamesWithTime1),
-                              if (stopNamesWithTime2.isEmpty==false) _buildTabContent(stopNamesWithTime2),
+                              if (stopNamesWithTime2.isEmpty==false &&  widget.hasSubRoutes=='true') _buildTabContent(stopNamesWithTime2),
                             ],
                           ),
 
@@ -1152,7 +1204,7 @@ void _scrollToIndex(int index) {
                   onTap: () => _tabController.animateTo(0),
                 ),
               ),
-            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty)
+            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty&& widget.hasSubRoutes=='false')
               const SizedBox(width: 12),
             if (stopNamesWithTime2.isNotEmpty)
               Expanded(

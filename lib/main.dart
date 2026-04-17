@@ -77,6 +77,7 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => LocationProvider()),
       ChangeNotifierProvider(create: (_) => MarkerProvider()),
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
+      ChangeNotifierProvider(create: (_) => AppProvider()),
     ];
   }
 }
@@ -158,7 +159,8 @@ class _NavigationBarAppState extends State<NavigationBarApp>
 
   @override
   Widget build(BuildContext context) {
-
+// 監聽 Provider 中的狀態
+    final appProvider = Provider.of<AppProvider>(context);
 
 
     return GestureDetector(
@@ -184,8 +186,13 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           AppRoutes.traffic: (BuildContext context) => (Traffic()),
           AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
         },
+       //themeMode: appProvider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
 
-        theme: appTheme,
+        darkTheme: AppThemes.darkTheme,
+        theme: AppThemes.lightTheme,
+        // --- 重點：套用語言 ---
+        locale: appProvider.locale,
+
         themeMode: ThemeMode.system,
         home: const TaiwanPass(),
       )
@@ -266,14 +273,15 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+
+
         elevation: 0,
         title: const Text(
           '台灣通',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A73E8),
+            color: primary,
             letterSpacing: -0.5,
           ),
         ),
@@ -475,22 +483,9 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              height: 64,
-              indicatorColor: Colors.white.withOpacity(0.5),
-              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>(
-                    (Set<WidgetState> states) {
-                  final isSelected = states.contains(WidgetState.selected);
-                  return TextStyle(
-                    fontSize: isSelected ? 12 : 11,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Colors.blueAccent : Colors.grey[600],
-                    letterSpacing: 0.2,
-                  );
-                },
-              ),
-            ),
+            data: AppThemes.getNavigationBarTheme(context),
             child: NavigationBar(
+
               selectedIndex: currentPageIndex,
               animationDuration: const Duration(milliseconds: 800),
               onDestinationSelected: (int index) {
@@ -510,7 +505,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.commuteOutlined,
                   activeIconPath: SvgAssets.commuteOutlined,
-                  label: '出行',
+                  label: '行程',
                 ),
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.busStop,

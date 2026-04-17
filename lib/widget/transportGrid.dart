@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_svg/svg.dart';
 import 'package:com.rsmn574.app/bus.dart';
 // 保持原有的 import
+import '../Const/regularClass.dart';
 import '../test.dart';
-
+import 'package:provider/provider.dart' ;
+import 'package:provider/single_child_widget.dart';
 class TransportGrid extends StatefulWidget {
   final Function(String) onClick;
   const TransportGrid({super.key, required this.onClick});
@@ -27,10 +30,10 @@ class _TransportGridState extends State<TransportGrid> {
     {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'IntercityBus'},
     {'icon': 'assets/icons/parking.svg', 'text': '停車資訊', 'route': 'parking'},
     {'icon': 'assets/icons/ev-station.svg', 'text': '充電樁', 'route': 'EVStation'},
-    {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
-    {'icon': 'assets/icons/motorcycle.svg', 'text': '時速表', 'route': 'speedometer'},
+    // {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
+    // {'icon': 'assets/icons/motorcycle.svg', 'text': '時速表', 'route': 'speedometer'},
   ];
 
   @override
@@ -46,7 +49,7 @@ class _TransportGridState extends State<TransportGrid> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-        color: Colors.white,
+
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -107,25 +110,31 @@ class _TransportGridState extends State<TransportGrid> {
   }
 
   Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // 動態定義顏色
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+    final Color iconColor = isDark ? Theme.of(context).colorScheme.primaryContainer : Colors.blue.shade800;
+    final Color textColor = isDark ? Colors.white.withOpacity(0.9) : Colors.blueGrey.shade800;
+
     return InkWell(
       onTap: () => _onTransportTap(context, route, text),
       borderRadius: BorderRadius.circular(20),
-      splashColor: Colors.blue.withOpacity(0.05),
+      // 深色模式下點擊水波紋稍微亮一點
+      splashColor: primaryColor.withOpacity(isDark ? 0.1 : 0.05),
       highlightColor: Colors.transparent,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 圖標容器：添加輕微漸層
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.08),
-                  Colors.blue.withOpacity(0.03),
-                ],
+                colors: isDark
+                    ? [primaryColor.withOpacity(0.15), primaryColor.withOpacity(0.02)]
+                    : [Colors.blue.withOpacity(0.08), Colors.blue.withOpacity(0.03)],
               ),
               shape: BoxShape.circle,
             ),
@@ -133,8 +142,11 @@ class _TransportGridState extends State<TransportGrid> {
               icon,
               width: iconSize,
               height: iconSize,
-              // 這裡使用更加沉穩的藍色
-              colorFilter: ColorFilter.mode(Colors.blue.shade800, BlendMode.srcIn),
+              // 深色模式下圖示用 primary 或較亮的藍，避免看不見
+              colorFilter: ColorFilter.mode(
+                  isDark ? primaryColor : Colors.blue.shade700,
+                  BlendMode.srcIn
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -142,8 +154,8 @@ class _TransportGridState extends State<TransportGrid> {
             text,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.blueGrey.shade800,
-              fontWeight: FontWeight.w500,
+              color: textColor,
+              fontWeight: FontWeight.w600, // 稍微加粗提高可讀性
               letterSpacing: 0.2,
             ),
           ),
@@ -151,7 +163,6 @@ class _TransportGridState extends State<TransportGrid> {
       ),
     );
   }
-
   Widget _buildPageIndicator(int totalPages) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

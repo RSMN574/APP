@@ -45,9 +45,7 @@ class BusState extends State<Bus> {
   // 顏色定義 - 使用航班主題
   final Color _primaryColor = const Color(0xFF1A73E8);
   final Color _secondaryColor = const Color(0xFFEEF3FB);
-  final Color _backgroundColor = Colors.white;
-  final Color _textColor = Colors.black87;
-  final Color _greyColor = Colors.grey;
+
 
   Future? _suggestionFuture; // 用來存住請求的結果
   String _lastQuery = "";      // 用來紀錄上次搜尋的內容，避免重複請求
@@ -150,7 +148,7 @@ class BusState extends State<Bus> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: _secondaryColor,
+
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -165,7 +163,7 @@ class BusState extends State<Bus> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: Colors.black,
+
             ),
           ),
         ],
@@ -234,7 +232,7 @@ class BusState extends State<Bus> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -272,7 +270,7 @@ class BusState extends State<Bus> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -280,7 +278,7 @@ class BusState extends State<Bus> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey[600],
+
                       ),
                     ),
                   ],
@@ -322,7 +320,7 @@ class BusState extends State<Bus> {
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -338,12 +336,12 @@ class BusState extends State<Bus> {
                 // 標題
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: const Text(
+                  child: Text(
                     "票價細則",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A73E8),
+                      color: AppThemes.getPrimary(context),
                     ),
                   ),
                 ),
@@ -443,7 +441,7 @@ class BusState extends State<Bus> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemes.getSurface(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -507,7 +505,7 @@ class BusState extends State<Bus> {
       // margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemes.getSurface(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -520,9 +518,10 @@ class BusState extends State<Bus> {
       child: Row(
         children: [
           Container(
+
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
+              color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -532,33 +531,148 @@ class BusState extends State<Bus> {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             '選擇城市',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: AppThemes.getOnSurface(context),
             ),
           ),
           const Spacer(),
           // 為 CustomDropdown 提供明確的寬度約束
-          SizedBox(
-            width: 160, // 或者根據需要調整寬度
-            child: CustomDropdown<String>(
-              items: filteredList,
-              initialItem: currentCityNotifier.value == '全部' && !includeAll
-                  ? null
-                  : currentCityNotifier.value,
-              onChanged: (value) {
-                setState(() {
-                  currentCityNotifier.value = value!;
-                  updatedCorrespondingID();
-                  _getData();
-                  updateCurrent();
-                });
-              },
+          Container(
+            width: 160,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
+              color: AppThemes.getCardColor(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withOpacity(0.15),
+              ),
+              boxShadow: [
+                if (Theme.of(context).brightness == Brightness.light)
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+              ],
             ),
-          ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                // 下拉選單整體的背景與形狀
+                dropdownColor: AppThemes.getCardColor(context),
+                borderRadius: BorderRadius.circular(16),
+                isExpanded: true,
+
+                // 設定目前的數值與圖示
+                value: currentCityNotifier.value == '全部' && !includeAll
+                    ? null
+                    : currentCityNotifier.value,
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded, // 圓角箭頭
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+
+                // --- 1. 平時顯示在框框內的樣子 ---
+                selectedItemBuilder: (BuildContext context) {
+                  return filteredList.map<Widget>((String value) {
+                    return Container(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_rounded, // 縣市定位圖示
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList();
+                },
+
+                // --- 2. 點開後的清單佈局 ---
+                items: filteredList.map((String value) {
+                  final isSelected = currentCityNotifier.value == value;
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                  return DropdownMenuItem<String>(
+                    value: value,
+
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        // 選中時高亮：深色模式使用 10% 透明白，淺色用品牌淡藍
+                        // color: isSelected
+                        //     ? (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFEEF3FB))
+                        //     : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          // 狀態小圓點
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.grey.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              value,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      currentCityNotifier.value = value;
+                      updatedCorrespondingID();
+                      _getData();
+                      updateCurrent();
+                    });
+                  }
+                },
+              ),
+            ),
+          )
         ],
       ),
     );
@@ -567,7 +681,9 @@ class BusState extends State<Bus> {
   Widget build(BuildContext context) {
     updateCurrent();
     return Scaffold(
+
       appBar: _buildAppBar(),
+
       body: GestureDetector(
         onTap: () => hideKeyboard(context),
         child: Column(
@@ -606,7 +722,7 @@ class BusState extends State<Bus> {
             width: 120,
             margin: const EdgeInsets.only(right: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemes.getSurface(context),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -623,14 +739,130 @@ class BusState extends State<Bus> {
 
 
                 return    SizedBox(
-                  width: 120, // 或者根據需要調整寬度
-                  child: CustomDropdown<String>(
-                    items: ['路線', '站牌'],
-                    initialItem:"路線" ,
+                  width: 130, // 稍微增加一點寬度以容納圖示
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppThemes.getCardColor(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withOpacity(0.1),
+                      ),
+                      boxShadow: [
+                        if (Theme.of(context).brightness == Brightness.light)
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                      ],
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _dropdownValueNotifier.value,
+                        isExpanded: true,
+                        dropdownColor: AppThemes.getCardColor(context),
+                        borderRadius: BorderRadius.circular(16),
+                        icon: Icon(
+                          Icons.unfold_more_rounded, // 換一個更有質感的圖示
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
 
-                    onChanged: (value) {
-                      _dropdownValueNotifier.value = value!;
-                    },
+                        // --- 1. 平時顯示在框框內的樣子 ---
+                        selectedItemBuilder: (BuildContext context) {
+                          return ['路線', '站牌'].map<Widget>((String value) {
+                            return Container(
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    value == '路線' ? Icons.alt_route_rounded : Icons.place_rounded,
+                                    size: 18,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    value,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+
+                        // --- 2. 點開後的清單佈局 ---
+                        items: <String>['路線', '站牌'].map((String value) {
+                          final isSelected = _dropdownValueNotifier.value == value;
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            // 移除預設 padding 以便 AnimatedContainer 填滿
+
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                // 選中時的高亮色：淺色用淡藍，深色用白透明
+                                // color: isSelected
+                                //     ? (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFEEF3FB))
+                                //     : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  // 狀態圓點
+                                  // Container(
+                                  //   width: 7,
+                                  //   height: 7,
+                                  //   decoration: BoxDecoration(
+                                  //     color: isSelected
+                                  //         ? Theme.of(context).colorScheme.primary
+                                  //         : Colors.grey.withOpacity(0.5),
+                                  //     shape: BoxShape.circle,
+                                  //   ),
+                                  // ),
+                                  // const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      value,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                        color: isSelected
+                                            ? Theme.of(context).colorScheme.primary
+                                            : Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _dropdownValueNotifier.value = newValue;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 );
               },
@@ -640,15 +872,21 @@ class BusState extends State<Bus> {
           // 搜尋輸入框
           Expanded(
             child: Container(
+
               decoration: BoxDecoration(
-                color: Colors.white,
+                // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
+                color: AppThemes.getCardColor(context),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withOpacity(0.15),
+                ),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
+                  if (Theme.of(context).brightness == Brightness.light)
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
                 ],
               ),
               child: TextField(
@@ -677,11 +915,11 @@ class BusState extends State<Bus> {
                 controller: busIdController,
                 decoration: InputDecoration(
                   hintText: '搜尋公車路線或站牌...',
-                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.grey[500], fontSize: 14),
                   prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 20),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear),
-                    color: Colors.grey[700],
+                    color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.grey[700],
                     onPressed: () {
                       busIdController.clear();
                       suggestions.value.clear();
@@ -696,7 +934,7 @@ class BusState extends State<Bus> {
                   fillColor: Colors.transparent,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                style: TextStyle(  color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.black87, fontSize: 14),
               ),
             ),
           ),
@@ -709,7 +947,7 @@ class BusState extends State<Bus> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemes.getSurface(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -732,9 +970,9 @@ class BusState extends State<Bus> {
     return Container(
       height: 100,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: AppThemes.getSurface(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: ListView.builder(
         physics: const BouncingScrollPhysics(),
@@ -1135,7 +1373,7 @@ WHERE City = '${correspondingIDNotifier.value}'
     } else {
       finalRouteID = rawRouteID;
     }
-
+print(route);
 
     Navigator.push(
       context,
@@ -1148,6 +1386,7 @@ WHERE City = '${correspondingIDNotifier.value}'
           routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
           city: correspondingIDNotifier.value,
           routeID: finalRouteID,
+            hasSubRoutes:route["HasSubRoutes"]
         ),
       ),
     );

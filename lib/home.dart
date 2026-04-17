@@ -237,9 +237,9 @@ class _HomeState extends State<Home>
             Container(
               margin: const EdgeInsets.only(top: 60),
               height: 800,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              decoration: BoxDecoration(
+                color: AppThemes.getSurface(context),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               ),
               child: SingleChildScrollView(
                 controller: scrollController,

@@ -6,41 +6,55 @@ import '../models/WeatherData.dart';
 
 // --- 資料模型 ---
 
-
 // --- 主元件 ---
-class WeatherAlertCard extends StatelessWidget {
+class WeatherAlertCard extends StatefulWidget {
   final String cityName;
 
   const WeatherAlertCard({super.key, required this.cityName});
 
-  // 格式化城市名稱 (API 需要「臺」)
+  @override
+  State<WeatherAlertCard> createState() => _WeatherAlertCardState();
+}
+
+class _WeatherAlertCardState extends State<WeatherAlertCard> {
+  bool _isExpanded = false;
+  late Future<ComprehensiveWeatherData> _weatherDataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _weatherDataFuture = fetchAllData();
+  }
+
   String _formatCityName(String name) {
-    String formatted = name.replaceAll('台中', '臺中').replaceAll('台北', '臺北').replaceAll('台南', '臺南').replaceAll('台東', '臺東');
+    String formatted = name
+        .replaceAll('台中', '臺中')
+        .replaceAll('台北', '臺北')
+        .replaceAll('台南', '臺南')
+        .replaceAll('台東', '臺東');
     if (!formatted.contains('市') && !formatted.contains('縣')) {
-      // 簡單處理，若無市/縣則補上市 (實務上建議根據外部傳入正確名稱)
       if (formatted == "臺中") formatted = "臺中市";
     }
     return formatted;
   }
 
-  // 取得天氣圖示
   IconData _getWeatherIcon(String wx) {
     if (wx.contains('晴')) return Icons.wb_sunny_rounded;
     if (wx.contains('雨')) return Icons.umbrella_rounded;
     if (wx.contains('雲')) return Icons.cloud_rounded;
+    if (wx.contains('陰')) return Icons.cloud_queue_rounded;
     return Icons.wb_cloudy_rounded;
   }
 
-  // 警報顏色邏輯
   Color _getAlertColor(String title) {
-    if (title.contains('地震') || title.contains('海嘯') || title.contains('豪雨')) return Colors.red;
-    if (title.contains('大雨') || title.contains('強風') || title.contains('低溫')) return Colors.orange;
-    return Colors.amber;
+    if (title.contains('地震') || title.contains('海嘯') || title.contains('豪雨')) return const Color(0xFFFF3B30);
+    if (title.contains('大雨') || title.contains('強風') || title.contains('低溫')) return const Color(0xFFFF9500);
+    return const Color(0xFFFFCC00);
   }
 
   Future<ComprehensiveWeatherData> fetchAllData() async {
     const String apiKey = 'CWA-5150C3FB-47F0-4156-8441-02FDEFC90A22';
-    final formattedCity = _formatCityName(cityName);
+    final formattedCity = _formatCityName(widget.cityName);
 
     final weatherUrl = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=$apiKey&locationName=$formattedCity';
     final warningUrl = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0033-001?Authorization=$apiKey';
@@ -56,30 +70,31 @@ class WeatherAlertCard extends StatelessWidget {
       WeatherInfo? weatherInfo;
       List<AlertInfo> alerts = [];
 
-      // --- A. 解析一般天氣 (加入空值檢查) ---
+      // A. 解析一般天氣
       if (responses[0].statusCode == 200) {
         final data = json.decode(responses[0].body);
-        final loc = data['records']?['location'] ?? []; // 使用 ? 和 ?? []
+        final loc = data['records']?['location'] ?? [];
         if (loc.isNotEmpty) {
           final ele = loc[0]['weatherElement'];
           weatherInfo = WeatherInfo(
             description: ele[0]['time'][0]['parameter']['parameterName'],
             pop: ele[1]['time'][0]['parameter']['parameterName'],
-            temperature: "${ele[2]['time'][0]['parameter']['parameterName']}°-${ele[4]['time'][0]['parameter']['parameterName']}°",
+            minT: ele[2]['time'][0]['parameter']['parameterName'],
+            comfort: ele[3]['time'][0]['parameter']['parameterName'],
+            maxT: ele[4]['time'][0]['parameter']['parameterName'],
             icon: _getWeatherIcon(ele[0]['time'][0]['parameter']['parameterName']),
           );
         }
       }
 
-      // --- B. 解析警特報 (關鍵修正點：避免 Iterable 錯誤) ---
+      // B. 解析警特報
       if (responses[1].statusCode == 200) {
         final data = json.decode(responses[1].body);
-        // 確保 records 內的 record 不是 null 才能跑迴圈
         final records = data['records']?['record'] as List<dynamic>? ?? [];
 
         for (var r in records) {
           String content = r['contents']?['content']?['contentText'] ?? "";
-          if (content.contains(formattedCity)) {
+          if (content.contains(formattedCity) || r['datasetInfo']?['datasetDescription'] == "海嘯警報") {
             alerts.add(AlertInfo(
               title: r['datasetInfo']?['datasetDescription'] ?? "天氣警報",
               description: content,
@@ -90,40 +105,95 @@ class WeatherAlertCard extends StatelessWidget {
         }
       }
 
-      // --- C. 解析地震 (關鍵修正點) ---
+      // C. 解析地震 (新增時間判斷與數量限制)
       if (responses[2].statusCode == 200) {
         final data = json.decode(responses[2].body);
         final eqList = data['records']?['Earthquake'] as List<dynamic>? ?? [];
 
-        if (eqList.isNotEmpty) {
-          final latestEq = eqList[0]['EarthquakeInfo'];
-          if (latestEq != null) {
-            alerts.add(AlertInfo(
-              title: "最近地震報告",
-              description: "位置: ${latestEq['EarthquakeLocation']}, 規模: ${latestEq['EarthquakeMagnitude']?['MagnitudeValue'] ?? '未知'}",
-              color: Colors.redAccent,
-              icon: Icons.sensors_rounded,
-            ));
+        final DateTime now = DateTime.now(); // 取得現在時間
+        int eqCount = 0; // 用來計算已經加入了幾筆
+
+        for (var eq in eqList) {
+          if (eqCount >= 2) break; // 如果已經拿到 2 筆，就停止迴圈
+
+          final eqInfo = eq['EarthquakeInfo'];
+          if (eqInfo != null) {
+            final String? originTimeStr = eqInfo['OriginTime']; // "2026-04-05 05:23:59"
+            if (originTimeStr != null) {
+              try {
+                // 將字串轉為 DateTime 物件
+                final DateTime originTime = DateTime.parse(originTimeStr);
+
+                // 計算地震發生時間與現在時間相差的天數
+                final int diffDays = now.difference(originTime).inDays;
+
+                // 只有小於 7 天 (1星期內) 才顯示
+                if (diffDays < 7) {
+                  final reportContent = eq['ReportContent'] ?? "";
+                  final location = eqInfo['Epicenter']?['Location'] ?? '未知';
+                  final magnitude = eqInfo['EarthquakeMagnitude']?['MagnitudeValue'] ?? '未知';
+
+                  alerts.add(AlertInfo(
+                    title: "顯著有感地震報告 (規模 $magnitude)",
+                    description: "發生時間: $originTimeStr\n位置: $location\n\n$reportContent",
+                    color: const Color(0xFFFF3B30),
+                    icon: Icons.sensors_rounded,
+                  ));
+
+                  eqCount++; // 成功加入一筆，計數器 +1
+                }
+              } catch (e) {
+                debugPrint('地震時間解析錯誤: $e');
+              }
+            }
           }
         }
       }
 
       return ComprehensiveWeatherData(weather: weatherInfo, alerts: alerts);
     } catch (e) {
-      // 這裡會抓到之前的 Null 錯誤，現在修正後就不會進來了
       debugPrint('API Error Detail: $e');
       return ComprehensiveWeatherData(alerts: []);
     }
   }
+
+  void _showAlertDetails(BuildContext context, AlertInfo alert) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(alert.icon, color: alert.color),
+            const SizedBox(width: 8),
+            Expanded(child: Text(alert.title, style: TextStyle(color: alert.color, fontWeight: FontWeight.bold, fontSize: 18))),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Text(
+            alert.description.isEmpty ? "目前無詳細說明。" : alert.description,
+            style: const TextStyle(height: 1.5, fontSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('關閉', style: TextStyle(color: Color(0xFF1A73E8))),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ComprehensiveWeatherData>(
-      future: fetchAllData(),
+      future: _weatherDataFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+            padding: EdgeInsets.symmetric(vertical: 20),
+            child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
           );
         }
 
@@ -136,13 +206,11 @@ class WeatherAlertCard extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. 警特報列表 (有資料才顯示)
               if (data.alerts.isNotEmpty)
-                ...data.alerts.map((alert) => _buildAlertItem(alert)),
-
-              // 2. 一般天氣卡片
-              if (data.weather != null) _buildWeatherCard(data.weather!),
+                ...data.alerts.map((alert) => _buildAlertItem(context, alert)),
+              if (data.weather != null) _buildExpandableWeatherCard(data.weather!),
             ],
           ),
         );
@@ -150,66 +218,162 @@ class WeatherAlertCard extends StatelessWidget {
     );
   }
 
-  // 警報 UI
-  Widget _buildAlertItem(AlertInfo alert) {
+  Widget _buildAlertItem(BuildContext context, AlertInfo alert) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: alert.color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: alert.color.withOpacity(0.3)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: alert.color.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
-      child: Row(
-        children: [
-          Icon(alert.icon, color: alert.color, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              alert.title,
-              style: TextStyle(color: alert.color, fontWeight: FontWeight.bold, fontSize: 13),
-              overflow: TextOverflow.ellipsis,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showAlertDetails(context, alert),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: alert.color, width: 4)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(alert.icon, color: alert.color, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          alert.title,
+                          style: TextStyle(color: alert.color, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text("點擊查看完整警報資訊", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey[400]),
+                ],
+              ),
             ),
           ),
-          const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
-        ],
+        ),
       ),
     );
   }
 
-  // 一般天氣 UI
-  Widget _buildWeatherCard(WeatherInfo weather) {
-    return Container(
-      padding: const EdgeInsets.all(12),
+  Widget _buildExpandableWeatherCard(WeatherInfo weather) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE1E8F5)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE1E8F5), width: 1),
       ),
-      child: Row(
-        children: [
-          Icon(weather.icon, color: const Color(0xFF1A73E8), size: 22),
-          const SizedBox(width: 10),
-          Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => setState(() => _isExpanded = !_isExpanded),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${weather.description}  ${weather.temperature}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      child: Icon(weather.icon, color: const Color(0xFF1A73E8), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '${weather.minT}° - ${weather.maxT}°',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF202124)),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: const Color(0xFFEEF3FB), borderRadius: BorderRadius.circular(4)),
+                                child: Text(weather.description, style: const TextStyle(fontSize: 11, color: Color(0xFF1A73E8))),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(widget.cityName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.water_drop_rounded, size: 14, color: Color(0xFF1A73E8)),
+                            Text('${weather.pop}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A73E8))),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Icon(
+                          _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          size: 18, color: Colors.grey[500],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                Text(cityName, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: _isExpanded
+                      ? Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 10),
+                        child: Divider(height: 1, color: Color(0xFFE1E8F5)),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildDetailItem(Icons.thermostat_rounded, "最低溫", "${weather.minT}°C"),
+                          _buildDetailItem(Icons.sunny_snowing, "最高溫", "${weather.maxT}°C"),
+                          _buildDetailItem(Icons.accessibility_new_rounded, "舒適度", weather.comfort),
+                        ],
+                      ),
+                    ],
+                  )
+                      : const SizedBox.shrink(),
+                ),
               ],
             ),
           ),
-          Row(
-            children: [
-              const Icon(Icons.water_drop, size: 14, color: Color(0xFF1A73E8)),
-              Text(' ${weather.pop}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1A73E8))),
-            ],
-          ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildDetailItem(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF424242))),
+      ],
     );
   }
 }

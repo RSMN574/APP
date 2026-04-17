@@ -192,19 +192,7 @@ class InfoPages extends StatelessWidget {
                 color: const Color(0xFFFF9500),
                 onTap: testTask,
               ),
-              const SizedBox(height: 12),
-              _buildActionCard(
-                icon: Icons.developer_mode_rounded,
-                title: '開發者測試',
-                subtitle: '進入測試頁面',
-                color: const Color(0xFFAF52DE),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MetroMapScreen()),
-                  );
-                },
-              ),
+
             ],
           ),
         ],
@@ -220,7 +208,7 @@ class InfoPages extends StatelessWidget {
           if (id == 'city') {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => City()),
+              MaterialPageRoute(builder: (context) => TaiwanCitiesPage()),
             );
           }
         },

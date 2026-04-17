@@ -1027,6 +1027,7 @@ print((route));
           routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
           city: correspondingIDNotifier.value,
           routeID: route["routeID"],
+            hasSubRoutes:route["HasSubRoutes"]
         ),
       ),
     );

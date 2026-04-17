@@ -264,7 +264,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
           operators: route["Operators"],
           routeMapImageUrl: route["RouteMapImageUrl"],
           city: route['City'] ?? 'InterCity',
-          routeID: (route["RouteID"]),
+          routeID: (route["RouteID"]),  hasSubRoutes:route["HasSubRoutes"]
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);

@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart'; // 建議安裝此套件處理外部連結
 
 import '../../database/SQL/schedule.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late ValueNotifier<bool> _notificationsEnabled = ValueNotifier(true);
-  late ValueNotifier<bool> _isDarkTheme = ValueNotifier(false);
+  final ValueNotifier<bool> _notificationsEnabled = ValueNotifier(true);
+  final ValueNotifier<bool> _isDarkTheme = ValueNotifier(false);
   String _selectedLanguage = '繁體中文';
-  String _appVersion = '1.0.0'; // 預設版本號
-  late String appName;
-  late String packageName;
-  late String buildNumber;
+  String _appVersion = '1.0.0';
+  String _appName = '交通助手';
+  String _packageName = '';
+  String _buildNumber = '';
 
   @override
   void initState() {
@@ -38,9 +41,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final packageInfo = await PackageInfo.fromPlatform();
     setState(() {
       _appVersion = packageInfo.version;
-      appName = packageInfo.appName;
-      packageName = packageInfo.packageName;
-      buildNumber = packageInfo.buildNumber;
+      _appName = packageInfo.appName;
+      _packageName = packageInfo.packageName;
+      _buildNumber = packageInfo.buildNumber;
     });
   }
 
@@ -63,76 +66,170 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       appBar: AppBar(
-        title: Text('設定'),
+        title: const Text('設定', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
+
       ),
       body: ListView(
         children: [
-          ValueListenableBuilder<bool>(
-            valueListenable: _notificationsEnabled,
-            builder: (context, value, child) {
-              return SwitchListTile(
-                title: const Text('啟用通知'),
-                value: value,
-                onChanged: null, // 禁用交互
-                activeColor: Colors.grey, // 改變顯示顏色以表明禁用狀態
-              );
-            },
-          ),
-          ValueListenableBuilder<bool>(
-            valueListenable: _isDarkTheme,
-            builder: (context, value, child) {
-              return SwitchListTile(
-                title: const Text('深色模式'),
-                value: value,
-                onChanged: null, // 禁用交互
-                activeColor: Colors.grey, // 改變顯示顏色以表明禁用狀態
-              );
-            },
-          ),
+          _buildSectionTitle('系統設定'),
+          _buildSettingCard([
+            ValueListenableBuilder<bool>(
+              valueListenable: _notificationsEnabled,
+              builder: (context, value, child) {
+                return SwitchListTile(
+                  secondary: const Icon(Icons.notifications_active_outlined, color: Colors.blue),
+                  title: const Text('啟用即時通知'),
+                  subtitle: const Text('接收公車到站與天氣警報'),
+                  value: value,
+                  onChanged: (bool newValue) {
+                    _notificationsEnabled.value = newValue;
+                    _savePreference('notifications', newValue);
+                  },
+                );
+              },
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: _isDarkTheme,
+              builder: (context, value, child) {
+                return SwitchListTile(
+                  secondary: const Icon(Icons.dark_mode_outlined, color: Colors.orange),
+                  title: const Text('深色模式'),
+                  value: value,
+                  onChanged: (bool newValue) {
+                    _isDarkTheme.value = newValue;
+                    _savePreference('darkTheme', newValue);
+                    // 這裡通常需要通知 MyApp 重新 build 以切換主題
+                  },
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.green),
+              title: const Text('語言設定'),
+              subtitle: Text(_selectedLanguage),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showLanguageDialog(),
+            ),
+          ]),
 
-          ListTile(
-            title: Text('語言設定'),
-            subtitle: Text(_selectedLanguage),
-            leading: Icon(Icons.language),
-            trailing: Icon(Icons.chevron_right),
-            onTap: () => _showLanguageDialog(),
-          ),
-          ListTile(
-            title: Text('資料來源'),
-            leading: Icon(Icons.info),
-            onTap: () => _showInfoDialog(context),
-          ),
-          ListTile(
-            title: const Text('清除數據庫'),
-            leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
-            onTap: () => _showClearDialog(context),
-          ),
+          _buildSectionTitle('資料管理'),
+          _buildSettingCard([
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Colors.teal),
+              title: const Text('資料來源說明'),
+              onTap: () => _showInfoDialog(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
+              title: const Text('清除數據庫'),
+              subtitle: const Text('刪除所有儲存的常用行程與快取'),
+              onTap: () => _showClearDialog(context),
+            ),
+          ]),
 
-          ListTile(
-            title: Text('關於我們'),
-            leading: Icon(Icons.info_outline),
-            trailing: Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AboutPage( appName: appName, packageName: packageName, version:  _appVersion, buildNumber: buildNumber,),
-                ),
-              );
-            },
+          _buildSectionTitle('支援與關於'),
+          _buildSettingCard([
+            ListTile(
+              leading: const Icon(Icons.star_border_rounded, color: Colors.amber),
+              title: const Text('評分我們'),
+              onTap: () {
+                // TODO: 實作 Store 跳轉
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.alternate_email, color: Colors.blueGrey),
+              title: const Text('問題回饋'),
+              onTap: () {
+                // TODO: 實作郵件跳轉
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline, color: Colors.indigo),
+              title: const Text('關於我們'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (context) => AboutPage(
+                //       appName: _appName,
+                //       packageName: _packageName,
+                //       version: _appVersion,
+                //       buildNumber: _buildNumber,
+                //     ),
+                //   ),
+                // );
+              },
+            ),   ListTile(
+              leading: const Icon(Icons.settings_accessibility_rounded, color: Colors.indigo),
+              title: const Text('開發者設定'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (context) => AboutPage(
+                //       appName: _appName,
+                //       packageName: _packageName,
+                //       version: _appVersion,
+                //       buildNumber: _buildNumber,
+                //     ),
+                //   ),
+                // );
+              },
+            ),
+          ]),
+          const SizedBox(height: 30),
+          Center(
+            child: Text(
+              'Version $_appVersion ($_buildNumber)',
+              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+            ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
+
+  // 輔助組件：區塊標題
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+      ),
+    );
+  }
+
+  // 輔助組件：設定卡片容器
+  Widget _buildSettingCard(List<Widget> children) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  // --- Dialogs 保持原邏輯但稍微美化 ---
 
   void _showLanguageDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('選擇語言'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('選擇語言'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: ['繁體中文', 'English']
@@ -154,32 +251,36 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
+
   void _showClearDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('確認清除？'),
-        content: const Text('這將刪除所有儲存的資料，是否繼續？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('確認清除？'),
+          ],
+        ),
+        content: const Text('這將刪除所有儲存的資料，且無法復原。是否繼續？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: const Text('取消', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await ScheduleService.instance.clearDatabase();
-
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✅ 數據庫已清除'),
-                    duration: Duration(seconds: 2),
-                  ),
+                  const SnackBar(content: Text('✅ 數據庫已清除'), behavior: SnackBarBehavior.floating),
                 );
               }
             },
-            child: const Text('確定', style: TextStyle(color: Colors.red)),
+            child: const Text('確定清除', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -190,112 +291,28 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('資料來源'),
-        content: Text(
-          '本應用的數據來源於以下平台：\n\n'
-              '- TDX 交通部運輸資料流通服務平臺\n'
-              '- Google Maps API\n\n'
-              '感謝這些平台提供的開放數據與地圖服務。',
-          textAlign: TextAlign.start,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('資料來源'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('本應用的數據來源於以下平台：'),
+            SizedBox(height: 12),
+            Text('• TDX 交通部運輸資料流通服務平臺', style: TextStyle(fontWeight: FontWeight.w500)),
+            Text('• CWA 中央氣象署開放資料平臺', style: TextStyle(fontWeight: FontWeight.w500)),
+            Text('• Google Maps API', style: TextStyle(fontWeight: FontWeight.w500)),
+            SizedBox(height: 12),
+            Text('所有即時資訊以各平臺官方發佈為準。', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('確定'),
+            child: const Text('確定'),
           ),
         ],
       ),
     );
   }
 }
-class AboutPage extends StatelessWidget {
-  final String appName;
-  final String packageName;
-  final String version;
-  final String buildNumber;
-
-  const AboutPage({
-    required this.appName,
-    required this.packageName,
-    required this.version,
-    required this.buildNumber,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('關於我們'),
-        backgroundColor: Colors.white, // 設置 AppBar 背景為白色
-        elevation: 0, // 移除陰影
-        iconTheme: IconThemeData(color: Colors.black), // 設置 icon 顏色為黑色
-      ),
-      backgroundColor: Colors.white, // 設置頁面背景為白色
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            _buildInfoCard('應用名稱', appName),
-            SizedBox(height: 16),
-            _buildInfoCard('包名', packageName),
-            SizedBox(height: 16),
-            _buildInfoCard('版本號', version),
-            SizedBox(height: 16),
-            _buildInfoCard('構建號', buildNumber),
-            SizedBox(height: 20),
-            Center(
-              child: Text(
-                '感謝您使用我們的應用！',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.black54, // 淺灰色字體
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(String title, String value) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, // 保持卡片背景為白色
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05), // 微弱陰影
-            spreadRadius: 0,
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ], // 輕微陰影效果
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: Colors.black, // 黑色字體
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.black87, // 深黑字體
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-

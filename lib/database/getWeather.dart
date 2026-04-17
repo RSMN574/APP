@@ -28,8 +28,8 @@ Future<WeatherInfo?> fetchWeather(String cityName) async {
       return WeatherInfo(
         description: wx,
         pop: pop,
-        temperature: '$minT° - $maxT°',
-        icon: _getWeatherIcon(wx),
+
+        icon: _getWeatherIcon(wx), minT: '$minT°', maxT: ' $maxT°', comfort: '',
       );
     }
   } catch (e) {

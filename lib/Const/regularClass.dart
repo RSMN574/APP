@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocationProvider with ChangeNotifier {
   double _latitude = 0.0;
@@ -24,16 +25,44 @@ class CityProvider with ChangeNotifier {
   }
 
 }
-// class WeatherProvider with ChangeNotifier {
-//   String _city = '臺北市';  // 默认
-//
-//   String get city => _city;
-//
-//   void setCity(String newCity) {
-//     _city = newCity;
-//     notifyListeners(); // 通知监听者状态已更新
-//   }
-// }
+class AppProvider with ChangeNotifier {
+  bool _isDarkTheme = false;
+  String _language = '繁體中文';
+
+  bool get isDarkTheme => _isDarkTheme;
+  String get language => _language;
+
+  // 初始化，從本地讀取儲存的設定
+  AppProvider() {
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isDarkTheme = prefs.getBool('darkTheme') ?? false;
+    _language = prefs.getString('language') ?? '繁體中文';
+    notifyListeners(); // 通知所有頁面更新
+  }
+
+  // 切換主題
+  void toggleTheme(bool value) async {
+    _isDarkTheme = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('darkTheme', value);
+    notifyListeners();
+  }
+
+  // 切換語言
+  void setLanguage(String value) async {
+    _language = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', value);
+    notifyListeners();
+  }
+
+  // 取得對應的 Locale 物件 (用於 MaterialApp)
+  Locale get locale => _language == 'English' ? const Locale('en') : const Locale('zh', 'TW');
+}
 class youbike  {
   final String name;
   final LatLng latLng;

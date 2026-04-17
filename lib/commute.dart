@@ -584,6 +584,7 @@ class _CommuteState extends State<Commute> {
                       operators: "",
                       city: cityNameConverter(data['city']),
                       routeID: data["routeID"].toString(),
+                        hasSubRoutes:data["HasSubRoutes"]
                     ),
                   ),
                 );

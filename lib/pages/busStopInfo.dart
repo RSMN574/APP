@@ -369,7 +369,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),
+                            }),      hasSubRoutes:stop["HasSubRoutes"],
                           ),
                         ),
                       );
