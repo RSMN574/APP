@@ -392,10 +392,10 @@ String? routeArrivalStation;
   // 獲取路線基本資訊與所有停靠站
   Future<Map<String, dynamic>> _fetchBusRouteData(String routeName) async {
     var routeQuery = await mysqlSelect(
-      "SELECT * FROM Bus.bus_route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName';",
+      "SELECT * FROM Bus.bus_route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND City = 'Taichung';",
     );
     var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.stopOfRoute WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName';",
+      "SELECT Stops FROM Bus.stopOfRoute WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND City = 'Taichung' ;",
     );
     return {'route': routeQuery[0], 'stops': stopsQuery};
   }

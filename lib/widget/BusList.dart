@@ -248,11 +248,6 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
   }
 
   Future<void> _navigateToRouteDetails(dynamic route) async {
-    await GetBusInfo(
-      routeId: (route["RouteID"]),
-      city: route['City'] ?? 'InterCity',
-
-    );
 
     Navigator.push(
       context,

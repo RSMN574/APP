@@ -184,36 +184,72 @@ void _startIdleTimer() {
     disconnect();
   });
 }
-
-Future<List< dynamic>> getBus(String city) async {
-
+Future<Map<String, dynamic>> getBusRouteWithId({
+  required String city,
+  required String routeId,
+}) async {
   try {
-    late final String query;
-
-
+    final parameters = <dynamic>[];
+    final StringBuffer queryBuffer = StringBuffer();
 
     if (city == 'all') {
-      query = '''
-    SELECT *
-    FROM Bus.bus_route
-  ''';
+      queryBuffer.write("SELECT * FROM Bus.bus_route");
     } else if (city == 'InterCity') {
-      query = '''
-    SELECT *
-    FROM Bus.Bus_InterCity_Route
-  ''';
+      queryBuffer.write("SELECT * FROM Bus.Bus_InterCity_Route");
     } else {
-      query = '''
-    SELECT *
-    FROM Bus.bus_route
-    WHERE City = '$city'
-  ''';
+      queryBuffer.write("SELECT * FROM Bus.bus_route WHERE City = ?");
+      parameters.add(city);
+    }
+
+    if (routeId.isNotEmpty) {
+      if (city == 'all' || city == 'InterCity') {
+        queryBuffer.write(" WHERE RouteID = ?");
+      } else {
+        queryBuffer.write(" AND RouteID = ?");
+      }
+      parameters.add(routeId);
+    }
+    queryBuffer.write(" LIMIT 1");
+
+    final String query = queryBuffer.toString();
+
+    // ✅ executeQueryWithRetry 现在返回 IResultSet
+    final IResultSet result = await executeQueryWithRetry(query, params: parameters);
+
+    if (result.rows.isEmpty) return {};
+
+    // ✅ 正确转换为 Map
+    return result.rows.first.assoc();
+
+  } catch (e, stack) {
+    debugPrint('GetBusRouteWithId error: $e');
+    debugPrintStack(stackTrace: stack);
+    // 可选：显示toast
+    return {};
+  }
+}
+Future<List<Map<String, dynamic>>> getBusRoute({
+  required String city,
+
+}) async {
+  try {
+    String query;
+    List<dynamic> parameters = [];
+
+
+// 選擇基礎資料表
+    if (city == 'all') {
+      query=("SELECT * FROM Bus.bus_route");
+    } else if (city == 'InterCity') {
+      query=("SELECT * FROM Bus.Bus_InterCity_Route");
+    } else {
+      query=("SELECT * FROM Bus.bus_route WHERE City = '$city'");
+
     }
 
 
 
-
-    final result = await executeQueryWithRetry(query);
+    final result = await executeQueryWithRetry(query,);
 
     return result.rows
         .map<Map<String, dynamic>>((row) => row.assoc())
@@ -239,28 +275,47 @@ Future<IResultSet> executeQueryWithRetry(
       int maxRetries = 3,
     }) async {
   int attempts = 0;
-  Duration delay = const Duration(milliseconds: 500); // 初始延遲
+  Duration delay = const Duration(milliseconds: 500);
+
+  // 转换 SQL：将 ? 替换为 :arg0, :arg1, ...
+  String convertToNamedParams(String sql, List<dynamic>? params) {
+    if (params == null || params.isEmpty) return sql;
+    int index = 0;
+    return sql.replaceAllMapped(RegExp(r'\?'), (match) => ':arg${index++}');
+  }
+
+  // 转换参数列表为 Map
+  Map<String, dynamic>? convertToMap(List<dynamic>? params) {
+    if (params == null || params.isEmpty) return null;
+    final map = <String, dynamic>{};
+    for (int i = 0; i < params.length; i++) {
+      map['arg$i'] = params[i];
+    }
+    return map;
+  }
 
   while (attempts < maxRetries) {
     try {
-      // 確保連接存在且有效
       if (conn == null || !(await checkConnection())) {
-        await disconnect(); // 關閉舊連接
-        await connMysql(); // 重新連接
+        await disconnect();
+        await connMysql();
       }
 
-      // 執行查詢（支援參數化）
-      final result = params != null && params.isNotEmpty
-          ? await conn!.execute(query, params as Map<String, dynamic>?)
-          : await conn!.execute(query);
+      // 转换 SQL 和参数
+      final convertedSql = convertToNamedParams(query, params);
+      final Map<String, dynamic>? namedParams = convertToMap(params);
 
-      _startIdleTimer(); // 重置閒置計時器
+      // 使用 execute 并传入 Map
+      final result = namedParams != null && namedParams.isNotEmpty
+          ? await conn!.execute(convertedSql, namedParams)
+          : await conn!.execute(convertedSql);
+
+      _startIdleTimer();
       return result;
     } catch (e) {
       attempts++;
-      print("Query error (attempt $attempts/$maxRetries): $e");
+      debugPrint("Query error (attempt $attempts/$maxRetries): $e");
 
-      // 判斷是否為連接相關錯誤
       final errorMsg = e.toString().toLowerCase();
       final isConnectionError = errorMsg.contains('connection closed') ||
           errorMsg.contains('lost connection') ||
@@ -269,27 +324,22 @@ Future<IResultSet> executeQueryWithRetry(
           errorMsg.contains('timeout');
 
       if (isConnectionError) {
-        await disconnect(); // 強制關閉無效連接
-        await connMysql(); // 重新建立連接
+        await disconnect();
+        await connMysql();
       }
 
-      // 若已達最大重試次數，拋出異常
       if (attempts >= maxRetries) {
-        throw Exception(
-            "Failed to execute query after $maxRetries attempts: $e");
+        throw Exception("Failed to execute query after $maxRetries attempts: $e");
       }
 
-      // 指數退避策略：延遲時間遞增
       await Future.delayed(delay);
-      delay = Duration(
-          milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
+      delay = Duration(milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
     }
   }
 
-  // 理論上不會執行到此處，但為完整性保留
   throw Exception("Unexpected error in executeQueryWithRetry");
 }
-Future<List<Map<String, dynamic>>> GetBusInfo({required String routeId, required String city,}) async {
+Future<List<Map<String, dynamic>>> getBusStopOfRoute({required String routeId, required String city,}) async {
 
   List<Map<String, dynamic>> routeName = [];
 
@@ -341,7 +391,7 @@ Future<List<Map<String, dynamic>>> GetBusInfo({required String routeId, required
 
     return routeName;
   } catch (e) {
-    print("GetBusInfo error: $e");
+    print("getBusStopOfRoute error: $e");
     Fluttertoast.showToast(
       msg: "獲取公車路線資料失敗，請稍後再試",
       toastLength: Toast.LENGTH_SHORT,
@@ -354,10 +404,7 @@ Future<List<Map<String, dynamic>>> GetBusInfo({required String routeId, required
 }
 
 
-Future<List<Map<String, dynamic>>> GetBusStopInfo({
-  required String stopName,
-  required String city,
-}) async {
+Future<List<Map<String, dynamic>>> GetBusStopInfo({required String stopName, required String city,}) async {
   await connMysql(); // 連接資料庫
 
   var query =

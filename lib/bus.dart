@@ -90,7 +90,7 @@ class BusState extends State<Bus> {
 
   Future<List> _getData() async {
     busCurrentCity = correspondingIDNotifier.value;
-    busData = await getBus(correspondingIDNotifier.value);
+    busData = await getBusRoute(city:correspondingIDNotifier.value);
     return [];
   }
 
@@ -1344,7 +1344,7 @@ class BusState extends State<Bus> {
   }
 
   void _navigateToRouteDetails(Map<String, dynamic> route) async {
-    await GetBusInfo(routeId: route["routeID"], city: correspondingIDNotifier.value);
+
     List baseData = await mysqlSelect("""SELECT *
 FROM Bus.bus_route
 WHERE City = '${correspondingIDNotifier.value}'
@@ -1373,7 +1373,7 @@ WHERE City = '${correspondingIDNotifier.value}'
     } else {
       finalRouteID = rawRouteID;
     }
-print(route);
+
 
     Navigator.push(
       context,

@@ -352,9 +352,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                   height: 53.0,
                   child: ListTile(
                     onTap: () async {
-                      await GetBusInfo(
-                          routeId: (stop["RouteID"]),
-                          city: widget.city);
+                      Map<String, dynamic> route=await getBusRouteWithId(city:"Taichung",routeId: stop["RouteID"]);
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -369,7 +368,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),      hasSubRoutes:stop["HasSubRoutes"],
+                            }),      hasSubRoutes:route["HasSubRoutes"],
                           ),
                         ),
                       );

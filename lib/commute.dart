@@ -571,8 +571,7 @@ class _CommuteState extends State<Commute> {
             onLongPress: () => _dialogBuilder(context, data),
             onTap: () async {
               if (data['type'] == "bus") {
-                await GetBusInfo(
-                    routeId: (data["routeID"]).toString(), city: cityNameConverter(data['city']));
+                Map<String, dynamic> route=await getBusRouteWithId(city:cityNameConverter(data['city']),routeId: data["routeID"].toString());
                 if (!context.mounted) return;
                 Navigator.push(
                   context,
@@ -584,7 +583,7 @@ class _CommuteState extends State<Commute> {
                       operators: "",
                       city: cityNameConverter(data['city']),
                       routeID: data["routeID"].toString(),
-                        hasSubRoutes:data["HasSubRoutes"]
+                        hasSubRoutes:route["HasSubRoutes"]
                     ),
                   ),
                 );

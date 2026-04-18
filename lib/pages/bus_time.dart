@@ -57,6 +57,7 @@ class BusTime extends StatefulWidget {
 }
 
 class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
+
   final ScrollController _scrollController = ScrollController();
   late  List<dynamic> stopNamesWithTime1;
   late  List<dynamic> stopNamesWithTime2;
@@ -84,7 +85,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         // 标签正在更改
-        print("Changing to tab: ${_tabController.index}");
+        if (kDebugMode) {
+          print("Changing to tab: ${_tabController.index}");
+        }
       } else {
         // 标签更改已完成
        if(_tabController.index==0){
@@ -127,7 +130,7 @@ void _scrollToIndex(int index) {
 }
   Future<Set<Polyline>> _loadShape(int direction) async {
     // 檢查 widget 是否還在活動狀態
-    if (!mounted) return {};
+    // if (!mounted) return {};
 
     try {
       final List<dynamic> data = await getShape(
@@ -137,32 +140,36 @@ void _scrollToIndex(int index) {
       );
 
       // 再次檢查，因為 await 後 widget 可能已被銷毀
-      if (!mounted) return {};
+      // if (!mounted) return {};
 
       final Set<Polyline> polylines = {};
 
       for (final item in data) {
+        // 提前檢查方向，避免不必要的類型轉換
         if (item['Direction'] != direction) continue;
 
-        // 1️⃣ 如果有 EncodedPolyline（TDX 通常有）
+        // 使用局部變數避免重複訪問
         final encoded = item['EncodedPolyline'];
-        if (encoded is String && encoded.isNotEmpty) {
-          final points = decodePolyline(encoded);
+        if (encoded is! String || encoded.isEmpty) continue;
 
-          polylines.add(
-            Polyline(
-              polylineId: PolylineId(
-                '${widget.routeName}_$direction',
-              ),
-              points: points,
-              width: 4,
-              color: Colors.blue,
-            ),
-          );
-        }
+        // 提取常數
+        final polylineId = PolylineId('${widget.routeName}_$direction');
+        final points = decodePolyline(encoded);
+
+        polylines.add(
+          Polyline(
+            polylineId: polylineId,
+            points: points,
+            width: 4,
+            color: Colors.blue,
+            // 效能優化選項
+            consumeTapEvents: false,
+            visible: true,
+            geodesic: false,
+          ),
+        );
       }
-
-      // ✅ 安全地更新 UI 和 Provider
+          // ✅ 安全地更新 UI 和 Provider
       if (mounted) {
         setState(() {
           // 注意：Provider 不應該在 setState 內呼叫
@@ -171,10 +178,8 @@ void _scrollToIndex(int index) {
 
         // ✅ 更新 Provider（不需要 setState 包裝）
         final polylineProvider = Provider.of<PolylineProvider>(context, listen: false);
-        if (polylineProvider != null) {
-          polylineProvider.setPolylines(polylines);
-        }
-      }
+        polylineProvider.setPolylines(polylines);
+            }
 
       return polylines;
 
@@ -262,8 +267,9 @@ void _scrollToIndex(int index) {
 
   Future<void> _loadData() async {
     try {
+
       // 1. 下載基礎資料
-      final List<Map<String, dynamic>> data = await GetBusInfo(
+      final List<Map<String, dynamic>> data = await getBusStopOfRoute(
         city: widget.city,
         routeId: widget.routeID,
       );
@@ -939,7 +945,7 @@ void _scrollToIndex(int index) {
         Stack(
           children: [
 
-        Positioned.fill(
+        const Positioned.fill(
         child: map()
         ),
 

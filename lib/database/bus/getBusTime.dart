@@ -224,7 +224,7 @@ Future<List<dynamic>> getShape(String city, String routeName, String routeID) as
   final filteredData = jsonData.where((item) {
     // RouteID 可能是字串或 int，要對應類型
     final itemRouteID = item['RouteID'];
-    return itemRouteID != null && int.tryParse(itemRouteID.toString()) == routeID;
+    return itemRouteID != null && (itemRouteID.toString()) == routeID;
   }).toList();
 
 

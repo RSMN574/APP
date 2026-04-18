@@ -968,7 +968,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
    }
 
   Widget DraggableScrollableSheetPageTwo(ScrollController scrollController) {
-    print("_selectStationGroupID.value");print(_stopName.value);
+
     if (_tabSelect.value == "bus") {
 
       return Container(
@@ -1733,6 +1733,7 @@ WHERE City = 'Taichung'
         items: finalList,
         areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
         itemBuilder: (context, animation, stop, index) {
+          print(stop);
           final PlateNumb = stop["PlateNumb"];
 
           final color = stop["color"] == '0'
@@ -1751,13 +1752,12 @@ WHERE City = 'Taichung'
             sizeFraction: 0.9,
             child: Column(
               children: [
-                Container(
+                SizedBox(
                   height: 53.0,
                   child: ListTile(
                     onTap: () async {
-                      await GetBusInfo(
-                          routeId: (stop["RouteID"]),
-                          city: "Taichung");
+                      Map<String, dynamic> route=await getBusRouteWithId(city:"Taichung",routeId: stop["RouteID"]);
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1772,7 +1772,7 @@ WHERE City = 'Taichung'
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),      hasSubRoutes:stop["HasSubRoutes"],
+                            }),      hasSubRoutes:route["HasSubRoutes"],
 
                           ),
                         ),
