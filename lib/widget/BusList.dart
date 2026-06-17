@@ -32,9 +32,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
     super.initState();
   }
 
-  String extractZhTw(jsonString) {
-    return json.decode(jsonString)["Zh_tw"];
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -170,7 +168,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
       children: [
         // 路線名稱
         Text(
-          extractZhTw(route["RouteName"]),
+          (route.routeZh),
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -194,12 +192,12 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
       children: [
         _buildDetailRow(
           icon: Icons.place_outlined,
-          text: '起點: ${route["DepartureStopNameZh"]}',
+          text: '起點: ${route.departureStopNameZh}',
         ),
         const SizedBox(height: 2),
         _buildDetailRow(
           icon: Icons.flag_outlined,
-          text: '終點: ${route["DestinationStopNameZh"]}',
+          text: '終點: ${route.destinationStopNameZh}',
         ),
       ],
     );
@@ -253,13 +251,13 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => BusTime(
-          routeName: extractZhTw(route["RouteName"]),
-          departureStopName: route["DepartureStopNameZh"],
-          destinationStopName: route["DestinationStopNameZh"],
-          operators: route["Operators"],
-          routeMapImageUrl: route["RouteMapImageUrl"],
-          city: route['City'] ?? 'InterCity',
-          routeID: (route["RouteID"]),  hasSubRoutes:route["HasSubRoutes"]
+          routeName: route.routeZh,
+          departureStopName: route.departureStopNameZh,
+          destinationStopName: route.destinationStopNameZh,
+          operators: route.operatorName,
+          routeMapImageUrl: route.routeMapUrl,
+          city: route.routeCity ?? 'InterCity',
+          routeID: route.routeId,  hasSubRoutes:route.hasSubRoute
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
@@ -279,7 +277,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
 
   // 可選：添加收藏功能
   Widget _buildFavoriteButton(dynamic route) {
-    final isFavorite = favoritesBusRoute.contains(route["RouteID"]);
+    final isFavorite = favoritesBusRoute.contains(route.routeId);
 
     return IconButton(
       icon: Icon(
@@ -290,9 +288,9 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
       onPressed: () {
         setState(() {
           if (isFavorite) {
-            favoritesBusRoute.remove(route["RouteID"]);
+            favoritesBusRoute.remove(route.routeId);
           } else {
-            favoritesBusRoute.add(route["RouteID"]);
+            favoritesBusRoute.add(route.routeId);
           }
         });
         // 保存到本地儲存

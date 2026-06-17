@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart'; // 建議安裝此套件處理外部連結
 
 import '../../database/SQL/schedule.dart';
+import '../../main.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -228,30 +229,54 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('選擇語言'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: ['繁體中文', 'English']
-                .map((language) => RadioListTile(
-              title: Text(language),
-              value: language,
-              groupValue: _selectedLanguage,
-              onChanged: (value) {
-                setState(() {
-                  _selectedLanguage = value!;
-                  _savePreference('language', value);
-                });
-                Navigator.pop(context);
-              },
-            ))
-                .toList(),
+            children: [
+              RadioListTile<String>(
+                title: const Text('繁體中文'),
+                value: 'zh',
+                groupValue: _selectedLanguage,
+                onChanged: (value) async {
+                  localeNotifier.value = const Locale('zh');
+
+                  setState(() {
+                    _selectedLanguage = value!;
+                  });
+
+                  await _savePreference(
+                    'language',
+                    value!,
+                  );
+
+                  Navigator.pop(context);
+                },
+              ),
+              RadioListTile<String>(
+                title: const Text('English'),
+                value: 'en',
+                groupValue: _selectedLanguage,
+                onChanged: (value) async {
+                  localeNotifier.value = const Locale('en');
+
+                  setState(() {
+                    _selectedLanguage = value!;
+                  });
+
+                  await _savePreference(
+                    'language',
+                    value!,
+                  );
+
+                  Navigator.pop(context);
+                },
+              ),
+            ],
           ),
         );
       },
     );
   }
-
   void _showClearDialog(BuildContext context) {
     showDialog(
       context: context,

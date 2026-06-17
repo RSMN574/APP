@@ -1,41 +1,42 @@
 import 'dart:convert';
 
 class BusRoute {
-  final int uid;
   final String routeUID;
   final String routeID;
   final bool hasSubRoutes;
-  final List<Operator> operators;
-  final String authorityID;
-  final String providerID;
-  final List<SubRoute> subRoutes;
-  final int busRouteType;
-  final RouteName routeName;
+
+  final List<Map<String, dynamic>> operators;
+  final List<Map<String, dynamic>> subRoutes;
+  final Map<String, dynamic> routeName;
+
   final String departureStopNameZh;
   final String departureStopNameEn;
   final String destinationStopNameZh;
   final String destinationStopNameEn;
+
+  final String? ticketPriceDescriptionZh;
+  final String? ticketPriceDescriptionEn;
   final String? routeMapImageUrl;
+
   final String city;
   final String cityCode;
+
   final DateTime updateTime;
   final int versionID;
 
   BusRoute({
-    required this.uid,
     required this.routeUID,
     required this.routeID,
     required this.hasSubRoutes,
     required this.operators,
-    required this.authorityID,
-    required this.providerID,
     required this.subRoutes,
-    required this.busRouteType,
     required this.routeName,
     required this.departureStopNameZh,
     required this.departureStopNameEn,
     required this.destinationStopNameZh,
     required this.destinationStopNameEn,
+    this.ticketPriceDescriptionZh,
+    this.ticketPriceDescriptionEn,
     this.routeMapImageUrl,
     required this.city,
     required this.cityCode,
@@ -45,142 +46,65 @@ class BusRoute {
 
   factory BusRoute.fromJson(Map<String, dynamic> json) {
     return BusRoute(
-      uid: json['UID'] as int,
-      routeUID: json['RouteUID'] as String,
-      routeID: json['RouteID'] as String,
-      hasSubRoutes: json['HasSubRoutes'] == 1,
-      operators: (jsonDecode(json['Operators']) as List)
-          .map((op) => Operator.fromJson(op))
-          .toList(),
-      authorityID: json['AuthorityID'] as String,
-      providerID: json['ProviderID'] as String,
-      subRoutes: (jsonDecode(json['SubRoutes']) as List)
-          .map((sr) => SubRoute.fromJson(sr))
-          .toList(),
-      busRouteType: json['BusRouteType'] as int,
-      routeName: RouteName.fromJson(jsonDecode(json['RouteName'])),
-      departureStopNameZh: json['DepartureStopNameZh'] as String,
-      departureStopNameEn: json['DepartureStopNameEn'] as String,
-      destinationStopNameZh: json['DestinationStopNameZh'] as String,
-      destinationStopNameEn: json['DestinationStopNameEn'] as String,
-      routeMapImageUrl: json['RouteMapImageUrl'] as String?,
-      city: json['City'] as String,
-      cityCode: json['CityCode'] as String,
-      updateTime: DateTime.parse(json['UpdateTime'] as String),
-      versionID: json['VersionID'] as int,
+      routeUID: json['RouteUID'] ?? '',
+      routeID: json['RouteID'] ?? '',
+      hasSubRoutes:
+      json['HasSubRoutes'] == true ||
+          json['HasSubRoutes'] == 'true',
+
+      operators: List<Map<String, dynamic>>.from(
+        jsonDecode(json['Operators']),
+      ),
+      subRoutes: List<Map<String, dynamic>>.from(
+        jsonDecode( json['SubRoutes'] )?? [],
+      ),
+
+      routeName: Map<String, dynamic>.from(
+        jsonDecode( json['RouteName'] )?? {},
+      ),
+
+      departureStopNameZh: json['DepartureStopNameZh'] ?? '',
+      departureStopNameEn: json['DepartureStopNameEn'] ?? '',
+      destinationStopNameZh: json['DestinationStopNameZh'] ?? '',
+      destinationStopNameEn: json['DestinationStopNameEn'] ?? '',
+      ticketPriceDescriptionZh: json['TicketPriceDescriptionZh'],
+      ticketPriceDescriptionEn: json['TicketPriceDescriptionEn'],
+      routeMapImageUrl: json['RouteMapImageUrl'],
+      city: json['City'] ?? '',
+      cityCode: json['CityCode'] ?? '',
+      updateTime: DateTime.parse(json['UpdateTime']),
+      versionID: int.tryParse(json['VersionID'].toString()) ?? 0,
     );
   }
+  String get routeCity => city;
+  String get routeZh => routeName['Zh_tw'] ?? '';
+  String get departureStopZh => departureStopNameZh;
+  String get destinationStopZh => destinationStopNameZh;
+  String get routeId => routeID;
+  bool get hasSubRoute => hasSubRoutes;
+  String get routeEn => routeName['En'] ?? '';
+  String? get routeMapUrl => routeMapImageUrl;
+  String get operatorName {
+    if (operators.isEmpty) return '';
 
-  Map<String, dynamic> toJson() => {
-    'UID': uid,
-    'RouteUID': routeUID,
-    'RouteID': routeID,
-    'HasSubRoutes': hasSubRoutes ? 1 : 0,
-    'Operators': jsonEncode(operators.map((op) => op.toJson()).toList()),
-    'AuthorityID': authorityID,
-    'ProviderID': providerID,
-    'SubRoutes': jsonEncode(subRoutes.map((sr) => sr.toJson()).toList()),
-    'BusRouteType': busRouteType,
-    'RouteName': jsonEncode(routeName.toJson()),
-    'DepartureStopNameZh': departureStopNameZh,
-    'DepartureStopNameEn': departureStopNameEn,
-    'DestinationStopNameZh': destinationStopNameZh,
-    'DestinationStopNameEn': destinationStopNameEn,
-    'RouteMapImageUrl': routeMapImageUrl,
-    'City': city,
-    'CityCode': cityCode,
-    'UpdateTime': updateTime.toIso8601String(),
-    'VersionID': versionID,
-  };
-}
+    final operatorName = operators.first['OperatorName'];
 
-class Operator {
-  final String operatorID;
-  final OperatorName operatorName;
-  final String operatorCode;
-  final String operatorNo;
+    if (operatorName is Map<String, dynamic>) {
+      return operatorName['Zh_tw'] ?? '';
+    }
 
-  Operator({
-    required this.operatorID,
-    required this.operatorName,
-    required this.operatorCode,
-    required this.operatorNo,
-  });
-
-  factory Operator.fromJson(Map<String, dynamic> json) {
-    return Operator(
-      operatorID: json['OperatorID'] as String,
-      operatorName: OperatorName.fromJson(json['OperatorName']),
-      operatorCode: json['OperatorCode'] as String,
-      operatorNo: json['OperatorNo'] as String,
-    );
+    return '';
   }
+  String get firstBusTime =>
+      subRoutes.isNotEmpty
+          ? subRoutes.first['FirstBusTime'] ?? ''
+          : '';
 
-  Map<String, dynamic> toJson() => {
-    'OperatorID': operatorID,
-    'OperatorName': operatorName.toJson(),
-    'OperatorCode': operatorCode,
-    'OperatorNo': operatorNo,
-  };
+  String get lastBusTime =>
+      subRoutes.isNotEmpty
+          ? subRoutes.first['LastBusTime'] ?? ''
+          : '';
 }
-
-class OperatorName {
-  final String zhTw;
-  final String en;
-
-  OperatorName({required this.zhTw, required this.en});
-
-  factory OperatorName.fromJson(Map<String, dynamic> json) {
-    return OperatorName(
-      zhTw: json['Zh_tw'] as String,
-      en: json['En'] as String,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'Zh_tw': zhTw,
-    'En': en,
-  };
-}
-
-class SubRoute {
-  final String headsign;
-  final int direction;
-  final String subRouteID;
-  final List<String> operatorIDs;
-  final String subRouteUID;
-  final RouteName subRouteName;
-
-  SubRoute({
-    required this.headsign,
-    required this.direction,
-    required this.subRouteID,
-    required this.operatorIDs,
-    required this.subRouteUID,
-    required this.subRouteName,
-  });
-
-  factory SubRoute.fromJson(Map<String, dynamic> json) {
-    return SubRoute(
-      headsign: json['Headsign'] as String,
-      direction: json['Direction'] as int,
-      subRouteID: json['SubRouteID'] as String,
-      operatorIDs: List<String>.from(json['OperatorIDs']),
-      subRouteUID: json['SubRouteUID'] as String,
-      subRouteName: RouteName.fromJson(json['SubRouteName']),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'Headsign': headsign,
-    'Direction': direction,
-    'SubRouteID': subRouteID,
-    'OperatorIDs': operatorIDs,
-    'SubRouteUID': subRouteUID,
-    'SubRouteName': subRouteName.toJson(),
-  };
-}
-
 class RouteName {
   final String zhTw;
   final String en;

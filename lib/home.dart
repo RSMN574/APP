@@ -369,7 +369,7 @@ class _HomeState extends State<Home>
           ),
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             '載入中...',
             style: TextStyle(color: Colors.grey),
           ),

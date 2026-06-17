@@ -14,6 +14,8 @@ import 'database/SQL/favorite_feature.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 
+import 'models/bus.dart';
+
 
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
@@ -32,7 +34,7 @@ class BusState extends State<Bus> {
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
-  List busData = [];
+  List<BusRoute> busData = [];
   final List<String> _list = ['全部', '臺中市', '臺北市','新北市','桃園市',"臺南市","高雄市","基隆市","新竹市","公路客運"];
   final List<String> _listID = ['all', 'Taichung', 'Taipei','NewTaipei',"Taoyuan","Tainan","Kaohsiung","Keelung","Hsinchu","InterCity"];
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
@@ -90,7 +92,12 @@ class BusState extends State<Bus> {
 
   Future<List> _getData() async {
     busCurrentCity = correspondingIDNotifier.value;
-    busData = await getBusRoute(city:correspondingIDNotifier.value);
+
+    busData= await getBusRoute(
+      city: correspondingIDNotifier.value,
+    );
+
+
     return [];
   }
 
@@ -101,8 +108,9 @@ class BusState extends State<Bus> {
       final String input = busIdController.text;
       final List<dynamic> suggestionsForRoute = [];
 
-      for (var route in busData) {
-        final routeName = json.decode(route["RouteName"])["Zh_tw"];
+      for (final route in busData) {
+        final routeName = route.routeZh;
+
         if (routeName.contains(input)) {
           if (input == routeName) {
             suggestions.value.insert(0, route);
@@ -551,14 +559,7 @@ class BusState extends State<Bus> {
               border: Border.all(
                 color: Theme.of(context).dividerColor.withOpacity(0.15),
               ),
-              boxShadow: [
-                if (Theme.of(context).brightness == Brightness.light)
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-              ],
+
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -724,13 +725,7 @@ class BusState extends State<Bus> {
             decoration: BoxDecoration(
               color: AppThemes.getSurface(context),
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+
             ),
             child: ValueListenableBuilder<String>(
               valueListenable: _dropdownValueNotifier,
@@ -748,14 +743,7 @@ class BusState extends State<Bus> {
                       border: Border.all(
                         color: Theme.of(context).dividerColor.withOpacity(0.1),
                       ),
-                      boxShadow: [
-                        if (Theme.of(context).brightness == Brightness.light)
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                      ],
+
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(

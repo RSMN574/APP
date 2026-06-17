@@ -1762,17 +1762,19 @@ WHERE City = 'Taichung'
                         context,
                         MaterialPageRoute(
                           builder: (context) => BusTime(
-                            routeName: stop["RouteName"]["Zh_tw"],
-                            departureStopName: stop["DepartureStopName"],
-                            destinationStopName: stop["DestinationStopName"],
-                            operators: "",
-                            routeMapImageUrl: "",
-                            city: "Taichung",
-                            routeID: (stop["RouteID"]),
+                              routeName: json.decode(route["RouteName"])["Zh_tw"],
+                              departureStopName: route["DepartureStopNameZh"],
+                              destinationStopName: route["DestinationStopNameZh"],
+                              operators: route["Operators"],
+                              routeMapImageUrl: route["RouteMapImageUrl"],
+                              city: route['City'] ?? 'InterCity',
+                              routeID: (route["RouteID"]),
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),      hasSubRoutes:route["HasSubRoutes"],
+                            }),     hasSubRoutes:
+                          route["HasSubRoutes"] == true ||
+                              route["HasSubRoutes"]?.toString().toLowerCase() == "true",
 
                           ),
                         ),

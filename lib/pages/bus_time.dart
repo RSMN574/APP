@@ -45,7 +45,7 @@ class BusTime extends StatefulWidget {
   final operators;
   final routeMapImageUrl;
   final city;
-  final  hasSubRoutes;
+  final bool  hasSubRoutes;
   final String routeID;
   final Mark? mark;
 
@@ -70,13 +70,13 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    print(widget.hasSubRoutes);
+
      _loadData(); // 初始加载数据
     // 根據是否有子路線決定 Tab 數量
 
 
 
-    if(widget.hasSubRoutes=='false') {
+    if(widget.hasSubRoutes==false) {
       _tabController = TabController(length: 1, vsync: this); // 兩個 Tab
     }else{
       _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
@@ -273,7 +273,7 @@ void _scrollToIndex(int index) {
         city: widget.city,
         routeId: widget.routeID,
       );
-
+print(data);
       final busTimeData = await fetchBusTime(widget.routeName, widget.city,widget.routeID);
 
       // 📌 封裝過濾與抓取邏輯
@@ -293,10 +293,10 @@ void _scrollToIndex(int index) {
 
       // 🔄 設定 Tab 位置
       final int? direction = widget.mark?.direction;
-      if (direction != null) {
+      if (direction != null && widget.hasSubRoutes!=false) {
         _tabController.animateTo(direction);
       }
-      if(widget.hasSubRoutes=='false') {
+      if(widget.hasSubRoutes==false) {
         stopNamesWithTime1 = await fetchStopsByDir(0, 1); // 這裡調整為 0 優先
         stopNamesWithTime2 =[];
       }else{
@@ -1065,7 +1065,7 @@ void _scrollToIndex(int index) {
                             controller: _tabController,
                             children: [
                               if (stopNamesWithTime1.isEmpty==false) _buildTabContent(stopNamesWithTime1),
-                              if (stopNamesWithTime2.isEmpty==false &&  widget.hasSubRoutes=='true') _buildTabContent(stopNamesWithTime2),
+                              if (stopNamesWithTime2.isEmpty==false &&  widget.hasSubRoutes==true) _buildTabContent(stopNamesWithTime2),
                             ],
                           ),
 
@@ -1210,7 +1210,7 @@ void _scrollToIndex(int index) {
                   onTap: () => _tabController.animateTo(0),
                 ),
               ),
-            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty&& widget.hasSubRoutes=='false')
+            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty&& widget.hasSubRoutes==false)
               const SizedBox(width: 12),
             if (stopNamesWithTime2.isNotEmpty)
               Expanded(

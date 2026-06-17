@@ -8,6 +8,7 @@ import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../Const/regularConst.dart';
 import '../models/Station.dart';
+import '../models/bus.dart';
 import '../secure_storage/secure_storage.dart';
 import 'package:mysql1/mysql1.dart';
 
@@ -228,7 +229,7 @@ Future<Map<String, dynamic>> getBusRouteWithId({
     return {};
   }
 }
-Future<List<Map<String, dynamic>>> getBusRoute({
+Future<List<BusRoute>> getBusRoute({
   required String city,
 
 }) async {
@@ -245,6 +246,51 @@ Future<List<Map<String, dynamic>>> getBusRoute({
     } else {
       query=("SELECT * FROM Bus.bus_route WHERE City = '$city'");
 
+    }
+
+
+
+    final result = await executeQueryWithRetry(query);
+
+    return result.rows
+        .map(
+          (row) => BusRoute.fromJson(row.assoc()),
+    )
+        .toList();
+  } catch (e, stack) {
+    debugPrint('GetBus error: $e');
+    debugPrintStack(stackTrace: stack);
+
+    Fluttertoast.showToast(
+      msg: "獲取公車資料失敗，請稍後再試",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
+    );
+
+    return [];
+  }
+}
+Future<List<Map<String, dynamic>>> getBusStop({
+  required String city,required String input
+
+}) async {
+  try {
+    String query;
+    List<dynamic> parameters = [];
+
+
+// 選擇基礎資料表
+    if (city == 'all') {
+      query=("SELECT StationName FROM Bus.Bus_${city}_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+    } else if (city == 'InterCity') {
+      query=("SELECT StationName FROM Bus.Bus_Bus_InterCity_Route_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+    } else {
+      query = ("SELECT StationName FROM Bus.Bus_${city}_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
     }
 
 

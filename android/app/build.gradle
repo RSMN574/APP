@@ -25,25 +25,29 @@ if (flutterVersionName == null) {
 
 android {
     namespace = "com.rsmn574.app"
-    compileSdk = 36
+
+    // ✅ 建議使用 compileSdk = 35（更穩定），除非您確定需要 36
+    compileSdk = 36  // 或 36
+
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         coreLibraryDesugaringEnabled true
 
-        // 確保 Java 版本至少是 1.8 或更高 (建議與你的 SDK 匹配)
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        // ✅ 升級到 Java 17（Gradle 8.x 建議）
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '1.8' // 統一 JVM 目標版本
+        // ✅ 升級到 Java 17
+        jvmTarget = '17'
     }
 
     defaultConfig {
         applicationId = "com.rsmn574.app"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdkVersion = flutter.minSdkVersion  // 明確指定最低版本
+        targetSdk = 36  // 明確指定目標版本
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }
@@ -51,6 +55,11 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.debug
+            // ✅ 開啟混淆（可選）
+            minifyEnabled true
+            shrinkResources true
+
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -60,7 +69,10 @@ flutter {
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:34.10.0') // 使用最新的 Firebase BOM
+    // ✅ Firebase BOM（使用最新穩定版本）
+    implementation platform('com.google.firebase:firebase-bom:34.15.0')
     implementation 'com.google.firebase:firebase-messaging'
+
+    // ✅ Desugaring 支援（Java 8+ API）
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
 }

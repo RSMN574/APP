@@ -207,7 +207,7 @@ class AppThemes {
   ),
 // Card 樣式
      cardTheme: CardThemeData(
-      color: const Color(0xFF1C1C1E), // 套用你的 0xFF1C1C1E
+      color: Colors.white, // 套用你的 0xFF1C1C1E
       elevation: 0,                   // iOS 風格通常不使用陰影，靠顏色區分層次
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(

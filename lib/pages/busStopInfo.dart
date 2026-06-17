@@ -352,23 +352,26 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                   height: 53.0,
                   child: ListTile(
                     onTap: () async {
+
                       Map<String, dynamic> route=await getBusRouteWithId(city:"Taichung",routeId: stop["RouteID"]);
 
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BusTime(
-                            routeName: stop["RouteName"]["Zh_tw"],
-                            departureStopName: stop["DepartureStopName"],
-                            destinationStopName: stop["DestinationStopName"],
-                            operators: "",
-                            routeMapImageUrl: "",
-                            city: widget.city,
-                            routeID: stop["RouteID"],
+                            routeName: json.decode(route["RouteName"])["Zh_tw"],
+                            departureStopName: route["DepartureStopNameZh"],
+                            destinationStopName: route["DestinationStopNameZh"],
+                            operators: route["Operators"],
+                            routeMapImageUrl: route["RouteMapImageUrl"],
+                            city: route['City'] ?? 'InterCity',
+                            routeID: (route["RouteID"]),
                             mark: Mark.fromMap({
                               "highlight": [widget.stop],
                               "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),      hasSubRoutes:route["HasSubRoutes"],
+                            }),    hasSubRoutes:
+                          route["HasSubRoutes"] == true ||
+                              route["HasSubRoutes"]?.toString().toLowerCase() == "true",
                           ),
                         ),
                       );
@@ -443,172 +446,118 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
 
     );
   }
-
-  Future<List<Map<String, dynamic>>> _processData(String stationID, List<Map<String, dynamic>> stopEstimatedTime,) async {
+  Future<List<Map<String, dynamic>>> _processData(
+      String stationID,
+      List<Map<String, dynamic>> stopEstimatedTime,
+      ) async {
     try {
-      // print('=== 開始處理資料，stationID: $stationID ===');
-      // print('原始數據數量: ${stopEstimatedTime.length}');
-
       /// -----------------------------
-      /// 1. 過濾並去重
+      /// 1. 過濾、去重並預處理資料 (單次遍歷)
       /// -----------------------------
       final routeMap = <String, Map<String, dynamic>>{};
-
-      for (final item in stopEstimatedTime) {
-        // 只處理符合 StationID 的項目
-        if (item["StationID"] != stationID) {
-          continue;
-        }
-
-        // print('處理項目: ${item["RouteName"]}, StationID: ${item["StationID"]}');
-
-        final routeNameObj = item["RouteName"];
-        String? routeName;
-
-        // 處理 RouteName 可能是 Map 或 String 的情況
-        if (routeNameObj is Map<String, dynamic>) {
-          routeName = routeNameObj["Zh_tw"] as String?;
-          // print('RouteName 是 Map: $routeNameObj, 提取: $routeName');
-        } else if (routeNameObj is String) {
-          routeName = routeNameObj;
-        //  print('RouteName 是 String: $routeName');
-        }
-
-        final direction = item["Direction"];
-
-        if (routeName == null || routeName.isEmpty) {
-        //  print('跳過：routeName 為空');
-          continue;
-        }
-
-        final routeKey = "${routeName}_$direction";
-        final currentTime = _parseTimeToMinutes(item["time"]);
-
-       // print('routeKey: $routeKey, currentTime: $currentTime');
-
-        // 只保留每條路線最近的一班車
-        final existing = routeMap[routeKey];
-        if (existing == null ||
-            (currentTime != -1 && currentTime < _parseTimeToMinutes(existing["time"]))) {
-          routeMap[routeKey] = item;
-      //    print('加入/更新: $routeKey');
-        }
-      }
-
-      final stationData = routeMap.values.toList();
-     // print('過濾後數據數量: ${stationData.length}');
-
-      if (stationData.isEmpty) {
-     //   print('無數據，返回空列表');
-        return [];
-      }
-
-      /// -----------------------------
-      /// 2. 批次獲取路線資訊 - 修正查詢方式
-      /// -----------------------------
       final routeNames = <String>{};
 
-      for (final item in stationData) {
+      for (final item in stopEstimatedTime) {
+        if (item["StationID"] != stationID) continue;
+
+        // 提取 RouteName (僅在此處解析一次)
         final routeNameObj = item["RouteName"];
         String? routeName;
-
-        if (routeNameObj is Map<String, dynamic>) {
+        if (routeNameObj is Map) {
           routeName = routeNameObj["Zh_tw"] as String?;
         } else if (routeNameObj is String) {
           routeName = routeNameObj;
         }
 
-        if (routeName != null && routeName.isNotEmpty) {
-          routeNames.add(routeName);
+        if (routeName == null || routeName.isEmpty) continue;
+
+        final direction = item["Direction"];
+        final routeKey = "${routeName}_$direction";
+
+        // 時間解析也僅計算一次
+        final currentTime = _parseTimeToMinutes(item["time"]);
+
+        final existing = routeMap[routeKey];
+        // 判斷是否為新路線，或時間比已記錄的更短
+        if (existing == null || (currentTime != -1 && currentTime < existing["_parsedTime"])) {
+          // 複製一份以避免污染原始參照，並寫入預先解析好的快取欄位
+          final processedItem = Map<String, dynamic>.from(item);
+          processedItem["_parsedRouteName"] = routeName;
+          processedItem["_parsedTime"] = currentTime;
+
+          routeMap[routeKey] = processedItem;
+          routeNames.add(routeName); // 順手收集路線名稱，省去額外迴圈
         }
       }
 
-     // print('需要查詢的路線名稱: $routeNames');
+      if (routeMap.isEmpty) return [];
 
+      /// -----------------------------
+      /// 2. 批次獲取路線資訊
+      /// -----------------------------
       final Map<String, Map<String, dynamic>> routeInfoCache = {};
 
       if (routeNames.isNotEmpty) {
         try {
-          // 方法1：使用 JSON_UNQUOTE 和 JSON_EXTRACT（最標準）
-          final nameList = routeNames.map((name) => "'$name'").join(',');
-
-        //  print('執行 SQL 查詢，條件: $nameList');
+          // 防呆處理：過濾掉可能的單引號導致 SQL 錯誤
+          final nameList = routeNames.map((name) => "'${name.replaceAll("'", "''")}'").join(',');
 
           final query = """
-        SELECT *
-FROM Bus.bus_route
-WHERE City = '${widget.city}'
-  AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))
-      IN ($nameList)
-""";
-
-        //  print('SQL 查詢: $query');
+            SELECT *
+            FROM Bus.bus_route
+            WHERE City = '${widget.city}'
+              AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
+          """;
 
           final results = await mysqlSelect(query);
-         // print('查詢結果數量: ${results.length}');
 
-          // 建立路線名稱到數據的映射
           for (final result in results) {
-          //  print('處理查詢結果: ${result}');
-
             final routeNameField = result["RouteName"];
             String? routeName;
 
-            // 解析 RouteName 欄位
             if (routeNameField is Map) {
               routeName = routeNameField["Zh_tw"] as String?;
-           //   print('RouteName 是 Map: $routeNameField, 提取: $routeName');
             } else if (routeNameField is String) {
               try {
-                // 嘗試解析 JSON 字串
                 final parsed = json.decode(routeNameField) as Map<String, dynamic>;
                 routeName = parsed["Zh_tw"] as String?;
-               // print('RouteName 是 JSON String: $routeNameField, 解析後: $parsed, 提取: $routeName');
-              } catch (e) {
+              } catch (_) {
                 routeName = routeNameField;
-              //  print('解析 JSON 失敗，使用原始字串: $routeNameField');
               }
             }
 
             if (routeName != null && routeName.isNotEmpty) {
               routeInfoCache[routeName] = result;
-             // print('快取路線: $routeName -> ${result["RouteID"]}');
-
-              // 打印詳細資訊以便調試
-            //  print('出發站名: ${result["DepartureStopNameZh"]}');
-            //  print('目的站名: ${result["DestinationStopNameZh"]}');
             }
           }
-
-          //print('快取大小: ${routeInfoCache.length}');
-         // print('快取內容: ${routeInfoCache.keys.toList()}');
-
         } catch (e) {
-          print('批次查詢失敗: $e');
+          print('批次查詢失敗: $e, 啟動併發降級查詢');
 
-          // 降級方案：逐個查詢
-          print('開始逐個查詢...');
-          for (final routeName in routeNames) {
+          // 降級方案優化：使用 Future.wait 進行併發查詢，取代原本緩慢的逐筆 await
+          final fallbackFutures = routeNames.map((routeName) async {
             try {
-              print('查詢路線: $routeName');
-
-              // 方法2：使用 LIKE 查詢 JSON
+              final safeRouteName = routeName.replaceAll("'", "''");
               final query = """
-              SELECT * FROM Bus.Bus_${widget.city}_Route 
-              WHERE RouteName LIKE '%"Zh_tw": "$routeName"%'
-              OR JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName'
-            """;
-
+                SELECT * FROM Bus.Bus_${widget.city}_Route 
+                WHERE RouteName LIKE '%"Zh_tw": "$safeRouteName"%'
+                OR JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$safeRouteName'
+                LIMIT 1
+              """;
               final results = await mysqlSelect(query);
-
               if (results.isNotEmpty) {
-                routeInfoCache[routeName] = results.first;
-                print('找到路線 $routeName: ${results.first["RouteID"]}');
-              } else {
-                print('未找到路線 $routeName');
+                return MapEntry(routeName, results.first);
               }
             } catch (e2) {
               print('查詢單一路線失敗 $routeName: $e2');
+            }
+            return null;
+          });
+
+          // 等待所有併發查詢完成
+          final fallbackResults = await Future.wait(fallbackFutures);
+          for (final entry in fallbackResults) {
+            if (entry != null) {
+              routeInfoCache[entry.key] = entry.value;
             }
           }
         }
@@ -619,103 +568,54 @@ WHERE City = '${widget.city}'
       /// -----------------------------
       final List<Map<String, dynamic>> processedData = [];
 
-      print('開始合併路線資訊...');
-
-      for (final item in stationData) {
-        print('處理項目: ${item["RouteName"]}');
-
-        final routeNameObj = item["RouteName"];
-        String? routeName;
-
-        if (routeNameObj is Map<String, dynamic>) {
-          routeName = routeNameObj["Zh_tw"] as String?;
-        } else if (routeNameObj is String) {
-          routeName = routeNameObj;
-        }
-
+      for (final item in routeMap.values) {
+        // 直接取用預處理好的 routeName
+        final routeName = item["_parsedRouteName"] as String;
         final direction = item["Direction"];
 
-        if (routeName == null) {
-          print('跳過：routeName 為空');
-          continue;
-        }
-
-        final resultItem = Map<String, dynamic>.from(item);
         final routeInfo = routeInfoCache[routeName];
         final hasValidInfo = routeInfo != null && routeInfo.isNotEmpty;
 
-        print('路線 $routeName 找到資訊: $hasValidInfo');
+        item["RouteID"] = hasValidInfo ? (routeInfo["RouteID"]?.toString() ?? "未知") : "未知";
 
-        // 設置路線 ID
-        if (hasValidInfo) {
-          resultItem["RouteID"] = routeInfo!["RouteID"]?.toString() ?? "未知";
-          print('設置 RouteID: ${resultItem["RouteID"]}');
-        } else {
-          resultItem["RouteID"] = "未知";
-          print('未找到路線資訊，設置為未知');
-        }
-
-        // 設置站名資訊
         String? departureName;
         String? destinationName;
 
         if (hasValidInfo) {
-          departureName = routeInfo!["DepartureStopNameZh"]?.toString();
-          destinationName = routeInfo!["DestinationStopNameZh"]?.toString();
-
-          print('出發站名從 DB: $departureName');
-          print('目的站名從 DB: $destinationName');
-
-          // 如果沒有從資料庫獲取到，嘗試其他欄位名稱
-          if (departureName == null) {
-            departureName = routeInfo["DepartureStopName"]?.toString();
-            print('從 DepartureStopName 獲取: $departureName');
-          }
-
-          if (destinationName == null) {
-            destinationName = routeInfo["DestinationStopName"]?.toString();
-            print('從 DestinationStopName 獲取: $destinationName');
-          }
+          departureName = routeInfo["DepartureStopNameZh"]?.toString() ?? routeInfo["DepartureStopName"]?.toString();
+          destinationName = routeInfo["DestinationStopNameZh"]?.toString() ?? routeInfo["DestinationStopName"]?.toString();
         }
 
-        resultItem["DepartureStopName"] = departureName ?? "未知出發站";
-        resultItem["DestinationStopName"] = destinationName ?? "未知目的站";
+        final finalDeparture = departureName ?? "未知出發站";
+        final finalDestination = destinationName ?? "未知目的站";
 
-        print('設置 DepartureStopName: ${resultItem["DepartureStopName"]}');
-        print('設置 DestinationStopName: ${resultItem["DestinationStopName"]}');
+        item["DepartureStopName"] = finalDeparture;
+        item["DestinationStopName"] = finalDestination;
 
-        // 根據方向設置 "from" 和 "to"
         final isDirection1 = direction == 1;
-        resultItem["from"] = isDirection1
-            ? destinationName ?? "未知目的地"
-            : departureName ?? "未知出發地";
-        resultItem["to"] = isDirection1
-            ? departureName ?? "未知出發地"
-            : destinationName ?? "未知目的地";
+        item["from"] = isDirection1 ? finalDestination : finalDeparture;
+        item["to"] = isDirection1 ? finalDeparture : finalDestination;
 
-        print('設置 from: ${resultItem["from"]}');
-        print('設置 to: ${resultItem["to"]}');
+        // 清理暫存欄位，保持資料乾淨
+        item.remove("_parsedRouteName");
+        item.remove("_parsedTime");
 
-        processedData.add(resultItem);
-        print('--- 完成處理 ---');
+        processedData.add(item);
       }
 
-      print('=== 處理完成，返回 ${processedData.length} 筆資料 ===');
       return processedData;
     } catch (e) {
       print('處理資料失敗: $e');
-      print(e);
       return [];
     }
   }
-
   /// 添加調試用的輔助方法
   void _debugPrintRouteInfo(Map<String, dynamic> routeInfo) {
     print('=== 路線資訊調試 ===');
     for (final entry in routeInfo.entries) {
-      print('${entry.key}: ${entry.value} (類型: ${entry.value.runtimeType})');
+
     }
-    print('===================');
+
   }
 
   /// 添加一個測試函數來驗證資料庫查詢

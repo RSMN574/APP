@@ -1,0 +1,8 @@
+# ✅ 移除了 synthetic-package: false
+arb-dir: lib/l10n
+template-arb-file: app_zh.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+# synthetic-package: false  ← 這行已經不需要，請刪除
+preferred-supported-locales: [zh]
+use-deferred-loading: false

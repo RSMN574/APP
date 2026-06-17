@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_svg/svg.dart';
-import 'package:com.rsmn574.app/bus.dart';
+import 'package:com.rsmn574.app/Bus.dart';
 // 保持原有的 import
 import '../Const/regularClass.dart';
 import '../test.dart';

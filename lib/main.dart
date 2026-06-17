@@ -7,6 +7,7 @@ import 'package:com.rsmn574.app/pages/traffic.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -27,6 +28,7 @@ import 'database/getData.dart';
 import 'database/token_manager.dart';
 import 'firebase/FCM.dart';
 import 'firebase/firebase_options.dart';
+import 'l10n/app_localizations.dart';
 import 'widget/geolocator.dart';
 import 'pages.dart';
 import 'home.dart';
@@ -35,9 +37,11 @@ import 'pages/notification.dart';
 import 'plane.dart';
 import 'metro.dart';
 import 'train.dart';
-import 'bus.dart';
+import 'Bus.dart';
 import 'package:logging/logging.dart';
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+final ValueNotifier<Locale> localeNotifier =
+ValueNotifier(const Locale('zh'));
 class AppInitializer {
   static Future<void> initialize() async {
     Logger.root.level = Level.ALL;
@@ -169,6 +173,18 @@ class _NavigationBarAppState extends State<NavigationBarApp>
         FocusManager.instance.primaryFocus?.unfocus();
       },
       child:  MaterialApp(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+
+        supportedLocales: const [
+          Locale('zh'),
+          Locale('en'),
+        ],
+
         debugShowCheckedModeBanner: false,
         routes: {
           AppRoutes.plane: (BuildContext context) => (Plane()),
@@ -188,12 +204,12 @@ class _NavigationBarAppState extends State<NavigationBarApp>
         },
        //themeMode: appProvider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
 
-        darkTheme: AppThemes.darkTheme,
+        // darkTheme: AppThemes.darkTheme,
         theme: AppThemes.lightTheme,
         // --- 重點：套用語言 ---
         locale: appProvider.locale,
 
-        themeMode: ThemeMode.system,
+        // themeMode: ThemeMode.system,
         home: const TaiwanPass(),
       )
     );
