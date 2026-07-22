@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
-import 'package:com.rsmn574.app/widget/bubble.dart';
+import 'package:com.rsmn574.app/widget/bus/bubble.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
@@ -14,14 +14,16 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../Const/regularClass.dart';
-import '../Const/regularConst.dart';
-import '../database/SQL/favorite_feature.dart';
-import '../database/bus/getBusTime.dart';
-import '../database/getData.dart';
-import '../task/task.dart';
-import '../utils/convert.dart';
-import '../widget/map.dart';
+import '../../Const/regularClass.dart';
+import '../../Const/regularConst.dart';
+import '../../database/SQL/favorite_feature.dart';
+import '../../database/bus/getBusTime.dart';
+import '../../database/getData.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/bus.dart';
+import '../../task/task.dart';
+import '../../utils/convert.dart';
+import '../../widget/map.dart';
 import 'busStopInfo.dart';
 late String? nearestStop ;
 class Mark {
@@ -48,8 +50,9 @@ class BusTime extends StatefulWidget {
   final bool  hasSubRoutes;
   final String routeID;
   final Mark? mark;
+  final BusRoute data;
 
-  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark,required this.hasSubRoutes })
+  const BusTime({Key? key,required this.routeName,required  this.routeID, this.departureStopName, this.destinationStopName, this.operators,this.routeMapImageUrl,required this.city, this.mark,required this.hasSubRoutes ,required this.data})
       : super(key: key);
 
   @override
@@ -184,11 +187,11 @@ void _scrollToIndex(int index) {
       return polylines;
 
     } catch (e) {
-      debugPrint('載入路線形狀失敗: $e');
+      debugPrint(AppLocalizations.of(context)!.text_337);
       if (mounted) {
         // 可選：顯示錯誤訊息
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('載入路線失敗: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.text_338)),
         );
       }
       return {};
@@ -469,7 +472,7 @@ print(data);
     // 如果找不到站點，直接回傳錯誤狀態
     if (busTimeData.isEmpty) {
 
-      return _buildResult("無資料", "班次結束", "", null);
+      return _buildResult(AppLocalizations.of(context)!.text_339, AppLocalizations.of(context)!.text_317, "", null);
     }
  try{
 
@@ -480,7 +483,7 @@ print(data);
 
    }
  }catch(e){
-   return _buildResult("未營運", "0","", stop);
+   return _buildResult(AppLocalizations.of(context)!.text_303, "0","", stop);
  }
     // 2. 處理「預估到站時間」(EstimateTime)
     if (stop["EstimateTime"] != null) {
@@ -488,12 +491,12 @@ print(data);
       int estimateTime = stop["EstimateTime"];
 
       if (estimateTime == 0) {
-        return _buildResult("即將到站", "0", stop["PlateNumb"] ?? "", stop);
+        return _buildResult(AppLocalizations.of(context)!.text_316, "0", stop["PlateNumb"] ?? "", stop);
       }
 
       int result = (estimateTime / 60).floor();
       return _buildResult(
-        result < 1 ? "即將到站" : "$result 分鐘",
+        result < 1 ? AppLocalizations.of(context)!.text_316 : "$result 分鐘",
         result < 3 ? "2" : "min",
         result < 3 ? (stop["PlateNumb"] ?? "") : "",
         stop,
@@ -511,14 +514,14 @@ print(data);
       if (totalMinutes < 0) {
         // 情況 A：時間已經過了 (現在 06:01，班次 06:00)
         // 建議顯示「已過站」，若過太久(如超過 5 分鐘)顯示班次結束
-        return _buildResult(totalMinutes > -5 ? "已過站" : "班次結束", "班次結束", "", stop);
+        return _buildResult(totalMinutes > -5 ? AppLocalizations.of(context)!.text_340 : AppLocalizations.of(context)!.text_317, AppLocalizations.of(context)!.text_317, "", stop);
 
       } else if (totalMinutes < 60) {
         // 情況 B：一小時內會到的班次 (顯示倒數)
         isTimerOn.value = true;
 
         if (totalMinutes < 1) {
-          return _buildResult("即將到站", "0", stop["PlateNumb"] ?? "", stop);
+          return _buildResult(AppLocalizations.of(context)!.text_316, "0", stop["PlateNumb"] ?? "", stop);
         } else if (totalMinutes < 3) {
           // 1-2 分鐘，進站中樣式
           return _buildResult("$totalMinutes 分鐘", "2", stop["PlateNumb"] ?? "", stop);
@@ -536,7 +539,7 @@ print(data);
     }
 
     // 4. 無時間資料，預設回傳班次結束
-    return _buildResult("班次結束", "班次結束", "", stop);
+    return _buildResult(AppLocalizations.of(context)!.text_317, AppLocalizations.of(context)!.text_317, "", stop);
   }
 
 // ==========================================
@@ -677,8 +680,8 @@ print(data);
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '功能開發中',
+                 Text(
+                  AppLocalizations.of(context)!.text_32,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey,
@@ -702,8 +705,8 @@ print(data);
                             color: const Color(0xFF1A73E8).withOpacity(0.3),
                           ),
                         ),
-                        child: const Text(
-                          '關閉',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_44,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -727,13 +730,8 @@ print(data);
   Future<void> _addRouteToFavorites(List routeInfo) async {
     favorite_feature dbHelper = favorite_feature();
 
-    final result = await dbHelper.addFavorite(
-      DepartureStopNameZh: routeInfo[1],
-      DestinationStopNameZh: routeInfo[2],
-      routeName: routeInfo[0],
-      city: widget.city,
-      routeID: widget.routeID,
-      table: "FavoritesRoute",
+    final result = await dbHelper.addFavoriteRoute(
+  widget.data
     );
 
     // 顯示美化後的提示
@@ -741,7 +739,7 @@ print(data);
       QuickAlert.show(
         context: context,
         type: QuickAlertType.success,
-        title: '收藏成功',
+        title: AppLocalizations.of(context)!.text_341,
         text: '${routeInfo[0]} 已加入收藏',
         confirmBtnColor: const Color(0xFF1A73E8),
         animType: QuickAlertAnimType.slideInUp,
@@ -750,7 +748,7 @@ print(data);
       QuickAlert.show(
         context: context,
         type: QuickAlertType.warning,
-        title: '已收藏',
+        title: AppLocalizations.of(context)!.text_342,
         text: '${routeInfo[0]} 已在收藏列表中',
         confirmBtnColor: const Color(0xFFFF9500),
       );
@@ -758,8 +756,8 @@ print(data);
       QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
-        title: '收藏失敗',
-        text: '請稍後再試',
+        title: AppLocalizations.of(context)!.text_343,
+        text: AppLocalizations.of(context)!.text_299,
         confirmBtnColor: const Color(0xFFFF3B30),
       );
     }
@@ -806,8 +804,8 @@ print(data);
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  '路線圖',
+                 Text(
+                  AppLocalizations.of(context)!.text_227,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
@@ -857,8 +855,8 @@ print(data);
                             color: const Color(0xFF1A73E8).withOpacity(0.3),
                           ),
                         ),
-                        child: const Text(
-                          '關閉',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_44,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1011,33 +1009,33 @@ print(data);
                             itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
                               _buildPopupMenuItem(
                                 icon: Icons.info_outline_rounded,
-                                title: '公車資訊',
-                                subtitle: '查看詳細資訊',
+                                title: AppLocalizations.of(context)!.text_16,
+                                subtitle: AppLocalizations.of(context)!.text_344,
                                 value: 'A',
                               ),
                               _buildPopupMenuItem(
                                 icon: Icons.favorite_outline_rounded,
-                                title: '加入收藏',
-                                subtitle: '收藏此路線',
+                                title: AppLocalizations.of(context)!.text_334,
+                                subtitle: AppLocalizations.of(context)!.text_345,
                                 value: 'B',
                               ),
                               _buildPopupMenuItem(
                                 icon: Icons.map_rounded,
-                                title: '路線圖',
-                                subtitle: '查看路線地圖',
+                                title: AppLocalizations.of(context)!.text_227,
+                                subtitle: AppLocalizations.of(context)!.text_346,
                                 value: 'C',
                               ),
                               _buildPopupMenuItem(
                                 icon: Icons.history_rounded,
-                                title: '歷史時間',
-                                subtitle: '查看歷史班次',
+                                title: AppLocalizations.of(context)!.text_347,
+                                subtitle: AppLocalizations.of(context)!.text_348,
                                 value: 'D',
                               ),
                             ],
                             onSelected: (String action) async {
                               switch (action) {
                                 case 'A':
-                                  _showDevelopmentDialog('公車資訊');
+                                  _showDevelopmentDialog(AppLocalizations.of(context)!.text_16);
                                   break;
                                 case 'B':
                                   await _addRouteToFavorites(routeInfo);
@@ -1091,7 +1089,7 @@ print(data);
                                         width: 1,
                                       ),
                                     ),
-                                    child: const Row(
+                                    child:  Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -1102,7 +1100,7 @@ print(data);
                                         ),
                                         SizedBox(width: 6),
                                         Text(
-                                          "已停止自動更新",
+                                          AppLocalizations.of(context)!.text_349,
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600,
@@ -1302,7 +1300,7 @@ print(data);
             ? const Color.fromRGBO(235, 15, 41, 0.85)
             : (stop["color"] == '2'
             ? const Color.fromRGBO(225, 85, 104, 0.1)
-            : (stop["color"] == "班次結束"
+            : (stop["color"] == AppLocalizations.of(context)!.text_317
             ? const Color.fromRGBO(69, 69, 69, 0.1)
             :(stop["color"] == "min"
             ? const Color.fromRGBO(13, 168, 255, 0.1)
@@ -1345,7 +1343,7 @@ print(data);
                           ? Colors.white
                           : (stop["color"] == '2'
                           ? const Color.fromRGBO(255, 85, 104, 1)
-                          : (stop["color"] == "班次結束"
+                          : (stop["color"] == AppLocalizations.of(context)!.text_317
                           ? const Color.fromRGBO(149, 149, 149, 1.0)
                           :(stop["color"] == "min"
                           ? const Color.fromRGBO(13, 168, 255, 1)
@@ -1365,7 +1363,7 @@ print(data);
                           : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
                       color: stop["isHighlighted"] == true
                           ? Colors.blue[800]
-                          : (stop["color"] == "班次結束"
+                          : (stop["color"] == AppLocalizations.of(context)!.text_317
                           ? const Color.fromRGBO(136, 136, 136, 1)
                           : Colors.black),
                       letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
@@ -1390,8 +1388,8 @@ print(data);
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: Color.fromRGBO(13, 168, 255, 0.6)),
                       ),
-                      child: const Text(
-                        '最近',
+                      child:  Text(
+                        AppLocalizations.of(context)!.text_350,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -1502,7 +1500,7 @@ print(data);
         const SizedBox(height: 8),
         // 副標題
         Text(
-          '公車站牌選項',
+          AppLocalizations.of(context)!.text_351,
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[600],
@@ -1519,8 +1517,8 @@ print(data);
         _buildDialogOption(
           context: context,
           icon: Icons.schedule_outlined,
-          title: "下班車資訊",
-          subtitle: "查看預計到站時間",
+          title: AppLocalizations.of(context)!.text_352,
+          subtitle: AppLocalizations.of(context)!.text_353,
           type: "info",
           data: {'estimates': estimates},
         ),
@@ -1528,8 +1526,8 @@ print(data);
         _buildDialogOption(
           context: context,
           icon: Icons.place_outlined,
-          title: "站牌查詢",
-          subtitle: "查看詳細站牌資訊",
+          title: AppLocalizations.of(context)!.text_354,
+          subtitle: AppLocalizations.of(context)!.text_355,
           type: "stop",
           data: {"stop": stopName},
         ),
@@ -1537,8 +1535,8 @@ print(data);
         _buildDialogOption(
           context: context,
           icon: Icons.notifications_outlined,
-          title: "到站通知",
-          subtitle: "設定公車到站提醒",
+          title: AppLocalizations.of(context)!.text_356,
+          subtitle: AppLocalizations.of(context)!.text_357,
           type: "notification",
           data: stop,
         ),
@@ -1546,8 +1544,8 @@ print(data);
         _buildDialogOption(
           context: context,
           icon: Icons.favorite_outline,
-          title: "加入收藏",
-          subtitle: "收藏此站牌",
+          title: AppLocalizations.of(context)!.text_334,
+          subtitle: AppLocalizations.of(context)!.text_358,
           type: "favorite",
           data: {"id": stopName},
         ),
@@ -1555,8 +1553,8 @@ print(data);
         _buildDialogOption(
           context: context,
           icon: Icons.route_outlined,
-          title: "路線規劃",
-          subtitle: "規劃乘車路線",
+          title: AppLocalizations.of(context)!.text_359,
+          subtitle: AppLocalizations.of(context)!.text_360,
           type: "route",
           data: {},
         ),
@@ -1660,8 +1658,8 @@ print(data);
                 width: 1.5,
               ),
             ),
-            child: const Text(
-              '關閉',
+            child:  Text(
+              AppLocalizations.of(context)!.text_44,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -1735,8 +1733,8 @@ print(data);
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 2,
-            title: const Text(
-              "下班車資訊",
+            title:  Text(
+              AppLocalizations.of(context)!.text_352,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -1774,7 +1772,7 @@ print(data);
                     child: const Icon(Icons.directions_bus, color: Colors.blue),
                   ),
                   title: Text(
-                    '公車 ${bus["PlateNumb"] ?? "未知"}',
+                    '公車 ${bus["PlateNumb"] ?? AppLocalizations.of(context)!.text_321}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -1795,9 +1793,9 @@ print(data);
               );
             },
           )
-              : const Center(
+              :  Center(
             child: Text(
-              "目前沒有公車預估時間",
+              AppLocalizations.of(context)!.text_361,
               style: TextStyle(
                 fontSize: 18,
                 color: Colors.grey,
@@ -1840,7 +1838,7 @@ print(data);
   Future<void> _addToFavorites(BuildContext context, String stopId) async {
     favorite_feature dbHelper = favorite_feature(); // 创建实例
     var output;
-    final result = await dbHelper.addFavorite(StopName:stopId  ,city:widget.city, table: 'FavoritesStop', routeID: null);
+    final result = await dbHelper.addFavoriteStop(stopName:stopId  ,city:widget.city, );
 
 
     // 顯示相應的 QuickAlert
@@ -1944,7 +1942,7 @@ class _BusDetailPageState extends State<BusDetailPage> {
       DateTime dateTime = DateTime.parse(gpsTime).toLocal(); // 解析並轉換為本地時間
       return DateFormat('yyyy/MM/dd HH:mm:ss').format(dateTime); // 格式化輸出
     } catch (e) {
-      return '時間格式錯誤';
+      return AppLocalizations.of(context)!.text_362;
     }
   }
 
@@ -1952,7 +1950,7 @@ class _BusDetailPageState extends State<BusDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('公車歷史資料'),
+        title:  Text(AppLocalizations.of(context)!.text_363),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -1965,7 +1963,7 @@ class _BusDetailPageState extends State<BusDetailPage> {
             child: TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: '搜尋站點名稱',
+                hintText: AppLocalizations.of(context)!.text_364,
                 prefixIcon: const Icon(Icons.search, color: Colors.black54),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12.0),
@@ -1982,9 +1980,9 @@ class _BusDetailPageState extends State<BusDetailPage> {
             child: filteredBuses == null
                 ? const Center(child: CircularProgressIndicator(color: Colors.blue))
                 : filteredBuses!.isEmpty
-                ? const Center(
+                ?  Center(
               child: Text(
-                '沒有符合的資料',
+                AppLocalizations.of(context)!.text_365,
                 style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
             )
@@ -2045,7 +2043,7 @@ class _BusDetailPageState extends State<BusDetailPage> {
                         ),
                         const SizedBox(height: 4.0),
                         Text(
-                          '方向: ${bus['Direction'] == 0 ? '去程' : '回程'}',
+                          '方向: ${bus['Direction'] == 0 ? AppLocalizations.of(context)!.text_366 : AppLocalizations.of(context)!.text_367}',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black54,

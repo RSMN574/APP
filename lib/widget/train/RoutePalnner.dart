@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class StationSelectionDialog extends StatefulWidget {
   final List<dynamic> stationNames;
   const StationSelectionDialog({
@@ -20,8 +22,8 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
   String? _category;
  String? _seatNumber;
   // 車站選項
-  List<String> stations = ['台北', '台中', '高雄', '台南', '新竹'];
-  final List<String> category = ['上班通勤', '旅行', ];
+  late List<String> stations = [AppLocalizations.of(context)!.text_85, AppLocalizations.of(context)!.text_88, AppLocalizations.of(context)!.text_90, AppLocalizations.of(context)!.text_89, AppLocalizations.of(context)!.text_924];
+  late final List<String> category = [AppLocalizations.of(context)!.text_70, AppLocalizations.of(context)!.text_71, ];
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +35,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
     print(stationNames);
 
     return AlertDialog(
-      title: const Text('選擇車站'),
+      title:  Text(AppLocalizations.of(context)!.text_925),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -42,7 +44,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
             children: [
               // 出發站選擇
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: '出發站'),
+                decoration:  InputDecoration(labelText: AppLocalizations.of(context)!.text_63),
                 value: _departure,
                 items: stations.map((station) {
                   return DropdownMenuItem(
@@ -57,7 +59,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                 },
                 validator: (value) {
                   if (value == null) {
-                    return '請選擇出發站';
+                    return AppLocalizations.of(context)!.text_161;
                   }
                   return null;
                 },
@@ -67,7 +69,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
 
               // 到達站選擇
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: '到達站'),
+                decoration:  InputDecoration(labelText: AppLocalizations.of(context)!.text_162),
                 value: _destination,
                 items: stations.map((station) {
                   return DropdownMenuItem(
@@ -82,7 +84,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                 },
                 validator: (value) {
                   if (value == null) {
-                    return '請選擇到達站';
+                    return AppLocalizations.of(context)!.text_163;
                   }
                   return null;
                 },
@@ -92,7 +94,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
 
               // 類型選擇
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: '類型'),
+                decoration:  InputDecoration(labelText: AppLocalizations.of(context)!.text_926),
                 value: _category,
                 items: category.map((type) {
                   return DropdownMenuItem(
@@ -107,7 +109,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                 },
                 validator: (value) {
                   if (value == null) {
-                    return '請選擇類型';
+                    return AppLocalizations.of(context)!.text_927;
                   }
                   return null;
                 },
@@ -117,7 +119,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
 
               // 座位號碼輸入框
               TextFormField(
-                decoration: const InputDecoration(labelText: '座位號碼'),
+                decoration:  InputDecoration(labelText: AppLocalizations.of(context)!.text_928),
                 maxLength: 10, // 限制最多 10 個字
                 onChanged: (value) {
                   setState(() {
@@ -127,7 +129,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
                 validator: (value) {
 
                   if (value!.length > 10) {
-                    return '座位號碼最多 10 個字';
+                    return AppLocalizations.of(context)!.text_929;
                   }
                   return null;
                 },
@@ -141,7 +143,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
           onPressed: () {
             Navigator.pop(context); // 關閉彈窗
           },
-          child: const Text('取消'),
+          child:  Text(AppLocalizations.of(context)!.text_36),
         ),
         TextButton(
           onPressed: () {
@@ -155,7 +157,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
               });
             }
           },
-          child: const Text('確認'),
+          child:  Text(AppLocalizations.of(context)!.text_35),
         ),
       ],
     );

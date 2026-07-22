@@ -1,4 +1,4 @@
-
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -9,12 +9,182 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+
 import '../Const/regularClass.dart';
+import '../Const/regularConst.dart';
 import '../database/EV_station/EV_station.dart';
 import '../database/park/getPark.dart';
 import '../utils/convert.dart';
 import '../utils/share.dart';
 import '../widget/map.dart';
+
+/// 🟢 強型別停車場資料模型
+/// 目的：將原本散落各處且反覆 json.decode 的資料在網絡層一次性解析完畢
+/// 效能：解決原本 ListView 滑動與 Marker 產生時大量 CPU 解碼導致的卡頓
+class ParkingLot {
+  final String id;
+  final String name;
+  final String address;
+  final String phone;
+  final double lat;
+  final double lng;
+  final int? totalSpaces;
+  final int? availableSpaces;
+  final String fareDescription;
+  final dynamic carParkType;
+  final dynamic chargeTypes;
+  final String description;
+  final bool isFreeOutOfHours;
+  final bool hasEV;
+  final bool overnightPermitted;
+  final bool vehicleDetection;
+  final bool wheelchairAccessible;
+
+  ParkingLot({
+    required this.id,
+    required this.name,
+    required this.address,
+    required this.phone,
+    required this.lat,
+    required this.lng,
+    this.totalSpaces,
+    this.availableSpaces,
+    required this.fareDescription,
+    this.carParkType,
+    this.chargeTypes,
+    required this.description,
+    required this.isFreeOutOfHours,
+    required this.hasEV,
+    required this.overnightPermitted,
+    required this.vehicleDetection,
+    required this.wheelchairAccessible,
+  });
+
+  /// 工廠建構子：安全解析靜態 (MySQL) + 即時 (TDX) 資料
+  factory ParkingLot.fromMap(
+      Map<String, dynamic> park,
+      Map<String, dynamic>? live,
+      ) {
+    // 1. 安全解析停車場名稱
+    String parkName = "未命名停車場";
+    try {
+      if (park["CarParkName"] != null) {
+        final decodedName = park["CarParkName"] is String
+            ? json.decode(park["CarParkName"])
+            : park["CarParkName"];
+        if (decodedName is Map && decodedName["Zh_tw"] != null) {
+          parkName = decodedName["Zh_tw"].toString();
+        }
+      }
+    } catch (_) {}
+
+    // 2. 安全解析經緯度 (修復原版導航時經緯度永遠為 0.0 的致命 Bug)
+    double lat = 0.0;
+    double lng = 0.0;
+    try {
+      if (park["CarParkPosition"] != null) {
+        final pos = park["CarParkPosition"] is String
+            ? json.decode(park["CarParkPosition"])
+            : park["CarParkPosition"];
+        if (pos is Map) {
+          lat = double.tryParse(pos["PositionLat"].toString()) ?? 0.0;
+          lng = double.tryParse(pos["PositionLon"].toString()) ?? 0.0;
+        }
+      }
+    } catch (_) {}
+
+    // 3. 安全解析即時車位資訊
+    int? parseSpace(dynamic val) {
+      if (val == null) return null;
+      return int.tryParse(val.toString());
+    }
+
+    return ParkingLot(
+      id: park["CarParkID"]?.toString() ?? "",
+      name: parkName,
+      address: park["Address"]?.toString() ?? "無地址資訊",
+      phone: park["Telephone"]?.toString() ?? "",
+      lat: lat,
+      lng: lng,
+      totalSpaces: parseSpace(live?["TotalSpaces"] ?? park["TotalSpaces"]),
+      availableSpaces: parseSpace(
+        live?["AvailableSpaces"] ?? park["AvailableSpaces"],
+      ),
+      fareDescription: park["FareDescription"]?.toString() ?? "",
+      carParkType: park["CarParkType"],
+      chargeTypes: park["ChargeTypes"],
+      description: park["Description"]?.toString() ?? "無營運描述",
+      isFreeOutOfHours:
+      park["IsFreeParkingOutOfHours"] == "1" ||
+          park["IsFreeParkingOutOfHours"] == 1,
+      hasEV:
+      park["EVRechargingAvailable"] == "1" ||
+          park["EVRechargingAvailable"] == 1,
+      overnightPermitted:
+      park["OvernightPermitted"] == "1" || park["OvernightPermitted"] == 1,
+      vehicleDetection:
+      park["VehicleDetection"] == "1" || park["VehicleDetection"] == 1,
+      wheelchairAccessible:
+      park["WheelchairAccessible"] == "1" ||
+          park["WheelchairAccessible"] == 1,
+    );
+  }
+
+  /// 轉回 Map 物件以供 StationActions.shareStation 等接收 Map 的函式使用
+  Map<String, dynamic> toMap() {
+    return {
+      "CarParkID": id,
+      "CarParkName": {"Zh_tw": name},
+      "Address": address,
+      "Telephone": phone,
+      "FareDescription": fareDescription,
+      "TotalSpaces": totalSpaces,
+      "AvailableSpaces": availableSpaces,
+      "CarParkPosition": {
+        "PositionLat": lat,
+        "PositionLon": lng,
+      },
+    };
+  }
+
+  /// 計算車位緊張度等級
+  String get capacityLevel {
+    if (totalSpaces == null || availableSpaces == null || totalSpaces == 0) {
+      return "⚪";
+    }
+    final ratio = (availableSpaces! / totalSpaces!).clamp(0.0, 1.0);
+    if (ratio >= 0.5) return "🟢";
+    if (ratio >= 0.2) return "🟡";
+    return "🔴";
+  }
+
+  /// 計算狀態顏色
+  Color get capacityColor {
+    if (totalSpaces == null || availableSpaces == null || totalSpaces == 0) {
+      return const Color(0xFF8E8E93);
+    }
+    final ratio = (availableSpaces! / totalSpaces!).clamp(0.0, 1.0);
+    if (ratio >= 0.5) return const Color(0xFF34C759);
+    if (ratio >= 0.2) return const Color(0xFFFF9500);
+    return const Color(0xFFFF3B30);
+  }
+
+  /// 取得容量文字描述
+  String get capacityText {
+    if (totalSpaces == null || availableSpaces == null || totalSpaces == 0) {
+      return "無資料";
+    }
+    final ratio = (availableSpaces! / totalSpaces!).clamp(0.0, 1.0);
+    if (ratio >= 0.5) return "充足";
+    if (ratio >= 0.2) return "普通";
+    return "緊張";
+  }
+}
+
+final List<CityItem> cities = [
+  CityItem(name: '臺中市', id: 'Taichung'),
+  CityItem(name: '桃園市', id: 'Taoyuan'),
+];
 
 class Parking extends StatefulWidget {
   const Parking({super.key});
@@ -24,580 +194,524 @@ class Parking extends StatefulWidget {
 }
 
 class _ParkingState extends State<Parking> {
-  final List<String> regions = [
-    '臺中市',
-  ];
-  String selectedCity="臺中市";
+  // 城市切換控制
+  late final ValueNotifier<String> _currentCityNotifier;
+  late final ValueNotifier<String> _correspondingIDNotifier;
+  String _selectedCity = "臺中市";
+
+  // 地圖與搜尋控制
   GoogleMapController? _mapController;
-  TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>>  _filteredStations = [];
-  List<Map<String, dynamic>>  allParking=[]; // 所有公車資料
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  // 搜尋防抖器 (Debouncer) 防止高頻過濾造成 App 畫面格頓
+  Timer? _searchDebounceTimer;
+
+  // 資料列表 (使用模型物件)
+  List<ParkingLot> _allParking = [];
+  List<ParkingLot> _filteredStations = [];
+
   bool _isLoading = true;
-  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_handleSearch);
+    _currentCityNotifier = ValueNotifier<String>("臺中市");
+    _correspondingIDNotifier = ValueNotifier<String>("Taichung");
+
+    // 設定搜尋輸入監聽
+    _searchController.addListener(_onSearchInputChanged);
     _fetchData();
   }
-// 在 class 內宣告
-  final FocusNode _searchFocusNode = FocusNode();
-  Future<void> _fetchData() async {
-    print('Fetching data...');
 
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+  @override
+  void dispose() {
+    // 🚀 安全釋放控制器，防止記憶體洩漏 (Memory Leak)
+    _searchDebounceTimer?.cancel();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _currentCityNotifier.dispose();
+    _correspondingIDNotifier.dispose();
+
+    // 離開頁面時清空地圖 Marker
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+      }
+    });
+    super.dispose();
+  }
+
+  /// 獲取與整合靜態/動態停車場資料
+  Future<void> _fetchData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    final locationProvider = Provider.of<LocationProvider>(
+      context,
+      listen: false,
+    );
 
     try {
-      /// 1. 取得 MySQL 的靜態停車資料 + 強制轉型成 Map<String, dynamic>
-      // 取得 OffStreet
-      List<Map<String, dynamic>> offStreet =
-      (await mysqlSelect("SELECT * FROM CarPark.OffStreetCarPark_Taichung;") ?? [])
-          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-          .toList();
+      final cityCode = _correspondingIDNotifier.value;
 
-// 取得 OnStreet
-      List<Map<String, dynamic>> freeway =
-      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="TXG";') ?? [])
-          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-          .toList();
-      List<Map<String, dynamic>> tra =
-      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="TXG";') ?? [])
-          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-          .toList();
-      List<Map<String, dynamic>> thsr =
-      (await mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="TXG";') ?? [])
-          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-          .toList();
-// 合併
-      List<Map<String, dynamic>> data = [
-        ...offStreet,
-...freeway,
-        ...tra
-        ,...thsr
+      /// 1. 併發讀取 MySQL 靜態資料庫 (提升載入效率)
+      final results = await Future.wait([
+        mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_$cityCode;'),
+        mysqlSelect(
+          'SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="TXG";',
+        ),
+        mysqlSelect(
+          'SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="TXG";',
+        ),
+        mysqlSelect(
+          'SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="TXG";',
+        ),
+      ]);
+
+      final rawOffStreet = results[0] ?? [];
+      final rawFreeway = results[1] ?? [];
+      final rawTra = results[2] ?? [];
+      final rawThsr = results[3] ?? [];
+
+      final List<Map<String, dynamic>> combinedRaw = [
+        ...rawOffStreet.map((e) => Map<String, dynamic>.from(e)),
+        ...rawFreeway.map((e) => Map<String, dynamic>.from(e)),
+        ...rawTra.map((e) => Map<String, dynamic>.from(e)),
+        ...rawThsr.map((e) => Map<String, dynamic>.from(e)),
       ];
 
-      print("MySQL data: $data");
-
-      /// 2. 取得 TDX 車位即時資料
-      List liveRaw = await fetchParkLiveStatus("Taichung");
-
-      /// 強制轉型為 List<Map<String, dynamic>>
-      List<Map<String, dynamic>> liveData =
-      liveRaw.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
-
-      print("LiveData: $liveData");
-
-      /// 3. 建立 CarParkID → LiveData 的 Map，快速查找
+      /// 2. 取得 TDX 即時剩餘車位資料
+      List liveRaw = await fetchParkLiveStatus(cityCode);
       Map<String, Map<String, dynamic>> liveMap = {
-        for (var item in liveData) item["CarParkID"]: item
+        for (var item in liveRaw)
+          item["CarParkID"].toString(): Map<String, dynamic>.from(item),
       };
 
-      /// 4. 合併 MySQL 靜態資料 + TDX 即時資料
-      List<Map<String, dynamic>> merged = data.map((park) {
-        String id = park["CarParkID"];
-        Map<String, dynamic>? live = liveMap[id];
-
-        return {
-          ...park,
-          "TotalSpaces": live?["TotalSpaces"],
-          "AvailableSpaces": live?["AvailableSpaces"],
-          "Availabilities": live?["Availabilities"],
-          "ServiceStatus": live?["ServiceStatus"],
-          "FullStatus": live?["FullStatus"],
-          "ChargeStatus": live?["ChargeStatus"],
-          "DataCollectTime": live?["DataCollectTime"],
-        };
+      /// 3. 工廠模型化 (轉為強型別 ParkingLot 物件，預先解析好經緯度與名稱)
+      List<ParkingLot> parsedLots = combinedRaw.map((park) {
+        final id = park["CarParkID"].toString();
+        return ParkingLot.fromMap(park, liveMap[id]);
       }).toList();
 
-      /// 5. 依距離排序
-      merged.sort((a, b) {
-        var pa = jsonDecode(a["CarParkPosition"]);
-        var pb = jsonDecode(b["CarParkPosition"]);
-
+      /// 4. 依照使用者當前位置進行距離排序
+      parsedLots.sort((a, b) {
         double da = calculateApproxDistance(
           locationProvider.latitude,
           locationProvider.longitude,
-          pa["PositionLat"],
-          pa["PositionLon"],
+          a.lat,
+          a.lng,
         );
-
         double db = calculateApproxDistance(
           locationProvider.latitude,
           locationProvider.longitude,
-          pb["PositionLat"],
-          pb["PositionLon"],
+          b.lat,
+          b.lng,
         );
-
         return da.compareTo(db);
       });
 
-      /// 6. 更新 UI
+      if (!mounted) return;
       setState(() {
-        allParking = merged;
-        _filteredStations = List.from(merged);
+        _allParking = parsedLots;
+        _filteredStations = List.from(parsedLots);
         _isLoading = false;
       });
 
-      /// 7. 重新載入地圖標記
-      await _loadMarkers();
+      /// 5. 更新地圖標記
+      _loadMarkers();
     } catch (e) {
-      print("Fetch data error: $e");
-
+      debugPrint("Fetch data error: $e");
+      if (!mounted) return;
       setState(() {
-        allParking = [];
+        _allParking = [];
         _filteredStations = [];
         _isLoading = false;
       });
     }
   }
 
-  Future<void> _loadMarkers() async {
-    Set<Marker> markerCache = {};
-
-    for (var i in _filteredStations) {
-      final marker = Marker(
-        markerId: MarkerId(i["CarParkID"]),
-        position: LatLng(
-          json.decode(i["CarParkPosition"])["PositionLat"],
-          json.decode(i["CarParkPosition"])["PositionLon"],
-        ),
-        infoWindow: InfoWindow(
-          title: json.decode(i["CarParkName"])["Zh_tw"],
-          snippet: i["CarParkID"],
-        ),
+  /// 批量地圖標記生成
+  void _loadMarkers() {
+    final Set<Marker> markerCache = _filteredStations.map((station) {
+      return Marker(
+        markerId: MarkerId(station.id),
+        position: LatLng(station.lat, station.lng),
+        infoWindow: InfoWindow(title: station.name, snippet: station.id),
         onTap: () {
-          setState(() {
-            _searchController.text =  json.decode(i["CarParkName"])["Zh_tw"];
-            _filterStations(_searchController.text);
-          });
+          _searchController.text = station.name;
+          _filterStations(station.name);
         },
       );
-      markerCache.add(marker);
-    }
+    }).toSet();
 
-    // ⭐ 關鍵：延後更新 provider 避免 build 過程呼叫
+    // 延後執行確保 Context 安全，並防止 build 過程觸發 notifyListeners
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MarkerProvider>(context, listen: false)
-          .setMarkers(markerCache);
+      if (mounted) {
+        Provider.of<MarkerProvider>(
+          context,
+          listen: false,
+        ).setMarkers(markerCache);
+      }
     });
   }
 
-  void _handleSearch() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _isSearching = query.isNotEmpty;
+  /// 搜尋輸入變動事件處理 (帶 250ms 防抖)
+  void _onSearchInputChanged() {
+    if (_searchDebounceTimer?.isActive ?? false) {
+      _searchDebounceTimer!.cancel();
+    }
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        _filterStations(_searchController.text);
+      }
     });
   }
-  @override
-  void dispose() {
-     Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-    super.dispose();
-  }
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-  }
 
-
+  /// 執行清單與地圖過濾
   void _filterStations(String query) {
-    query = query.trim().toLowerCase();
+    final cleanQuery = query.trim().toLowerCase();
 
-    final filtered = allParking?.where((station) {
-      final name =  json.decode(station['CarParkName'])["Zh_tw"]?.toString().toLowerCase() ?? '';
-      final address = station['Address']?.toString().toLowerCase() ?? '';
-      return name.contains(query) || address.contains(query);
+    final filtered = _allParking.where((station) {
+      final name = station.name.toLowerCase();
+      final address = station.address.toLowerCase();
+      return name.contains(cleanQuery) || address.contains(cleanQuery);
     }).toList();
 
-    setState(() => _filteredStations = filtered!);
-
-    // ❗不直接呼叫 _loadMarkers()，改成等 build 完成後再更新 markers
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadMarkers();
+    if (!mounted) return;
+    setState(() {
+      _filteredStations = filtered;
     });
 
-    // 若只剩一筆 → 聚焦地圖
-    if (filtered?.length == 1) {
-      final station = filtered!.first;
-      final lat = json.decode(station["CarParkPosition"])["PositionLat"];
-      final lon =  json.decode(station["CarParkPosition"])["PositionLon"];
+    _loadMarkers();
 
-      _mapController?.animateCamera(
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: LatLng(lat, lon),
-            zoom: 17,
+    // 若搜尋結果唯有一筆，自動將地圖鏡頭移動定位
+    if (filtered.length == 1) {
+      final station = filtered.first;
+      if (station.lat != 0.0 && station.lng != 0.0) {
+        _mapController?.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+              target: LatLng(station.lat, station.lng),
+              zoom: 17,
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
   }
 
-
+  void _updatedCorrespondingID() {
+    final city = cities.firstWhere(
+          (c) => c.name == _currentCityNotifier.value,
+      orElse: () => const CityItem(name: '全部', id: 'all'),
+    );
+    _correspondingIDNotifier.value = city.id;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final theme = Theme.of(context);
 
-    return WillPopScope(
-        onWillPop: () async {
-          Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-          return true; // 允許頁面返回
-        },
-        child:Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            title: const Text(
-              '停車資訊',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A73E8),
-                letterSpacing: -0.5,
+    // 🚀 使用最新 Flutter 官方推薦 PopScope 替換已廢棄的 WillPopScope
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          Provider.of<MarkerProvider>(
+            context,
+            listen: false,
+          ).setMarkers({});
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppThemes.getCardColor(context),
+          elevation: 0,
+          title: const Text(
+            '停車資訊',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A73E8),
+              letterSpacing: -0.5,
+            ),
+          ),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+          actions: [_buildCityDropdown(context)],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFF1A73E8).withOpacity(0.2),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
-            actions: [
-              Container(
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF3FB),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2),
+          ),
+        ),
+        body: _isLoading
+            ? Center(
+          child: LoadingAnimationWidget.stretchedDots(
+            color: theme.primaryColor,
+            size: 40,
+          ),
+        )
+            : Stack(
+          children: [
+            // 地圖背景元件
+            map(
+              onMapCreated: (GoogleMapController controller) {
+                _mapController = controller;
+              },
+            ),
+            // 可拖曳式滾動面板
+            _buildDraggableSheet(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCityDropdown(BuildContext context) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppThemes.getCardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.15),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          dropdownColor: AppThemes.getCardColor(context),
+          borderRadius: BorderRadius.circular(16),
+          isExpanded: true,
+          value: _selectedCity,
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          selectedItemBuilder: (BuildContext context) {
+            return cities.map<Widget>((CityItem city) {
+              return Container(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        city.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          },
+          items: cities.map((CityItem city) {
+            final isSelected = _selectedCity == city.name;
+            return DropdownMenuItem<String>(
+              value: city.name,
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey.withOpacity(0.4),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      city.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) async {
+            if (value == null) return;
+            _currentCityNotifier.value = value;
+            _selectedCity = value;
+            _updatedCorrespondingID();
+            await _fetchData();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDraggableSheet(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.35,
+      minChildSize: 0.25,
+      maxChildSize: 0.85,
+      builder: (BuildContext context, ScrollController scrollController) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            boxShadow: const [
+              BoxShadow(blurRadius: 10, color: Colors.black26),
+            ],
+          ),
+          child: Column(
+            children: [
+              // 頂部拖曳指示條
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      width: 40,
+                      height: 5,
+                      color: Colors.grey.withOpacity(0.3),
+                    ),
                   ),
                 ),
-                child: DropdownButton<String>(
-                  value: selectedCity,
-                  underline: const SizedBox(),
-                  icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1A73E8)),
-                  dropdownColor: Colors.white,
-                  style: const TextStyle(
-                    color: Color(0xFF1A73E8),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  items: regions.map((city) {
-                    return DropdownMenuItem<String>(
-                      value: city,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.location_city_rounded,
-                            size: 16,
-                            color: const Color(0xFF1A73E8).withOpacity(0.7),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(city),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        selectedCity = value;
-                      });
-                      // 加載對應城市的資料
+              ),
 
-                    }
+              // 搜尋輸入框區域
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFF2C2C2E)
+                        : const Color(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
+                    decoration: InputDecoration(
+                      hintText: '搜尋站點名稱或地址...',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: Colors.grey[600],
+                        size: 20,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(
+                          Icons.clear_rounded,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          _filterStations('');
+                        },
+                      )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 16,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ),
+
+              // 停車場列表
+              Expanded(
+                child: _filteredStations.isEmpty
+                    ? _buildEmptySearchState()
+                    : ListView.builder(
+                  controller: scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _filteredStations.length,
+                  itemBuilder: (context, index) {
+                    return _buildModernStationCard(
+                      _filteredStations[index],
+                    );
                   },
                 ),
               ),
             ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.transparent,
-                      const Color(0xFF1A73E8).withOpacity(0.2),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ),
-          body: _isLoading
-              ?  Center( child:
-           LoadingAnimationWidget.stretchedDots(
-              color: Colors.black,
-              size: 40,
-            ),
-          )
-                : Stack(
-            children: [
-              // 地圖元件放在背景中
-              map(  onMapCreated: (GoogleMapController controller) {
-                _mapController = controller;
-              },),
-              // DraggableScrollableSheet 實現可拖曳、調整高度的面板
-              DraggableScrollableSheet(
-                initialChildSize: 0.3, // 初始高度佔螢幕比例
-                minChildSize: 0.3, // 最小高度
-                maxChildSize: 0.8, // 最大高度
-                builder: (BuildContext context, ScrollController scrollController) {
-                  return Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          blurRadius: 10,
-                          color: Colors.black26,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // 拖曳指示條，帶有模糊效果
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                              child: Container(
-                                width: 40,
-                                height: 5,
-                                color: Colors.grey.withOpacity(0.2),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // 搜尋輸入框
-                        // 搜尋框區域 - 使用固定高度
-                        SizedBox(
-                          height: 80, // 固定高度
-                          child: Column(
-                            children: [
-                              Container(
-                                margin: const EdgeInsets.all(12), // 減少 margin
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12), // 縮小圓角
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.06),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: TextField(
-                                  controller: _searchController,
-                                onChanged: _filterStations,
-                                  decoration: InputDecoration(
-                                    hintText: '搜尋站點...',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[500],
-                                      fontSize: 14, // 縮小字體
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    prefixIcon: Padding(
-                                      padding: const EdgeInsets.only(left: 12, right: 6), // 減少 padding
-                                      child: Icon(
-                                        Icons.search_rounded,
-                                        color: Colors.grey[700],
-                                        size: 20, // 縮小圖標
-                                      ),
-                                    ),
-                                    suffixIcon: _searchController.text.isNotEmpty
-                                        ? Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        onTap:(){
-                                      _searchController.clear();
-                                      setState(() {
-
-                                      _filterStations('');
-                                      });
-                                      },
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Container(
-                                          width: 28,
-                                          height: 28,
-                                          margin: const EdgeInsets.all(3),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[200],
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.clear_rounded,
-                                            size: 16, // 縮小圖標
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                        : null,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      vertical: 12, // 減少 padding
-                                      horizontal: 16,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // 站點列表，使用 DraggableScrollableSheet 提供的 scrollController
-                        Expanded(
-                          child: _buildStationList(
-                            _filteredStations,
-                            scrollController,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ));
-  }
-
-
-
-// 分離的列表建構方法
-  Widget _buildStationList( List<Map<String, dynamic>>  nearestStations ,scrollController) {
-    if (nearestStations.isEmpty) {
-      return _buildEmptySearchState();
-    }
-
-    return ListView.builder(
-      controller: scrollController, // 確保使用提供的controller
-      physics: const BouncingScrollPhysics(),
-      itemCount: nearestStations.length,
-      itemBuilder: (context, index) {
-        final station = nearestStations[index];
-        return _buildModernStationCard(station);
+        );
       },
     );
   }
-// 空狀態顯示
 
-// ========================
-// 主卡片
-// ========================
-// 分離的列表建構方法
-//   Widget _buildStationList(List<Map<String, dynamic>> nearestStations, ScrollController scrollController) {
-//     if (nearestStations.isEmpty) {
-//       return _buildEmptySearchState();
-//     }
-//
-//     return ListView.builder(
-//       controller: scrollController,
-//       physics: const BouncingScrollPhysics(),
-//       itemCount: nearestStations.length,
-//       itemBuilder: (context, index) {
-//         final station = nearestStations[index];
-//         return _buildModernStationCard(station);
-//       },
-//     );
-//   }
-//
-// // 空狀態顯示
-//   Widget _buildEmptySearchState() {
-//     return Center(
-//       child: Container(
-//         padding: const EdgeInsets.all(40),
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             Container(
-//               width: 120,
-//               height: 120,
-//               decoration: BoxDecoration(
-//                 gradient: LinearGradient(
-//                   colors: [
-//                     const Color(0xFF1A73E8).withOpacity(0.1),
-//                     const Color(0xFF1A73E8).withOpacity(0.05),
-//                   ],
-//                   begin: Alignment.topLeft,
-//                   end: Alignment.bottomRight,
-//                 ),
-//                 shape: BoxShape.circle,
-//               ),
-//               child: const Icon(
-//                 Icons.local_parking_rounded,
-//                 size: 50,
-//                 color: Color(0xFF1A73E8),
-//               ),
-//             ),
-//             const SizedBox(height: 24),
-//             const Text(
-//               '找不到停車場',
-//               style: TextStyle(
-//                 fontSize: 20,
-//                 fontWeight: FontWeight.w700,
-//                 color: Color(0xFF1A73E8),
-//               ),
-//             ),
-//             const SizedBox(height: 8),
-//             Text(
-//               '請嘗試不同的搜尋條件',
-//               style: TextStyle(
-//                 fontSize: 14,
-//                 color: Colors.grey[600],
-//                 fontWeight: FontWeight.w500,
-//               ),
-//               textAlign: TextAlign.center,
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
+  Widget _buildModernStationCard(ParkingLot park) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-// 主卡片
-// 主卡片 - 縮小版本
-// 進階版本 - 稍微多一點資訊
-  Widget _buildModernStationCard(Map<String, dynamic> park) {
-    final capacityLevel = _getCapacityLevel(park);
-    final capacityColor = _getCapacityColor(park);
-    final position = json.decode(park["CarParkPosition"]);
-    final lat = position["PositionLat"];
-    final lon = position["PositionLon"];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => StationDetailPage(station: park),
-            ),
-          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StationDetailPage(station: park),
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(16),
           splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-          highlightColor: const Color(0xFFEEF3FB).withOpacity(0.3),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: isDark ? const Color(0xFF2C2C2E) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 12,
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -605,10 +719,9 @@ class _ParkingState extends State<Parking> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 第一行：名稱和容量
+                // 第一行：標頭與剩餘狀態
                 Row(
                   children: [
-                    // 停車場圖標
                     Container(
                       width: 36,
                       height: 36,
@@ -623,51 +736,48 @@ class _ParkingState extends State<Parking> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // 名稱和容量標籤
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            json.decode(park["CarParkName"])["Zh_tw"] ?? "未命名停車場",
-                            style: const TextStyle(
+                            park.name,
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: theme.colorScheme.onSurface,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: capacityColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: park.capacityColor.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  park.capacityLevel,
+                                  style: const TextStyle(fontSize: 11),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      capacityLevel,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _getCapacityText(park),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: capacityColor,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  park.capacityText,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: park.capacityColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -677,7 +787,7 @@ class _ParkingState extends State<Parking> {
 
                 const SizedBox(height: 12),
 
-                // 地址
+                // 地址描述
                 Row(
                   children: [
                     Icon(
@@ -688,7 +798,7 @@ class _ParkingState extends State<Parking> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        park["Address"] ?? "無地址資訊",
+                        park.address,
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[600],
@@ -703,26 +813,18 @@ class _ParkingState extends State<Parking> {
 
                 const SizedBox(height: 12),
 
-                // 車位資訊和費用
+                // 車位與費用資訊
                 Row(
                   children: [
-                    // 車位資訊
-                    Expanded(
-                      child: _buildAdvancedAvailabilityInfo(park),
-                    ),
-
+                    Expanded(child: _buildAvailabilityInfoWidget(park)),
                     const SizedBox(width: 12),
-
-                    // 費用資訊
-                    Expanded(
-                      child: _buildFareInfo(park),
-                    ),
+                    Expanded(child: _buildFareInfoWidget(park.fareDescription)),
                   ],
                 ),
 
                 const SizedBox(height: 12),
 
-                // 操作按鈕
+                // 快捷操作按鈕
                 Row(
                   children: [
                     Expanded(
@@ -730,7 +832,7 @@ class _ParkingState extends State<Parking> {
                         icon: Icons.phone_rounded,
                         label: "聯絡",
                         color: const Color(0xFF34C759),
-                        onTap: () => StationActions.makeCall(park['Telephone']),
+                        onTap: () => StationActions.makeCall(park.phone),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -740,11 +842,12 @@ class _ParkingState extends State<Parking> {
                         label: "導航",
                         color: const Color(0xFF1A73E8),
                         onTap: () {
-                          // 確保轉換為 double，若轉換失敗則給予預設值 0.0
-                          double lat = double.tryParse(park['PositionLat'].toString()) ?? 0.0;
-                          double lng = double.tryParse(park['PositionLon'].toString()) ?? 0.0;
-
-                          StationActions.openNavigation(lat, lng, park['StationName'] ?? '未知名稱');
+                          // 🚀 使用預先解析好的經緯度，完全解決原本 0.0 無法導航的瑕疵
+                          StationActions.openNavigation(
+                            park.lat,
+                            park.lng,
+                            park.name,
+                          );
                         },
                       ),
                     ),
@@ -754,7 +857,7 @@ class _ParkingState extends State<Parking> {
                         icon: Icons.share_rounded,
                         label: "分享",
                         color: const Color(0xFFAF52DE),
-                        onTap: () => StationActions.shareStation(park),
+                        onTap: () => StationActions.shareStation(park.toMap()),
                       ),
                     ),
                   ],
@@ -767,105 +870,68 @@ class _ParkingState extends State<Parking> {
     );
   }
 
-// 新增：獲取容量文字描述
-  String _getCapacityText(Map<String, dynamic> park) {
-    final total = park["TotalSpaces"];
-    final available = park["AvailableSpaces"];
-
-    if (total == null || available == null) return "無資料";
-
-    double ratio = (available / total).clamp(0.0, 1.0);
-
-    if (ratio >= 0.5) return "充足";
-    if (ratio >= 0.2) return "普通";
-    return "緊張";
-  }
-
-// 進階車位資訊
-  Widget _buildAdvancedAvailabilityInfo(Map<String, dynamic> park) {
-    final total = park["TotalSpaces"];
-    final available = park["AvailableSpaces"];
-    final color = _getCapacityColor(park);
-
-    if (total == null || available == null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "無車位資訊",
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[500],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+  Widget _buildAvailabilityInfoWidget(ParkingLot park) {
+    if (park.totalSpaces == null || park.availableSpaces == null) {
+      return Text(
+        "無車位資訊",
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[500],
+          fontWeight: FontWeight.w500,
+        ),
       );
     }
+
+    final ratio = (park.availableSpaces! / park.totalSpaces!).clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
-              Icons.car_rental_rounded,
-              size: 14,
-              color: color,
-            ),
+            Icon(Icons.directions_car_rounded, size: 14, color: park.capacityColor),
             const SizedBox(width: 4),
             Text(
-              "$available / $total",
+              "${park.availableSpaces} / ${park.totalSpaces}",
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: color,
+                color: park.capacityColor,
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
-        Container(
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(2),
-          ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: (available / total).clamp(0.0, 1.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 4,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation(park.capacityColor),
           ),
         ),
       ],
     );
   }
 
-// 費用資訊
-  Widget _buildFareInfo(Map<String, dynamic> park) {
-    final fare = park["FareDescription"];
-
+  Widget _buildFareInfoWidget(String fare) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.monetization_on_rounded,
               size: 14,
-              color: const Color(0xFFFF9500),
+              color: Color(0xFFFF9500),
             ),
             const SizedBox(width: 4),
             Text(
               "費用",
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: Colors.grey[500],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -873,10 +939,10 @@ class _ParkingState extends State<Parking> {
         ),
         const SizedBox(height: 4),
         Text(
-          fare != null && fare.isNotEmpty ? fare : "無資訊",
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.black87,
+          fare.isNotEmpty ? fare : "無費率資訊",
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w500,
           ),
           maxLines: 1,
@@ -886,7 +952,6 @@ class _ParkingState extends State<Parking> {
     );
   }
 
-// 小型操作按鈕
   Widget _buildSmallActionButton({
     required IconData icon,
     required String label,
@@ -898,24 +963,15 @@ class _ParkingState extends State<Parking> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        splashColor: color.withOpacity(0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: color.withOpacity(0.2),
-              width: 1,
-            ),
+            border: Border.all(color: color.withOpacity(0.3), width: 1),
           ),
           child: Column(
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: color,
-              ),
+              Icon(icon, size: 16, color: color),
               const SizedBox(height: 2),
               Text(
                 label,
@@ -931,72 +987,34 @@ class _ParkingState extends State<Parking> {
       ),
     );
   }
-// 新增：獲取容量等級圖示
-  String _getCapacityLevel(Map<String, dynamic> park) {
-    final total = park["TotalSpaces"];
-    final available = park["AvailableSpaces"];
 
-    if (total == null || available == null) return "⚪"; // 無資料
-
-    double ratio = (available / total).clamp(0.0, 1.0);
-
-    if (ratio >= 0.5) return "🟢"; // 充足
-    if (ratio >= 0.2) return "🟡"; // 普通
-    return "🔴"; // 緊張
-  }
-
-// 新增：獲取容量顏色
-  Color _getCapacityColor(Map<String, dynamic> park) {
-    final total = park["TotalSpaces"];
-    final available = park["AvailableSpaces"];
-
-    if (total == null || available == null) return const Color(0xFF8E8E93); // 灰色
-
-    double ratio = (available / total).clamp(0.0, 1.0);
-
-    if (ratio >= 0.5) return const Color(0xFF34C759); // 綠色
-    if (ratio >= 0.2) return const Color(0xFFFF9500); // 橙色
-    return const Color(0xFFFF3B30); // 紅色
-  }
-
-
-// 空狀態顯示 - 縮小版本
   Widget _buildEmptySearchState() {
     return Center(
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 80,
-              height: 80,
+              width: 70,
+              height: 70,
               decoration: BoxDecoration(
                 color: const Color(0xFF1A73E8).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
                 Icons.local_parking_rounded,
-                size: 36,
+                size: 32,
                 color: Color(0xFF1A73E8),
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              '找不到停車場',
+              '找不到符合條件的停車場',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1A73E8),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '請嘗試不同的搜尋條件',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -1004,50 +1022,30 @@ class _ParkingState extends State<Parking> {
       ),
     );
   }
-
-
-
-
-  void _openInMaps(double lat, double lon) async {
-    // 打開地圖（不啟動導航）
-    final Uri mapsUri =
-    Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
-
-    if (await canLaunchUrl(mapsUri)) {
-      await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
-    } else {
-      print("無法開啟地圖");
-    }}
-
-
-
-  void _shareParkInfo(Map<String, dynamic> park) {
-    // 分享邏輯
-    print("分享: ${park["CarParkID"]}");
-  }
 }
 
+/// 🟢 停車場詳細資訊頁面 (使用強型別 ParkingLot 避免 null crash)
 class StationDetailPage extends StatelessWidget {
-  final Map<String, dynamic> station;
+  final ParkingLot station;
 
   const StationDetailPage({super.key, required this.station});
 
   @override
   Widget build(BuildContext context) {
-    final stationName = json.decode(station["CarParkName"])["Zh_tw"] ?? "停車場詳情";
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFD),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFD),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppThemes.getCardColor(context),
         elevation: 0,
         title: Text(
-          stationName,
+          station.name,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A73E8),
-            letterSpacing: -0.5,
           ),
         ),
         centerTitle: true,
@@ -1066,7 +1064,7 @@ class StationDetailPage extends StatelessWidget {
                 color: Color(0xFF1A73E8),
               ),
             ),
-            onPressed: () =>  StationActions.shareStation(stationName),
+            onPressed: () => StationActions.shareStation(station.toMap()),
           ),
         ],
       ),
@@ -1074,49 +1072,61 @@ class StationDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 概覽卡片
-            _buildOverviewCard(),
-
-            // 詳細資訊區塊
-            _buildInfoSection('基本資訊', [
-              _buildInfoItem(Icons.qr_code_rounded, '停車場 ID', station["CarParkID"]),
-              _buildInfoItem(Icons.location_on_rounded, '地址', station["Address"]),
-              _buildInfoItem(Icons.phone_rounded, '聯絡電話', station["Telephone"]),
+            _buildOverviewCard(context),
+            _buildInfoSection(context, '基本資訊', [
+              _buildInfoItem(Icons.qr_code_rounded, '停車場 ID', station.id),
+              _buildInfoItem(Icons.location_on_rounded, '地址', station.address),
+              _buildInfoItem(Icons.phone_rounded, '聯絡電話', station.phone),
             ]),
-
-            // 將現有的 _buildInfoItem 調用更新為：
-
-// 費用資訊區塊（更新收費方式）
-            _buildInfoSection('費用資訊', [
-              _buildInfoItem(Icons.monetization_on_rounded, '收費方式', station["FareDescription"]),
-              _buildInfoItem(Icons.credit_card_rounded, '收費種類',
-                  ParkingTypeHelper.getChargeTypes(station["ChargeTypes"]).join(', ')),
+            _buildInfoSection(context, '費用資訊', [
+              _buildInfoItem(
+                Icons.monetization_on_rounded,
+                '收費方式',
+                station.fareDescription,
+              ),
+              _buildInfoItem(
+                Icons.credit_card_rounded,
+                '收費種類',
+                ParkingTypeHelper.getChargeTypes(station.chargeTypes).join(', '),
+              ),
             ]),
-
-// 設施服務區塊（更新停車種類）
-            _buildInfoSection('設施服務', [
-              _buildInfoItem(Icons.local_parking_rounded, '停車種類',
-                  ParkingTypeHelper.getCarParkType(station["CarParkType"])),
-              _buildInfoItem(Icons.description_rounded, '營運描述', station["Description"]),
+            _buildInfoSection(context, '設施服務', [
+              _buildInfoItem(
+                Icons.local_parking_rounded,
+                '停車種類',
+                ParkingTypeHelper.getCarParkType(station.carParkType),
+              ),
+              _buildInfoItem(
+                Icons.description_rounded,
+                '營運描述',
+                station.description,
+              ),
             ]),
-
-            // 其他資訊區塊
-            _buildInfoSection('其他資訊', [
-              _buildBooleanItem(Icons.access_time_rounded, '全年無休', station["IsFreeParkingOutOfHours"] == "1"),
-              _buildBooleanItem(Icons.ev_station, '充電樁', station["EVRechargingAvailable"] == "1"),
-              _buildBooleanItem(Icons.nightlight_rounded, '可過夜', station["OvernightPermitted"] == "1"),
-              _buildBooleanItem(Icons.sensors_rounded, '車輛偵測', station["VehicleDetection"] == "1"),
-              _buildBooleanItem(Icons.wheelchair_pickup, '無障礙車位', station["WheelchairAccessible"] == "1"),
+            _buildInfoSection(context, '其他資訊', [
+              _buildBooleanItem(
+                Icons.access_time_rounded,
+                '全年無休',
+                station.isFreeOutOfHours,
+              ),
+              _buildBooleanItem(Icons.ev_station, '充電樁設施', station.hasEV),
+              _buildBooleanItem(
+                Icons.nightlight_rounded,
+                '允許過夜',
+                station.overnightPermitted,
+              ),
+              _buildBooleanItem(
+                Icons.sensors_rounded,
+                '車輛偵測',
+                station.vehicleDetection,
+              ),
+              _buildBooleanItem(
+                Icons.wheelchair_pickup,
+                '無障礙車位',
+                station.wheelchairAccessible,
+              ),
             ]),
-
-            // 位置資訊區塊
-            _buildInfoSection('位置資訊', [
-              _buildLocationItem(),
-            ]),
-
-            // 操作按鈕
+            _buildInfoSection(context, '位置座標', [_buildLocationItem(context)]),
             _buildActionButtons(),
-
             const SizedBox(height: 32),
           ],
         ),
@@ -1124,23 +1134,15 @@ class StationDetailPage extends StatelessWidget {
     );
   }
 
-  // 概覽卡片
-  Widget _buildOverviewCard() {
-    final totalSpaces = station["TotalSpaces"];
-    final availableSpaces = station["AvailableSpaces"];
-
+  Widget _buildOverviewCard(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemes.getCardColor(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -1152,11 +1154,7 @@ class StationDetailPage extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: const Color(0xFF1A73E8),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -1168,11 +1166,11 @@ class StationDetailPage extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  json.decode(station["CarParkName"])["Zh_tw"] ?? "停車場",
-                  style: const TextStyle(
+                  station.name,
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1180,31 +1178,21 @@ class StationDetailPage extends StatelessWidget {
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
-          // 車位狀態
-          if (totalSpaces != null && availableSpaces != null)
-            _buildAvailabilityInfo()
+          const SizedBox(height: 16),
+          if (station.totalSpaces != null && station.availableSpaces != null)
+            _buildAvailabilityProgress()
           else
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: Colors.grey.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Row(
                 children: [
                   Icon(Icons.info_outline_rounded, color: Colors.grey, size: 20),
-                  SizedBox(width: 12),
-                  Text(
-                    '無即時車位資訊',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  SizedBox(width: 8),
+                  Text('無即時車位資料', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             ),
@@ -1213,80 +1201,61 @@ class StationDetailPage extends StatelessWidget {
     );
   }
 
-  // 車位資訊
-  Widget _buildAvailabilityInfo() {
-    final total = station["TotalSpaces"];
-    final available = station["AvailableSpaces"];
-    final ratio = (available / total).clamp(0.0, 1.0);
-    final bool isLowAvailability = ratio <= 0.3;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isLowAvailability
-            ? const Color(0xFFFF3B30).withOpacity(0.05)
-            : const Color(0xFF34C759).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isLowAvailability
-              ? const Color(0xFFFF3B30).withOpacity(0.2)
-              : const Color(0xFF34C759).withOpacity(0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '剩餘車位',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isLowAvailability ? const Color(0xFFFF3B30) : const Color(0xFF34C759),
-                ),
-              ),
-              Text(
-                '$available / $total',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isLowAvailability ? const Color(0xFFFF3B30) : const Color(0xFF34C759),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: ratio,
-              minHeight: 8,
-              backgroundColor: Colors.grey[200],
-              valueColor: AlwaysStoppedAnimation(
-                isLowAvailability ? const Color(0xFFFF3B30) : const Color(0xFF34C759),
+  Widget _buildAvailabilityProgress() {
+    final ratio =
+    (station.availableSpaces! / station.totalSpaces!).clamp(0.0, 1.0);
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '剩餘車位',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: station.capacityColor,
               ),
             ),
+            Text(
+              '${station.availableSpaces} / ${station.totalSpaces}',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: station.capacityColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 8,
+            backgroundColor: Colors.grey[300],
+            valueColor: AlwaysStoppedAnimation(station.capacityColor),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  // 資訊區塊標題
-  Widget _buildInfoSection(String title, List<Widget> children) {
+  Widget _buildInfoSection(
+      BuildContext context,
+      String title,
+      List<Widget> children,
+      ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 12),
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1A73E8),
               ),
@@ -1294,54 +1263,23 @@ class StationDetailPage extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
-            child: Column(
-              children: children,
-            ),
+            child: Column(children: children),
           ),
         ],
       ),
     );
   }
 
-  // 資訊項目
   Widget _buildInfoItem(IconData icon, String title, dynamic value) {
-    final displayValue = value?.toString() ?? "無資料";
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey[200]!,
-            width: 1,
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFF1A73E8),
-            ),
-          ),
+          Icon(icon, size: 18, color: const Color(0xFF1A73E8)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1349,18 +1287,15 @@ class StationDetailPage extends StatelessWidget {
               children: [
                 Text(
                   title,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value?.toString().isNotEmpty == true
+                      ? value.toString()
+                      : "無資料",
                   style: const TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  displayValue,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1372,58 +1307,36 @@ class StationDetailPage extends StatelessWidget {
     );
   }
 
-  // 布林值項目
   Widget _buildBooleanItem(IconData icon, String title, bool value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey[200]!,
-            width: 1,
-          ),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFF1A73E8),
-            ),
-          ),
+          Icon(icon, size: 18, color: const Color(0xFF1A73E8)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 15,
-                color: Colors.black87,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: value ? const Color(0xFF34C759).withOpacity(0.1) : const Color(0xFFFF3B30).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: value ? const Color(0xFF34C759).withOpacity(0.3) : const Color(0xFFFF3B30).withOpacity(0.3),
-              ),
+              color: value
+                  ? const Color(0xFF34C759).withOpacity(0.1)
+                  : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               value ? "是" : "否",
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: value ? const Color(0xFF34C759) : const Color(0xFFFF3B30),
+                color: value ? const Color(0xFF34C759) : Colors.grey,
               ),
             ),
           ),
@@ -1432,186 +1345,85 @@ class StationDetailPage extends StatelessWidget {
     );
   }
 
-  // 位置資訊項目
-  Widget _buildLocationItem() {
-    final position = json.decode(station["CarParkPosition"]);
-    final lat = position["PositionLat"];
-    final lon = position["PositionLon"];
-
-    return Container(
-      padding: const EdgeInsets.all(16),
+  Widget _buildLocationItem(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.map_rounded,
-              size: 18,
-              color: Color(0xFF1A73E8),
-            ),
-          ),
+          const Icon(Icons.map_rounded, size: 18, color: Color(0xFF1A73E8)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '地理位置',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 4),
+                const Text("經緯度座標", style: TextStyle(fontSize: 12, color: Colors.grey)),
                 Text(
-                  '緯度: $lat, 經度: $lon',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  "緯度: ${station.lat}, 經度: ${station.lng}",
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A73E8).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.location_searching_rounded,
-                size: 18,
-                color: Color(0xFF1A73E8),
-              ),
+            icon: const Icon(Icons.navigation_rounded, color: Color(0xFF1A73E8)),
+            onPressed: () => StationActions.openNavigation(
+              station.lat,
+              station.lng,
+              station.name,
             ),
-            onPressed: () {
-    // 確保轉換為 double，若轉換失敗則給予預設值 0.0
-    double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
-    double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
-
-    StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
-    },
           ),
         ],
       ),
     );
   }
 
-  // 操作按鈕
   Widget _buildActionButtons() {
-    final position = json.decode(station["CarParkPosition"]);
-    final lat = position["PositionLat"];
-    final lon = position["PositionLon"];
     return Container(
       margin: const EdgeInsets.all(16),
       child: Row(
         children: [
           Expanded(
-            child: _buildActionButton(
-              icon: Icons.phone_rounded,
-              label: '撥打電話',
-              color: const Color(0xFF34C759),
-              onTap: () =>  StationActions.makeCall(station['Telephone']),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.phone_rounded),
+              label: const Text('撥打電話'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34C759),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => StationActions.makeCall(station.phone),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: _buildActionButton(
-              icon: Icons.directions_rounded,
-              label: '開始導航',
-              color: const Color(0xFF1A73E8),
-              onTap: () {
-                // 確保轉換為 double，若轉換失敗則給予預設值 0.0
-                double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
-                double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
-
-                StationActions.openNavigation(lat, lng, station['StationName'] ?? '未知名稱');
-              },
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.directions_rounded),
+              label: const Text('開始導航'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A73E8),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => StationActions.openNavigation(
+                station.lat,
+                station.lng,
+                station.name,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        splashColor: color.withOpacity(0.1),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withOpacity(0.2),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: color,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 輔助方法
-  String _formatListToString(dynamic list) {
-    if (list == null) return "無資料";
-    if (list is String) return list;
-    if (list is List) return list.join(", ");
-    return list.toString();
-  }
-
-
-
-
-
-
- }
 class ParkingTypeHelper {
-  // ---------------------------
-  // 停車場類型
-  // ---------------------------
   static String getCarParkType(dynamic type) {
     const Map<int, String> typeMap = {
       1: '平面',
@@ -1619,7 +1431,7 @@ class ParkingTypeHelper {
       3: '地下',
       4: '立體停車塔',
       5: '立體機械式',
-      6: '同時涵蓋2種以上',
+      6: '涵蓋2種以上',
       254: '其他',
       255: '未知',
     };
@@ -1627,9 +1439,6 @@ class ParkingTypeHelper {
     return typeMap[t] ?? '未知';
   }
 
-  // ---------------------------
-  // 收費類型
-  // ---------------------------
   static List<String> getChargeTypes(dynamic types) {
     const Map<int, String> chargeMap = {
       1: '計時',
@@ -1642,133 +1451,15 @@ class ParkingTypeHelper {
     return _parseList(types, chargeMap);
   }
 
-  // ---------------------------
-  // 停車導引類型
-  // ---------------------------
-  static String getParkingGuideType(dynamic type) {
-    const Map<int, String> guideMap = {
-      1: '自行找尋停車位',
-      2: '有導引輔助設施協助尋找停車位',
-      3: '人工導引停找車位',
-      4: '代客泊車',
-      5: '混合型',
-      254: '其他',
-      255: '未知',
-    };
-    int t = _parseSingle(type);
-    return guideMap[t] ?? '未知';
-  }
-
-  // ---------------------------
-  // 停車類型資訊
-  // ---------------------------
-  static List<String> getParkingTypes(dynamic types) {
-    const Map<int, String> parkingMap = {
-      1: '停車轉乘公共運輸',
-      2: '臨時停車接送',
-      3: '停車後轉使用公共自行車',
-      4: '停車後步行',
-      5: '活動專用停車場',
-      6: '休息站專用停車場',
-      7: '服務區專用停車場',
-      8: '貨車及大型車停車場',
-      9: '共享汽車租用服務停車場',
-      10: '共乘服務停車場',
-      254: '其他',
-      255: '未知',
-    };
-    return _parseList(types, parkingMap);
-  }
-
-  // ---------------------------
-  // 停車場服務類型
-  // ---------------------------
-  static List<String> getParkingSiteTypes(dynamic types) {
-    const Map<int, String> siteMap = {
-      1: '軌道場站',
-      2: '機場場站',
-      3: '船舶場站',
-      4: '商圈',
-      5: '餐廳',
-      6: '運動場',
-      7: '飯店',
-      8: '觀光地標',
-      9: '電影院',
-      10: '觀光景點',
-      11: '學校',
-      12: '美術博物館',
-      13: '展覽中心',
-      14: '會議中心',
-      15: '宗教機構',
-      16: '賣場',
-      17: '動物園',
-      18: '高速公路',
-      19: '政府部門',
-      20: '住宅區',
-      21: '夜市',
-      22: '市場',
-      23: '公園',
-      254: '其他',
-      255: '未知',
-    };
-    return _parseList(types, siteMap);
-  }
-
-  // ---------------------------
-  // 圖標對應
-  // ---------------------------
-  static IconData getTypeIcon(int? type) {
-    switch (type) {
-      case 1:
-        return Icons.terrain_rounded; // 平面
-      case 2:
-        return Icons.account_balance_rounded; // 立體
-      case 3:
-        return Icons.subway_rounded; // 地下
-      case 4:
-        return Icons.vertical_align_top_rounded; // 停車塔
-      case 5:
-        return Icons.settings_rounded; // 機械式
-      default:
-        return Icons.local_parking_rounded;
-    }
-  }
-
-  // ---------------------------
-  // 顏色對應
-  // ---------------------------
-  static Color getTypeColor(int? type) {
-    switch (type) {
-      case 1:
-        return const Color(0xFF34C759); // 綠色
-      case 2:
-        return const Color(0xFF1A73E8); // 藍色
-      case 3:
-        return const Color(0xFFFF9500); // 橙色
-      case 4:
-        return const Color(0xFFAF52DE); // 紫色
-      case 5:
-        return const Color(0xFFFF3B30); // 紅色
-      default:
-        return const Color(0xFF8E8E93); // 灰色
-    }
-  }
-
-  // ---------------------------
-  // 私有方法：解析單一值
-  // ---------------------------
   static int _parseSingle(dynamic value) {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? 0;
     return 0;
   }
 
-  // 私有方法：解析 List 或 JSON 字串
   static List<String> _parseList(dynamic value, Map<int, String> map) {
     if (value == null) return ['無資料'];
-
     List<int> list = [];
-
     if (value is List) {
       list = value.map((e) => int.tryParse(e.toString()) ?? 0).toList();
     } else if (value is String) {
@@ -1784,10 +1475,7 @@ class ParkingTypeHelper {
       }
     } else if (value is int) {
       list = [value];
-    } else {
-      list = [0];
     }
-
     return list.map((e) => map[e] ?? '未知').toList();
   }
 }

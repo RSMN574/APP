@@ -6,6 +6,7 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'Const/regularConst.dart';
 import 'database/flight/getFlight.dart';
+import 'l10n/app_localizations.dart';
 
 final PageController pageController = PageController();
 
@@ -93,53 +94,52 @@ class ServiceInfo {
 }
 
 // 機場資料庫
-// 擴充版機場資料庫
 final Map<String, AirportData> airports = {
   'TPE': AirportData(
-    name: '桃園國際機場',
-    iataCode: 'TPE',
-    area: 1223,
-    terminals: 3,
-    annualPassengers: 4500,
-    phone: '03-273-5081',
-    primaryColor: const Color(0xFF1A73E8),
-    transport: [
-      TransportInfo(
-        title: '機場捷運',
-        subtitle: '直達台北車站，約35分鐘',
-        icon: Icons.train_rounded,
-      ),
-      TransportInfo(
-        title: '客運巴士',
-        subtitle: '多條路線通往全台各地',
-        icon: Icons.directions_bus_rounded,
-      ),
-      TransportInfo(
-        title: '計程車',
-        subtitle: '24小時排班服務',
-        icon: Icons.local_taxi_rounded,
-      ),
-      TransportInfo(
-        title: '租車服務',
-        subtitle: '各大租車公司進駐',
-        icon: Icons.directions_car_rounded,
-      ),
-    ],
-    services: [
-      ServiceInfo(label: '免稅商店', icon: Icons.shopping_bag_rounded),
-      ServiceInfo(label: '貴賓室', icon: Icons.star_rounded),
-      ServiceInfo(label: '餐飲服務', icon: Icons.restaurant_rounded),
-      ServiceInfo(label: '免費WiFi', icon: Icons.wifi_rounded),
-      ServiceInfo(label: '貨幣兌換', icon: Icons.currency_exchange_rounded),
-      ServiceInfo(label: '行李寄存', icon: Icons.luggage_rounded),
-      ServiceInfo(label: '祈禱室', icon: Icons.people_rounded),
-      ServiceInfo(label: '育嬰室', icon: Icons.child_care_rounded),
-    ],
-    emergencyContacts: {
-      '機場警察': '03-273-2946',
-      '醫療中心': '03-273-2945',
-      '遺失物協尋': '03-273-2947',
-    },transportRoute:[
+      name: '桃園國際機場',
+      iataCode: 'TPE',
+      area: 1223,
+      terminals: 3,
+      annualPassengers: 4500,
+      phone: '03-273-5081',
+      primaryColor: const Color(0xFF1A73E8),
+      transport: [
+        TransportInfo(
+          title: '機場捷運',
+          subtitle: '直達台北車站，約35分鐘',
+          icon: Icons.train_rounded,
+        ),
+        TransportInfo(
+          title: '客運巴士',
+          subtitle: '多條路線通往全台各地',
+          icon: Icons.directions_bus_rounded,
+        ),
+        TransportInfo(
+          title: '計程車',
+          subtitle: '24小時排班服務',
+          icon: Icons.local_taxi_rounded,
+        ),
+        TransportInfo(
+          title: '租車服務',
+          subtitle: '各大租車公司進駐',
+          icon: Icons.directions_car_rounded,
+        ),
+      ],
+      services: [
+        ServiceInfo(label: '免稅商店', icon: Icons.shopping_bag_rounded),
+        ServiceInfo(label: '貴賓室', icon: Icons.star_rounded),
+        ServiceInfo(label: '餐飲服務', icon: Icons.restaurant_rounded),
+        ServiceInfo(label: '免費WiFi', icon: Icons.wifi_rounded),
+        ServiceInfo(label: '貨幣兌換', icon: Icons.currency_exchange_rounded),
+        ServiceInfo(label: '行李寄存', icon: Icons.luggage_rounded),
+        ServiceInfo(label: '祈禱室', icon: Icons.people_rounded),
+        ServiceInfo(label: '育嬰室', icon: Icons.child_care_rounded),
+      ],
+      emergencyContacts: {
+        '機場警察': '03-273-2946',
+        '醫療中心': '03-273-2945',
+        '遺失物協尋': '03-273-2947',
+      },transportRoute:[
     TransportRoute(type:TransportType.bus, routeId: '706', name: '706',)
   ]
   ),
@@ -229,7 +229,7 @@ final Map<String, AirportData> airports = {
     area: 2645, // 約 264.5 ha
     terminals: 2, // 國內與國際航廈 :contentReference[oaicite:1]{index=1}
     annualPassengers:
-        5865, // 2024 約 5,865,000 人次 :contentReference[oaicite:2]{index=2}
+    5865, // 2024 約 5,865,000 人次 :contentReference[oaicite:2]{index=2}
     phone: '07-805-7559', // From AIP data :contentReference[oaicite:3]{index=3}
     primaryColor: Colors.red,
     transport: [
@@ -289,7 +289,7 @@ final Map<String, AirportData> airports = {
     name: '花蓮機場',
     iataCode: 'HUN',
     area:
-        402, // 長度 ~2751m 寬度 ~45m的跑道（表格示意） :contentReference[oaicite:5]{index=5}
+    402, // 長度 ~2751m 寬度 ~45m的跑道（表格示意） :contentReference[oaicite:5]{index=5}
     terminals: 1,
     annualPassengers: 100, // 估算（約 100 萬） :contentReference[oaicite:6]{index=6}
     phone: '03-821-0768', // 旅遊資訊來源 :contentReference[oaicite:7]{index=7}
@@ -340,7 +340,7 @@ final Map<String, AirportData> airports = {
     name: '嘉義機場',
     iataCode: 'CYI',
     area:
-        119, // 面積 km² （約 119 ha；跑道11,900㎡ 約 1.19e5㎡） :contentReference[oaicite:11]{index=11}
+    119, // 面積 km² （約 119 ha；跑道11,900㎡ 約 1.19e5㎡） :contentReference[oaicite:11]{index=11}
     terminals: 1,
     annualPassengers: 22, // 年容量約 22 萬 :contentReference[oaicite:12]{index=12}
     phone: '05-286-7886', // 官方機場資料 :contentReference[oaicite:13]{index=13}
@@ -480,7 +480,6 @@ final Map<String, AirportData> airports = {
     emergencyContacts: {},
   ),
 };
-
 class Plane extends StatefulWidget {
   const Plane({super.key});
 
@@ -490,33 +489,33 @@ class Plane extends StatefulWidget {
 
 class _PlaneState extends State<Plane> {
   final TextEditingController _flightNumberController = TextEditingController();
-  final List<String> tabs = ['機場資訊', '入境航班', '出境航班', '航班查詢'];
+  late final List<String> tabs = [AppLocalizations.of(context)!.text_747, AppLocalizations.of(context)!.text_748, AppLocalizations.of(context)!.text_749, AppLocalizations.of(context)!.text_750];
   final ValueNotifier<String> _searchQuery = ValueNotifier('');
   int _current = 0;
   // 假資料 - 機場服務功能 (圖示 + 標題)
-  final List<Map<String, dynamic>> services = [
-    {'icon': Icons.local_taxi, 'label': '機場交通'},
-    {'icon': Icons.local_dining, 'label': '特許商店'},
-    {'icon': Icons.restaurant, 'label': '餐飲美食'},
-    {'icon': Icons.airplane_ticket, 'label': '電子登機牌'},
-    {'icon': Icons.security, 'label': '安檢安保'},
-    {'icon': Icons.luggage, 'label': '行李服務'},
+  late final List<Map<String, dynamic>> services = [
+    {'icon': Icons.local_taxi, 'label': AppLocalizations.of(context)!.text_751},
+    {'icon': Icons.local_dining, 'label': AppLocalizations.of(context)!.text_752},
+    {'icon': Icons.restaurant, 'label': AppLocalizations.of(context)!.text_753},
+    {'icon': Icons.airplane_ticket, 'label': AppLocalizations.of(context)!.text_754},
+    {'icon': Icons.security, 'label': AppLocalizations.of(context)!.text_755},
+    {'icon': Icons.luggage, 'label': AppLocalizations.of(context)!.text_656},
   ];
-  final List<Map<String, String>> airportList = [
-    {'code': 'TSA', 'name': '松山機場'},
-    {'code': 'KHH', 'name': '高雄機場'},
-    {'code': 'TPE', 'name': '桃園機場'},
-    {'code': 'MFK', 'name': '北竿機場'},
-    {'code': 'LZN', 'name': '南竿機場'},
-    {'code': 'KNH', 'name': '金門機場'},
-    {'code': 'MZG', 'name': '澎湖機場'},
-    {'code': 'RMQ', 'name': '臺中機場'},
-    {'code': 'CYI', 'name': '嘉義機場'},
-    {'code': 'TNN', 'name': '臺南機場'},
-    {'code': 'HUN', 'name': '花蓮機場'},
-    {'code': 'TTT', 'name': '臺東機場'},
-    {'code': 'KYD', 'name': '蘭嶼機場'},
-    {'code': 'GNI', 'name': '綠島機場'},
+  late final List<Map<String, String>> airportList = [
+    {'code': 'TSA', 'name': AppLocalizations.of(context)!.text_596},
+    {'code': 'KHH', 'name': AppLocalizations.of(context)!.text_756},
+    {'code': 'TPE', 'name': AppLocalizations.of(context)!.text_757},
+    {'code': 'MFK', 'name': AppLocalizations.of(context)!.text_742},
+    {'code': 'LZN', 'name': AppLocalizations.of(context)!.text_744},
+    {'code': 'KNH', 'name': AppLocalizations.of(context)!.text_738},
+    {'code': 'MZG', 'name': AppLocalizations.of(context)!.text_758},
+    {'code': 'RMQ', 'name': AppLocalizations.of(context)!.text_759},
+    {'code': 'CYI', 'name': AppLocalizations.of(context)!.text_736},
+    {'code': 'TNN', 'name': AppLocalizations.of(context)!.text_760},
+    {'code': 'HUN', 'name': AppLocalizations.of(context)!.text_731},
+    {'code': 'TTT', 'name': AppLocalizations.of(context)!.text_761},
+    {'code': 'KYD', 'name': AppLocalizations.of(context)!.text_745},
+    {'code': 'GNI', 'name': AppLocalizations.of(context)!.text_746},
   ];
 
   String selectedAirport = "TPE";
@@ -766,29 +765,6 @@ class _PlaneState extends State<Plane> {
     );
   }
 
-// 獲取標籤對應的圖標
-  IconData _getTabIcon(String text) {
-    switch (text) {
-      case '機場資訊':
-        return Icons.info_outline_rounded;
-      case '抵達航班':
-        return Icons.flight_land_rounded;
-      case '出發航班':
-        return Icons.flight_takeoff_rounded;
-      case '搜尋航班':
-        return Icons.search_rounded;
-      case '航班狀態':
-        return Icons.airplane_ticket_rounded;
-      case '設施服務':
-        return Icons.local_activity_rounded;
-      case '交通資訊':
-        return Icons.directions_transit_rounded;
-      case '購物餐飲':
-        return Icons.local_dining_rounded;
-      default:
-        return Icons.flight_rounded;
-    }
-  }
 
   Widget _buildArrivalTab() {
     return FutureBuilder<List<dynamic>>(
@@ -969,10 +945,10 @@ class _PlaneState extends State<Plane> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    '交通資訊',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.text_767,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -1129,9 +1105,9 @@ class _PlaneState extends State<Plane> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                 Expanded(
                   child: Text(
-                    '服務設施',
+                    AppLocalizations.of(context)!.text_769,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -1242,9 +1218,9 @@ class _PlaneState extends State<Plane> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                 Expanded(
                   child: Text(
-                    '緊急資訊',
+                    AppLocalizations.of(context)!.text_770,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -1435,7 +1411,7 @@ class _PlaneState extends State<Plane> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+           Row(
             children: [
               Icon(
                 Icons.search_rounded,
@@ -1444,7 +1420,7 @@ class _PlaneState extends State<Plane> {
               ),
               SizedBox(width: 8),
               Text(
-                '航班搜尋',
+                AppLocalizations.of(context)!.text_771,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -1467,8 +1443,8 @@ class _PlaneState extends State<Plane> {
                   ),
                   child: TextField(
                     controller: _flightNumberController,
-                    decoration: const InputDecoration(
-                      hintText: '輸入航班號碼，例如：CI123',
+                    decoration:  InputDecoration(
+                      hintText: AppLocalizations.of(context)!.text_772,
                       hintStyle: TextStyle(color: Colors.grey),
                       border: InputBorder.none,
                       contentPadding:
@@ -1509,7 +1485,7 @@ class _PlaneState extends State<Plane> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 14),
-                      child: const Row(
+                      child:  Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
@@ -1519,7 +1495,7 @@ class _PlaneState extends State<Plane> {
                           ),
                           SizedBox(width: 6),
                           Text(
-                            '查詢',
+                            AppLocalizations.of(context)!.text_773,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -1640,8 +1616,8 @@ class _PlaneState extends State<Plane> {
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            '搜尋航班資訊',
+           Text(
+            AppLocalizations.of(context)!.text_774,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -1650,7 +1626,7 @@ class _PlaneState extends State<Plane> {
           ),
           const SizedBox(height: 8),
           Text(
-            '輸入航班號碼查詢即時航班狀態',
+            AppLocalizations.of(context)!.text_775,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -1701,9 +1677,9 @@ class _PlaneState extends State<Plane> {
             size: 40,
           ),
           const SizedBox(height: 16),
-          const Text(
-            '搜尋航班中...',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.text_776,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Color(0xFF1A73E8),
@@ -1752,8 +1728,8 @@ class _PlaneState extends State<Plane> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '搜尋失敗',
+           Text(
+            AppLocalizations.of(context)!.text_777,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -1813,8 +1789,8 @@ class _PlaneState extends State<Plane> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '未找到航班',
+           Text(
+            AppLocalizations.of(context)!.text_778,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -1823,7 +1799,7 @@ class _PlaneState extends State<Plane> {
           ),
           const SizedBox(height: 8),
           Text(
-            '請檢查航班號碼是否正確',
+            AppLocalizations.of(context)!.text_779,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -1874,7 +1850,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Text(
-                      '暫無航班資訊',
+                      AppLocalizations.of(context)!.text_780,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 16,
@@ -1970,7 +1946,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
           ),
           const SizedBox(width: 6),
           Text(
-            widget.type == "Departure" ? "出境航班" : "入境航班",
+            widget.type == "Departure" ? AppLocalizations.of(context)!.text_749 : AppLocalizations.of(context)!.text_748,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -2042,7 +2018,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
               ),
             ),
             Text(
-              (flight['IsCargo'] == 'true' ? "貨機" : "客機"),
+              (flight['IsCargo'] == 'true' ? AppLocalizations.of(context)!.text_781 : AppLocalizations.of(context)!.text_782),
               style: TextStyle(color: Colors.grey[600], fontSize: 11),
             ),
           ],
@@ -2062,21 +2038,21 @@ class _FlightDashboardState extends State<FlightDashboard> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildTimeItem(
-              '計劃',
+              AppLocalizations.of(context)!.text_783,
               widget.type == 'Departure'
                   ? flight['ScheduleDepartureTime']
                   : flight['ScheduleArrivalTime']),
           _buildTimeItem(
-              '實際',
+              AppLocalizations.of(context)!.text_784,
               widget.type == 'Departure'
                   ? flight['ActualDepartureTime']
                   : flight['ActualArrivalTime'],
               isDelayed: delayMinutes > 0),
           _buildDelayItem(delayMinutes),
-          _buildInfoItem('航廈', flight['Terminal'] ?? '--'),
+          _buildInfoItem(AppLocalizations.of(context)!.text_785, flight['Terminal'] ?? '--'),
           if (!(flight['IsCargo'] ?? false))
-            _buildInfoItem('行李', flight['BaggageClaim'] ?? '--'),
-          _buildInfoItem('登機門', flight['Gate'] ?? '--'),
+            _buildInfoItem(AppLocalizations.of(context)!.text_786, flight['BaggageClaim'] ?? '--'),
+          _buildInfoItem(AppLocalizations.of(context)!.text_787, flight['Gate'] ?? '--'),
         ],
       ),
     );
@@ -2108,7 +2084,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
 
     return Column(
       children: [
-        const Text('延誤', style: TextStyle(fontSize: 10, color: Colors.grey)),
+         Text(AppLocalizations.of(context)!.text_788, style: TextStyle(fontSize: 10, color: Colors.grey)),
         const SizedBox(height: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -2287,9 +2263,9 @@ class _FlightInfoCardState extends State<FlightInfoCard>
             : widget.flight['ArrivalRemark']) ??
         '';
 
-    if (remark.contains('延誤')) return Colors.orange;
-    if (remark.contains('準時')) return Colors.green;
-    if (remark.contains('取消')) return Colors.red;
+    if (remark.contains(AppLocalizations.of(context)!.text_788)) return Colors.orange;
+    if (remark.contains(AppLocalizations.of(context)!.text_789)) return Colors.green;
+    if (remark.contains(AppLocalizations.of(context)!.text_36)) return Colors.red;
     return Colors.blue.shade600;
   }
 
@@ -2459,7 +2435,7 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  isDeparture ? '出發' : '抵達',
+                                  isDeparture ? AppLocalizations.of(context)!.text_67 : AppLocalizations.of(context)!.text_68,
                                   style: TextStyle(
                                     color: _getStatusColor(),
                                     fontWeight: FontWeight.w600,
@@ -2512,23 +2488,23 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                             const Divider(height: 24),
                             _buildDetailRow(
                               Icons.departure_board,
-                              '登機門',
+                              AppLocalizations.of(context)!.text_787,
                               gate,
                             ),
                             if (isArrival)
                               _buildDetailRow(
                                 Icons.luggage,
-                                '行李轉盤',
+                                AppLocalizations.of(context)!.text_790,
                                 widget.flight['BaggageClaim'] ?? '--',
                               ),
                             _buildDetailRow(
                               Icons.assignment_ind,
-                              '報到櫃台',
+                              AppLocalizations.of(context)!.text_791,
                               widget.flight['CheckCounter'] ?? '--',
                             ),
                             _buildDetailRow(
                               Icons.update,
-                              '最後更新',
+                              AppLocalizations.of(context)!.text_792,
                               _formatTime(widget.flight['UpdateTime']),
                             ),
                           ],
@@ -2561,21 +2537,21 @@ class _FlightInfoCardState extends State<FlightInfoCard>
 }
 
 // 加载指示器
-Widget _buildLoadingIndicator() {
+Widget _buildLoadingIndicator(context) {
   return Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const CircularProgressIndicator(),
         const SizedBox(height: 16),
-        Text('正在查询航班信息...', style: TextStyle(color: Colors.grey.shade600)),
+        Text(AppLocalizations.of(context)!.text_793, style: TextStyle(color: Colors.grey.shade600)),
       ],
     ),
   );
 }
 
 // 空状态视图
-Widget _buildEmptyView() {
+Widget _buildEmptyView(context) {
   return Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -2583,7 +2559,7 @@ Widget _buildEmptyView() {
         Icon(Icons.airplanemode_inactive,
             size: 64, color: Colors.grey.shade400),
         const SizedBox(height: 16),
-        Text('未找到相关航班信息',
+        Text(AppLocalizations.of(context)!.text_794,
             style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
       ],
     ),
@@ -2591,7 +2567,7 @@ Widget _buildEmptyView() {
 }
 
 // 错误视图
-Widget _buildErrorView(String error) {
+Widget _buildErrorView(context,String error) {
   return Center(
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -2606,7 +2582,7 @@ Widget _buildErrorView(String error) {
         const SizedBox(height: 16),
         ElevatedButton.icon(
             icon: const Icon(Icons.refresh),
-            label: const Text('重試查詢'),
+            label: Text(AppLocalizations.of(context)!.text_795),
             onPressed: () {}
             // onPressed: () => _flightNumberController.text.isNotEmpty
             //     ? getFlight(_flightNumberController.text)

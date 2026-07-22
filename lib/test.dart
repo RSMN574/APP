@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import 'database/getData.dart';
+import 'l10n/app_localizations.dart';
 ValueNotifier<List<dynamic>> facilitiesNotifier = ValueNotifier([]);
 class Pair<T1, T2> {
   final T1 a;
@@ -66,28 +67,28 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
 
   void _initializeStations() {
     // Create the shared transfer station
-    final cityHallStation = Station('市政府站', Offset(0.5, 0.45), lineColor: Colors.black);
+    final cityHallStation = Station(AppLocalizations.of(context)!.text_591, Offset(0.5, 0.45), lineColor: Colors.black);
 
     // Green Line stations
     final greenLineStations = [
-      Station('北屯總站', Offset(0.5, 0.05), lineColor: Colors.green),
-      Station('舊社站', Offset(0.5, 0.10), lineColor: Colors.green),
-      Station('松竹站', Offset(0.5, 0.15), lineColor: Colors.green),
-      Station('四維國小站', Offset(0.5, 0.20), lineColor: Colors.green),
-      Station('文心崇德站', Offset(0.5, 0.25), lineColor: Colors.green),
-      Station('文心中清站', Offset(0.5, 0.30), lineColor: Colors.green),
-      Station('文華高中站', Offset(0.5, 0.35), lineColor: Colors.green),
-      Station('文心櫻花站', Offset(0.5, 0.40), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_257, Offset(0.5, 0.05), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_804, Offset(0.5, 0.10), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_805, Offset(0.5, 0.15), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_806, Offset(0.5, 0.20), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_807, Offset(0.5, 0.25), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_808, Offset(0.5, 0.30), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_809, Offset(0.5, 0.35), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_810, Offset(0.5, 0.40), lineColor: Colors.green),
       cityHallStation, // Transfer station
-      Station('水安宮站', Offset(0.5, 0.50), lineColor: Colors.green),
-      Station('文心森林公園站', Offset(0.5, 0.55), lineColor: Colors.green),
-      Station('南屯站', Offset(0.5, 0.60), lineColor: Colors.green),
-      Station('豐樂公園站', Offset(0.65, 0.7), lineColor: Colors.green),
-      Station('大慶站', Offset(0.7, 0.75), lineColor: Colors.green),
-      Station('九張犁站', Offset(0.75, 0.8), lineColor: Colors.green),
-      Station('九德站', Offset(0.8, 0.85), lineColor: Colors.green),
-      Station('烏日站', Offset(0.85, 0.9), lineColor: Colors.green),
-      Station('高鐵台中站', Offset(0.9, 0.95), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_811, Offset(0.5, 0.50), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_812, Offset(0.5, 0.55), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_813, Offset(0.5, 0.60), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_814, Offset(0.65, 0.7), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_815, Offset(0.7, 0.75), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_816, Offset(0.75, 0.8), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_817, Offset(0.8, 0.85), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_818, Offset(0.85, 0.9), lineColor: Colors.green),
+      Station(AppLocalizations.of(context)!.text_819, Offset(0.9, 0.95), lineColor: Colors.green),
     ];
 
 
@@ -98,8 +99,8 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       Station('大庄站 (B3)', Offset(0.18, 0.45), lineColor: Colors.blue),
       Station('沙鹿站 (B4)', Offset(0.22, 0.45), lineColor: Colors.blue),
       Station('竹林站 (B5)', Offset(0.26, 0.45), lineColor: Colors.blue),
-      Station('靜宜大學站 (B6)', Offset(0.30, 0.45), lineColor: Colors.blue),
-      Station('弘光科大站 (B7)', Offset(0.34, 0.45), lineColor: Colors.blue),
+      Station(AppLocalizations.of(context)!.text_820, Offset(0.30, 0.45), lineColor: Colors.blue),
+      Station(AppLocalizations.of(context)!.text_821, Offset(0.34, 0.45), lineColor: Colors.blue),
       Station('正英路站 (B8)', Offset(0.38, 0.45), lineColor: Colors.blue),
       // Station('東海別墅站 (B9)', Offset(0.42, 0.45), lineColor: Colors.blue),
       // Station('東海大學站 (B10)', Offset(0.46, 0.45), lineColor: Colors.blue),
@@ -112,7 +113,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
       Station('茄苳腳站 (B17)', Offset(0.56, 0.45), lineColor: Colors.blue),
       Station('第二市場站 (B18)', Offset(0.60, 0.45), lineColor: Colors.blue),
       Station('台中車站 (B19)', Offset(0.64, 0.45), lineColor: Colors.blue),
-      Station('帝國製糖廠站 (B20)', Offset(0.68, 0.45), lineColor: Colors.blue),
+      Station(AppLocalizations.of(context)!.text_823, Offset(0.68, 0.45), lineColor: Colors.blue),
     ];
     // Add all stations, avoiding duplication of the transfer station
     _stations.addAll(greenLineStations);
@@ -121,14 +122,14 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
 
   void _initConnections() {
     // Green Line connections
-    final greenLineStations = _stations.where((s) => s.lineColor == Colors.green || s.name == '市政府站').toList();
+    final greenLineStations = _stations.where((s) => s.lineColor == Colors.green || s.name == AppLocalizations.of(context)!.text_591).toList();
     for (int i = 0; i < greenLineStations.length - 1; i++) {
       greenLineStations[i].connections.add(Connection(greenLineStations[i + 1], Colors.green));
       greenLineStations[i + 1].connections.add(Connection(greenLineStations[i], Colors.green));
     }
 
     // blue Line connections
-    final blueLineStations = _stations.where((s) => s.lineColor == Colors.blue || s.name == '市政府站').toList();
+    final blueLineStations = _stations.where((s) => s.lineColor == Colors.blue || s.name == AppLocalizations.of(context)!.text_591).toList();
     for (int i = 0; i < blueLineStations.length - 1; i++) {
       blueLineStations[i].connections.add(Connection(blueLineStations[i + 1], Colors.blue));
       blueLineStations[i + 1].connections.add(Connection(blueLineStations[i], Colors.blue));
@@ -166,7 +167,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('動態捷運路線圖')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.text_824)),
       body: Stack(
         children: [
           InteractiveViewer(
@@ -277,7 +278,7 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('關閉'),
+            child: Text(AppLocalizations.of(context)!.text_44),
           ),
         ],
       ),
@@ -285,9 +286,9 @@ class _MetroMapScreenState extends State<MetroMapScreen> {
   }
 
   String _getLineColorName(Color color) {
-    if (color == Colors.red) return '紅線';
-    if (color == Colors.green) return '綠線';
-    return '其他路線';
+    if (color == Colors.red) return AppLocalizations.of(context)!.text_288;
+    if (color == Colors.green) return AppLocalizations.of(context)!.text_289;
+    return AppLocalizations.of(context)!.text_290;
   }
 }
 
@@ -452,7 +453,7 @@ void buildStationInfo(BuildContext context, String station) {
               child: CircularProgressIndicator(), // 显示加载进度条
             );
           } else if (snapshot.hasError) {
-            return const Text("無法載入車站資訊"); // 显示错误信息
+            return Text(AppLocalizations.of(context)!.text_246); // 显示错误信息
           } else if (snapshot.hasData) {
             var stationI = snapshot.data;
             return SingleChildScrollView(
@@ -501,9 +502,9 @@ void buildStationInfo(BuildContext context, String station) {
                   const SizedBox(height: 20), // 增加间距使布局更清晰
 
                   // 车站设施表格
-                  const Text(
-                    "車站設施",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    AppLocalizations.of(context)!.text_248,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10), // 表格标题与表格之间的间距
 
@@ -535,7 +536,7 @@ void buildStationInfo(BuildContext context, String station) {
               ),
             );
           } else {
-            return const Text("未找到任何車站資訊");
+            return Text(AppLocalizations.of(context)!.text_825);
           }
         },
       );

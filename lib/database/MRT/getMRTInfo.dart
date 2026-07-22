@@ -1,54 +1,98 @@
 import 'dart:convert';
+import 'dart:io';
 
-import 'dart:io'; // 用于文件读写
 import 'package:http/http.dart' as http;
 
 import '../../Const/regularConst.dart';
 import '../../models/MRTStation.dart';
 import '../getData.dart';
-Future <List<MRTStation>> getNearMRTStation(String location) async {
 
-   final String url = 'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%201000%29&%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
-  // 发起 GET 请求
-  final response = await http.get(
-    Uri.parse(url),
-    headers: {
-      'Authorization': 'Bearer $token',
-      'accept': 'application/json',
-    },
-  );
+Future<List<MRTStation>> getNearMRTStation(String location) async {
+  final coordinates = Uri.decodeComponent(location).split(',');
+  if (coordinates.length != 2) return [];
 
-  // 检查响应状态
-  if (response.statusCode != 200) {
-    throw HttpException('HTTP error! status: ${response.statusCode}');
+  final latitude = double.tryParse(coordinates[0]);
+  final longitude = double.tryParse(coordinates[1]);
+  if (latitude == null || longitude == null) return [];
+
+  final rows = await mysqlSelect("SELECT * FROM MRT.MRT_Taichung_station;");
+  final stations = <MRTStation>[];
+
+  for (final row in rows ?? []) {
+    final stationName = _decodeJsonMap(row['StationName']);
+    final stationPosition = _decodeJsonMap(row['StationPosition']);
+    final positionLat = _toDouble(stationPosition['PositionLat']);
+    final positionLon = _toDouble(stationPosition['PositionLon']);
+    if (positionLat == null || positionLon == null) continue;
+
+    stations.add(
+      MRTStation.fromJson({
+        'StationUID': row['StationUID']?.toString() ?? '',
+        'StationID': row['StationID']?.toString() ?? '',
+        'StationName': {
+          'Zh_tw': stationName['Zh_tw']?.toString() ??
+              row['StationNameZh_tw']?.toString() ??
+              '',
+          'En': stationName['En']?.toString() ?? '',
+        },
+        'StationAddress': row['StationAddress']?.toString() ?? '',
+        'BikeAllowOnHoliday': row['BikeAllowOnHoliday'] == true ||
+            row['BikeAllowOnHoliday'] == 1,
+        'SrcUpdateTime': row['SrcUpdateTime']?.toString() ??
+            DateTime.now().toIso8601String(),
+        'UpdateTime': row['UpdateTime']?.toString() ??
+            DateTime.now().toIso8601String(),
+        'VersionID': int.tryParse(row['VersionID']?.toString() ?? '') ?? 0,
+        'StationPosition': {
+          'PositionLat': positionLat,
+          'PositionLon': positionLon,
+          'GeoHash': stationPosition['GeoHash']?.toString() ?? '',
+        },
+        'LocationCity': row['LocationCity']?.toString() ?? '',
+        'LocationCityCode': row['LocationCityCode']?.toString() ?? '',
+        'LocationTown': row['LocationTown']?.toString() ?? '',
+        'LocationTownCode': row['LocationTownCode']?.toString() ?? '',
+      }),
+    );
   }
-  final List rawData = json.decode(response.body) ;
 
-  late final List<MRTStation> stations;
-  try {
-    stations = rawData.map((e) => MRTStation.fromJson(e))
-        .toList();
-    // 使用 Set 去重
+  stations.sort((a, b) {
+    final distanceA = _distance(
+      latitude,
+      longitude,
+      a.stationPosition.positionLat,
+      a.stationPosition.positionLon,
+    );
+    final distanceB = _distance(
+      latitude,
+      longitude,
+      b.stationPosition.positionLat,
+      b.stationPosition.positionLon,
+    );
+    return distanceA.compareTo(distanceB);
+  });
 
+  return stations.take(5).toList();
+}
 
-  }catch (e) {
-    print('JSON 解析错误: $e');
+Map<String, dynamic> _decodeJsonMap(dynamic value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is String && value.isNotEmpty) {
+    final decoded = json.decode(value);
+    if (decoded is Map<String, dynamic>) return decoded;
   }
-  print(stations is List<MRTStation>); // 应该返回 true
-  if (stations is List) {
-    // 检查 List 的所有元素是否都是 Station 类型
-    bool allStations = jsonData.every((element) => element is MRTStation);
-    print("jsonData is List<Station>: $allStations");
-  } else {
-    print("jsonData is not a List.");
-  }
+  return {};
+}
 
+double? _toDouble(dynamic value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
 
-
-  print('JSON fetched successfully: $stations');
-  return stations;
+double _distance(double lat1, double lon1, double lat2, double lon2) {
+  final latDiff = lat1 - lat2;
+  final lonDiff = lon1 - lon2;
+  return latDiff * latDiff + lonDiff * lonDiff;
 }
 
 // 捷運對應表

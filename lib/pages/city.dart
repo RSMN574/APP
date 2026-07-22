@@ -1,7 +1,7 @@
-import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
+import '../l10n/app_localizations.dart';
 class City {
   final String name;
   final String englishName;
@@ -24,13 +24,13 @@ class TaiwanCitiesPage extends StatefulWidget {
 
 class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
   // 模擬全台灣城市數據
-  final List<City> _cities = [
-    City(name: '台北市', englishName: 'Taipei', image: 'assets/cities/taipei.jpg'),
-    City(name: '新北市', englishName: 'New Taipei', image: 'assets/cities/new_taipei.jpg'),
-    City(name: '台中市', englishName: 'Taichung', image: 'assets/cities/taichung.jpg'),
-    City(name: '台南市', englishName: 'Tainan', image: 'assets/cities/tainan.jpg'),
-    City(name: '高雄市', englishName: 'Kaohsiung', image: 'assets/cities/kaohsiung.jpg'),
-    City(name: '基隆市', englishName: 'Keelung', image: 'assets/cities/keelung.jpg'),
+  late final List<City> _cities = [
+    City(name: AppLocalizations.of(context)!.text_174, englishName: 'Taipei', image: 'assets/cities/taipei.jpg'),
+    City(name: AppLocalizations.of(context)!.text_8, englishName: 'New Taipei', image: 'assets/cities/new_taipei.jpg'),
+    City(name: AppLocalizations.of(context)!.text_184, englishName: 'Taichung', image: 'assets/cities/taichung.jpg'),
+    City(name: AppLocalizations.of(context)!.text_188, englishName: 'Tainan', image: 'assets/cities/tainan.jpg'),
+    City(name: AppLocalizations.of(context)!.text_11, englishName: 'Kaohsiung', image: 'assets/cities/kaohsiung.jpg'),
+    City(name: AppLocalizations.of(context)!.text_12, englishName: 'Keelung', image: 'assets/cities/keelung.jpg'),
     // ... 依此類推
   ];
 
@@ -58,7 +58,7 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
       appBar: AppBar(
-        title: const Text('探索台灣城市'),
+        title:  Text(AppLocalizations.of(context)!.text_368),
         actions: [
           IconButton(
             icon: const Icon(Icons.map_rounded),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../l10n/app_localizations.dart';
 import '../models/WeatherData.dart';
 
 // --- 資料模型 ---
@@ -28,27 +29,27 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
   String _formatCityName(String name) {
     String formatted = name
-        .replaceAll('台中', '臺中')
-        .replaceAll('台北', '臺北')
-        .replaceAll('台南', '臺南')
-        .replaceAll('台東', '臺東');
-    if (!formatted.contains('市') && !formatted.contains('縣')) {
-      if (formatted == "臺中") formatted = "臺中市";
+        .replaceAll(AppLocalizations.of(context)!.text_88, AppLocalizations.of(context)!.text_936)
+        .replaceAll(AppLocalizations.of(context)!.text_85, AppLocalizations.of(context)!.text_937)
+        .replaceAll(AppLocalizations.of(context)!.text_89, AppLocalizations.of(context)!.text_938)
+        .replaceAll(AppLocalizations.of(context)!.text_77, AppLocalizations.of(context)!.text_939);
+    if (!formatted.contains(AppLocalizations.of(context)!.text_940) && !formatted.contains(AppLocalizations.of(context)!.text_941)) {
+      if (formatted == AppLocalizations.of(context)!.text_936) formatted = AppLocalizations.of(context)!.text_6;
     }
     return formatted;
   }
 
   IconData _getWeatherIcon(String wx) {
-    if (wx.contains('晴')) return Icons.wb_sunny_rounded;
-    if (wx.contains('雨')) return Icons.umbrella_rounded;
-    if (wx.contains('雲')) return Icons.cloud_rounded;
-    if (wx.contains('陰')) return Icons.cloud_queue_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_111)) return Icons.wb_sunny_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_112)) return Icons.umbrella_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_113)) return Icons.cloud_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_942)) return Icons.cloud_queue_rounded;
     return Icons.wb_cloudy_rounded;
   }
 
   Color _getAlertColor(String title) {
-    if (title.contains('地震') || title.contains('海嘯') || title.contains('豪雨')) return const Color(0xFFFF3B30);
-    if (title.contains('大雨') || title.contains('強風') || title.contains('低溫')) return const Color(0xFFFF9500);
+    if (title.contains(AppLocalizations.of(context)!.text_943) || title.contains(AppLocalizations.of(context)!.text_944) || title.contains(AppLocalizations.of(context)!.text_945)) return const Color(0xFFFF3B30);
+    if (title.contains(AppLocalizations.of(context)!.text_946) || title.contains(AppLocalizations.of(context)!.text_947) || title.contains(AppLocalizations.of(context)!.text_948)) return const Color(0xFFFF9500);
     return const Color(0xFFFFCC00);
   }
 
@@ -94,9 +95,9 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
         for (var r in records) {
           String content = r['contents']?['content']?['contentText'] ?? "";
-          if (content.contains(formattedCity) || r['datasetInfo']?['datasetDescription'] == "海嘯警報") {
+          if (content.contains(formattedCity) || r['datasetInfo']?['datasetDescription'] == AppLocalizations.of(context)!.text_949) {
             alerts.add(AlertInfo(
-              title: r['datasetInfo']?['datasetDescription'] ?? "天氣警報",
+              title: r['datasetInfo']?['datasetDescription'] ?? AppLocalizations.of(context)!.text_950,
               description: content,
               color: _getAlertColor(r['datasetInfo']?['datasetDescription'] ?? ""),
               icon: Icons.warning_rounded,
@@ -130,8 +131,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                 // 只有小於 7 天 (1星期內) 才顯示
                 if (diffDays < 7) {
                   final reportContent = eq['ReportContent'] ?? "";
-                  final location = eqInfo['Epicenter']?['Location'] ?? '未知';
-                  final magnitude = eqInfo['EarthquakeMagnitude']?['MagnitudeValue'] ?? '未知';
+                  final location = eqInfo['Epicenter']?['Location'] ?? AppLocalizations.of(context)!.text_321;
+                  final magnitude = eqInfo['EarthquakeMagnitude']?['MagnitudeValue'] ?? AppLocalizations.of(context)!.text_321;
 
                   alerts.add(AlertInfo(
                     title: "顯著有感地震報告 (規模 $magnitude)",
@@ -143,7 +144,7 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                   eqCount++; // 成功加入一筆，計數器 +1
                 }
               } catch (e) {
-                debugPrint('地震時間解析錯誤: $e');
+                debugPrint(AppLocalizations.of(context)!.text_951);
               }
             }
           }
@@ -171,14 +172,14 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
         ),
         content: SingleChildScrollView(
           child: Text(
-            alert.description.isEmpty ? "目前無詳細說明。" : alert.description,
+            alert.description.isEmpty ? AppLocalizations.of(context)!.text_952 : alert.description,
             style: const TextStyle(height: 1.5, fontSize: 14),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('關閉', style: TextStyle(color: Color(0xFF1A73E8))),
+            child: Text(AppLocalizations.of(context)!.text_44, style: const TextStyle(color: Color(0xFF1A73E8))),
           ),
         ],
       ),
@@ -253,7 +254,7 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                           style: TextStyle(color: alert.color, fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         const SizedBox(height: 2),
-                        const Text("點擊查看完整警報資訊", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                         Text(AppLocalizations.of(context)!.text_953, style: TextStyle(fontSize: 11, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -348,9 +349,9 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildDetailItem(Icons.thermostat_rounded, "最低溫", "${weather.minT}°C"),
-                          _buildDetailItem(Icons.sunny_snowing, "最高溫", "${weather.maxT}°C"),
-                          _buildDetailItem(Icons.accessibility_new_rounded, "舒適度", weather.comfort),
+                          _buildDetailItem(Icons.thermostat_rounded, AppLocalizations.of(context)!.text_954, "${weather.minT}°C"),
+                          _buildDetailItem(Icons.sunny_snowing, AppLocalizations.of(context)!.text_955, "${weather.maxT}°C"),
+                          _buildDetailItem(Icons.accessibility_new_rounded, AppLocalizations.of(context)!.text_956, weather.comfort),
                         ],
                       ),
                     ],

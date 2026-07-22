@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 
 import '../../database/SQL/schedule.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widget/train/RoutePalnner.dart';
 
 class HSRSchedulePage extends StatelessWidget {
@@ -35,8 +36,8 @@ class HSRSchedulePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          '高鐵列車時刻表',
+        title:  Text(
+          AppLocalizations.of(context)!.text_393,
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -87,7 +88,7 @@ class HSRSchedulePage extends StatelessWidget {
                     seatNumber: result["seatNumber"],
                     other: {
                       "DateTime": time.toString(),
-                      "trainType": "台灣高鐵700T",
+                      "trainType": AppLocalizations.of(context)!.text_394,
                       "category": getCategory(result['category'])
                     },
                   );
@@ -97,7 +98,7 @@ class HSRSchedulePage extends StatelessWidget {
                   if (output == -1) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('該行程已經存在'),
+                        content: Text(AppLocalizations.of(context)!.text_395),
                         backgroundColor: warningOrange,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -108,7 +109,7 @@ class HSRSchedulePage extends StatelessWidget {
                   } else if (output == 100) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('行程添加成功'),
+                        content: Text(AppLocalizations.of(context)!.text_396),
                         backgroundColor: successGreen,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -119,7 +120,7 @@ class HSRSchedulePage extends StatelessWidget {
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('添加行程失敗'),
+                        content: Text(AppLocalizations.of(context)!.text_397),
                         backgroundColor: errorRed,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
@@ -172,17 +173,17 @@ class HSRSchedulePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTrainInfoCard(),
+            _buildTrainInfoCard(context),
             const SizedBox(height: 32),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Row(
                 children: [
-                  Icon(Icons.timeline_rounded, size: 20, color: primaryHSR),
-                  SizedBox(width: 8),
+                  const Icon(Icons.timeline_rounded, size: 20, color: primaryHSR),
+                  const SizedBox(width: 8),
                   Text(
-                    '停靠站資訊',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.text_398,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: primaryHSR,
@@ -195,7 +196,7 @@ class HSRSchedulePage extends StatelessWidget {
             _buildStopTimesList(),
 
             // 高鐵列車介紹卡片
-            _buildHSRInfoCard(),
+            _buildHSRInfoCard(context),
           ],
         ),
       ),
@@ -234,8 +235,8 @@ class HSRSchedulePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      '台灣高鐵700T',
+                     Text(
+                      AppLocalizations.of(context)!.text_394,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -245,19 +246,19 @@ class HSRSchedulePage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 20),
-                _buildInfoRow('列車編組', '12節車廂（9M3T）'),
-                _buildInfoRow('列車長度', '304.2m'),
-                _buildInfoRow('最高時速', '300km/h'),
-                _buildInfoRow('營運速度', '295km/h'),
-                _buildInfoRow('座位配置', '標準座艙 + 商務座艙'),
-                _buildInfoRow('無障礙設施', '第5車廂'),
-                _buildInfoRow('哺集乳室', '第5車廂'),
+                _buildInfoRow(AppLocalizations.of(context)!.text_399, '12節車廂（9M3T）'),
+                _buildInfoRow(AppLocalizations.of(context)!.text_400, '304.2m'),
+                _buildInfoRow(AppLocalizations.of(context)!.text_401, '300km/h'),
+                _buildInfoRow(AppLocalizations.of(context)!.text_402, '295km/h'),
+                _buildInfoRow(AppLocalizations.of(context)!.text_403, AppLocalizations.of(context)!.text_404),
+                _buildInfoRow(AppLocalizations.of(context)!.text_405, AppLocalizations.of(context)!.text_406),
+                _buildInfoRow(AppLocalizations.of(context)!.text_407, AppLocalizations.of(context)!.text_406),
                 const SizedBox(height: 20),
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      '關閉',
+                    child:  Text(
+                      AppLocalizations.of(context)!.text_44,
                       style: TextStyle(
                         color: primaryHSR,
                         fontWeight: FontWeight.w600,
@@ -299,7 +300,7 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildTrainInfoCard() {
+  Widget _buildTrainInfoCard(context) {
     final trainNo = trainData['DailyTrainInfo']['TrainNo'];
 
     return Container(
@@ -346,8 +347,8 @@ class HSRSchedulePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '台灣高鐵',
+                       Text(
+                        AppLocalizations.of(context)!.text_408,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -405,8 +406,8 @@ class HSRSchedulePage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              '起站',
+                             Text(
+                              AppLocalizations.of(context)!.text_409,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: textSecondary,
@@ -445,9 +446,9 @@ class HSRSchedulePage extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const Text(
-                              '終站',
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.text_410,
+                              style: const TextStyle(
                                 fontSize: 13,
                                 color: textSecondary,
                               ),
@@ -618,7 +619,7 @@ class HSRSchedulePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      stop['StationName']['Zh_tw'] ?? '未知車站',
+                      stop['StationName']['Zh_tw'] ?? AppLocalizations.of(context)!.text_160,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -632,9 +633,9 @@ class HSRSchedulePage extends StatelessWidget {
                         color: successGreen.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        '正常停靠',
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)!.text_411,
+                        style: const TextStyle(
                           fontSize: 11,
                           color: successGreen,
                           fontWeight: FontWeight.w600,
@@ -669,7 +670,7 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHSRInfoCard() {
+  Widget _buildHSRInfoCard(context) {
     return Container(
       margin: const EdgeInsets.only(top: 32, bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -702,8 +703,8 @@ class HSRSchedulePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                '台灣高鐵700T',
+               Text(
+                AppLocalizations.of(context)!.text_394,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -729,17 +730,17 @@ class HSRSchedulePage extends StatelessWidget {
             children: [
               _buildHSRFeature(
                 icon: Icons.speed_rounded,
-                title: '最高時速',
+                title: AppLocalizations.of(context)!.text_401,
                 value: '300 km/h',
               ),
               _buildHSRFeature(
                 icon: Icons.timer_rounded,
-                title: '北高時間',
+                title: AppLocalizations.of(context)!.text_412,
                 value: '90 分鐘',
               ),
               _buildHSRFeature(
                 icon: Icons.event_seat_rounded,
-                title: '座位數',
+                title: AppLocalizations.of(context)!.text_413,
                 value: '989 席',
               ),
             ],

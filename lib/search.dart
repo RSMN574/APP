@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'l10n/app_localizations.dart';
+
 class s extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -14,12 +16,12 @@ class s extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(
+            const SizedBox(
               width: 24,
               height: 24,
               child: Stack(
@@ -32,10 +34,10 @@ class s extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Text(
-              '搜尋',
-              style: TextStyle(
+              AppLocalizations.of(context)!.text_620,
+              style: const TextStyle(
                 color: Color(0xFF8696BB),
                 fontSize: 15,
                 fontFamily: 'Poppins',

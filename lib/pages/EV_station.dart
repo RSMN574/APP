@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../Const/regularClass.dart';
 import '../database/EV_station/EV_station.dart';
+import '../l10n/app_localizations.dart';
 import '../utils/convert.dart';
 import '../utils/share.dart';
 import '../widget/map.dart';
@@ -20,8 +21,8 @@ class EVStation extends StatefulWidget {
 }
 
 class _EVStationState extends State<EVStation> {
-  final List<String> regions = ['臺中市'];
-  String selectedCity = "臺中市";
+  late final List<String> regions = [AppLocalizations.of(context)!.text_6];
+  late String selectedCity = AppLocalizations.of(context)!.text_6;
   GoogleMapController? _mapController;
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _filteredStations = [];
@@ -177,9 +178,9 @@ class _EVStationState extends State<EVStation> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          title: const Text(
-            '充電樁資訊',
-            style: TextStyle(
+          title: Text(
+            AppLocalizations.of(context)!.text_369,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Color(0xFF1A73E8),
@@ -258,9 +259,9 @@ class _EVStationState extends State<EVStation> {
                   strokeWidth: 3,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  '載入充電站資訊中...',
-                  style: TextStyle(
+                Text(
+                  AppLocalizations.of(context)!.text_370,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1A73E8),
@@ -322,7 +323,7 @@ class _EVStationState extends State<EVStation> {
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             decoration: InputDecoration(
-                              hintText: '搜尋站點名稱或地址',
+                              hintText: AppLocalizations.of(context)!.text_139,
                               hintStyle: TextStyle(color: Colors.grey[500]),
                               border: InputBorder.none,
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -409,8 +410,8 @@ class _EVStationState extends State<EVStation> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              '找不到符合的充電站',
+             Text(
+              AppLocalizations.of(context)!.text_371,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -419,7 +420,7 @@ class _EVStationState extends State<EVStation> {
             ),
             const SizedBox(height: 8),
             Text(
-              '請嘗試不同的搜尋關鍵字',
+              AppLocalizations.of(context)!.text_372,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -484,7 +485,7 @@ class _EVStationState extends State<EVStation> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            station['StationNameZh_tw'] ?? '未命名充電站',
+                            station['StationNameZh_tw'] ?? AppLocalizations.of(context)!.text_373,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -520,8 +521,8 @@ class _EVStationState extends State<EVStation> {
                       Expanded(
                         child: _buildInfoItem(
                           icon: Icons.bolt_rounded,
-                          title: '充電費率',
-                          value: station['ChargingRate'] ?? '詳情見App',
+                          title: AppLocalizations.of(context)!.text_374,
+                          value: station['ChargingRate'] ?? AppLocalizations.of(context)!.text_375,
                           color: const Color(0xFF1A73E8),
                         ),
                       ),
@@ -529,8 +530,8 @@ class _EVStationState extends State<EVStation> {
                       Expanded(
                         child: _buildInfoItem(
                           icon: Icons.local_parking_rounded,
-                          title: '停車費率',
-                          value: station['ParkingRate'] ?? '依現場為準',
+                          title: AppLocalizations.of(context)!.text_376,
+                          value: station['ParkingRate'] ?? AppLocalizations.of(context)!.text_377,
                           color: const Color(0xFF34C759),
                         ),
                       ),
@@ -549,23 +550,23 @@ class _EVStationState extends State<EVStation> {
                     if (station['Telephone'] != null && station['Telephone'] != "")
                       _buildActionChip(
                         icon: Icons.phone_rounded,
-                        label: '聯絡',
+                        label: AppLocalizations.of(context)!.text_378,
                         color: const Color(0xFF1A73E8),
                         onTap: () => StationActions.makeCall(station['Telephone']),
                       ),
                     _buildActionChip(
                       icon: Icons.directions_rounded,
-                      label: '導航',
+                      label: AppLocalizations.of(context)!.text_379,
                       color: const Color(0xFF34C759),
                       onTap: () {
                         double lat = double.tryParse(station['PositionLat'].toString()) ?? 0.0;
                         double lng = double.tryParse(station['PositionLon'].toString()) ?? 0.0;
-                        StationActions.openNavigation(lat, lng, station['StationNameZh_tw'] ?? '充電站');
+                        StationActions.openNavigation(lat, lng, station['StationNameZh_tw'] ?? AppLocalizations.of(context)!.text_380);
                       },
                     ),
                     _buildActionChip(
                       icon: Icons.share_rounded,
-                      label: '分享',
+                      label: AppLocalizations.of(context)!.text_381,
                       color: const Color(0xFFAF52DE),
                       onTap: () => StationActions.shareStation(station),
                     ),
@@ -763,7 +764,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.station['StationNameZh_tw'] ?? '充電站詳情',
+          widget.station['StationNameZh_tw'] ?? AppLocalizations.of(context)!.text_382,
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -965,19 +966,19 @@ class _StationDetailPageState extends State<StationDetailPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildDetailItem('最大功率', '${connector.power}kW', Icons.bolt_rounded),
+                        _buildDetailItem(AppLocalizations.of(context)!.text_383, '${connector.power}kW', Icons.bolt_rounded),
                         Container(
                           height: 30,
                           width: 1,
                           color: Colors.grey[300],
                         ),
-                        _buildDetailItem('充電費率', connector.rate, Icons.attach_money_rounded),
+                        _buildDetailItem(AppLocalizations.of(context)!.text_374, connector.rate, Icons.attach_money_rounded),
                         Container(
                           height: 30,
                           width: 1,
                           color: Colors.grey[300],
                         ),
-                        _buildDetailItem('可用接口', '${connector.quantity}', Icons.power_rounded),
+                        _buildDetailItem(AppLocalizations.of(context)!.text_384, '${connector.quantity}', Icons.power_rounded),
                       ],
                     ),
                   ),
@@ -991,9 +992,9 @@ class _StationDetailPageState extends State<StationDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '分佈位置',
-                          style: TextStyle(
+                        Text(
+                          AppLocalizations.of(context)!.text_385,
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1A73E8),
@@ -1073,25 +1074,25 @@ class _StationDetailPageState extends State<StationDetailPage> {
     switch (status) {
       case 1:
         return {
-          'text': '可用',
+          'text': AppLocalizations.of(context)!.text_386,
           'color': const Color(0xFF34C759),
           'icon': Icons.check_circle_rounded,
         };
       case 2:
         return {
-          'text': '已滿',
+          'text': AppLocalizations.of(context)!.text_387,
           'color': const Color(0xFFFF9500),
           'icon': Icons.ev_station_rounded,
         };
       case 3:
         return {
-          'text': '維護中',
+          'text': AppLocalizations.of(context)!.text_388,
           'color': const Color(0xFFFF3B30),
           'icon': Icons.build_rounded,
         };
       default:
         return {
-          'text': '未知',
+          'text': AppLocalizations.of(context)!.text_321,
           'color': Colors.grey[600]!,
           'icon': Icons.help_outline_rounded,
         };
@@ -1099,15 +1100,15 @@ class _StationDetailPageState extends State<StationDetailPage> {
   }
 
   String _getTypeName(String type) {
-    const typeNames = {
+    final typeNames = {
       '1': 'Type 1',
       '2': 'Type 2',
       '3': 'CHAdeMO',
       '4': 'CCS1',
       '5': 'CCS2',
-      '6': '特斯拉',
+      '6': AppLocalizations.of(context)!.text_389,
     };
-    return typeNames[type] ?? '未知類型';
+    return typeNames[type] ?? AppLocalizations.of(context)!.text_390;
   }
 
   IconData _getIcon(String type) {
@@ -1162,8 +1163,8 @@ class _StationDetailPageState extends State<StationDetailPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              '沒有可用的充電接口',
+             Text(
+              AppLocalizations.of(context)!.text_391,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
@@ -1172,7 +1173,7 @@ class _StationDetailPageState extends State<StationDetailPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              '此站點目前沒有提供充電服務',
+              AppLocalizations.of(context)!.text_392,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],

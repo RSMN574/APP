@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_svg/svg.dart';
-import 'package:com.rsmn574.app/Bus.dart';
+import 'package:com.rsmn574.app/pages/bus/Bus.dart';
 // 保持原有的 import
 import '../Const/regularClass.dart';
+import '../l10n/app_localizations.dart';
 import '../test.dart';
 import 'package:provider/provider.dart' ;
 import 'package:provider/single_child_widget.dart';
@@ -19,17 +20,17 @@ class _TransportGridState extends State<TransportGrid> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, String>> transportOptions = [
-    {'icon': 'assets/icons/airplane-outline.svg', 'text': '飛機', 'route': 'plane'},
-    {'icon': 'assets/icons/tram.svg', 'text': '火車', 'route': 'train'},
-    {'icon': 'assets/icons/bus-outline.svg', 'text': '公車', 'route': 'bus'},
-    {'icon': 'assets/icons/subway-outline.svg', 'text': '捷運', 'route': 'metro'},
-    {'icon': 'assets/icons/train-outline.svg', 'text': '高鐵', 'route': 'HSR'},
+  late final List<Map<String, String>> transportOptions = [
+    {'icon': 'assets/icons/airplane-outline.svg', 'text': AppLocalizations.of(context)!.text_589, 'route': 'plane'},
+    {'icon': 'assets/icons/tram.svg', 'text': AppLocalizations.of(context)!.text_585, 'route': 'train'},
+    {'icon': 'assets/icons/bus-outline.svg', 'text': AppLocalizations.of(context)!.text_588, 'route': 'bus'},
+    {'icon': 'assets/icons/subway-outline.svg', 'text': AppLocalizations.of(context)!.text_587, 'route': 'metro'},
+    {'icon': 'assets/icons/train-outline.svg', 'text': AppLocalizations.of(context)!.text_586, 'route': 'HSR'},
     {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'bike'},
-    {'icon': 'assets/icons/car.svg', 'text': '計程車', 'route': 'taxi'},
-    {'icon': 'assets/icons/bus-outline.svg', 'text': '客運', 'route': 'IntercityBus'},
-    {'icon': 'assets/icons/parking.svg', 'text': '停車資訊', 'route': 'parking'},
-    {'icon': 'assets/icons/ev-station.svg', 'text': '充電樁', 'route': 'EVStation'},
+    {'icon': 'assets/icons/car.svg', 'text': AppLocalizations.of(context)!.text_691, 'route': 'taxi'},
+    {'icon': 'assets/icons/bus-outline.svg', 'text': AppLocalizations.of(context)!.text_590, 'route': 'IntercityBus'},
+    {'icon': 'assets/icons/parking.svg', 'text': AppLocalizations.of(context)!.text_497, 'route': 'parking'},
+    {'icon': 'assets/icons/ev-station.svg', 'text': AppLocalizations.of(context)!.text_523, 'route': 'EVStation'},
     // {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
     // {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
     // {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},

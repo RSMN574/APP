@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../firebase/placeAPI.dart';
 import '../Const/regularClass.dart';
+import '../l10n/app_localizations.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -43,7 +44,7 @@ class _SearchPageState extends State<SearchPage> {
             child: TextField(
               controller: _routeController,
               decoration: InputDecoration(
-                hintText: '搜尋',
+                hintText: AppLocalizations.of(context)!.text_620,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                 suffixIcon: IconButton(

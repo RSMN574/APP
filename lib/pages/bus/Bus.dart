@@ -1,45 +1,91 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:com.rsmn574.app/pages/busStopInfo.dart';
-import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/bus/busStopInfo.dart';
+import 'package:com.rsmn574.app/pages/bus/bus_time.dart';
 import 'package:com.rsmn574.app/pages/routePlanning.dart';
 import 'package:flutter/material.dart';
-import 'package:com.rsmn574.app/widget/BusList.dart';
+import 'package:com.rsmn574.app/widget/bus/BusList.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-import 'Const/regularClass.dart';
-import 'Const/regularConst.dart';
-import 'database/SQL/favorite_feature.dart';
-import 'database/getData.dart';
+import '../../Const/regularClass.dart';
+import '../../Const/regularConst.dart';
+import '../../database/SQL/favorite_feature.dart';
+import '../../database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 
-import 'models/bus.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/bus.dart';
 
-
+Timer? _debounceTimer; // 在你的 State 類別頂部宣告這個變數
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
 
   @override
   State<Bus> createState() => BusState();
 }
+enum SearchType {
+  route,
+  stop,
+}
+final ValueNotifier<SearchType> _dropdownValueNotifier =
+ValueNotifier(SearchType.route);
 
+class MenuItemData {
+  final String id;
+  final String title;
+  final IconData icon;
 
-
+  const MenuItemData({
+    required this.id,
+    required this.title,
+    required this.icon,
+  });
+}
+final List<CityItem> cities = [
+  CityItem(name: '全部', id: 'all'),
+  CityItem(name: '臺中市', id: 'Taichung'),
+  CityItem(name: '臺北市', id: 'Taipei'),
+  CityItem(name: '新北市', id: 'NewTaipei'),
+  CityItem(name: '桃園市', id: 'Taoyuan'),
+  CityItem(name: '臺南市', id: 'Tainan'),
+  CityItem(name: '高雄市', id: 'Kaohsiung'),
+  CityItem(name: '基隆市', id: 'Keelung'),
+  CityItem(name: '新竹市', id: 'Hsinchu'),
+  CityItem(name: '公路客運', id: 'InterCity'),
+];
+final List<MenuItemData> menuItems = [
+  MenuItemData(
+    id: 'route',
+    title: '收藏路線',
+    icon: Icons.favorite,
+  ),
+  MenuItemData(
+    id: 'stop',
+    title: '收藏站牌',
+    icon: Icons.favorite,
+  ),
+  MenuItemData(
+    id: 'routeplan',
+    title: '規劃',
+    icon: Icons.route,
+  ),
+  MenuItemData(
+    id: 'shuttleBus',
+    title: '接駁車',
+    icon: Icons.airport_shuttle,
+  ),
+];
 class BusState extends State<Bus> {
-  final List<IconData> icons = [Icons.favorite, Icons.favorite, Icons.route, Icons.airport_shuttle];
-  final List<String> items = ["收藏路線", "收藏站牌", "規劃", "接駁車"];
-  final List<String> id = ["route", "stop", "routeplan", "shuttleBus"];
+
   int _current = 0;
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
-  ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
+  ValueNotifier<List<BusRoute>> favoriteRoutes = ValueNotifier([]);
   List<BusRoute> busData = [];
-  final List<String> _list = ['全部', '臺中市', '臺北市','新北市','桃園市',"臺南市","高雄市","基隆市","新竹市","公路客運"];
-  final List<String> _listID = ['all', 'Taichung', 'Taipei','NewTaipei',"Taoyuan","Tainan","Kaohsiung","Keelung","Hsinchu","InterCity"];
-  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
+ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
-  final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
+
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
@@ -49,19 +95,72 @@ class BusState extends State<Bus> {
   final Color _secondaryColor = const Color(0xFFEEF3FB);
 
 
-  Future? _suggestionFuture; // 用來存住請求的結果
+  Future<List<dynamic>>? _suggestionFuture; // 確保有寫 List<dynamic> 用來存住請求的結果
   String _lastQuery = "";      // 用來紀錄上次搜尋的內容，避免重複請求
+// 修正後的 updateCurrent 方法
   Future<int> updateCurrent() async {
-    favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
-    favoriteStops.value = await _loadFavorites("FavoritesStop", city: correspondingIDNotifier.value);
-    return 200;
-  }
+    try {
+      final db = FavoriteService();
+      final city = correspondingIDNotifier.value;
 
+      final routes = await db.getFavoriteRoutes(city: city);
+
+      favoriteRoutes.value = routes.map((e) {
+        final routeName = e['routeName']?.toString() ?? '';
+        final operatorName = e['operatorName']?.toString() ?? '';
+
+        return BusRoute.fromJson({
+          'RouteUID': e['routeUID']?.toString() ?? '',
+          'RouteID': e['routeID']?.toString() ?? '',
+          'RouteName': jsonEncode({
+            'Zh_tw': routeName,
+            'En': e['routeNameEn']?.toString() ?? routeName,
+          }),
+          'HasSubRoutes': e['hasSubRoutes'] == 1 || e['hasSubRoutes'] == true,
+          'Operators': jsonEncode([
+            {
+              'OperatorName': {
+                'Zh_tw': operatorName,
+                'En': operatorName,
+              }
+            }
+          ]),
+          'SubRoutes': jsonEncode([
+            {
+              'FirstBusTime': e['firstBusTime']?.toString() ?? '',
+              'LastBusTime': e['lastBusTime']?.toString() ?? '',
+            }
+          ]),
+          'DepartureStopNameZh': e['departureStopNameZh']?.toString() ?? '',
+          'DepartureStopNameEn': e['departureStopNameEn']?.toString() ?? '',
+          'DestinationStopNameZh': e['destinationStopNameZh']?.toString() ?? '',
+          'DestinationStopNameEn': e['destinationStopNameEn']?.toString() ?? '',
+          'TicketPriceDescriptionZh': e['ticketPriceDescriptionZh'],
+          'TicketPriceDescriptionEn': e['ticketPriceDescriptionEn'],
+          'RouteMapImageUrl': e['routeMapImageUrl'],
+          'City': e['city']?.toString() ?? '',
+          'CityCode': e['cityCode']?.toString() ?? '',
+          'UpdateTime': DateTime.now().toIso8601String(),
+          'VersionID': '0',
+        });
+      }).toList();
+
+      final stops = await db.getFavoriteStops(city: city);
+      favoriteStops.value = stops;
+
+      return 200;
+    } catch (e) {
+      print('更新收藏數據失敗: $e');
+      return 500;
+    }
+  }
   @override
   void initState() {
     super.initState();
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
-    if (_list.contains(currentCity)) {
+
+// 檢查城市是否存在於列表中
+    if (cities.any((city) => city.name == currentCity)) {
       currentCityNotifier.value = currentCity;
     }
     _initializeFavorites();
@@ -84,10 +183,18 @@ class BusState extends State<Bus> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
-    favorite_feature db = favorite_feature();
-    final favorites = await db.getFavorites(key, correspondingIDNotifier.value, city);
-    return favorites;
+  Future<List<dynamic>> _loadFavorites(String key, {required String city}) async {
+    FavoriteService db = FavoriteService();
+
+    if (key == "FavoritesRoute") {
+      // 返回 BusRoute 列表
+      return await db.getFavoriteBusRoutes(city: city);
+    } else if (key == "FavoritesStop") {
+      // 返回 Map 列表
+      return await db.getFavoriteStops(city: city);
+    }
+
+    return [];
   }
 
   Future<List> _getData() async {
@@ -109,7 +216,11 @@ class BusState extends State<Bus> {
       final List<dynamic> suggestionsForRoute = [];
 
       for (final route in busData) {
-        final routeName = route.routeZh;
+        final locale = Localizations.localeOf(context);
+
+        final routeName = locale.languageCode == 'en'
+            ? route.routeEn
+            : route.routeZh;
 
         if (routeName.contains(input)) {
           if (input == routeName) {
@@ -124,14 +235,33 @@ class BusState extends State<Bus> {
       return suggestionsForRoute;
     } else if (id == "stop") {
       final String input = busIdController.text;
-      final rawData = await mysqlSelect(
-          "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-              "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
-      );
+      final locale = Localizations.localeOf(context);
+      final rawData;
+  if(locale.languageCode == 'zh'){
+     rawData = await mysqlSelect(
+        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
+    );
+
+  }else if(locale.languageCode == 'en'){
+     rawData = await mysqlSelect(
+        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'"
+    );
+
+  }else {
+    rawData = await mysqlSelect(
+        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
+    );
+
+  }
 
       final seen = <String>{};
       for (var item in rawData) {
-        final name = json.decode(item["StationName"])["Zh_tw"];
+        final name = locale.languageCode == 'en'
+            ? json.decode(item["StationName"])["En"]
+            : json.decode(item["StationName"])["Zh_tw"];
         if (seen.contains(name)) continue;
         seen.add(name);
 
@@ -166,9 +296,9 @@ class BusState extends State<Bus> {
             ),
           ),
           const SizedBox(width: 10),
-          const Text(
-            "公車資訊",
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.text_16,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
 
@@ -209,15 +339,15 @@ class BusState extends State<Bus> {
             const SizedBox(height: 20),
             _buildMenuOption(
               icon: Icons.confirmation_number_rounded,
-              title: '票價說明',
-              subtitle: '查看公車票價資訊',
+              title: AppLocalizations.of(context)!.text_17,
+              subtitle: AppLocalizations.of(context)!.text_18,
               onTap: _navigateToFareInfo,
             ),
             const SizedBox(height: 12),
             _buildMenuOption(
               icon: Icons.warning_amber_rounded,
-              title: '通阻消息',
-              subtitle: '查看交通中斷資訊',
+              title: AppLocalizations.of(context)!.text_19,
+              subtitle: AppLocalizations.of(context)!.text_20,
               onTap: _navigateToAlertInfo,
             ),
           ],
@@ -309,7 +439,7 @@ class BusState extends State<Bus> {
           appBar: AppBar(
 
             elevation: 0,
-            title: const Text("票價說明"),
+            title: Text(AppLocalizations.of(context)!.text_17),
           ),
           body: _buildFareInfoContent(),
         ),
@@ -345,7 +475,7 @@ class BusState extends State<Bus> {
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    "票價細則",
+                    AppLocalizations.of(context)!.text_21,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -357,11 +487,11 @@ class BusState extends State<Bus> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoText("1. 臺中市民、市民的新住民配偶及臺中就學的外縣市學生，使用綁定市民限定乘車優惠的電子票證可享「10公里免費＋超過10公里車資上限10元」的雙十優惠。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_22),
                     const SizedBox(height: 12),
-                    _buildInfoText("2. 非市民搭乘依里程計費，投現上車應付車資全票20元、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資；另使用電子票證，刷卡上車應付車資全票僅扣15元(享有5元的優惠)、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_23),
                     const SizedBox(height: 12),
-                    _buildInfoText("3. 臺中市委託發行敬老愛心卡先享有雙十乘車優惠，即搭乘距離在10公里內不會扣點，搭乘超過10公里最多扣10點。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_24),
                     const SizedBox(height: 12),
                     _buildInfoText("4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
                   ],
@@ -394,7 +524,7 @@ class BusState extends State<Bus> {
           appBar: AppBar(
             // backgroundColor: _primaryColor,
             elevation: 0,
-            title: const Text("通阻消息"),
+            title: Text(AppLocalizations.of(context)!.text_19),
           ),
           body: ValueListenableBuilder<String>(
             valueListenable: currentCityNotifier,
@@ -470,7 +600,7 @@ class BusState extends State<Bus> {
           child: const Icon(Icons.warning, color: Color(0xFF1A73E8), size: 20),
         ),
         title: Text(
-          alert['Title'] ?? '無標題',
+          alert['Title'] ?? AppLocalizations.of(context)!.text_25,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -478,7 +608,7 @@ class BusState extends State<Bus> {
           ),
         ),
         subtitle: Text(
-          alert['Description'] ?? '無描述',
+          alert['Description'] ?? AppLocalizations.of(context)!.text_26,
           style: const TextStyle(
             fontSize: 14,
             color: Colors.grey,
@@ -496,7 +626,7 @@ class BusState extends State<Bus> {
           Icon(Icons.info_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            '暫無通阻消息',
+            AppLocalizations.of(context)!.text_27,
             style: TextStyle(color: Colors.grey[600], fontSize: 16),
           ),
         ],
@@ -506,9 +636,10 @@ class BusState extends State<Bus> {
 
   Widget _buildCityDropdown([bool includeAll = true] ) {
     final filteredList = includeAll
-        ? _list
-        : _list.where((item) => item != '全部').toList();
-
+        ? cities
+        : cities.where(
+          (city) => city.name != AppLocalizations.of(context)!.text_5,
+    ).toList();
     return Container(
       // margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -540,7 +671,7 @@ class BusState extends State<Bus> {
           ),
           const SizedBox(width: 12),
           Text(
-            '選擇城市',
+            AppLocalizations.of(context)!.text_28,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -569,7 +700,7 @@ class BusState extends State<Bus> {
                 isExpanded: true,
 
                 // 設定目前的數值與圖示
-                value: currentCityNotifier.value == '全部' && !includeAll
+                value: currentCityNotifier.value == AppLocalizations.of(context)!.text_5 && !includeAll
                     ? null
                     : currentCityNotifier.value,
                 icon: Icon(
@@ -580,20 +711,20 @@ class BusState extends State<Bus> {
 
                 // --- 1. 平時顯示在框框內的樣子 ---
                 selectedItemBuilder: (BuildContext context) {
-                  return filteredList.map<Widget>((String value) {
+                  return filteredList.map<Widget>((CityItem city) {
                     return Container(
                       alignment: Alignment.centerLeft,
                       child: Row(
                         children: [
                           Icon(
-                            Icons.location_on_rounded, // 縣市定位圖示
+                            Icons.location_on_rounded,
                             size: 18,
                             color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              value,
+                              city.name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -608,55 +739,37 @@ class BusState extends State<Bus> {
                     );
                   }).toList();
                 },
-
                 // --- 2. 點開後的清單佈局 ---
-                items: filteredList.map((String value) {
-                  final isSelected = currentCityNotifier.value == value;
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                items: filteredList.map((CityItem city) {
+                  final isSelected =
+                      currentCityNotifier.value == city.name;
 
                   return DropdownMenuItem<String>(
-                    value: value,
-
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        // 選中時高亮：深色模式使用 10% 透明白，淺色用品牌淡藍
-                        // color: isSelected
-                        //     ? (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFEEF3FB))
-                        //     : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          // 狀態小圓點
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.withOpacity(0.4),
-                              shape: BoxShape.circle,
+                    value: city.name,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.grey.withOpacity(0.4),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            city.name,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              value,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   );
                 }).toList(),
@@ -716,221 +829,283 @@ class BusState extends State<Bus> {
   Widget _buildSearchSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // 搜尋類型下拉選單
-          Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 12),
-            decoration: BoxDecoration(
-              color: AppThemes.getSurface(context),
-              borderRadius: BorderRadius.circular(12),
-
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppThemes.getSurface(context),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
-            child: ValueListenableBuilder<String>(
-              valueListenable: _dropdownValueNotifier,
-              builder: (context, value, child) {
-
-
-
-                return    SizedBox(
-                  width: 130, // 稍微增加一點寬度以容納圖示
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: AppThemes.getCardColor(context),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(context).dividerColor.withOpacity(0.1),
-                      ),
-
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _dropdownValueNotifier.value,
-                        isExpanded: true,
-                        dropdownColor: AppThemes.getCardColor(context),
-                        borderRadius: BorderRadius.circular(16),
-                        icon: Icon(
-                          Icons.unfold_more_rounded, // 換一個更有質感的圖示
-                          size: 20,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        // --- 1. 平時顯示在框框內的樣子 ---
-                        selectedItemBuilder: (BuildContext context) {
-                          return ['路線', '站牌'].map<Widget>((String value) {
-                            return Container(
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    value == '路線' ? Icons.alt_route_rounded : Icons.place_rounded,
-                                    size: 18,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    value,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList();
-                        },
-
-                        // --- 2. 點開後的清單佈局 ---
-                        items: <String>['路線', '站牌'].map((String value) {
-                          final isSelected = _dropdownValueNotifier.value == value;
-                          final isDark = Theme.of(context).brightness == Brightness.dark;
-
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            // 移除預設 padding 以便 AnimatedContainer 填滿
-
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              decoration: BoxDecoration(
-                                // 選中時的高亮色：淺色用淡藍，深色用白透明
-                                // color: isSelected
-                                //     ? (isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFEEF3FB))
-                                //     : Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  // 狀態圓點
-                                  // Container(
-                                  //   width: 7,
-                                  //   height: 7,
-                                  //   decoration: BoxDecoration(
-                                  //     color: isSelected
-                                  //         ? Theme.of(context).colorScheme.primary
-                                  //         : Colors.grey.withOpacity(0.5),
-                                  //     shape: BoxShape.circle,
-                                  //   ),
-                                  // ),
-                                  // const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      value,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                        color: isSelected
-                                            ? Theme.of(context).colorScheme.primary
-                                            : Theme.of(context).colorScheme.onSurface,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isSelected)
-                                    Icon(
-                                      Icons.check_rounded,
-                                      size: 16,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
-
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _dropdownValueNotifier.value = newValue;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // 搜尋輸入框
-          Expanded(
-            child: Container(
-
+          ],
+        ),
+        child: Row(
+          children: [
+            // 搜尋類型下拉選單
+            Container(
+              width: 130,
+              margin: const EdgeInsets.only(left: 4, right: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
                 color: AppThemes.getCardColor(context),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).dividerColor.withOpacity(0.15),
+                  color: Theme.of(context).dividerColor.withOpacity(0.1),
                 ),
-                boxShadow: [
-                  if (Theme.of(context).brightness == Brightness.light)
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                ],
               ),
-              child: TextField(
-                onChanged: (text) async {
-                  if (text.isNotEmpty) {
-                    double screenHeight = MediaQuery.of(context).size.height;
-                    double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                    double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+              child: ValueListenableBuilder<SearchType>(
+                valueListenable: _dropdownValueNotifier,
+                builder: (context, value, child) {
+                  return DropdownButtonHideUnderline(
+                    child: DropdownButton<SearchType>(
+                      value: _dropdownValueNotifier.value,
+                      isExpanded: true,
+                      dropdownColor: AppThemes.getCardColor(context),
+                      borderRadius: BorderRadius.circular(16),
+                      icon: Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      selectedItemBuilder: (BuildContext context) {
+                        return SearchType.values.map<Widget>((type) {
+                          final isSelected = _dropdownValueNotifier.value == type;
+                          final icon = type == SearchType.route
+                              ? Icons.alt_route_rounded
+                              : Icons.place_rounded;
 
-                    if (_dropdownValueNotifier.value == "路線") {
-                      await _updateSuggestions('route');
-                      setState(() {
-                        suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
-                      });
-                    } else if (_dropdownValueNotifier.value == "站牌") {
-                      await _updateSuggestions('stop');
-                      setState(() {
-                        suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
-                      });
-                    }
-                  } else {
-                    suggestions.value.clear();
-                    suggestionsHeightNotifier.value = 0;
-                  }
+                          return Container(
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    size: 18,
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  type == SearchType.route ? '路線' : '站牌',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList();
+                      },
+                      onChanged: (SearchType? newValue) {
+                        if (newValue != null) {
+                          _dropdownValueNotifier.value = newValue;
+                        }
+                      },
+                      items: SearchType.values.map((type) {
+                        final isSelected = _dropdownValueNotifier.value == type;
+                        final icon = type == SearchType.route
+                            ? Icons.alt_route_rounded
+                            : Icons.place_rounded;
+
+                        return DropdownMenuItem<SearchType>(
+                          value: type,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[800]
+                                        : const Color(0xFFEEF3FB),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    size: 18,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : Theme.of(context).brightness == Brightness.dark
+                                        ? Colors.grey[400]
+                                        : const Color(0xFF1A73E8),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    type == SearchType.route ? '路線' : '站牌',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      color: isSelected
+                                          ? Theme.of(context).colorScheme.primary
+                                          : Theme.of(context).brightness == Brightness.dark
+                                          ? Colors.grey[300]
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF1A73E8),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  );
                 },
-                controller: busIdController,
-                decoration: InputDecoration(
-                  hintText: '搜尋公車路線或站牌...',
-                  hintStyle: TextStyle(color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.grey[500], fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 20),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
-                    color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.grey[700],
-                    onPressed: () {
-                      busIdController.clear();
-                      suggestions.value.clear();
-                      suggestionsHeightNotifier.value = 0;
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: Colors.transparent,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                ),
-                style: TextStyle(  color: Theme.of(context).brightness == Brightness.dark?Colors.grey[400]:Colors.black87, fontSize: 14),
               ),
             ),
-          ),
-        ],
+
+            // 分隔線
+            Container(
+              width: 1,
+              height: 32,
+              color: Theme.of(context).dividerColor.withOpacity(0.1),
+            ),
+
+            // 搜尋輸入框
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(left: 4, right: 4),
+                decoration: BoxDecoration(
+                  color: AppThemes.getCardColor(context),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TextField(
+                  onChanged: (text) async {
+                    if (text.isNotEmpty) {
+                      double screenHeight = MediaQuery.of(context).size.height;
+                      double bottomInset = MediaQuery.of(context).viewInsets.bottom;
+                      double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+
+                      if (_dropdownValueNotifier.value == SearchType.route) {
+                        await _updateSuggestions('route');
+                        suggestionsHeightNotifier.value =
+                            screenHeight - bottomInset - appBarHeight - 200;
+                      } else if (_dropdownValueNotifier.value == SearchType.stop) {
+                        await _updateSuggestions('stop');
+                        suggestionsHeightNotifier.value =
+                            screenHeight - bottomInset - appBarHeight - 200;
+                      }
+                    } else {
+                      suggestions.value.clear();
+                      suggestionsHeightNotifier.value = 0;
+                    }
+                  },
+                  controller: busIdController,
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.text_30,
+                    hintStyle: TextStyle(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[500]
+                          : Colors.grey[400],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    prefixIcon: Container(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(
+                        Icons.search_rounded,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[500]
+                            : const Color(0xFF1A73E8),
+                        size: 20,
+                      ),
+                    ),
+                    suffixIcon: busIdController.text.isNotEmpty
+                        ? Container(
+                      margin: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]
+                            : const Color(0xFFEEF3FB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: GestureDetector(
+                        onTap: () {
+                          busIdController.clear();
+                          suggestions.value.clear();
+                          suggestionsHeightNotifier.value = 0;
+                        },
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey[400]
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  style: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[300]
+                        : Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
-
   Widget _buildMainContent() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -964,7 +1139,7 @@ class BusState extends State<Bus> {
       ),
       child: ListView.builder(
         physics: const BouncingScrollPhysics(),
-        itemCount: items.length,
+        itemCount: menuItems.length,
         scrollDirection: Axis.horizontal,
         itemBuilder: (ctx, index) => _buildTabItem(index),
       ),
@@ -1040,14 +1215,14 @@ class BusState extends State<Bus> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  icons[index],
+                  menuItems[index].icon,
                   size: 18,
                   color: isSelected ? Colors.white : const Color(0xFF1A73E8),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                items[index],
+                menuItems[index].title,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1064,11 +1239,11 @@ class BusState extends State<Bus> {
 
   Widget _buildPageView() {
     return PageView.builder(
-      itemCount: id.length,
+      itemCount:menuItems.length,
       controller: pageController,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
-        switch (id[index]) {
+        switch (menuItems[index].id) {
           case "route":
             return _buildFavoriteRoutes();
           case "stop":
@@ -1083,24 +1258,25 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildFavoriteRoutes() {
-    return _buildFavoriteList(
+    return _buildFavoriteList<BusRoute>(
       favoriteRoutes,
       _buildRouteCard,
-      '收藏路線',
+      AppLocalizations.of(context)!.text_1,
     );
   }
+
 
   Widget _buildFavoriteStops() {
     return _buildFavoriteList(
       favoriteStops,
       _buildStopCard,
-      '收藏站牌',
+      AppLocalizations.of(context)!.text_2,
     );
   }
 
-  Widget _buildFavoriteList(
-      ValueNotifier<List<Map<String, dynamic>>> notifier,
-      Widget Function(Map<String, dynamic>) itemBuilder,
+  Widget _buildFavoriteList<T>(
+      ValueNotifier<List<T>> notifier,
+    Widget Function(T) itemBuilder,
       String emptyMessage,
       ) {
     return FutureBuilder<int>(
@@ -1108,36 +1284,54 @@ class BusState extends State<Bus> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('載入失敗: ${snapshot.error}'));
-        } else if (!snapshot.hasData || notifier.value.isEmpty) {
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('載入失敗: ${snapshot.error}'),
+          );
+        }
+
+        if (!snapshot.hasData || notifier.value.isEmpty) {
           return _buildEmptyState(emptyMessage);
         }
 
         return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: notifier.value.length,
-          separatorBuilder: (context, index) => const Divider(height: 16),
-          itemBuilder: (context, index) => itemBuilder(notifier.value[index]),
+          separatorBuilder: (_, __) => const Divider(height: 16),
+          itemBuilder: (context, index) {
+            return itemBuilder(notifier.value[index]);
+          },
         );
       },
     );
   }
+  Widget _buildRouteCard(BusRoute route) {
+    final locale = Localizations.localeOf(context);
 
-  Widget _buildRouteCard(Map<String, dynamic> route) {
     return _buildInfoCard(
-      title: route["routeName"]?.toString() ?? '',
-      subtitle: '${route["DepartureStopNameZh"]} - ${route["DestinationStopNameZh"]}',
+      title: locale.languageCode == 'en'
+          ? (route.routeEn?.isNotEmpty == true
+          ? route.routeEn!
+          : route.routeZh)
+          : route.routeZh,
+      subtitle: locale.languageCode == 'en'
+          ? '${route.departureStopNameEn} - ${route.destinationStopNameEn}'
+          : '${route.departureStopNameZh} - ${route.destinationStopNameZh}',
       onTap: () => _navigateToRouteDetails(route),
-      onRemove: () => _showConfirmDialog(context, route["routeName"], "FavoritesRoute"),
+      onRemove: () => _showConfirmDialog(
+        context,
+        route.routeUID,
+        "FavoritesRoute",
+      ),
     );
   }
-
   Widget _buildStopCard(Map<String, dynamic> stop) {
     return _buildInfoCard(
       title: stop["stopName"]?.toString() ?? '',
       onTap: () => _navigateToStopDetails(stop),
-      onRemove: () => _showConfirmDialog(context, stop["stopName"], "FavoritesStop"),
+      onRemove: () => _showConfirmDialog(context, stop["UID"], "FavoritesStop"),
     );
   }
 
@@ -1222,7 +1416,7 @@ class BusState extends State<Bus> {
           ),
           const SizedBox(height: 8),
           Text(
-            '快去添加一些喜歡的吧！',
+            AppLocalizations.of(context)!.text_31,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -1234,15 +1428,15 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildComingSoon() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.build, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
+          const Icon(Icons.build, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
           Text(
-            '功能開發中',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            AppLocalizations.of(context)!.text_32,
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -1274,7 +1468,7 @@ class BusState extends State<Bus> {
             ),
             child: suggestions.value.isNotEmpty
                 ? _buildSuggestionsList()
-                : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
+                : Center(child: Text(AppLocalizations.of(context)!.text_33, style: const TextStyle(color: Colors.grey))),
           ),
         );
       },
@@ -1282,46 +1476,80 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildSuggestionsList() {
-    if (_dropdownValueNotifier.value == "路線") {
-      // 關鍵：如果 _suggestionFuture 是空的，或是搜尋關鍵字變了，才重新抓取
-      // 假設你的搜尋文字存在 _searchController.text
-      if (_suggestionFuture == null || _lastQuery != busIdController.text) {
-        _lastQuery = busIdController.text;
-        _suggestionFuture = _updateSuggestions('route');
-      }
+    // 如果是選取「站牌」搜尋，維持你原本的寫法（直接返回）
+    if (_dropdownValueNotifier.value != SearchType.route) {
+      return BusStopList(suggestions.value);
+    }
 
-      return FutureBuilder(
-        future: _suggestionFuture, // 使用存好的變數，返回時它依然是同一個對象
-        builder: (context, snapshot) {
-          // 如果已經有舊資料了，即便在 loading 也不要顯示轉圈圈（這樣返回才不會閃爍）
-          if (snapshot.hasData) {
-            return Buslist(
-              suggestions: snapshot.data ?? [],
-              city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
-            );
-          }
+    // ✅ 核心改動：外層包裹 ValueListenableBuilder，一邊輸入，這裡就會一邊即時重繪
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: busIdController, // 監聽輸入框的文字變化
+      builder: (context, textEditingValue, child) {
+        final query = textEditingValue.text;
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+        // 1. 防護機制：如果沒輸入任何字，直接返回空列表，省去撈資料庫的時間
+        if (query.isEmpty) {
+          _suggestionFuture = Future.value([]); // 清空 Future
+          _lastQuery = '';
           return Buslist(
             suggestions: const [],
             city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
           );
-        },
-      );
-    } else {
-      return BusStopList(suggestions.value);
-    }
+        }
+
+        // 2. 關鍵：如果關鍵字真的變了，才處理更新邏輯
+        if (_lastQuery != query) {
+          _lastQuery = query;
+
+          // 🚀 實作 Debounce (防抖)：使用者停止輸入 300 毫秒後，才真正發送 SQL 請求
+          _debounceTimer?.cancel(); // 取消上一次的計時
+
+          // 建立一個新的暫存 Future，先讓 UI 知道 Future 變了
+          final completer = Completer<List<dynamic>>();
+          _suggestionFuture = completer.future;
+
+          _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+            try {
+              // 300ms 到了，真的去查資料庫
+              final data = await _updateSuggestions('route');
+              if (!completer.isCompleted) completer.complete(data);
+            } catch (e) {
+              if (!completer.isCompleted) completer.completeError(e);
+            }
+          });
+        }
+
+        // 3. 渲染與原本結構相同的 FutureBuilder
+        return FutureBuilder<List<dynamic>>(
+          future: _suggestionFuture,
+          builder: (context, snapshot) {
+            // 如果正在等待（且目前還沒有舊資料），顯示轉圈圈
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // 成功取得資料，或是有快取舊資料，直接顯示
+            return Buslist(
+              suggestions: snapshot.data ?? [],
+              city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
+            );
+          },
+        );
+      },
+    );
   }
 
   // 其他方法保持不變，但使用新的顏色變數
   void updatedCorrespondingID() {
-    int index = _list.indexOf(currentCityNotifier.value);
-    if (index != -1) {
-      correspondingIDNotifier.value = _listID[index];
-    }
+    final city = cities.firstWhere(
+          (city) => city.name == currentCityNotifier.value,
+      orElse: () => const CityItem(
+        name: '全部',
+        id: 'all',
+      ),
+    );
+
+    correspondingIDNotifier.value = city.id;
   }
 
   void hideKeyboard(BuildContext context) {
@@ -1331,55 +1559,71 @@ class BusState extends State<Bus> {
     }
   }
 
-  void _navigateToRouteDetails(Map<String, dynamic> route) async {
+  void _navigateToRouteDetails(BusRoute route) async {
+    final locale = Localizations.localeOf(context);
+    final isEnglish = locale.languageCode == 'en';
 
-    List baseData = await mysqlSelect("""SELECT *
+    final routeName = isEnglish
+        ? (route.routeEn?.isNotEmpty == true
+        ? route.routeEn!
+        : route.routeZh)
+        : route.routeZh;
+
+    final departureName = isEnglish
+        ? (route.departureStopNameEn?.isNotEmpty == true
+        ? route.departureStopNameEn!
+        : route.departureStopNameZh)
+        : route.departureStopNameZh;
+
+    final destinationName = isEnglish
+        ? (route.destinationStopNameEn?.isNotEmpty == true
+        ? route.destinationStopNameEn!
+        : route.destinationStopNameZh)
+        : route.destinationStopNameZh;
+
+    final jsonField = isEnglish ? "En" : "Zh_tw";
+
+    final baseData = await mysqlSelect("""
+SELECT *
 FROM Bus.bus_route
 WHERE City = '${correspondingIDNotifier.value}'
-  AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))
-      = '${route["routeName"]}'
+AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
 """);
-// 1. 取得原始資料
-    String rawCity = correspondingIDNotifier.value;
-    String rawRouteID = route["RouteID"].toString();
 
-    // 2. 判斷城市並決定是否補 0
-    // 定義需要補 0 的城市清單 (依據 TDX 經驗，基隆、新竹、新竹縣、屏東較常需要)
-    final List<String> needsPaddingCities = [
+    // 取得 RouteID
+    String rawCity = correspondingIDNotifier.value;
+    String rawRouteID = route.routeID.toString();
+
+    const needsPaddingCities = [
       'Keelung',
       'Hsinchu',
       'HsinchuCounty',
       'Pingtung',
-      'InterCity' // 公路客運也建議檢查
+      'InterCity',
     ];
 
-    String finalRouteID;
-    if (needsPaddingCities.contains(rawCity)) {
-      // 如果在清單內，補足 4 位數
-      finalRouteID = rawRouteID.padLeft(4, '0');
-      print("📍 城市 $rawCity 需要補0，轉換後 ID: $finalRouteID");
-    } else {
-      finalRouteID = rawRouteID;
-    }
-
+    final finalRouteID = needsPaddingCities.contains(rawCity)
+        ? rawRouteID.padLeft(4, '0')
+        : rawRouteID;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BusTime(
-          routeName: route["routeName"],
-          departureStopName: route["DepartureStopNameZh"],
-          destinationStopName: route["DestinationStopNameZh"],
+        builder: (_) => BusTime(
+          routeName: routeName,
+          departureStopName: departureName,
+          destinationStopName: destinationName,
           operators: "",
-          routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
+          routeMapImageUrl:
+          baseData.isNotEmpty ? baseData[0]["RouteMapImageUrl"] : "",
           city: correspondingIDNotifier.value,
           routeID: finalRouteID,
-            hasSubRoutes:route["HasSubRoutes"]
+          hasSubRoutes: route.hasSubRoute,
+          data: route,
         ),
       ),
     );
   }
-
   void _navigateToStopDetails(Map<String, dynamic> stop) {
     Navigator.push(
       context,
@@ -1396,9 +1640,9 @@ WHERE City = '${correspondingIDNotifier.value}'
     QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
-      text: '確定取消收藏嗎',
-      confirmBtnText: '確認',
-      cancelBtnText: '取消',
+      text: AppLocalizations.of(context)!.text_34,
+      confirmBtnText: AppLocalizations.of(context)!.text_35,
+      cancelBtnText: AppLocalizations.of(context)!.text_36,
       confirmBtnColor: Colors.green,
       onCancelBtnTap: () => Navigator.pop(context),
       onConfirmBtnTap: () {
@@ -1411,9 +1655,9 @@ WHERE City = '${correspondingIDNotifier.value}'
   Future<void> _removeFavorite(BuildContext context, String item, String SharedPreferencesList) async {
     favorite_feature db = favorite_feature();
     if (SharedPreferencesList == "FavoritesRoute") {
-      await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
+      await db.removeFavoriteRoute(item, correspondingIDNotifier.value, );
     } else if (SharedPreferencesList == "FavoritesStop") {
-      await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
+      await db.removeFavoriteStop(item, correspondingIDNotifier.value);
     }
     setState(() {});
   }

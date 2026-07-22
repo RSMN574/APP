@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../database/traffic/getTraffic.dart';
+import '../l10n/app_localizations.dart';
 
 class Traffic extends StatefulWidget {
   const Traffic({super.key});
@@ -22,16 +23,16 @@ class _TrafficState extends State<Traffic> {
   // -----------------------------
   // 範例資料（未來可換成 TDX）
   // -----------------------------
-  String gps = "尚未取得";
+  late String gps = AppLocalizations.of(context)!.text_621;
   String direction = "—";
   double vdSpeed = 0.0; // 顯示為 km/h
-  String nearestIC = "圓山交流道";
+  late String nearestIC = AppLocalizations.of(context)!.text_622;
   double nearestICDistance = 1200; // 公尺
-  String cmsMessage = "前方道路施工 請減速慢行";
+  late String cmsMessage = AppLocalizations.of(context)!.text_623;
 
-  List<Map<String, dynamic>> frontEvents = [
+  late List<Map<String, dynamic>> frontEvents = [
     {
-      "type": "施工",
+      "type": AppLocalizations.of(context)!.text_624,
       "description": "國道1號 23.6k 道路施工",
       "distance": 1800 // 公尺
     }
@@ -80,7 +81,7 @@ class _TrafficState extends State<Traffic> {
       _startPositionStream();
     } else {
       setState(() {
-        gps = "定位未授權";
+        gps = AppLocalizations.of(context)!.text_625;
       });
     }
   }
@@ -184,8 +185,8 @@ class _TrafficState extends State<Traffic> {
       if (vdSpeed < 75) {
         frontEvents = [
           {
-            "type": "事故",
-            "description": "國道1號 25.2k 小客車追撞",
+            "type": AppLocalizations.of(context)!.text_626,
+            "description": AppLocalizations.of(context)!.text_627,
             "distance": 2300
           }
         ];
@@ -233,14 +234,14 @@ class _TrafficState extends State<Traffic> {
   }
 
   String _bearingToDirection(double bearing) {
-    if (bearing < 22.5 || bearing >= 337.5) return '北';
-    if (bearing < 67.5) return '東北';
-    if (bearing < 112.5) return '東';
-    if (bearing < 157.5) return '東南';
-    if (bearing < 202.5) return '南';
-    if (bearing < 247.5) return '西南';
-    if (bearing < 292.5) return '西';
-    return '西北';
+    if (bearing < 22.5 || bearing >= 337.5) return AppLocalizations.of(context)!.text_628;
+    if (bearing < 67.5) return AppLocalizations.of(context)!.text_629;
+    if (bearing < 112.5) return AppLocalizations.of(context)!.text_630;
+    if (bearing < 157.5) return AppLocalizations.of(context)!.text_631;
+    if (bearing < 202.5) return AppLocalizations.of(context)!.text_632;
+    if (bearing < 247.5) return AppLocalizations.of(context)!.text_633;
+    if (bearing < 292.5) return AppLocalizations.of(context)!.text_634;
+    return AppLocalizations.of(context)!.text_635;
   }
 
   // -----------------------------
@@ -254,9 +255,9 @@ class _TrafficState extends State<Traffic> {
         backgroundColor: Colors.white,
         elevation: 0.4,
         centerTitle: true,
-        title: const Text(
-          "高速公路行車助理系統 (範例)",
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.text_636,
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.w600,
           ),
@@ -290,7 +291,7 @@ class _TrafficState extends State<Traffic> {
           child: Column(
             children: [
               _buildCard(
-                "目前位置",
+                AppLocalizations.of(context)!.text_637,
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -304,7 +305,7 @@ class _TrafficState extends State<Traffic> {
               const SizedBox(height: 16),
 
               _buildCard(
-                "最近交流道",
+                AppLocalizations.of(context)!.text_638,
                 Text(
                   "$nearestIC（${(nearestICDistance / 1000).toStringAsFixed(2)} km）",
                   style: const TextStyle(
@@ -316,7 +317,7 @@ class _TrafficState extends State<Traffic> {
               const SizedBox(height: 16),
 
               _buildCard(
-                "可變標誌 CMS",
+                AppLocalizations.of(context)!.text_639,
                 Text(
                   cmsMessage,
                   style: const TextStyle(
@@ -336,10 +337,10 @@ class _TrafficState extends State<Traffic> {
               const SizedBox(height: 16),
 
               _buildCard(
-                "前方 3 公里內事件",
+                AppLocalizations.of(context)!.text_640,
                 frontEvents.isEmpty
-                    ? const Text(
-                  "無事故 / 無施工",
+                    ?  Text(
+                  AppLocalizations.of(context)!.text_641,
                   style: TextStyle(fontSize: 18),
                 )
                     : Column(
@@ -361,7 +362,7 @@ class _TrafficState extends State<Traffic> {
                 onPressed: loading ? null : _loadMockData,
                 child: loading
                     ? const CupertinoActivityIndicator(color: Colors.white)
-                    : const Text("重新整理（示範）"),
+                    :  Text(AppLocalizations.of(context)!.text_642),
               ),
             ],
           ),
@@ -513,8 +514,8 @@ class _TrafficState extends State<Traffic> {
 
               _buildMenuOption(
                 icon: Icons.info_outline_rounded,
-                title: '高速公路道路事件資訊',
-                subtitle: '查看高速公路道路事件資訊',
+                title: AppLocalizations.of(context)!.text_643,
+                subtitle: AppLocalizations.of(context)!.text_644,
                 color: const Color(0xFF1A73E8),
                 onTap: _navigateToFreeWayInfo,
               ),
@@ -583,7 +584,7 @@ class FreeWayInfoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('高速公路道路事件資訊'),
+        title:  Text(AppLocalizations.of(context)!.text_643),
       ),
       body: FutureBuilder<List<dynamic>>(
         future: fetchFreewayRoadEvent(),
@@ -596,7 +597,7 @@ class FreeWayInfoPage extends StatelessWidget {
           }
           final events = snapshot.data ?? [];
           if (events.isEmpty) {
-            return const Center(child: Text('沒有事件資料'));
+            return  Center(child: Text(AppLocalizations.of(context)!.text_645));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(12),
@@ -618,21 +619,21 @@ class FreeWayInfoPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event['EventTitle'] ?? '事件',
+                        event['EventTitle'] ?? AppLocalizations.of(context)!.text_646,
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 6),
                       Text(location.isNotEmpty
                           ? '${location['Road'] ?? ''} ${location['Direction'] ?? ''} ${location['StartKM'] ?? ''}～${location['EndKM'] ?? ''} (${location['SectionStart'] ?? ''} → ${location['SectionEnd'] ?? ''})'
-                          : '未知位置'),
+                          : AppLocalizations.of(context)!.text_647),
                       const SizedBox(height: 4),
-                      Text('影響：${impact['Description'] ?? '無'}'),
-                      Text('阻斷車道：${impact['BlockedLanes'] ?? '無'}'),
+                      Text('影響：${impact['Description'] ?? AppLocalizations.of(context)!.text_648}'),
+                      Text('阻斷車道：${impact['BlockedLanes'] ?? AppLocalizations.of(context)!.text_648}'),
                       const SizedBox(height: 4),
-                      Text('來源：${event['Source'] ?? '未知'}'),
+                      Text('來源：${event['Source'] ?? AppLocalizations.of(context)!.text_321}'),
                       Text(
-                          '發布時間：${event['PublishTime'] ?? '未知'} 更新：${event['LastUpdateTime'] ?? '未知'}'),
+                          '發布時間：${event['PublishTime'] ?? AppLocalizations.of(context)!.text_321} 更新：${event['LastUpdateTime'] ?? AppLocalizations.of(context)!.text_321}'),
                     ],
                   ),
                 ),

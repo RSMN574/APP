@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../database/getData.dart';
+import '../../l10n/app_localizations.dart';
 
 class StationDialog {
   // 高鐵主題色 - 保留高鐵橘
@@ -98,9 +99,9 @@ class StationDialog {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    '選擇高鐵車站',
-                                    style: TextStyle(
+                                  Text(
+                                    AppLocalizations.of(context)!.text_920,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -109,7 +110,7 @@ class StationDialog {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '請選擇您要查詢的高鐵車站',
+                                    AppLocalizations.of(context)!.text_921,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.8),
                                       fontSize: 14,
@@ -162,8 +163,8 @@ class StationDialog {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Text(
-                                    '高鐵車站列表',
+                                   Text(
+                                    AppLocalizations.of(context)!.text_922,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -368,7 +369,7 @@ class StationDialog {
                                       padding: const EdgeInsets.symmetric(vertical: 14),
                                       child: Center(
                                         child: Text(
-                                          '取消',
+                                          AppLocalizations.of(context)!.text_36,
                                           style: TextStyle(
                                             color: textSecondary,
                                             fontSize: 15,
@@ -429,7 +430,7 @@ class StationDialog {
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            '確認選擇',
+                                            AppLocalizations.of(context)!.text_619,
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontSize: 15,

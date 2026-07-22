@@ -48,6 +48,8 @@ class MRTStation {
       locationTownCode: json['LocationTownCode'], stationNameZh:  json['StationName']?['Zh_tw'] ?? '',
     );
   }
+  String get stationZh => stationNameZh;
+
 
   Map<String, dynamic> toJson() {
     return {

@@ -3,6 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
+import '../l10n/app_localizations.dart';
+
 class NotificationPage extends StatefulWidget {
   @override
   _NotificationPageState createState() => _NotificationPageState();
@@ -69,15 +71,15 @@ class _NotificationPageState extends State<NotificationPage> {
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (message.notification != null) {
           final notification = {
-            'title': message.notification!.title ?? '無標題',
+            'title': message.notification!.title ?? AppLocalizations.of(context as BuildContext)!.text_25,
             'time': DateTime.now().toString(),
-            'description': message.notification!.body ?? '無內容',
+            'description': message.notification!.body ?? AppLocalizations.of(context as BuildContext)!.text_433,
           };
           _insertNotification(notification); // 插入到数据库
         }
       });
     } else {
-      print('用戶拒絕通知');
+      print(AppLocalizations.of(context as BuildContext)!.text_434);
     }
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
@@ -87,15 +89,15 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build( context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFD),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          '通知中心',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.text_435,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: Color(0xFF1A73E8),
@@ -127,11 +129,11 @@ class _NotificationPageState extends State<NotificationPage> {
             Container(
               width: 140,
               height: 140,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    const Color(0xFF1A73E8).withOpacity(0.1),
-                    const Color(0xFF1A73E8).withOpacity(0.05),
+                    Color(0xFF1A73E8),
+                    Color(0xFF1A73E8),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -145,9 +147,9 @@ class _NotificationPageState extends State<NotificationPage> {
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
-              '暫無新通知',
-              style: TextStyle(
+            Text(
+              AppLocalizations.of(context as BuildContext)!.text_436,
+              style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: Color(0xFF1A73E8),
@@ -156,7 +158,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              '所有重要資訊都會在這裡顯示',
+              AppLocalizations.of(context as BuildContext)!.text_437,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -171,9 +173,9 @@ class _NotificationPageState extends State<NotificationPage> {
                 color: const Color(0xFF1A73E8),
                 borderRadius: BorderRadius.circular(25),
               ),
-              child: const Text(
-                '重新整理',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context as BuildContext)!.text_438,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -238,9 +240,9 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
-            '全部通知',
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context as BuildContext)!.text_439,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
@@ -504,16 +506,16 @@ class _NotificationPageState extends State<NotificationPage> {
   String _getNotificationTypeText(String type) {
     switch (type) {
       case 'warning':
-        return '警告';
+        return AppLocalizations.of(context as BuildContext)!.text_440;
       case 'error':
-        return '錯誤';
+        return AppLocalizations.of(context as BuildContext)!.text_441;
       case 'success':
-        return '成功';
+        return AppLocalizations.of(context as BuildContext)!.text_442;
       case 'promotion':
-        return '優惠';
+        return AppLocalizations.of(context as BuildContext)!.text_443;
       case 'info':
       default:
-        return '資訊';
+        return AppLocalizations.of(context as BuildContext)!.text_444;
     }
   }
 

@@ -8,7 +8,9 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'firebase/FCM.dart';
+import 'l10n/app_localizations.dart';
 import 'pages/city.dart';
+import 'pages/mileage/mileage_page.dart';
 import 'pages/other/settings.dart';
 
 class InfoPages extends StatelessWidget {
@@ -72,7 +74,7 @@ class InfoPages extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '測試BETA人員',
+                            AppLocalizations.of(context)!.text_676,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -112,21 +114,21 @@ class InfoPages extends StatelessWidget {
                     _buildFeatureButton(
                       context,
                       Icons.history_rounded,
-                      '歷史行程',
+                      AppLocalizations.of(context)!.text_677,
                       'history',
                       const Color(0xFF1A73E8),
                     ),
                     _buildFeatureButton(
                       context,
                       Icons.location_city_rounded,
-                      '城市',
+                      AppLocalizations.of(context)!.text_54,
                       'city',
                       const Color(0xFF34C759),
                     ),
                     _buildFeatureButton(
                       context,
                       Icons.airline_stops_rounded,
-                      '里程',
+                      AppLocalizations.of(context)!.text_678,
                       'mile',
                       const Color(0xFFFF9500),
                     ),
@@ -143,8 +145,8 @@ class InfoPages extends StatelessWidget {
             children: [
               _buildActionCard(
                 icon: Icons.bug_report_rounded,
-                title: '版本資訊',
-                subtitle: '查看應用版本與詳細資訊',
+                title: AppLocalizations.of(context)!.text_679,
+                subtitle: AppLocalizations.of(context)!.text_680,
                 color: const Color(0xFF1A73E8),
                 onTap: () async {
                   final packageInfo = await PackageInfo.fromPlatform();
@@ -158,7 +160,7 @@ class InfoPages extends StatelessWidget {
                           .then((_) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text('Token 複製到剪貼簿'),
+                            content: Text(AppLocalizations.of(context)!.text_681),
                             backgroundColor: const Color(0xFF1A73E8),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
@@ -175,8 +177,8 @@ class InfoPages extends StatelessWidget {
               const SizedBox(height: 12),
               _buildActionCard(
                 icon: Icons.feedback_rounded,
-                title: '回報BUG 和建議',
-                subtitle: '協助我們改進應用程式',
+                title: AppLocalizations.of(context)!.text_682,
+                subtitle: AppLocalizations.of(context)!.text_683,
                 color: const Color(0xFF34C759),
                 onTap: () async {
                   const url = 'https://forms.gle/CfjfDBkFe1vxeAH17';
@@ -187,8 +189,8 @@ class InfoPages extends StatelessWidget {
               const SizedBox(height: 12),
               _buildActionCard(
                 icon: Icons.notifications_active_rounded,
-                title: '觸發通知',
-                subtitle: '測試推播通知功能',
+                title: AppLocalizations.of(context)!.text_684,
+                subtitle: AppLocalizations.of(context)!.text_685,
                 color: const Color(0xFFFF9500),
                 onTap: testTask,
               ),
@@ -209,6 +211,11 @@ class InfoPages extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => TaiwanCitiesPage()),
+            );
+          } else if (id == 'mile') {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MileagePage()),
             );
           }
         },

@@ -46,40 +46,98 @@ Future<void> initConnectionPool() async {
 }
 
 class ConnectionPool {
-  final List<MySqlConnection> _pool = [];
-  final int _maxPoolSize;
   final ConnectionSettings _settings;
+  final int _maxPoolSize;
+
+  // 存放「目前閒置可用」的連線
+  final List<MySqlConnection> _availablePool = [];
+
+  // 存放「正在排隊等待連線」的預約隊列
+  final List<Completer<MySqlConnection>> _waitingQueue = [];
+
+  // 關鍵：記錄目前由該 Pool 建立的「總連線數」（包含閒置與工作中的）
+  int _currentTotalConnections = 0;
 
   ConnectionPool(this._settings, this._maxPoolSize);
 
+  /// 獲取連線（支援併發排隊）
   Future<MySqlConnection> getConnection() async {
-    if (_pool.isNotEmpty) {
-      return _pool.removeLast();
+    // 1. 如果有現成閒置的連線，直接拿去用
+    if (_availablePool.isNotEmpty) {
+      return _availablePool.removeLast();
     }
 
-    if (_pool.length < _maxPoolSize) {
-      return await MySqlConnection.connect(_settings);
+    // 2. 如果沒有閒置連線，但總連線數還沒達到上限，就建立一條新連線
+    if (_currentTotalConnections < _maxPoolSize) {
+      _currentTotalConnections++;
+      try {
+        return await MySqlConnection.connect(_settings);
+      } catch (e) {
+        _currentTotalConnections--; // 建立失敗，扣回計數器
+        rethrow;
+      }
     }
 
-    throw Exception("Connection pool is full");
+    // 3. 如果連線池全滿（都在工作），就進入隊列排隊，不要直接拋出錯誤
+    final completer = Completer<MySqlConnection>();
+    _waitingQueue.add(completer);
+
+    // 可以設定一個逾時時間，避免使用者無限期等待
+    return completer.future.timeout(
+      const Duration(seconds: 10),
+      onTimeout: () {
+        _waitingQueue.remove(completer);
+        throw TimeoutException("獲取資料庫連線逾時，目前伺服器繁忙");
+      },
+    );
   }
 
+  /// 釋放連線（還給連線池）
   void releaseConnection(MySqlConnection conn) {
-    if (_pool.length < _maxPoolSize) {
-      _pool.add(conn);
+    // 1. 先檢查有沒有人在排隊？如果有，直接把連線交棒給排隊的人
+    if (_waitingQueue.isNotEmpty) {
+      final nextWaiter = _waitingQueue.removeAt(0);
+      nextWaiter.complete(conn);
+      return;
+    }
+
+    // 2. 如果沒人排隊，且閒置池還沒滿，就放回池子裡備用
+    if (_availablePool.length < _maxPoolSize) {
+      _availablePool.add(conn);
     } else {
-      conn.close();
+      // 3. 防呆關閉：如果池子莫名滿了，安全地關閉此連線
+      _currentTotalConnections--;
+      _safeClose(conn);
     }
   }
 
-  Future<void> closeAllConnections() async {
-    for (var conn in _pool) {
-      await conn.close();
+  /// 安全關閉連線，避免拋出 Connection state 異常
+  void _safeClose(MySqlConnection conn) {
+    try {
+      // 某些套件可以檢查連線狀態，如：if (conn.connected)
+      // 若套件不支援，可用 try-catch 包覆，確保關閉失敗不會讓主程式崩潰
+      conn.close();
+    } catch (e) {
+      print('安全關閉連線時忽略的異常: $e');
     }
-    _pool.clear();
+  }
+
+  /// 關閉所有連線（App 關閉或重置時呼叫）
+  Future<void> closeAllConnections() async {
+    // 清空排隊隊列
+    for (var waiter in _waitingQueue) {
+      waiter.completeError(Exception("連線池已關閉"));
+    }
+    _waitingQueue.clear();
+
+    // 關閉所有閒置連線
+    for (var conn in _availablePool) {
+      _safeClose(conn);
+    }
+    _availablePool.clear();
+    _currentTotalConnections = 0;
   }
 }
-
 Future<void> connMysql() async {
   // 如果連接已存在，則避免重複連接
   if (conn != null && await checkConnection()) {
@@ -115,7 +173,7 @@ Future<void> connMysql() async {
     );
 
     // 連接失敗後等待短暫時間再重試
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 2));
     if (conn == null) {
       await connMysql(); // 重試連接
     }
@@ -323,36 +381,40 @@ Future<IResultSet> executeQueryWithRetry(
   int attempts = 0;
   Duration delay = const Duration(milliseconds: 500);
 
-  // 转换 SQL：将 ? 替换为 :arg0, :arg1, ...
-  String convertToNamedParams(String sql, List<dynamic>? params) {
-    if (params == null || params.isEmpty) return sql;
+  // 轉換 SQL：將 ? 替換為 :arg0, :arg1, ...
+  // ✅ 修正：確保 index 變數宣告在函式內部，每次呼叫都精準從 0 開始
+  String convertToNamedParams(String sql, List<dynamic>? p) {
+    if (p == null || p.isEmpty) return sql;
     int index = 0;
     return sql.replaceAllMapped(RegExp(r'\?'), (match) => ':arg${index++}');
   }
 
-  // 转换参数列表为 Map
-  Map<String, dynamic>? convertToMap(List<dynamic>? params) {
-    if (params == null || params.isEmpty) return null;
+  // 轉換參數列表為 Map
+  Map<String, dynamic>? convertToMap(List<dynamic>? p) {
+    if (p == null || p.isEmpty) return null;
     final map = <String, dynamic>{};
-    for (int i = 0; i < params.length; i++) {
-      map['arg$i'] = params[i];
+    for (int i = 0; i < p.length; i++) {
+      map['arg$i'] = p[i];
     }
     return map;
   }
 
+  // 🚀 效能優化：SQL 轉換與 Map 建立在迴圈外「只做一次」即可，重試時不需重複運算
+  final convertedSql = convertToNamedParams(query, params);
+  final Map<String, dynamic>? namedParams = convertToMap(params);
+  final hasParams = namedParams != null && namedParams.isNotEmpty;
+
   while (attempts < maxRetries) {
     try {
+      // 檢查連線狀態，如果失效則重連
       if (conn == null || !(await checkConnection())) {
+        debugPrint("Connection invalid, reconnecting before query...");
         await disconnect();
         await connMysql();
       }
 
-      // 转换 SQL 和参数
-      final convertedSql = convertToNamedParams(query, params);
-      final Map<String, dynamic>? namedParams = convertToMap(params);
-
-      // 使用 execute 并传入 Map
-      final result = namedParams != null && namedParams.isNotEmpty
+      // 使用 execute 並傳入對應參數
+      final result = hasParams
           ? await conn!.execute(convertedSql, namedParams)
           : await conn!.execute(convertedSql);
 
@@ -367,17 +429,24 @@ Future<IResultSet> executeQueryWithRetry(
           errorMsg.contains('lost connection') ||
           errorMsg.contains('dead') ||
           errorMsg.contains('socket') ||
-          errorMsg.contains('timeout');
+          errorMsg.contains('timeout') ||
+          errorMsg.contains('not in connectionestablished'); // ✅ 把上幾題你遇到的錯誤也納入斷線判定
 
+      // 如果是連線類型的錯誤，嘗試在下次重試前修復連線
       if (isConnectionError) {
-        await disconnect();
-        await connMysql();
+        try {
+          await disconnect();
+          await connMysql();
+        } catch (reconnectErr) {
+          debugPrint("Reconnection failed during retry: $reconnectErr");
+        }
       }
 
       if (attempts >= maxRetries) {
-        throw Exception("Failed to execute query after $maxRetries attempts: $e");
+        throw Exception("Failed to execute query after $maxRetries attempts. Last error: $e");
       }
 
+      // 指數退避延遲
       await Future.delayed(delay);
       delay = Duration(milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
     }

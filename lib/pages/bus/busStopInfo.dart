@@ -8,15 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-import '../Const/regularConst.dart';
-import '../database/SQL/favorite_feature.dart';
-import '../database/getData.dart';
-import '../database/bus/getStationInfo.dart';
+import '../../Const/regularConst.dart';
+import '../../database/SQL/favorite_feature.dart';
+import '../../database/getData.dart';
+import '../../database/bus/getStationInfo.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import '../pages/bus_time.dart';
-import '../utils/convert.dart';
-import '../widget/bubble.dart';
-import '../widget/error.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/bus.dart';
+import 'bus_time.dart';
+import '../../utils/convert.dart';
+import '../../widget/bus/bubble.dart';
+import '../../widget/error.dart';
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 final ValueNotifier<int> _currentTabIndex = ValueNotifier<int>(0);
 // 在檔案頂部(其他import之後)宣告enum
@@ -94,18 +96,18 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
   }
 
   int _timeAscComparator(a, b) {
-    if (a["time"] == "即將到站") return -1;
-    if (b["time"] == "即將到站") return 1;
-    if (a["time"] == "班次結束") return 1;
-    if (b["time"] == "班次結束") return -1;
+    if (a["time"] == AppLocalizations.of(context)!.text_316) return -1;
+    if (b["time"] == AppLocalizations.of(context)!.text_316) return 1;
+    if (a["time"] == AppLocalizations.of(context)!.text_317) return 1;
+    if (b["time"] == AppLocalizations.of(context)!.text_317) return -1;
     return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
   }
 
   int _timeDescComparator(a, b) {
-    if (a["time"] == "即將到站") return 1;
-    if (b["time"] == "即將到站") return -1;
-    if (a["time"] == "班次結束") return -1;
-    if (b["time"] == "班次結束") return 1;
+    if (a["time"] == AppLocalizations.of(context)!.text_316) return 1;
+    if (b["time"] == AppLocalizations.of(context)!.text_316) return -1;
+    if (a["time"] == AppLocalizations.of(context)!.text_317) return -1;
+    if (b["time"] == AppLocalizations.of(context)!.text_317) return 1;
     return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
   }
 
@@ -144,8 +146,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Text(
-                      "選擇排序方式",
+                     Text(
+                      AppLocalizations.of(context)!.text_318,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -159,8 +161,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                 // 排序選項
                 _buildSortOption('站序 1→10', SortType.nameAsc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
                 _buildSortOption('站序 10→1', SortType.nameDesc, Icons.numbers_rounded, const Color(0xFF1A73E8)),
-                _buildSortOption('時間 早→晚', SortType.timeAsc, Icons.access_time_rounded, const Color(0xFF34C759)),
-                _buildSortOption('時間 晚→早', SortType.timeDesc, Icons.access_time_rounded, const Color(0xFFFF9500)),
+                _buildSortOption(AppLocalizations.of(context)!.text_319, SortType.timeAsc, Icons.access_time_rounded, const Color(0xFF34C759)),
+                _buildSortOption(AppLocalizations.of(context)!.text_320, SortType.timeDesc, Icons.access_time_rounded, const Color(0xFFFF9500)),
               ],
             ),
           ),
@@ -250,7 +252,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
         for (var estimate in stopData['Estimates']) {
           PlateNumb.add(estimate["PlateNumb"]);
         }
-        return {"color": '0',"time": "即將到站", "isRed": '0', "PlateNumb": PlateNumb.toString()};
+        return {"color": '0',"time": AppLocalizations.of(context)!.text_316, "isRed": '0', "PlateNumb": PlateNumb.toString()};
       } else {
         int result = (stopData["EstimateTime"] / 60).floor();
         List PlateNumb = [];
@@ -262,7 +264,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
 
         return {
           "color": result < 3 ? "2" : "min",
-          "time": result < 1 ? "即將到站" : "$result 分鐘",
+          "time": result < 1 ? AppLocalizations.of(context)!.text_316 : "$result 分鐘",
           "isRed": result < 3 ? "2" : "",
           "PlateNumb": result < 20 ? PlateNumb.toString() : ""
         };
@@ -271,10 +273,10 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
       Duration difference = DateTime.parse(stopData["NextBusTime"]).difference(DateTime.now());
       if (difference.inHours == 0) {
         return {
-          "time": difference.inMinutes.remainder(60) <= 0 ? "班次結束" : "${difference.inMinutes.remainder(60)} 分鐘",
+          "time": difference.inMinutes.remainder(60) <= 0 ? AppLocalizations.of(context)!.text_317 : "${difference.inMinutes.remainder(60)} 分鐘",
           "isRed": '',
           "PlateNumb": "",
-          "color":  difference.inMinutes.remainder(60) <= 0 ? "班次結束" :"min",
+          "color":  difference.inMinutes.remainder(60) <= 0 ? AppLocalizations.of(context)!.text_317 :"min",
         };
       } else {
         DateTime NextBusTime = DateTime.now().add(Duration(hours: difference.inHours, minutes: difference.inMinutes.remainder(60)));
@@ -282,11 +284,11 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
           'time': "${NextBusTime.hour.toString().padLeft(2, '0')}:${NextBusTime.minute.toString().padLeft(2, '0')}",
           "isRed": '',
           "PlateNumb": "",
-          "color": "班次結束"
+          "color": AppLocalizations.of(context)!.text_317
         };
       }
     } else {
-      return {"time": "班次結束", "isRed": '', "PlateNumb": "","color": "班次結束"};
+      return {"time": AppLocalizations.of(context)!.text_317, "isRed": '', "PlateNumb": "","color": AppLocalizations.of(context)!.text_317};
     }
   }
 
@@ -336,7 +338,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
               ? const Color.fromRGBO(235, 15, 41, 0.85)
               : (stop["color"] == '2'
               ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == "班次結束"
+              : (stop["color"] == AppLocalizations.of(context)!.text_317
               ? const Color.fromRGBO(69, 69, 69, 0.1)
               : (stop["color"] == "min"
               ? const Color.fromRGBO(13, 168, 255, 0.1)
@@ -353,25 +355,18 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                   child: ListTile(
                     onTap: () async {
 
-                      Map<String, dynamic> route=await getBusRouteWithId(city:"Taichung",routeId: stop["RouteID"]);
-
+                      BusRoute route=   BusRoute.fromJson(await getBusRouteWithId(city:"Taichung",routeId: stop["RouteID"]));
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => BusTime(
-                            routeName: json.decode(route["RouteName"])["Zh_tw"],
-                            departureStopName: route["DepartureStopNameZh"],
-                            destinationStopName: route["DestinationStopNameZh"],
-                            operators: route["Operators"],
-                            routeMapImageUrl: route["RouteMapImageUrl"],
-                            city: route['City'] ?? 'InterCity',
-                            routeID: (route["RouteID"]),
-                            mark: Mark.fromMap({
-                              "highlight": [widget.stop],
-                              "direction": stop['Direction'] == 0 ? 1 : 0,
-                            }),    hasSubRoutes:
-                          route["HasSubRoutes"] == true ||
-                              route["HasSubRoutes"]?.toString().toLowerCase() == "true",
+                              routeName: route.routeZh,
+                              departureStopName: route.departureStopNameZh,
+                              destinationStopName: route.destinationStopNameZh,
+                              operators: route.operatorName,
+                              routeMapImageUrl: route.routeMapUrl,
+                              city: route.routeCity ?? 'InterCity',
+                              routeID: route.routeId,  hasSubRoutes:route.hasSubRoute,data:route
                           ),
                         ),
                       );
@@ -384,7 +379,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Text(
-                        stop["time"] ?? "未知",
+                        stop["time"] ?? AppLocalizations.of(context)!.text_321,
                         style: TextStyle(
 
                           fontSize: 17,
@@ -392,7 +387,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                               ? Colors.white
                               : (stop["color"] == '2'
                               ? const Color.fromRGBO(255, 85, 104, 1)
-                              : (stop["color"] == "班次結束"
+                              : (stop["color"] == AppLocalizations.of(context)!.text_317
                               ? const Color.fromRGBO(149, 149, 149, 1.0)
                               : (stop["color"] == "min"
                               ? const Color.fromRGBO(13, 168, 255, 1)
@@ -404,20 +399,20 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                     title: Row(
                       children: [
                         Text(
-                          stop["RouteName"]["Zh_tw"] ?? "未知站名",
+                          stop["RouteName"]["Zh_tw"] ?? AppLocalizations.of(context)!.text_322,
                           style: TextStyle(
                             fontFamily: stop["color"] == "0"
                                 ? 'MiSans-Semibold'
                                 : 'MiSans-normal',
                             fontSize: 17,
-                            color: stop["color"] == "班次結束"
+                            color: stop["color"] == AppLocalizations.of(context)!.text_317
                                 ? const Color.fromRGBO(136, 136, 136, 1)
                                 : Colors.black,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "往 ${stop["to"] ?? "未知方向"}",
+                          "往 ${stop["to"] ?? AppLocalizations.of(context)!.text_323}",
                           style: const TextStyle(
                             fontFamily: 'MiSans-normal',
                             fontSize: 14,
@@ -531,7 +526,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
             }
           }
         } catch (e) {
-          print('批次查詢失敗: $e, 啟動併發降級查詢');
+          print(AppLocalizations.of(context)!.text_324);
 
           // 降級方案優化：使用 Future.wait 進行併發查詢，取代原本緩慢的逐筆 await
           final fallbackFutures = routeNames.map((routeName) async {
@@ -576,7 +571,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
         final routeInfo = routeInfoCache[routeName];
         final hasValidInfo = routeInfo != null && routeInfo.isNotEmpty;
 
-        item["RouteID"] = hasValidInfo ? (routeInfo["RouteID"]?.toString() ?? "未知") : "未知";
+        item["RouteID"] = hasValidInfo ? (routeInfo["RouteID"]?.toString() ?? AppLocalizations.of(context)!.text_321) : AppLocalizations.of(context)!.text_321;
 
         String? departureName;
         String? destinationName;
@@ -586,8 +581,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
           destinationName = routeInfo["DestinationStopNameZh"]?.toString() ?? routeInfo["DestinationStopName"]?.toString();
         }
 
-        final finalDeparture = departureName ?? "未知出發站";
-        final finalDestination = destinationName ?? "未知目的站";
+        final finalDeparture = departureName ?? AppLocalizations.of(context)!.text_325;
+        final finalDestination = destinationName ?? AppLocalizations.of(context)!.text_326;
 
         item["DepartureStopName"] = finalDeparture;
         item["DestinationStopName"] = finalDestination;
@@ -605,18 +600,11 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
 
       return processedData;
     } catch (e) {
-      print('處理資料失敗: $e');
+      print(AppLocalizations.of(context)!.text_327);
       return [];
     }
   }
-  /// 添加調試用的輔助方法
-  void _debugPrintRouteInfo(Map<String, dynamic> routeInfo) {
-    print('=== 路線資訊調試 ===');
-    for (final entry in routeInfo.entries) {
 
-    }
-
-  }
 
   /// 添加一個測試函數來驗證資料庫查詢
   Future<void> _testDatabaseQuery() async {
@@ -624,7 +612,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
       // 測試一個已知的路線名稱
       const testRouteName = '11'; // 替換為實際的路線名稱
 
-      print('測試資料庫查詢...');
+      print(AppLocalizations.of(context)!.text_328);
 
       // 測試不同查詢方式
       final queries = [
@@ -640,16 +628,16 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
           final results = await mysqlSelect(queries[i]);
           print('結果數量: ${results.length}');
           if (results.isNotEmpty) {
-            print('第一筆結果:');
-            _debugPrintRouteInfo(results.first);
+            print(AppLocalizations.of(context)!.text_329);
+
             break;
           }
         } catch (e) {
-          print('查詢失敗: $e');
+          print(AppLocalizations.of(context)!.text_152);
         }
       }
     } catch (e) {
-      print('測試失敗: $e');
+      print(AppLocalizations.of(context)!.text_330);
     }
   }
   // 解析时间格式，转换成相对于当前时间的分钟数
@@ -657,7 +645,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
     if (time == null || time.isEmpty) return -1;
 
     // 处理 "X 分鐘" 格式
-    if (time.contains("分鐘")) {
+    if (time.contains(AppLocalizations.of(context)!.text_332)) {
       return int.tryParse(time.split(" ").first) ?? -1;
     }
 
@@ -777,8 +765,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
-              '站牌資訊',
+             Text(
+              AppLocalizations.of(context)!.text_333,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -805,8 +793,8 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '關閉',
+            child:  Text(
+              AppLocalizations.of(context)!.text_44,
               style: TextStyle(
                 color: Color(0xFF1A73E8),
                 fontWeight: FontWeight.w600,
@@ -909,19 +897,19 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                                 itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                                   _buildPopupMenuItem(
                                     icon: Icons.info_outline_rounded,
-                                    title: '站牌資訊',
+                                    title: AppLocalizations.of(context)!.text_333,
                                     value: 'info',
                                     color: const Color(0xFF1A73E8),
                                   ),
                                   _buildPopupMenuItem(
                                     icon: Icons.favorite_border_rounded,
-                                    title: '加入收藏',
+                                    title: AppLocalizations.of(context)!.text_334,
                                     value: 'favorite',
                                     color: const Color(0xFFFF3B30),
                                   ),
                                   _buildPopupMenuItem(
                                     icon: Icons.sort_rounded,
-                                    title: '排序方式',
+                                    title: AppLocalizations.of(context)!.text_335,
                                     value: 'sort',
                                     color: const Color(0xFF34C759),
                                   ),
@@ -929,9 +917,9 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                                 onSelected: (String action) async {
                                   if (action == 'favorite') {
                                     favorite_feature dbHelper = favorite_feature();
-                                    final output = await dbHelper.addFavorite(
-                                      StopName: widget.stop,
-                                      table: "FavoritesStop",
+                                    final output = await dbHelper.addFavoriteStop(
+                                      stopName: widget.stop,
+
                                       city: widget.city,
                                     );
 
@@ -952,7 +940,7 @@ class _BusStopInfoState extends State<BusStopInfo>with SingleTickerProviderState
                                         context: context,
                                         type: QuickAlertType.error,
                                         title: 'Oops...',
-                                        text: '儲存項目時發生錯誤',
+                                        text: AppLocalizations.of(context)!.text_336,
                                       );
                                     }
                                   } else if (action == 'sort') {

@@ -7,8 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'database/getData.dart';
-import 'database/Train/getTrain.dart';
+import '../../database/getData.dart';
+import '../../database/Train/getTrain.dart';
+import '../../l10n/app_localizations.dart';
 
 const Color primaryColor = Color(0xFF2A5CAA);
 const Color accentColor = Color(0xFFFF9F1C);
@@ -57,9 +58,9 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          '火車查詢系統',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.text_826,
+          style: const TextStyle(
             color: textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -69,11 +70,11 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         iconTheme: const IconThemeData(color: textPrimary),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
+          tabs: [
             // Tab(text: '首頁'),
-            Tab(text: '按車次查詢'),
-            Tab(text: '按出發地和目的地查詢'),
-            Tab(text: '按車站查詢'),
+            Tab(text: AppLocalizations.of(context)!.text_145),
+            Tab(text: AppLocalizations.of(context)!.text_146),
+            Tab(text: AppLocalizations.of(context)!.text_147),
           ],
           labelColor: primaryColor,
           unselectedLabelColor: textSecondary,
@@ -85,7 +86,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
             itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
               SelectView(
                 icon: Icons.train,
-                text: '線路資訊',
+                text: AppLocalizations.of(context)!.text_827,
                 id: 'line',
               ),
             ],
@@ -99,9 +100,9 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                         appBar: AppBar(
                           elevation: 3,
                           backgroundColor: primaryColor,
-                          title: const Text(
-                            "線路資訊",
-                            style: TextStyle(
+                          title: Text(
+                            AppLocalizations.of(context)!.text_827,
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -130,10 +131,10 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                               );
                             } else if (!snapshot.hasData ||
                                 (snapshot.data as List).isEmpty) {
-                              return const Center(
+                              return Center(
                                 child: Text(
-                                  "沒有數據",
-                                  style: TextStyle(
+                                  AppLocalizations.of(context)!.text_828,
+                                  style: const TextStyle(
                                       color: textSecondary, fontSize: 16),
                                 ),
                               );
@@ -145,11 +146,11 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                                   itemCount: lineData.length,
                                   itemBuilder: (context, index) {
                                     var line = lineData[index];
-                                    var lineNameZh = line['LineNameZh'] ?? '未知';
+                                    var lineNameZh = line['LineNameZh'] ?? AppLocalizations.of(context)!.text_321;
                                     var lineNameEn =
                                         line['LineNameEn'] ?? 'Unknown';
                                     var sectionNameZh =
-                                        line['LineSectionNameZh'] ?? '未知區間';
+                                        line['LineSectionNameZh'] ?? AppLocalizations.of(context)!.text_829;
 
                                     return Container(
                                       margin: const EdgeInsets.symmetric(
@@ -318,9 +319,9 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        '車次查詢',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.text_830,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1A73E8),
@@ -328,7 +329,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '輸入車次號碼查詢時刻表',
+                        AppLocalizations.of(context)!.text_831,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -367,7 +368,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         child: TextField(
                           controller: widget.controller,
                           decoration: InputDecoration(
-                            hintText: '輸入車次號碼，例如：101',
+                            hintText: AppLocalizations.of(context)!.text_832,
                             hintStyle: TextStyle(color: Colors.grey[500]),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
@@ -472,7 +473,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               if (widget.controller.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('請輸入車次號碼'),
+                                    content: Text(AppLocalizations.of(context)!.text_833),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -484,15 +485,15 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               }
 
                               try {
-                                var trainData = await fetchTrain(
-                                  int.parse(widget.controller.text),
+                                trainData = await fetchTrain(
+                                  int.parse(widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''))
+                                  ,
                                   selectedDate,
                                 );
-
-                                if (trainData == null || trainData.isEmpty) {
+                                if (trainData==null||trainData.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: const Text('查無此車次資訊'),
+                                      content: Text(AppLocalizations.of(context)!.text_834),
                                       backgroundColor: const Color(0xFFFF9500),
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
@@ -505,9 +506,10 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => TrainSchedulePage(
-                                        trainData: trainData,
+
                                         type: 'trainNo',
                                         time: selectedDate,
+                                        trainNo: int.parse(widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''))
                                       ),
                                     ),
                                   );
@@ -515,8 +517,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('查詢失敗: $e'),
-                                    backgroundColor: const Color(0xFFFF3B30),
+                                    content: Text(AppLocalizations.of(context)!.text_834),
+                                    backgroundColor: const Color(0xFFFF9500),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -530,18 +532,18 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: const Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.search_rounded,
                                     size: 20,
                                     color: Colors.white,
                                   ),
-                                  SizedBox(width: 8),
+                                  const SizedBox(width: 8),
                                   Text(
-                                    '立即查詢',
-                                    style: TextStyle(
+                                    AppLocalizations.of(context)!.text_153,
+                                    style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
@@ -588,9 +590,9 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              '使用提示',
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.text_835,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF1A73E8),
@@ -598,7 +600,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '請輸入完整的車次號碼進行查詢',
+                              AppLocalizations.of(context)!.text_836,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -635,10 +637,10 @@ class RouteSearchPage extends StatefulWidget {
 
 class _RouteSearchPageState extends State<RouteSearchPage> {
   // 縣市和對應站名資料
-  final Map<String, List<String>> stationData = {
-    '台北市': ['台北車站', '松山車站', '板橋車站'],
-    '新北市': ['中和車站', '新莊車站', '蘆洲車站'],
-    '高雄市': ['高雄車站', '鳳山車站', '新左營車站'],
+  late final Map<String, List<String>> stationData = {
+    AppLocalizations.of(context)!.text_174: [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_837, AppLocalizations.of(context)!.text_178],
+    AppLocalizations.of(context)!.text_8: [AppLocalizations.of(context)!.text_838, AppLocalizations.of(context)!.text_839, AppLocalizations.of(context)!.text_840],
+    AppLocalizations.of(context)!.text_11: [AppLocalizations.of(context)!.text_192, AppLocalizations.of(context)!.text_841, AppLocalizations.of(context)!.text_842],
   };
 
   Map<String, dynamic> departureSelectedStation = {};
@@ -765,7 +767,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
           widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('出發地和目的地不能相同'),
+            content: Text(AppLocalizations.of(context)!.text_157),
             backgroundColor: const Color(0xFFFF3B30),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -812,9 +814,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        '站站查詢',
-                        style: TextStyle(
+                      Text(
+                        AppLocalizations.of(context)!.text_843,
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1A73E8),
@@ -822,7 +824,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '選擇出發地、目的地與時間',
+                        AppLocalizations.of(context)!.text_844,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -862,7 +864,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 widget.departureController.text =
                                     departureSelectedStation['StationName']['Zh_tw'] ??
                                         departureSelectedStation['StationName'] ??
-                                        '未知車站';
+                                        AppLocalizations.of(context)!.text_160;
                               });
                             }
                           },
@@ -910,7 +912,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '出發地',
+                                        AppLocalizations.of(context)!.text_845,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: _isDepartureSelected
@@ -923,7 +925,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDepartureSelected
                                             ? widget.departureController.text
-                                            : '請選擇出發站',
+                                            : AppLocalizations.of(context)!.text_161,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDepartureSelected
@@ -1002,14 +1004,14 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 widget.destinationController.text =
                                     destinationSelectedStation['StationName']['Zh_tw'] ??
                                         destinationSelectedStation['StationName'] ??
-                                        '未知車站';
+                                        AppLocalizations.of(context)!.text_160;
                               });
 
                               // 檢查是否與出發地相同
                               if (widget.departureController.text == widget.destinationController.text) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('出發地和目的地不能相同'),
+                                    content: Text(AppLocalizations.of(context)!.text_157),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1064,7 +1066,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '目的地',
+                                        AppLocalizations.of(context)!.text_846,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: _isDestinationSelected
@@ -1077,7 +1079,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDestinationSelected
                                             ? widget.destinationController.text
-                                            : '請選擇目的站',
+                                            : AppLocalizations.of(context)!.text_847,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDestinationSelected
@@ -1167,7 +1169,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '出發時間',
+                                        AppLocalizations.of(context)!.text_164,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: selectedDate != null
@@ -1180,7 +1182,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
-                                            : '現在時間',
+                                            : AppLocalizations.of(context)!.text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1246,7 +1248,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDepartureSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('請選擇出發地'),
+                                    content:  Text(AppLocalizations.of(context)!.text_848),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1260,7 +1262,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDestinationSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('請選擇目的地'),
+                                    content:  Text(AppLocalizations.of(context)!.text_849),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1286,7 +1288,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                             splashColor: Colors.white.withOpacity(0.2),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: const Row(
+                              child:  Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -1296,7 +1298,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    '查詢班次',
+                                    AppLocalizations.of(context)!.text_166,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -1340,12 +1342,12 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '查詢提示',
+                              AppLocalizations.of(context)!.text_154,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1354,7 +1356,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              '可選擇出發時間，預設為最近班次',
+                              AppLocalizations.of(context)!.text_850,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -1386,13 +1388,13 @@ class StationSearchPage extends StatefulWidget {
 
 class _StationSearchPageState extends State<StationSearchPage> {
   final TextEditingController _controller = TextEditingController();
-  final Map<String, List<String>> stations = {
-    '台北市': ['台北車站', '大安站', '松山站'],
-    '新北市': ['板橋車站', '新店站', '淡水站'],
-    '桃園市': ['桃園車站', '中壢站', '機場站'],
-    '台中市': ['台中車站', '豐原站', '后里站'],
-    '台南市': ['台南車站', '新營站', '善化站'],
-    '高雄市': ['高雄車站', '左營站', '楠梓站'],
+  late final Map<String, List<String>> stations = {
+    AppLocalizations.of(context)!.text_174: [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_176, AppLocalizations.of(context)!.text_177],
+    AppLocalizations.of(context)!.text_8: [AppLocalizations.of(context)!.text_178, AppLocalizations.of(context)!.text_179, AppLocalizations.of(context)!.text_180],
+    AppLocalizations.of(context)!.text_9: [AppLocalizations.of(context)!.text_181, AppLocalizations.of(context)!.text_182, AppLocalizations.of(context)!.text_183],
+    AppLocalizations.of(context)!.text_184: [AppLocalizations.of(context)!.text_185, AppLocalizations.of(context)!.text_186, AppLocalizations.of(context)!.text_187],
+    AppLocalizations.of(context)!.text_188: [AppLocalizations.of(context)!.text_189, AppLocalizations.of(context)!.text_190, AppLocalizations.of(context)!.text_191],
+    AppLocalizations.of(context)!.text_11: [AppLocalizations.of(context)!.text_192, AppLocalizations.of(context)!.text_193, AppLocalizations.of(context)!.text_194],
   };
 
   String? selectedCity;
@@ -1524,8 +1526,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        '車站查詢',
+                       Text(
+                        AppLocalizations.of(context)!.text_851,
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
@@ -1534,7 +1536,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '輸入車站名稱查詢列車時刻',
+                        AppLocalizations.of(context)!.text_852,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -1617,7 +1619,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '車站名稱',
+                                        AppLocalizations.of(context)!.text_853,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: selectedStation != null
@@ -1630,7 +1632,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                       Text(
                                         selectedStation != null
                                             ? _controller.text
-                                            : '請選擇車站',
+                                            : AppLocalizations.of(context)!.text_200,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedStation != null
@@ -1720,7 +1722,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '出發時間',
+                                        AppLocalizations.of(context)!.text_164,
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: selectedDate != null
@@ -1733,7 +1735,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                       Text(
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
-                                            : '現在時間',
+                                            : AppLocalizations.of(context)!.text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1787,7 +1789,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                               if (selectedStation == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text('請選擇車站'),
+                                    content:  Text(AppLocalizations.of(context)!.text_200),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1813,7 +1815,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                             splashColor: Colors.white.withOpacity(0.2),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: const Row(
+                              child:  Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -1823,7 +1825,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                   ),
                                   SizedBox(width: 8),
                                   Text(
-                                    '查詢列車',
+                                    AppLocalizations.of(context)!.text_854,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -1867,12 +1869,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '查詢提示',
+                              AppLocalizations.of(context)!.text_154,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1881,7 +1883,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              '選擇車站後可設定查詢時間，預設為最近班次',
+                              AppLocalizations.of(context)!.text_855,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
@@ -1901,10 +1903,10 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Padding(
+                       Padding(
                         padding: EdgeInsets.only(left: 4, bottom: 12),
                         child: Text(
-                          '熱門車站',
+                          AppLocalizations.of(context)!.text_203,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1916,12 +1918,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          '台北車站',
-                          '高雄車站',
-                          '台中車站',
-                          '板橋車站',
-                          '左營站',
-                          '桃園車站',
+                          AppLocalizations.of(context)!.text_175,
+                          AppLocalizations.of(context)!.text_192,
+                          AppLocalizations.of(context)!.text_185,
+                          AppLocalizations.of(context)!.text_178,
+                          AppLocalizations.of(context)!.text_193,
+                          AppLocalizations.of(context)!.text_181,
                         ].map((stationName) {
                           return Material(
                             color: Colors.transparent,
@@ -2039,9 +2041,9 @@ class _StationPageState extends State<StationPage>
             fontWeight: FontWeight.w500,
             fontSize: 14,
           ),
-          tabs: const [
-            Tab(text: "主頁"),
-            Tab(text: "列車資訊"),
+          tabs: [
+            Tab(text: AppLocalizations.of(context)!.text_856),
+            Tab(text: AppLocalizations.of(context)!.text_655),
           ],
         ),
       ),
@@ -2058,14 +2060,14 @@ class _StationPageState extends State<StationPage>
   Widget _buildHomePage() {
     String _getStationClass(String? stationClass) {
       Map<String, String> stationClassMap = {
-        '0': '特等站',
-        '1': '一等站',
-        '2': '二等站',
-        '3': '三等站',
-        '4': '簡易站',
-        '5': '招呼站',
+        '0': AppLocalizations.of(context)!.text_857,
+        '1': AppLocalizations.of(context)!.text_858,
+        '2': AppLocalizations.of(context)!.text_859,
+        '3': AppLocalizations.of(context)!.text_860,
+        '4': AppLocalizations.of(context)!.text_861,
+        '5': AppLocalizations.of(context)!.text_862,
       };
-      return stationClassMap[stationClass] ?? '未知等級';
+      return stationClassMap[stationClass] ?? AppLocalizations.of(context)!.text_863;
     }
 
     return FutureBuilder<List<dynamic>>(
@@ -2132,8 +2134,8 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '載入失敗',
+                   Text(
+                    AppLocalizations.of(context)!.text_205,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -2182,8 +2184,8 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    '暫無車站資訊',
+                   Text(
+                    AppLocalizations.of(context)!.text_864,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -2192,7 +2194,7 @@ class _StationPageState extends State<StationPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '無法取得此車站的詳細資訊',
+                    AppLocalizations.of(context)!.text_865,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -2259,7 +2261,7 @@ class _StationPageState extends State<StationPage>
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    data[0]['StationNameZh_tw'] ?? '未知車站',
+                                    data[0]['StationNameZh_tw'] ?? AppLocalizations.of(context)!.text_160,
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700,
@@ -2274,23 +2276,23 @@ class _StationPageState extends State<StationPage>
                             // 資訊項目
                             _buildInfoItem(
                               icon: Icons.location_on_rounded,
-                              label: '車站地址',
-                              value: data[1]['StationAddress'] ?? '未知地址',
+                              label: AppLocalizations.of(context)!.text_866,
+                              value: data[1]['StationAddress'] ?? AppLocalizations.of(context)!.text_867,
                             ),
                             _buildInfoItem(
                               icon: Icons.grade_rounded,
-                              label: '車站等級',
+                              label: AppLocalizations.of(context)!.text_868,
                               value: _getStationClass(data[1]['StationClass']),
                             ),
                             _buildInfoItem(
                               icon: Icons.phone_rounded,
-                              label: '車站電話',
-                              value: data[1]['StationPhone'] ?? '未知電話',
+                              label: AppLocalizations.of(context)!.text_869,
+                              value: data[1]['StationPhone'] ?? AppLocalizations.of(context)!.text_870,
                             ),
                             _buildInfoItem(
                               icon: Icons.qr_code_rounded,
-                              label: '車站ID',
-                              value: data[1]['StationID'] ?? '未知ID',
+                              label: AppLocalizations.of(context)!.text_871,
+                              value: data[1]['StationID'] ?? AppLocalizations.of(context)!.text_872,
                             ),
                           ],
                         ),
@@ -2381,7 +2383,7 @@ class _StationPageState extends State<StationPage>
                                         color: Colors.grey[100],
                                         child: Center(
                                           child: Text(
-                                            '無法載入地圖',
+                                            AppLocalizations.of(context)!.text_873,
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: Colors.grey[600],
@@ -2572,9 +2574,9 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '載入列車資訊中...',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.text_874,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1A73E8),
@@ -2603,7 +2605,7 @@ class _StationPageState extends State<StationPage>
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '加載失敗',
+                    AppLocalizations.of(context)!.text_875,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -2612,7 +2614,7 @@ class _StationPageState extends State<StationPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '請檢查網路連線後重試',
+                    AppLocalizations.of(context)!.text_206,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -2640,8 +2642,8 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    '暫無列車資訊',
+                   Text(
+                    AppLocalizations.of(context)!.text_876,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -2672,15 +2674,16 @@ class _StationPageState extends State<StationPage>
                     itemCount: trainData.length,
                     itemBuilder: (context, index) {
                       var train = trainData[index];
-                      String trainNo = (train['TrainNo']) ?? '未知';
+                      String trainNo = (train['TrainNo']) ?? AppLocalizations.of(context)!.text_321;
                       String trainType = convertTrainType(train['TrainTypeName']['Zh_tw']);
-                      String departureTime = _formatTime(train['DepartureTime'] ?? '未知');
+                      String departureTime = _formatTime(train['DepartureTime'] ?? AppLocalizations.of(context)!.text_321);
                       int? delayTime = train['DelayTime'];
-                      String endingStation = train['EndingStationName']['Zh_tw'] ?? '未知';
+                      String endingStation = train['EndingStationName']['Zh_tw'] ?? AppLocalizations.of(context)!.text_321;
+
 
                       // 判斷是否為未讀/重要狀態（延誤的列車）
                       bool isDelayed = delayTime != null && delayTime > 0;
-                      bool isExpress = trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣');
+                      bool isExpress = trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879);
 
                       return Transform.translate(
                         offset: Offset(0, index * 0.3), // 微妙的層次感
@@ -2688,17 +2691,14 @@ class _StationPageState extends State<StationPage>
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () async {
-                              var fetchedTrainData = await fetchTrain(
-                                int.parse(train['TrainNo'].replaceAll(RegExp(r'[^0-9]'), '')),
-                                widget.datetime,
-                              );
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TrainSchedulePage(
-                                    trainData: fetchedTrainData,
+
                                     type: 'trainNo',
-                                    time: widget.datetime,
+                                    time: widget.datetime,trainNo: int.parse(train['TrainNo'].replaceAll(RegExp(r'[^0-9]'), '')),
                                   ),
                                 ),
                               );
@@ -2975,11 +2975,11 @@ class _StationPageState extends State<StationPage>
   }
 
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣')) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return const Color(0xFF1A73E8); // 藍色 - 特快車
-    } else if (trainType.contains('莒光')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return const Color(0xFF34C759); // 綠色 - 普通快車
-    } else if (trainType.contains('區間') || trainType.contains('復興')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return const Color(0xFFFF9500); // 橙色 - 區間車
     } else {
       return const Color(0xFFAF52DE); // 紫色 - 其他
@@ -2987,11 +2987,11 @@ class _StationPageState extends State<StationPage>
   }
 
   IconData _getTrainTypeIcon(String trainType) {
-    if (trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣')) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return Icons.directions_railway_filled_rounded;
-    } else if (trainType.contains('莒光')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return Icons.train_rounded;
-    } else if (trainType.contains('區間') || trainType.contains('復興')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return Icons.directions_subway_rounded;
     } else {
       return Icons.directions_transit_rounded;
@@ -2999,16 +2999,16 @@ class _StationPageState extends State<StationPage>
   }
 
   String _getTrainTypeCategory(String trainType) {
-    if (trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣')) {
-      return '特快車';
-    } else if (trainType.contains('莒光')) {
-      return '快車';
-    } else if (trainType.contains('區間')) {
-      return '區間車';
-    } else if (trainType.contains('復興')) {
-      return '普通車';
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
+      return AppLocalizations.of(context)!.text_885;
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
+      return AppLocalizations.of(context)!.text_886;
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883)) {
+      return AppLocalizations.of(context)!.text_65;
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_884)) {
+      return AppLocalizations.of(context)!.text_137;
     } else {
-      return '其他';
+      return AppLocalizations.of(context)!.text_542;
     }
   }
 // 標題欄 - 放在頂部只顯示一次
@@ -3024,31 +3024,31 @@ class _StationPageState extends State<StationPage>
           // 車次標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem('車次', Icons.confirmation_number_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_887, Icons.confirmation_number_rounded),
           ),
 
           // 發車時間標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem('發車', Icons.schedule_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_888, Icons.schedule_rounded),
           ),
 
           // 車種標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem('車種', Icons.train_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_889, Icons.train_rounded),
           ),
 
           // 終點站標題
           Expanded(
             flex: 3,
-            child: _buildHeaderItem('終點', Icons.flag_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_57, Icons.flag_rounded),
           ),
 
           // 狀態標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem('狀態', Icons.info_outline_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_890, Icons.info_outline_rounded),
           ),
 
           // 空白對齊箭頭
@@ -3260,11 +3260,11 @@ class _RoutePageState extends State<RoutePage> {
   // 取得車種顏色
   // =============================
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains('自強') || trainType.contains('普悠瑪') || trainType.contains('太魯閣')) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return primaryBlue;
-    } else if (trainType.contains('莒光')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return successGreen;
-    } else if (trainType.contains('區間') || trainType.contains('復興')) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return warningOrange;
     } else {
       return purple;
@@ -3282,24 +3282,21 @@ class _RoutePageState extends State<RoutePage> {
     return InkWell(
       onTap: () async {
         try {
-          var trainData = await fetchTrain(
-            int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), '')),
-            widget.date,
-          );
+
           if (context.mounted) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => TrainSchedulePage(
-                  trainData: trainData,
+
                   type: 'trainNo',
-                  time: widget.date,
+                  time: widget.date,trainNo:trainNo
                 ),
               ),
             );
           }
         } catch (e) {
-          debugPrint('查詢車次詳情失敗: $e');
+          debugPrint(AppLocalizations.of(context)!.text_891);
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -3325,7 +3322,7 @@ class _RoutePageState extends State<RoutePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('出發', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                   Text(AppLocalizations.of(context)!.text_67, style: TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
                     t['depTime'],
                     style: const TextStyle(
@@ -3346,8 +3343,8 @@ class _RoutePageState extends State<RoutePage> {
                   children: [
                     Icon(Icons.directions_railway_rounded, size: 16, color: successGreen),
                     const SizedBox(width: 4),
-                    const Text(
-                      '直達',
+                     Text(
+                      AppLocalizations.of(context)!.text_892,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -3360,7 +3357,7 @@ class _RoutePageState extends State<RoutePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('抵達', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                   Text(AppLocalizations.of(context)!.text_68, style: TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
                     t['arrTime'],
                     style: const TextStyle(
@@ -3580,24 +3577,21 @@ class _RoutePageState extends State<RoutePage> {
 // 新增：車次詳情導航方法
   Future<void> _navigateToTrainDetail(String trainNo) async {
     try {
-      var trainData = await fetchTrain(
-        int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), '')),
-        widget.date,
-      );
+
       if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TrainSchedulePage(
-              trainData: trainData,
+
               type: 'trainNo',
-              time: widget.date,
+              time: widget.date, trainNo: int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''),)
             ),
           ),
         );
       }
     } catch (e) {
-      debugPrint('查詢車次詳情失敗: $e');
+      debugPrint(AppLocalizations.of(context)!.text_891);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3774,7 +3768,7 @@ class _RoutePageState extends State<RoutePage> {
                 ),
                 if (tight)
                   Text(
-                    '轉乘時間較短，請留意',
+                    AppLocalizations.of(context)!.text_893,
                     style: TextStyle(
                       fontSize: 11,
                       color: errorRed,
@@ -3793,7 +3787,7 @@ class _RoutePageState extends State<RoutePage> {
   // 顯示日期的格式
   // =============================
   String _formatDate(DateTime date) {
-    final weekday = ['一', '二', '三', '四', '五', '六', '日'][date.weekday - 1];
+    final weekday = [AppLocalizations.of(context)!.text_306, AppLocalizations.of(context)!.text_307, AppLocalizations.of(context)!.text_308, AppLocalizations.of(context)!.text_309, AppLocalizations.of(context)!.text_310, AppLocalizations.of(context)!.text_311, AppLocalizations.of(context)!.text_312][date.weekday - 1];
     return '${date.year}年${date.month}月${date.day}日 週$weekday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
@@ -3861,9 +3855,9 @@ class _RoutePageState extends State<RoutePage> {
                   children: [
                     const CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
                     const SizedBox(height: 16),
-                    const Text(
-                      '查詢列車資訊中...',
-                      style: TextStyle(
+                    Text(
+                      AppLocalizations.of(context)!.text_894,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: primaryBlue,
@@ -3908,8 +3902,8 @@ class _RoutePageState extends State<RoutePage> {
                       child: const Icon(Icons.error_outline_rounded, size: 40, color: errorRed),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '載入失敗',
+                     Text(
+                      AppLocalizations.of(context)!.text_205,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -3918,7 +3912,7 @@ class _RoutePageState extends State<RoutePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '請檢查網路連線後重試',
+                      AppLocalizations.of(context)!.text_206,
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],
@@ -3951,8 +3945,8 @@ class _RoutePageState extends State<RoutePage> {
                       child: const Icon(Icons.train_outlined, size: 50, color: primaryBlue),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      '無符合條件的列車',
+                     Text(
+                      AppLocalizations.of(context)!.text_207,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -3961,7 +3955,7 @@ class _RoutePageState extends State<RoutePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '請調整篩選條件後重新查詢',
+                      AppLocalizations.of(context)!.text_895,
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                   ],

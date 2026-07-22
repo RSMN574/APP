@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../database/getData.dart';
+import '../../l10n/app_localizations.dart';
 
 class StationDialog {
   // 通知中心主題配色
@@ -40,7 +41,7 @@ class StationDialog {
       stationsList.putIfAbsent(city, () => []).add(stationName);
     }
 
-    String _selectedCity = '臺中市';
+    String _selectedCity = AppLocalizations.of(context)!.text_6;
     String? _selectedStation;
     Map<String, dynamic>? selectedStationData;
 
@@ -109,9 +110,9 @@ class StationDialog {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
-                                    '選擇車站',
-                                    style: TextStyle(
+                                  Text(
+                                    AppLocalizations.of(context)!.text_925,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -120,7 +121,7 @@ class StationDialog {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '請選擇縣市及車站',
+                                    AppLocalizations.of(context)!.text_930,
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.8),
                                       fontSize: 14,
@@ -188,8 +189,8 @@ class StationDialog {
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          const Text(
-                                            '縣市',
+                                           Text(
+                                            AppLocalizations.of(context)!.text_931,
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -304,7 +305,7 @@ class StationDialog {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              '車站',
+                                              AppLocalizations.of(context)!.text_226,
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
@@ -345,7 +346,7 @@ class StationDialog {
                                               ),
                                               const SizedBox(height: 12),
                                               Text(
-                                                '暫無車站資料',
+                                                AppLocalizations.of(context)!.text_932,
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   color: Colors.grey[600],
@@ -417,7 +418,7 @@ class StationDialog {
                                                               ),
                                                               const SizedBox(height: 2),
                                                               Text(
-                                                                _getStationClassName(stationClass),
+                                                                _getStationClassName(context,stationClass),
                                                                 style: TextStyle(
                                                                   fontSize: 11,
                                                                   color: Colors.grey[500],
@@ -495,7 +496,7 @@ class StationDialog {
                                       padding: const EdgeInsets.symmetric(vertical: 14),
                                       child: Center(
                                         child: Text(
-                                          '取消',
+                                          AppLocalizations.of(context)!.text_36,
                                           style: TextStyle(
                                             color: _textSecondary,
                                             fontSize: 15,
@@ -555,7 +556,7 @@ class StationDialog {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              '確認選擇',
+                                              AppLocalizations.of(context)!.text_619,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 15,
@@ -625,22 +626,22 @@ class StationDialog {
   }
 
   // 輔助方法：獲取車站等級名稱
-  static String _getStationClassName(String stationClass) {
+  static String _getStationClassName(context,String stationClass) {
     switch (stationClass) {
       case "0":
-        return '特等站';
+        return AppLocalizations.of(context)!.text_857;
       case "1":
-        return '一等站';
+        return AppLocalizations.of(context)!.text_858;
       case "2":
-        return '二等站';
+        return AppLocalizations.of(context)!.text_859;
       case "3":
-        return '三等站';
+        return AppLocalizations.of(context)!.text_860;
       case "4":
-        return '簡易站';
+        return AppLocalizations.of(context)!.text_861;
       case "5":
-        return '招呼站';
+        return AppLocalizations.of(context)!.text_862;
       default:
-        return '未知等級';
+        return AppLocalizations.of(context)!.text_863;
     }
   }
 }

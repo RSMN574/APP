@@ -6,10 +6,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../Const/regularClass.dart';
+import '../l10n/app_localizations.dart';
 
 class map extends StatefulWidget {
   final Set<Marker>? markers;
   final Set<Polyline>? polylines;
+  final Set<ClusterManager>? clusterManagers;
   final CameraPosition? initialCameraPosition;
   final Function(GoogleMapController)? onMapCreated;
   final Function(CameraPosition)? onCameraMove;
@@ -25,6 +27,7 @@ class map extends StatefulWidget {
     Key? key,
     this.markers,
     this.polylines,
+    this.clusterManagers,
     this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
@@ -169,7 +172,7 @@ class _MapWidgetState extends State<map>
         _hasAnimatedToCurrent = true;
       }
     } catch (e) {
-      debugPrint('無法獲取位置: $e');
+      debugPrint(AppLocalizations.of(context)!.text_923);
     }
   }
 
@@ -223,7 +226,7 @@ class _MapWidgetState extends State<map>
         // 地圖元素
         markers: markers,
         polylines: polylines,
-
+        clusterManagers: widget.clusterManagers ?? const {},
         // 定位功能
         myLocationEnabled: widget.myLocationEnabled,
         myLocationButtonEnabled: widget.myLocationEnabled,

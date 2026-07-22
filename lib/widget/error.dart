@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
+
 class ErrorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -59,7 +61,7 @@ class ErrorPage extends StatelessWidget {
                 ),
               ),
               child: Text(
-                '返回',
+                AppLocalizations.of(context)!.text_915,
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.white,

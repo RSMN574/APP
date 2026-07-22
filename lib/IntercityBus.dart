@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:com.rsmn574.app/pages/busStopInfo.dart';
-import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/bus/busStopInfo.dart';
+import 'package:com.rsmn574.app/pages/bus/bus_time.dart';
 import 'package:com.rsmn574.app/pages/routePlanning.dart';
 import 'package:flutter/material.dart';
-import 'package:com.rsmn574.app/widget/BusList.dart';
+import 'package:com.rsmn574.app/widget/bus/BusList.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
@@ -13,6 +13,8 @@ import 'Const/regularConst.dart';
 import 'database/SQL/favorite_feature.dart';
 import 'database/getData.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
+
+import 'l10n/app_localizations.dart';
 
 
 class IntercityBus extends StatefulWidget {
@@ -26,7 +28,7 @@ class IntercityBus extends StatefulWidget {
 
 class IntercityBusState extends State<IntercityBus> {
   final List<IconData> icons = [Icons.favorite, Icons.favorite, Icons.route, Icons.airport_shuttle];
-  final List<String> items = ["收藏路線", "收藏站牌", "規劃", "接駁車"];
+  late final List<String> items = [AppLocalizations.of(context)!.text_1, AppLocalizations.of(context)!.text_2, AppLocalizations.of(context)!.text_3, AppLocalizations.of(context)!.text_4];
   final List<String> id = ["route", "stop", "routeplan", "shuttleBus"];
   int _current = 0;
   final PageController pageController = PageController();
@@ -34,9 +36,9 @@ class IntercityBusState extends State<IntercityBus> {
   ValueNotifier<List<Map<String, dynamic>>> favoriteRoutes = ValueNotifier([]);
   List busData = [];
 
-  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
+  late ValueNotifier<String> currentCityNotifier = ValueNotifier<String>(AppLocalizations.of(context)!.text_5);
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
-  final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>('路線');
+  late final ValueNotifier<String> _dropdownValueNotifier = ValueNotifier<String>(AppLocalizations.of(context)!.text_15);
   final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
@@ -48,11 +50,11 @@ class IntercityBusState extends State<IntercityBus> {
   final Color _textColor = Colors.black87;
   final Color _greyColor = Colors.grey;
 
-  Future<int> updateCurrent() async {
-    favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
-    favoriteStops.value = await _loadFavorites("FavoritesStop", city: correspondingIDNotifier.value);
-    return 200;
-  }
+  // Future<int> updateCurrent() async {
+  //   favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
+  //   favoriteStops.value = await _loadFavorites("FavoritesStop", city: correspondingIDNotifier.value);
+  //   return 200;
+  // }
 
   @override
   void initState() {
@@ -62,7 +64,7 @@ class IntercityBusState extends State<IntercityBus> {
     _initializeFavorites();
 
     _getData();
-    updateCurrent();
+    // updateCurrent();
   }
 
   @override
@@ -79,11 +81,11 @@ class IntercityBusState extends State<IntercityBus> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
-    favorite_feature db = favorite_feature();
-    final favorites = await db.getFavorites(key, correspondingIDNotifier.value, city);
-    return favorites;
-  }
+  // Future<List<Map<String, dynamic>>> _loadFavorites(String key, {required String city}) async {
+  //   favorite_feature db = favorite_feature();
+  //   final favorites = await db.getFavorites(key, correspondingIDNotifier.value, city);
+  //   return favorites;
+  // }
 
   Future<List> _getData() async {
     busCurrentCity = correspondingIDNotifier.value;
@@ -100,7 +102,7 @@ class IntercityBusState extends State<IntercityBus> {
 
       for (Map route in busData) {
 
-print((route));
+
         final routeName = (route["RouteName"])["Zh_tw"];
         if (routeName.contains(input)) {
           if (input == routeName) {
@@ -157,9 +159,9 @@ print((route));
             ),
           ),
           const SizedBox(width: 10),
-          const Text(
-            "台灣好行資訊",
-            style: TextStyle(
+          Text(
+            AppLocalizations.of(context)!.text_218,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
               color: Colors.black,
@@ -200,15 +202,15 @@ print((route));
             const SizedBox(height: 20),
             _buildMenuOption(
               icon: Icons.confirmation_number_rounded,
-              title: '票價說明',
-              subtitle: '查看公車票價資訊',
+              title: AppLocalizations.of(context)!.text_17,
+              subtitle: AppLocalizations.of(context)!.text_18,
               onTap: _navigateToFareInfo,
             ),
             const SizedBox(height: 12),
             _buildMenuOption(
               icon: Icons.warning_amber_rounded,
-              title: '通阻消息',
-              subtitle: '查看交通中斷資訊',
+              title: AppLocalizations.of(context)!.text_19,
+              subtitle: AppLocalizations.of(context)!.text_20,
               onTap: _navigateToAlertInfo,
             ),
           ],
@@ -300,7 +302,7 @@ print((route));
           appBar: AppBar(
 
             elevation: 0,
-            title: const Text("票價說明"),
+            title: Text(AppLocalizations.of(context)!.text_17),
           ),
           body: _buildFareInfoContent(),
         ),
@@ -335,9 +337,9 @@ print((route));
                 // 標題
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: const Text(
-                    "票價細則",
-                    style: TextStyle(
+                  child: Text(
+                    AppLocalizations.of(context)!.text_21,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1A73E8),
@@ -348,11 +350,11 @@ print((route));
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoText("1. 臺中市民、市民的新住民配偶及臺中就學的外縣市學生，使用綁定市民限定乘車優惠的電子票證可享「10公里免費＋超過10公里車資上限10元」的雙十優惠。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_22),
                     const SizedBox(height: 12),
-                    _buildInfoText("2. 非市民搭乘依里程計費，投現上車應付車資全票20元、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資；另使用電子票證，刷卡上車應付車資全票僅扣15元(享有5元的優惠)、半票11元，超過基本里程再依實際搭乘距離計算下車應付車資。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_23),
                     const SizedBox(height: 12),
-                    _buildInfoText("3. 臺中市委託發行敬老愛心卡先享有雙十乘車優惠，即搭乘距離在10公里內不會扣點，搭乘超過10公里最多扣10點。"),
+                    _buildInfoText(AppLocalizations.of(context)!.text_24),
                     const SizedBox(height: 12),
                     _buildInfoText("4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
                   ],
@@ -385,7 +387,7 @@ print((route));
           appBar: AppBar(
             // backgroundColor: _primaryColor,
             elevation: 0,
-            title: const Text("通阻消息"),
+            title: Text(AppLocalizations.of(context)!.text_19),
           ),
           body: ValueListenableBuilder<String>(
             valueListenable: currentCityNotifier,
@@ -461,7 +463,7 @@ print((route));
           child: const Icon(Icons.warning, color: Color(0xFF1A73E8), size: 20),
         ),
         title: Text(
-          alert['Title'] ?? '無標題',
+          alert['Title'] ?? AppLocalizations.of(context)!.text_25,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -469,7 +471,7 @@ print((route));
           ),
         ),
         subtitle: Text(
-          alert['Description'] ?? '無描述',
+          alert['Description'] ?? AppLocalizations.of(context)!.text_26,
           style: const TextStyle(
             fontSize: 14,
             color: Colors.grey,
@@ -487,7 +489,7 @@ print((route));
           Icon(Icons.info_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            '暫無通阻消息',
+            AppLocalizations.of(context)!.text_27,
             style: TextStyle(color: Colors.grey[600], fontSize: 16),
           ),
         ],
@@ -498,7 +500,7 @@ print((route));
 
   @override
   Widget build(BuildContext context) {
-    updateCurrent();
+    // updateCurrent();
     return Scaffold(
       appBar: _buildAppBar(),
       body: GestureDetector(
@@ -554,8 +556,8 @@ print((route));
                 return    SizedBox(
                   width: 120, // 或者根據需要調整寬度
                   child: CustomDropdown<String>(
-                    items: ['路線', '站牌'],
-                    initialItem:"路線" ,
+                    items: [AppLocalizations.of(context)!.text_15, AppLocalizations.of(context)!.text_29],
+                    initialItem:AppLocalizations.of(context)!.text_15 ,
 
                     onChanged: (value) {
                       _dropdownValueNotifier.value = value!;
@@ -587,12 +589,12 @@ print((route));
                     double bottomInset = MediaQuery.of(context).viewInsets.bottom;
                     double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
 
-                    if (_dropdownValueNotifier.value == "路線") {
+                    if (_dropdownValueNotifier.value == AppLocalizations.of(context)!.text_15) {
                       await _updateSuggestions('route');
                       setState(() {
                         suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
                       });
-                    } else if (_dropdownValueNotifier.value == "站牌") {
+                    } else if (_dropdownValueNotifier.value == AppLocalizations.of(context)!.text_29) {
                       await _updateSuggestions('stop');
                       setState(() {
                         suggestionsHeightNotifier.value = screenHeight - bottomInset - appBarHeight - 200;
@@ -605,7 +607,7 @@ print((route));
                 },
                 controller: busIdController,
                 decoration: InputDecoration(
-                  hintText: '搜尋公車路線或站牌...',
+                  hintText: AppLocalizations.of(context)!.text_30,
                   hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
                   prefixIcon: Icon(Icons.search, color: Colors.grey[700], size: 20),
                   suffixIcon: IconButton(
@@ -682,7 +684,7 @@ print((route));
         onTap: () {
           setState(() {
             _current = index;
-            updateCurrent();
+            // updateCurrent();
           });
           pageController.animateToPage(
             _current,
@@ -772,10 +774,10 @@ print((route));
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         switch (id[index]) {
-          case "route":
-            return _buildFavoriteRoutes();
-          case "stop":
-            return _buildFavoriteStops();
+          // case "route":
+          //   return _buildFavoriteRoutes();
+          // case "stop":
+          //   return _buildFavoriteStops();
           // case "routeplan":
           //   return RoutePlanner();
           default:
@@ -785,47 +787,47 @@ print((route));
     );
   }
 
-  Widget _buildFavoriteRoutes() {
-    return _buildFavoriteList(
-      favoriteRoutes,
-      _buildRouteCard,
-      '收藏路線',
-    );
-  }
+  // Widget _buildFavoriteRoutes() {
+  //   return _buildFavoriteList(
+  //     favoriteRoutes,
+  //     _buildRouteCard,
+  //     AppLocalizations.of(context)!.text_1,
+  //   );
+  // }
+  //
+  // Widget _buildFavoriteStops() {
+  //   return _buildFavoriteList(
+  //     favoriteStops,
+  //     _buildStopCard,
+  //     AppLocalizations.of(context)!.text_2,
+  //   );
+  // }
 
-  Widget _buildFavoriteStops() {
-    return _buildFavoriteList(
-      favoriteStops,
-      _buildStopCard,
-      '收藏站牌',
-    );
-  }
-
-  Widget _buildFavoriteList(
-      ValueNotifier<List<Map<String, dynamic>>> notifier,
-      Widget Function(Map<String, dynamic>) itemBuilder,
-      String emptyMessage,
-      ) {
-    return FutureBuilder<int>(
-      future: updateCurrent(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('載入失敗: ${snapshot.error}'));
-        } else if (!snapshot.hasData || notifier.value.isEmpty) {
-          return _buildEmptyState(emptyMessage);
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: notifier.value.length,
-          separatorBuilder: (context, index) => const Divider(height: 16),
-          itemBuilder: (context, index) => itemBuilder(notifier.value[index]),
-        );
-      },
-    );
-  }
+  // Widget _buildFavoriteList(
+  //     ValueNotifier<List<Map<String, dynamic>>> notifier,
+  //     Widget Function(Map<String, dynamic>) itemBuilder,
+  //     String emptyMessage,
+  //     ) {
+  //   return FutureBuilder<int>(
+  //     future: updateCurrent(),
+  //     builder: (context, snapshot) {
+  //       if (snapshot.connectionState == ConnectionState.waiting) {
+  //         return const Center(child: CircularProgressIndicator());
+  //       } else if (snapshot.hasError) {
+  //         return Center(child: Text('載入失敗: ${snapshot.error}'));
+  //       } else if (!snapshot.hasData || notifier.value.isEmpty) {
+  //         return _buildEmptyState(emptyMessage);
+  //       }
+  //
+  //       return ListView.separated(
+  //         padding: const EdgeInsets.all(16),
+  //         itemCount: notifier.value.length,
+  //         separatorBuilder: (context, index) => const Divider(height: 16),
+  //         itemBuilder: (context, index) => itemBuilder(notifier.value[index]),
+  //       );
+  //     },
+  //   );
+  // }
 
   Widget _buildRouteCard(Map<String, dynamic> route) {
     return _buildInfoCard(
@@ -925,7 +927,7 @@ print((route));
           ),
           const SizedBox(height: 8),
           Text(
-            '快去添加一些喜歡的吧！',
+            AppLocalizations.of(context)!.text_31,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -937,15 +939,15 @@ print((route));
   }
 
   Widget _buildComingSoon() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.build, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
+          const Icon(Icons.build, size: 64, color: Colors.grey),
+          const SizedBox(height: 16),
           Text(
-            '功能開發中',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+            AppLocalizations.of(context)!.text_32,
+            style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
         ],
       ),
@@ -977,7 +979,7 @@ print((route));
             ),
             child: suggestions.value.isNotEmpty
                 ? _buildSuggestionsList()
-                : const Center(child: Text("沒有找到結果", style: TextStyle(color: Colors.grey))),
+                : Center(child: Text(AppLocalizations.of(context)!.text_33, style: const TextStyle(color: Colors.grey))),
           ),
         );
       },
@@ -985,7 +987,7 @@ print((route));
   }
 
   Widget _buildSuggestionsList() {
-    if (_dropdownValueNotifier.value == "路線") {
+    if (_dropdownValueNotifier.value == AppLocalizations.of(context)!.text_15) {
       return FutureBuilder(
         future: _updateSuggestions('route'),
         builder: (context, snapshot) {
@@ -1015,22 +1017,22 @@ print((route));
   void _navigateToRouteDetails(Map<String, dynamic> route) async {
 
     List baseData = await mysqlSelect("SELECT * FROM Bus.Bus_TaiwanTrip_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BusTime(
-          routeName: route["routeName"],
-          departureStopName: route["DepartureStopNameZh"],
-          destinationStopName: route["DestinationStopNameZh"],
-          operators: "",
-          routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
-          city: correspondingIDNotifier.value,
-          routeID: route["routeID"],
-            hasSubRoutes:route["HasSubRoutes"]
-        ),
-      ),
-    );
+    //
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => BusTime(
+    //       routeName: route["routeName"],
+    //       departureStopName: route["DepartureStopNameZh"],
+    //       destinationStopName: route["DestinationStopNameZh"],
+    //       operators: "",
+    //       routeMapImageUrl: baseData[0]["RouteMapImageUrl"],
+    //       city: correspondingIDNotifier.value,
+    //       routeID: route["routeID"],
+    //         hasSubRoutes:route["HasSubRoutes"]
+    //     ),
+    //   ),
+    // );
   }
 
   void _navigateToStopDetails(Map<String, dynamic> stop) {
@@ -1049,9 +1051,9 @@ print((route));
     QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
-      text: '確定取消收藏嗎',
-      confirmBtnText: '確認',
-      cancelBtnText: '取消',
+      text: AppLocalizations.of(context)!.text_34,
+      confirmBtnText: AppLocalizations.of(context)!.text_35,
+      cancelBtnText: AppLocalizations.of(context)!.text_36,
       confirmBtnColor: Colors.green,
       onCancelBtnTap: () => Navigator.pop(context),
       onConfirmBtnTap: () {
@@ -1063,12 +1065,12 @@ print((route));
 
   Future<void> _removeFavorite(BuildContext context, String item, String SharedPreferencesList) async {
     favorite_feature db = favorite_feature();
-    if (SharedPreferencesList == "FavoritesRoute") {
-      await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
-    } else if (SharedPreferencesList == "FavoritesStop") {
-      await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
-    }
-    setState(() {});
+    // if (SharedPreferencesList == "FavoritesRoute") {
+    //   await db.removeFavorite(routeName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
+    // } else if (SharedPreferencesList == "FavoritesStop") {
+    //   await db.removeFavorite(stopName: item, city: correspondingIDNotifier.value, table: SharedPreferencesList);
+    // }
+    // setState(() {});
   }
 
   Widget BusStopList(List suggestions) {

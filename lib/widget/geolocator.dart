@@ -6,6 +6,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 import '../Const/regularClass.dart';
 import '../database/token_manager.dart';
+import '../l10n/app_localizations.dart';
 import '../utils/convert.dart';
 
 Future<Map<String, String>?> getDistrictFromTDX({
@@ -46,15 +47,15 @@ Future<Map<String, String>?> getDistrictFromTDX({
 
 Future<String?> getLocation(BuildContext context) async {
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-  if (!serviceEnabled) return '定位服務未啟用';
+  if (!serviceEnabled) return AppLocalizations.of(context)!.text_916;
 
   LocationPermission permission = await Geolocator.checkPermission();
   if (permission == LocationPermission.denied) {
     permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied) return '定位权限被拒绝';
+    if (permission == LocationPermission.denied) return AppLocalizations.of(context)!.text_917;
   }
   if (permission == LocationPermission.deniedForever) {
-    return '定位权限被永久拒绝';
+    return AppLocalizations.of(context)!.text_918;
   }
 
   Position pos = await Geolocator.getCurrentPosition(
@@ -69,7 +70,7 @@ Future<String?> getLocation(BuildContext context) async {
     longitude: pos.longitude,
   );
 
-  if (districtInfo == null) return '無法取得城市';
+  if (districtInfo == null) return AppLocalizations.of(context)!.text_919;
 
   String city = cityNameConverter(districtInfo["city"] ?? "");
 

@@ -143,6 +143,14 @@ class AppThemes {
        elevation: WidgetStateProperty.all(8),
       ),
      ),
+  cardTheme: CardThemeData(
+   color: Colors.white, // 套用你的 0xFF1C1C1E
+   elevation: 0,                   // iOS 風格通常不使用陰影，靠顏色區分層次
+   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+   shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12), // iOS 偏好較大的圓角
+   ),
+  ),
 
  );
 

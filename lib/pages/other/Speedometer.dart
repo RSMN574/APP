@@ -5,6 +5,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class Speedometer extends StatefulWidget {
   const Speedometer({Key? key}) : super(key: key);
 
@@ -508,7 +510,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                             Expanded(
                               child: _DataCard(
                                 icon: Icons.rocket_launch,
-                                title: '最高速度',
+                                title: AppLocalizations.of(context)!.text_472,
                                 value: _maxSpeed,
                                 unit: _selectedUnit,
                                 decimalPlaces: _decimalPlaces,
@@ -520,7 +522,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                             Expanded(
                               child: _DataCard(
                                 icon: Icons.trending_up,
-                                title: '平均速度',
+                                title: AppLocalizations.of(context)!.text_473,
                                 value: _averageSpeed,
                                 unit: _selectedUnit,
                                 decimalPlaces: _decimalPlaces,
@@ -537,7 +539,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                             Expanded(
                               child: _DataCard(
                                 icon: Icons.alt_route,
-                                title: '累計里程',
+                                title: AppLocalizations.of(context)!.text_474,
                                 value: _distance,
                                 unit: _selectedUnit,
                                 decimalPlaces: ValueNotifier(2),
@@ -554,7 +556,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                                   final duration = now.difference(startTime);
                                   return _DataCard(
                                     icon: Icons.timer,
-                                    title: '行程時間',
+                                    title: AppLocalizations.of(context)!.text_475,
                                     value: ValueNotifier(duration.inMinutes / 60.0), // 小時
                                     unit: ValueNotifier(SpeedUnit.kmh), // 不使用
                                     decimalPlaces: ValueNotifier(1),
@@ -575,7 +577,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                             Expanded(
                               child: _DataCard(
                                 icon: Icons.height,
-                                title: '海拔',
+                                title: AppLocalizations.of(context)!.text_476,
                                 value: _altitude,
                                 unit: ValueNotifier(SpeedUnit.kmh),
                                 decimalPlaces: ValueNotifier(0),
@@ -587,7 +589,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                             Expanded(
                               child: _DataCard(
                                 icon: Icons.gps_fixed,
-                                title: '定位精度',
+                                title: AppLocalizations.of(context)!.text_477,
                                 value: _accuracy,
                                 unit: ValueNotifier(SpeedUnit.kmh),
                                 decimalPlaces: ValueNotifier(1),
@@ -612,7 +614,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                         // 重置按鈕
                         _ControlButton(
                           icon: Icons.refresh,
-                          label: '重置',
+                          label: AppLocalizations.of(context)!.text_478,
                           color: Colors.blue,
                           onPressed: () {
                             _showResetDialog();
@@ -622,7 +624,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                         // 校準按鈕
                         _ControlButton(
                           icon: Icons.tune,
-                          label: '校準',
+                          label: AppLocalizations.of(context)!.text_479,
                           color: Colors.amber,
                           onPressed: () {
                             _showCalibrationDialog();
@@ -632,7 +634,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                         // 記錄按鈕
                         _ControlButton(
                           icon: Icons.flag,
-                          label: '記錄',
+                          label: AppLocalizations.of(context)!.text_480,
                           color: Colors.green,
                           onPressed: () {
                             if (_lastPosition != null) {
@@ -648,7 +650,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                               ));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('速度記錄已保存'),
+                                  content: Text(AppLocalizations.of(context)!.text_481),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -727,14 +729,14 @@ class _SpeedometerPageState extends State<Speedometer> {
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: Text('設置', style: TextStyle(color: Colors.white)),
+            title: Text(AppLocalizations.of(context)!.text_482, style: TextStyle(color: Colors.white)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 單位選擇
                   _SettingsItem(
-                    title: '速度單位',
+                    title: AppLocalizations.of(context)!.text_483,
                     child: DropdownButton<SpeedUnit>(
                       value: _selectedUnit.value,
                       dropdownColor: Colors.grey[900],
@@ -758,7 +760,7 @@ class _SpeedometerPageState extends State<Speedometer> {
 
                   // 小數位數
                   _SettingsItem(
-                    title: '小數位數',
+                    title: AppLocalizations.of(context)!.text_484,
                     child: DropdownButton<int>(
                       value: _decimalPlaces.value,
                       dropdownColor: Colors.grey[900],
@@ -802,7 +804,7 @@ class _SpeedometerPageState extends State<Speedometer> {
 
                   // 主題選擇
                   _SettingsItem(
-                    title: '主題顏色',
+                    title: AppLocalizations.of(context)!.text_485,
                     child: DropdownButton<ColorTheme>(
                       value: _selectedTheme.value,
                       dropdownColor: Colors.grey[900],
@@ -839,7 +841,7 @@ class _SpeedometerPageState extends State<Speedometer> {
 
                   // 顯示選項
                   _SettingsItem(
-                    title: '顯示選項',
+                    title: AppLocalizations.of(context)!.text_486,
                     child: Column(
                       children: [
                         Row(
@@ -853,7 +855,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text('數位顯示', style: TextStyle(color: Colors.white)),
+                            Text(AppLocalizations.of(context)!.text_487, style: TextStyle(color: Colors.white)),
                           ],
                         ),
                         Row(
@@ -867,7 +869,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text('指針顯示', style: TextStyle(color: Colors.white)),
+                            Text(AppLocalizations.of(context)!.text_488, style: TextStyle(color: Colors.white)),
                           ],
                         ),
                         Row(
@@ -913,7 +915,7 @@ class _SpeedometerPageState extends State<Speedometer> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('關閉', style: TextStyle(color: Colors.white)),
+                child: Text(AppLocalizations.of(context)!.text_44, style: TextStyle(color: Colors.white)),
               ),
             ],
           );
@@ -931,7 +933,7 @@ class _SpeedometerPageState extends State<Speedometer> {
           children: [
             Icon(Icons.history, color: Colors.white),
             SizedBox(width: 10),
-            Text('速度記錄', style: TextStyle(color: Colors.white)),
+            Text(AppLocalizations.of(context)!.text_489, style: TextStyle(color: Colors.white)),
           ],
         ),
         content: Container(
@@ -940,7 +942,7 @@ class _SpeedometerPageState extends State<Speedometer> {
           child: _tripHistory.isEmpty
               ? Center(
             child: Text(
-              '無記錄',
+              AppLocalizations.of(context)!.text_490,
               style: TextStyle(color: Colors.white70),
             ),
           )
@@ -1014,11 +1016,11 @@ class _SpeedometerPageState extends State<Speedometer> {
               _saveTripHistory();
               Navigator.pop(context);
             },
-            child: Text('清除記錄', style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.text_491, style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('關閉', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.text_44, style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1030,15 +1032,15 @@ class _SpeedometerPageState extends State<Speedometer> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text('重置確認', style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.of(context)!.text_492, style: TextStyle(color: Colors.white)),
         content: Text(
-          '確定要重置所有行程數據嗎？\n（最高速度記錄將保留）',
+          AppLocalizations.of(context)!.text_493,
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('取消', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.white)),
           ),
           TextButton(
             onPressed: () {
@@ -1046,12 +1048,12 @@ class _SpeedometerPageState extends State<Speedometer> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('行程數據已重置'),
+                  content: Text(AppLocalizations.of(context)!.text_494),
                   backgroundColor: Colors.green,
                 ),
               );
             },
-            child: Text('重置', style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.text_478, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1066,12 +1068,12 @@ class _SpeedometerPageState extends State<Speedometer> {
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: Text('速度計校準', style: TextStyle(color: Colors.white)),
+            title: Text(AppLocalizations.of(context)!.text_495, style: TextStyle(color: Colors.white)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '輸入參考速度以校準儀表：',
+                  AppLocalizations.of(context)!.text_496,
                   style: TextStyle(color: Colors.white70),
                 ),
                 SizedBox(height: 20),
@@ -1100,7 +1102,7 @@ class _SpeedometerPageState extends State<Speedometer> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('取消', style: TextStyle(color: Colors.white)),
+                child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.white)),
               ),
               TextButton(
                 onPressed: () {
@@ -1109,7 +1111,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text('校準', style: TextStyle(color: _getThemeColor(_selectedTheme.value))),
+                child: Text(AppLocalizations.of(context)!.text_479, style: TextStyle(color: _getThemeColor(_selectedTheme.value))),
               ),
             ],
           );

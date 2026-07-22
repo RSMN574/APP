@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart'; // 建議安裝此套件處理外部連結
 
+
+import '../../Const/regularClass.dart';
 import '../../database/SQL/schedule.dart';
-import '../../main.dart';
+import '../../l10n/app_localizations.dart';
+
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -16,9 +20,9 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final ValueNotifier<bool> _notificationsEnabled = ValueNotifier(true);
   final ValueNotifier<bool> _isDarkTheme = ValueNotifier(false);
-  String _selectedLanguage = '繁體中文';
+  late String _selectedLanguage = AppLocalizations.of(context)!.text_72;
   String _appVersion = '1.0.0';
-  String _appName = '交通助手';
+  late String _appName = AppLocalizations.of(context)!.text_445;
   String _packageName = '';
   String _buildNumber = '';
 
@@ -34,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _notificationsEnabled.value = prefs.getBool('notifications') ?? true;
     _isDarkTheme.value = prefs.getBool('darkTheme') ?? false;
     setState(() {
-      _selectedLanguage = prefs.getString('language') ?? '繁體中文';
+      _selectedLanguage = prefs.getString('language') ?? AppLocalizations.of(context)!.text_72;
     });
   }
 
@@ -69,21 +73,21 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
 
       appBar: AppBar(
-        title: const Text('設定', style: TextStyle(fontWeight: FontWeight.bold)),
+        title:  Text(AppLocalizations.of(context)!.text_446, style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
 
       ),
       body: ListView(
         children: [
-          _buildSectionTitle('系統設定'),
+          _buildSectionTitle(AppLocalizations.of(context)!.text_447),
           _buildSettingCard([
             ValueListenableBuilder<bool>(
               valueListenable: _notificationsEnabled,
               builder: (context, value, child) {
                 return SwitchListTile(
                   secondary: const Icon(Icons.notifications_active_outlined, color: Colors.blue),
-                  title: const Text('啟用即時通知'),
-                  subtitle: const Text('接收公車到站與天氣警報'),
+                  title:  Text(AppLocalizations.of(context)!.text_448),
+                  subtitle:  Text(AppLocalizations.of(context)!.text_449),
                   value: value,
                   onChanged: (bool newValue) {
                     _notificationsEnabled.value = newValue;
@@ -97,7 +101,7 @@ class _SettingsPageState extends State<SettingsPage> {
               builder: (context, value, child) {
                 return SwitchListTile(
                   secondary: const Icon(Icons.dark_mode_outlined, color: Colors.orange),
-                  title: const Text('深色模式'),
+                  title:  Text(AppLocalizations.of(context)!.text_450),
                   value: value,
                   onChanged: (bool newValue) {
                     _isDarkTheme.value = newValue;
@@ -109,47 +113,47 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.language, color: Colors.green),
-              title: const Text('語言設定'),
+              title:  Text(AppLocalizations.of(context)!.text_451),
               subtitle: Text(_selectedLanguage),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showLanguageDialog(),
             ),
           ]),
 
-          _buildSectionTitle('資料管理'),
+          _buildSectionTitle(AppLocalizations.of(context)!.text_452),
           _buildSettingCard([
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.teal),
-              title: const Text('資料來源說明'),
+              title:  Text(AppLocalizations.of(context)!.text_453),
               onTap: () => _showInfoDialog(context),
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
-              title: const Text('清除數據庫'),
-              subtitle: const Text('刪除所有儲存的常用行程與快取'),
+              title:  Text(AppLocalizations.of(context)!.text_454),
+              subtitle:  Text(AppLocalizations.of(context)!.text_455),
               onTap: () => _showClearDialog(context),
             ),
           ]),
 
-          _buildSectionTitle('支援與關於'),
+          _buildSectionTitle(AppLocalizations.of(context)!.text_456),
           _buildSettingCard([
             ListTile(
               leading: const Icon(Icons.star_border_rounded, color: Colors.amber),
-              title: const Text('評分我們'),
+              title:  Text(AppLocalizations.of(context)!.text_457),
               onTap: () {
                 // TODO: 實作 Store 跳轉
               },
             ),
             ListTile(
               leading: const Icon(Icons.alternate_email, color: Colors.blueGrey),
-              title: const Text('問題回饋'),
+              title:  Text(AppLocalizations.of(context)!.text_458),
               onTap: () {
                 // TODO: 實作郵件跳轉
               },
             ),
             ListTile(
               leading: const Icon(Icons.help_outline, color: Colors.indigo),
-              title: const Text('關於我們'),
+              title:  Text(AppLocalizations.of(context)!.text_459),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigator.push(
@@ -166,7 +170,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),   ListTile(
               leading: const Icon(Icons.settings_accessibility_rounded, color: Colors.indigo),
-              title: const Text('開發者設定'),
+              title:  Text(AppLocalizations.of(context)!.text_460),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigator.push(
@@ -225,49 +229,34 @@ class _SettingsPageState extends State<SettingsPage> {
   // --- Dialogs 保持原邏輯但稍微美化 ---
 
   void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
+        // ✅ 使用 watch 監聽變化，對話框內會自動更新
+        final appProvider = context.watch<AppProvider>();
+
         return AlertDialog(
-          title: const Text('選擇語言'),
+          title: Text(l10n.text_461),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               RadioListTile<String>(
-                title: const Text('繁體中文'),
+                title: Text(l10n.text_72),
                 value: 'zh',
-                groupValue: _selectedLanguage,
-                onChanged: (value) async {
-                  localeNotifier.value = const Locale('zh');
 
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-
-                  await _savePreference(
-                    'language',
-                    value!,
-                  );
-
+                onChanged: (value) {
+                  context.read<AppProvider>().setLanguage(value!);
                   Navigator.pop(context);
                 },
               ),
               RadioListTile<String>(
                 title: const Text('English'),
                 value: 'en',
-                groupValue: _selectedLanguage,
-                onChanged: (value) async {
-                  localeNotifier.value = const Locale('en');
 
-                  setState(() {
-                    _selectedLanguage = value!;
-                  });
-
-                  await _savePreference(
-                    'language',
-                    value!,
-                  );
-
+                onChanged: (value) {
+                  context.read<AppProvider>().setLanguage(value!);
                   Navigator.pop(context);
                 },
               ),
@@ -282,18 +271,18 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text('確認清除？'),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context)!.text_462),
           ],
         ),
-        content: const Text('這將刪除所有儲存的資料，且無法復原。是否繼續？'),
+        content:  Text(AppLocalizations.of(context)!.text_463),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消', style: TextStyle(color: Colors.grey)),
+            child:  Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
@@ -301,11 +290,11 @@ class _SettingsPageState extends State<SettingsPage> {
               await ScheduleService.instance.clearDatabase();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('✅ 數據庫已清除'), behavior: SnackBarBehavior.floating),
+                   SnackBar(content: Text(AppLocalizations.of(context)!.text_464), behavior: SnackBarBehavior.floating),
                 );
               }
             },
-            child: const Text('確定清除', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child:  Text(AppLocalizations.of(context)!.text_465, style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -317,24 +306,24 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('資料來源'),
-        content: const Column(
+        title:  Text(AppLocalizations.of(context)!.text_466),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('本應用的數據來源於以下平台：'),
-            SizedBox(height: 12),
-            Text('• TDX 交通部運輸資料流通服務平臺', style: TextStyle(fontWeight: FontWeight.w500)),
-            Text('• CWA 中央氣象署開放資料平臺', style: TextStyle(fontWeight: FontWeight.w500)),
-            Text('• Google Maps API', style: TextStyle(fontWeight: FontWeight.w500)),
-            SizedBox(height: 12),
-            Text('所有即時資訊以各平臺官方發佈為準。', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(AppLocalizations.of(context)!.text_467),
+            const SizedBox(height: 12),
+             Text(AppLocalizations.of(context)!.text_468, style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(AppLocalizations.of(context)!.text_469, style: const TextStyle(fontWeight: FontWeight.w500)),
+            const Text('• Google Maps API', style: TextStyle(fontWeight: FontWeight.w500)),
+            const SizedBox(height: 12),
+             Text(AppLocalizations.of(context)!.text_470, style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('確定'),
+            child:  Text(AppLocalizations.of(context)!.text_471),
           ),
         ],
       ),

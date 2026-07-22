@@ -19,7 +19,7 @@ class ScheduleModel {
   final Map<String, dynamic>? other;
 
   ScheduleModel({
-    this.id,
+     this.id,
     required this.type,
     required this.route,
      this.startingStopName,
@@ -228,34 +228,17 @@ class ScheduleService {
     required ScheduleModel model,
   }) async {
     final db = await database;
-    final whereClauses = <String>['type = ?', 'Route = ?', 'StartingStopName = ?', 'FinalStopName = ?'];
-    final args = [model.type, model.route, model.startingStopName, model.finalStopName];
-    if (model.userStartingStopName != null) {
-      whereClauses.add('UserStartingStopName = ?');
 
-      if (model.userStartingStopName != null) {
-        args.add(model.userStartingStopName!);
-      }
-    }
-    if (model.userDestinationStopName != null) {
-      whereClauses.add('UserDestinationStopName = ?');
-
-      if (model.userDestinationStopName != null) {
-        args.add(model.userDestinationStopName!);
-      }
-    }
-    if (model.city != null) {
-      whereClauses.add('city = ?');
-
-      if (model.city != null) {
-        args.add(model.city!);
-      }
-    }
     final count = await db.delete(
       _tableName,
-      where: whereClauses.join(' AND '),
-      whereArgs: args,
+      where: 'id = ? AND type = ? AND Route = ?',
+      whereArgs: [
+        model.id,
+        model.type,
+        model.route,
+      ],
     );
+
     return count > 0 ? 100 : 200;
   }
 

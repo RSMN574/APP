@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:com.rsmn574.app/Const/regularConst.dart';
 
-import '../database/getData.dart';
-import '../database/shared_perferences.dart';
-import '../pages/bus_time.dart';
+import '../../database/getData.dart';
+import '../../database/shared_perferences.dart';
+import '../../l10n/app_localizations.dart';
+import '../../pages/bus/bus_time.dart';
 
 class Buslist extends StatefulWidget {
   final List suggestions;
@@ -36,6 +37,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return widget.suggestions.isEmpty
         ? _buildEmptyState()
         : ListView.separated(
@@ -75,7 +77,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
             ),
             const SizedBox(height: 16),
             Text(
-              '找不到此公車路線',
+              AppLocalizations.of(context)!.text_913,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -84,7 +86,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
             ),
             const SizedBox(height: 8),
             Text(
-              '請嘗試其他搜尋關鍵字',
+              AppLocalizations.of(context)!.text_914,
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
@@ -257,7 +259,7 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
           operators: route.operatorName,
           routeMapImageUrl: route.routeMapUrl,
           city: route.routeCity ?? 'InterCity',
-          routeID: route.routeId,  hasSubRoutes:route.hasSubRoute
+          routeID: route.routeId,  hasSubRoutes:route.hasSubRoute,data:route
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);

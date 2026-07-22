@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:ui';
+
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 
-import '../database/getData.dart';
+
 
 // 初始化通知
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -50,10 +50,14 @@ Future<dynamic> fetchBusTimeByTask(routeName,routeID, city,stopID) async {
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
     // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
 
-    print('JSON fetched successfully: $jsonData');
+    if (kDebugMode) {
+      print('JSON fetched successfully: $jsonData');
+    }
     return jsonData;
   } catch (e) {
-    print('Error occurred: $e');
+    if (kDebugMode) {
+      print('Error occurred: $e');
+    }
   }
 }
 Future<void> backgroundTask() async {

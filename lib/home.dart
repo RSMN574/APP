@@ -21,10 +21,13 @@ import 'database/getData.dart';
 import 'database/getWeather.dart';
 import 'firebase/placeAPI.dart';
 
+import 'l10n/app_localizations.dart';
 import 'models/WeatherData.dart';
 import 'widget/transportGrid.dart';
 
-
+final ClusterManager bikeCluster = ClusterManager(
+  clusterManagerId: const ClusterManagerId("bike"),
+);
 ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 
 class Home extends StatefulWidget {
@@ -89,7 +92,7 @@ class _HomeState extends State<Home>
         ),
       ));
     } catch (e) {
-      print('无法获取当前位置: $e');
+      print(AppLocalizations.of(context)!.text_129);
     }
   }
 
@@ -134,7 +137,9 @@ class _HomeState extends State<Home>
                     _mapController = controller;
                   },
                   // onCameraMove: (CameraPosition position) {},
-                  onCameraIdle: () {},
+                  onCameraIdle: () {}, clusterManagers: {
+                  bikeCluster,
+                },
                 ),
               ),
             ),
@@ -176,6 +181,7 @@ class _HomeState extends State<Home>
         final stationName = json.decode(station["StationName"])["Zh_tw"];
 
         final marker = Marker(
+            clusterManagerId: bikeCluster.clusterManagerId,
           markerId: MarkerId(stationId),
           icon: customIcon,
           position: LatLng(lat, lon),
@@ -249,7 +255,7 @@ class _HomeState extends State<Home>
                     TransportGrid(onClick: _handleClick),
                     const ImgSwiper(),
                     // 插入天氣卡片
-                    WeatherAlertCard(cityName: '臺中市',),
+                    WeatherAlertCard(cityName: AppLocalizations.of(context)!.text_6,),
 
                   ],
                 ),
@@ -325,7 +331,7 @@ class _HomeState extends State<Home>
         ],
       ),
       child: _selectedStation == null
-          // ? _buildPlaceholder('請選擇站點', Icons.location_off_outlined)
+          // ? _buildPlaceholder(AppLocalizations.of(context)!.text_130, Icons.location_off_outlined)
       ?BikeDefaultContent(onStationSelected:_updateSelectedStation )
           : FutureBuilder<Map<String, dynamic>?>(
         future: _bikeAvailabilityFuture,
@@ -336,7 +342,7 @@ class _HomeState extends State<Home>
 
           if (snapshot.hasError || !snapshot.hasData) {
             return _buildPlaceholder(
-              snapshot.hasError ? '資料載入失敗' : '暫無可用資料',
+              snapshot.hasError ? AppLocalizations.of(context)!.text_131 : AppLocalizations.of(context)!.text_132,
               snapshot.hasError
                   ? Icons.error_outline
                   : Icons.info_outline,
@@ -369,9 +375,9 @@ class _HomeState extends State<Home>
           ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            '載入中...',
-            style: TextStyle(color: Colors.grey),
+          Text(
+            AppLocalizations.of(context)!.text_133,
+            style: const TextStyle(color: Colors.grey),
           ),
         ],
       ),
@@ -473,7 +479,7 @@ class _HomeState extends State<Home>
               context,
               icon: Icons.pedal_bike,
               color: Colors.green[600]!,
-              title: '可租借',
+              title: AppLocalizations.of(context)!.text_134,
               value: rentBikes,
               widthFactor: 0.5,
             ),
@@ -482,7 +488,7 @@ class _HomeState extends State<Home>
               context,
               icon: Icons.local_parking,
               color: Colors.blue[600]!,
-              title: '可歸還',
+              title: AppLocalizations.of(context)!.text_135,
               value: returnSpots,
               widthFactor: 0.5,
             ),
@@ -508,7 +514,7 @@ class _HomeState extends State<Home>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '車輛類型',
+                AppLocalizations.of(context)!.text_136,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -596,7 +602,7 @@ class _HomeState extends State<Home>
         _buildTypeChip(
           context,
           icon: Icons.pedal_bike,
-          label: '普通車',
+          label: AppLocalizations.of(context)!.text_137,
           value: general,
           color: Colors.grey[700]!,
         ),
@@ -604,7 +610,7 @@ class _HomeState extends State<Home>
         _buildTypeChip(
           context,
           icon: Icons.electric_bike,
-          label: '電輔車',
+          label: AppLocalizations.of(context)!.text_138,
           value: electric,
           color: Colors.blue[600]!,
         ),
@@ -716,7 +722,7 @@ class _HomeState extends State<Home>
                 setState(() {}); // 觸發UI更新
               },
               decoration: InputDecoration(
-                hintText: '搜尋站點名稱或地址',
+                hintText: AppLocalizations.of(context)!.text_139,
                 hintStyle: TextStyle(
                   color: Colors.grey[500],
                   fontSize: 16,
@@ -961,7 +967,7 @@ class BikeProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       // 處理錯誤
-      print('加載站點失敗: $e');
+      // print(AppLocalizations.of(context)!.text_141);
     }
   }
 
@@ -1153,9 +1159,9 @@ class _BikeState extends State<BikeDefaultContent> {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  const Text(
-                    '最近搜尋',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.text_142,
+                    style: const TextStyle(
                       fontSize: 13, // 縮小字體
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
@@ -1270,7 +1276,7 @@ class _BikeState extends State<BikeDefaultContent> {
                       setState(() {});
                     },
                     decoration: InputDecoration(
-                      hintText: '搜尋站點...',
+                      hintText: AppLocalizations.of(context)!.text_143,
                       hintStyle: TextStyle(
                         color: Colors.grey[500],
                         fontSize: 14, // 縮小字體

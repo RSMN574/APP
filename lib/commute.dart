@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:com.rsmn574.app/pages/HSR/HSRSchedulePage.dart';
-import 'package:com.rsmn574.app/pages/bus_time.dart';
+import 'package:com.rsmn574.app/pages/bus/bus_time.dart';
 import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
@@ -12,6 +12,8 @@ import 'database/HSR/getHSR.dart';
 import 'database/Train/getTrain.dart';
 import 'database/getData.dart';
 import 'database/SQL/schedule.dart';
+import 'l10n/app_localizations.dart';
+import 'models/bus.dart';
 // 定義品牌色
  const Color hsrOrange = Color(0xFFF15A24);
  const Color traBlue = Color(0xFF003D74);
@@ -59,7 +61,7 @@ class _CommuteState extends State<Commute> {
     // 4. 逐筆設定提醒
 
     for (final item in todayItems) {
-      print(item);
+
       final type = item['type'] as String;
       if (type == 'train') {
         final routeName = item['Route'].toString();
@@ -160,8 +162,8 @@ class _CommuteState extends State<Commute> {
             Icon(Icons.event_note,
                 size: 80, color: Colors.grey[400]), // 行程 Icon
             const SizedBox(height: 16),
-            const Text(
-              "還沒有規劃的行程",
+             Text(
+              AppLocalizations.of(context)!.text_37,
               style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -169,7 +171,7 @@ class _CommuteState extends State<Commute> {
             ),
             const SizedBox(height: 8),
             Text(
-              "點擊下方按鈕來新增你的第一個行程吧！",
+              AppLocalizations.of(context)!.text_38,
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -179,7 +181,7 @@ class _CommuteState extends State<Commute> {
                 // TODO: 這裡加入導向新增行程的邏輯
               },
               icon: const Icon(Icons.add),
-              label: const Text("新增行程"),
+              label:  Text(AppLocalizations.of(context)!.text_39),
               style: ElevatedButton.styleFrom(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -238,8 +240,8 @@ class _CommuteState extends State<Commute> {
                         child: child,
                       );
                     },
-                    child: const Text(
-                      "行程選項",
+                    child:  Text(
+                      AppLocalizations.of(context)!.text_40,
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -265,14 +267,14 @@ class _CommuteState extends State<Commute> {
                     child: Column(
                       children: [
                         _buildDialogOption(context, Icons.info_outline_rounded,
-                            "查看行程資訊", "info", data),
+                            AppLocalizations.of(context)!.text_41, "info", data),
                         const Divider(
                             height: 1,
                             thickness: 0.5,
                             indent: 16,
                             endIndent: 16),
                         _buildDialogOption(
-                            context, Icons.edit_outlined, "編輯行程", "edit"),
+                            context, Icons.edit_outlined, AppLocalizations.of(context)!.text_42, "edit"),
                         const Divider(
                             height: 1,
                             thickness: 0.5,
@@ -281,7 +283,7 @@ class _CommuteState extends State<Commute> {
                         _buildDialogOption(
                             context,
                             Icons.delete_outline_rounded,
-                            "移除行程",
+                            AppLocalizations.of(context)!.text_43,
                             "remove",
                             data),
                       ],
@@ -314,8 +316,8 @@ class _CommuteState extends State<Commute> {
                           ),
                           elevation: 2,
                         ),
-                        child: const Text(
-                          '關閉',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_44,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -342,33 +344,30 @@ class _CommuteState extends State<Commute> {
         // 处理对话框选项点击事件
         if (id == "remove") {
           final schedule = ScheduleModel(
-            city: other?['type'] == "train" ? '' : (other?['city'] ?? ''),
+
             type: other?['type'],
-            userStartingStopName: other?['UserStartingStopName'],
-            userDestinationStopName: other?['UserDestinationStopName'],
-            startingStopName: other?['StartingStopName'],
-            finalStopName: other?['FinalStopName'],
+          id: other?['id'],
             route: other?['Route'],
           );
 
 // 调用 updateSchedule 来更新现有的排程
-
-
+print(other?['id']);
+          print(other?['type']);print(other?['Route']);
           final result = await ScheduleService.instance.removeSchedule(model:schedule);
 
           if (result == -1) {
             // 如果已经存在相同的记录，提示用户
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('行程錯誤！')));
+                .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.text_45)));
           } else if (result == 100) {
             // 成功添加行程，提示用户
             fetchScheduleData();
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('行程刪除成功！')));
+                .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.text_46)));
           } else {
             // 添加行程失败，提示用户
             ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('行程刪除失败。')));
+                .showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.text_47)));
           }
 
           // 1. 呼叫 removeReminder 刪除該筆提醒
@@ -420,8 +419,8 @@ class _CommuteState extends State<Commute> {
                               child: child,
                             );
                           },
-                          child: const Text(
-                            "路線資訊",
+                          child:  Text(
+                            AppLocalizations.of(context)!.text_48,
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -448,15 +447,15 @@ class _CommuteState extends State<Commute> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               _buildInfoRow(
-                                  '路線起點', other?['StartingStopName'] ?? ''),
+                                  AppLocalizations.of(context)!.text_49, other?['StartingStopName'] ?? ''),
                               const SizedBox(height: 12),
                               _buildInfoRow(
-                                  '路線終點', other?['FinalStopName'] ?? ''),
+                                  AppLocalizations.of(context)!.text_50, other?['FinalStopName'] ?? ''),
                               const SizedBox(height: 12),
-                              _buildInfoRow('用戶上車站',
+                              _buildInfoRow(AppLocalizations.of(context)!.text_51,
                                   other?['UserStartingStopName'] ?? ''),
                               const SizedBox(height: 12),
-                              _buildInfoRow('用戶下車站',
+                              _buildInfoRow(AppLocalizations.of(context)!.text_52,
                                   other?['UserDestinationStopName'] ?? ''),
                             ],
                           ),
@@ -489,8 +488,8 @@ class _CommuteState extends State<Commute> {
                                 ),
                                 elevation: 2,
                               ),
-                              child: const Text(
-                                '關閉',
+                              child:  Text(
+                                AppLocalizations.of(context)!.text_44,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -571,19 +570,18 @@ class _CommuteState extends State<Commute> {
             onLongPress: () => _dialogBuilder(context, data),
             onTap: () async {
               if (data['type'] == "bus") {
-                Map<String, dynamic> route=await getBusRouteWithId(city:cityNameConverter(data['city']),routeId: data["routeID"].toString());
-                if (!context.mounted) return;
+                BusRoute route=   BusRoute.fromJson(await getBusRouteWithId(city:cityNameConverter(data['city']),routeId: data["routeID"].toString()));
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => BusTime(
-                      routeName: data['Route'],
-                      departureStopName: data["StartingStopName"],
-                      destinationStopName: data["FinalStopName"],
-                      operators: "",
-                      city: cityNameConverter(data['city']),
-                      routeID: data["routeID"].toString(),
-                        hasSubRoutes:route["HasSubRoutes"]
+                        routeName: route.routeZh,
+                        departureStopName: route.departureStopNameZh,
+                        destinationStopName: route.destinationStopNameZh,
+                        operators: route.operatorName,
+                        routeMapImageUrl: route.routeMapUrl,
+                        city: route.routeCity ?? 'InterCity',
+                        routeID: route.routeId,  hasSubRoutes:route.hasSubRoute,data:route
                     ),
                   ),
                 );
@@ -604,7 +602,7 @@ class _CommuteState extends State<Commute> {
                               color: primaryBusColor, size: 28),
                           const SizedBox(width: 10),
                           Text(
-                            data['Route'] ?? '未知路線',
+                            data['Route'] ?? AppLocalizations.of(context)!.text_53,
                             style: TextStyle(
                               fontSize: 24,
 
@@ -621,7 +619,7 @@ class _CommuteState extends State<Commute> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          data['city'] ?? '城市',
+                          data['city'] ?? AppLocalizations.of(context)!.text_54,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -638,8 +636,8 @@ class _CommuteState extends State<Commute> {
                   Row(
                     children: [
                       _buildStationPoint(
-                          label: '起點',
-                          name: data['UserStartingStopName'] ?? '未設定',
+                          label: AppLocalizations.of(context)!.text_55,
+                          name: data['UserStartingStopName'] ?? AppLocalizations.of(context)!.text_56,
                           align: CrossAxisAlignment.start
                       ),
                       Expanded(
@@ -657,8 +655,8 @@ class _CommuteState extends State<Commute> {
                         ),
                       ),
                       _buildStationPoint(
-                          label: '終點',
-                          name: data['UserDestinationStopName'] ?? '未設定',
+                          label: AppLocalizations.of(context)!.text_57,
+                          name: data['UserDestinationStopName'] ?? AppLocalizations.of(context)!.text_56,
                           align: CrossAxisAlignment.end
                       ),
                     ],
@@ -672,8 +670,8 @@ class _CommuteState extends State<Commute> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        '市區公車服務',
+                       Text(
+                        AppLocalizations.of(context)!.text_58,
                         style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       Text(
@@ -755,8 +753,8 @@ class _CommuteState extends State<Commute> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  "輸入座位號",
+                 Text(
+                  AppLocalizations.of(context)!.text_59,
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -768,7 +766,7 @@ class _CommuteState extends State<Commute> {
                   controller: controller,
                   maxLength: 10,
                   decoration: InputDecoration(
-                    hintText: "請輸入座位號",
+                    hintText: AppLocalizations.of(context)!.text_60,
                     counterText: "",
                     filled: true,
                     fillColor: Colors.grey.withOpacity(0.1),
@@ -797,8 +795,8 @@ class _CommuteState extends State<Commute> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text(
-                          '取消',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_36,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -833,15 +831,15 @@ class _CommuteState extends State<Commute> {
                             if (output == -1) {
                               // 如果已经存在相同的记录，提示用户
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新失敗。')));
+                                   SnackBar(content: Text(AppLocalizations.of(context)!.text_61)));
                             } else if (output == 100) {
                               // 成功添加行程，提示用户
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新成功！')));
+                                   SnackBar(content: Text(AppLocalizations.of(context)!.text_62)));
                             } else {
                               // 添加行程失败，提示用户
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('更新失敗。')));
+                                  SnackBar(content: Text(AppLocalizations.of(context)!.text_61)));
                             }
                           }
                           Navigator.pop(context);
@@ -855,8 +853,8 @@ class _CommuteState extends State<Commute> {
                           ),
                           elevation: 2,
                         ),
-                        child: const Text(
-                          '確認',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_35,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -910,26 +908,40 @@ class _CommuteState extends State<Commute> {
                 (DateTime.parse((data["time"]))),
 
               );
+if(data['type']=="train"){
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => TrainSchedulePage(
 
-              Navigator.push(
+          type: 'trainNo',
+          time: (DateTime.parse((data["time"]))),
+          trainNo: int.parse(data['Route'] .replaceAll(RegExp(r'[^0-9]'), ''))
+      ),
+    ),
+  );
+}else{
+  Navigator.push(
 
-                context,
+    context,
 
-                MaterialPageRoute(
+    MaterialPageRoute(
 
-                  builder: (context) => HSRSchedulePage(
+      builder: (context) => HSRSchedulePage(
 
-                    trainData: trainData,
+        trainData: trainData,
 
-                    type: 'trainNo',
+        type: 'trainNo',
 
-                    time: (DateTime.parse((data["time"]))),
+        time: (DateTime.parse((data["time"]))),
 
-                  ),
+      ),
 
-                ),
+    ),
 
-              );
+  );
+}
+
             },
             child: _buildInnerContent(data),
           ),
@@ -965,7 +977,7 @@ class _CommuteState extends State<Commute> {
         const SizedBox(height: 2),
         // 中文標籤
         Text(
-          isStart ? '出發站' : '抵達站',
+          isStart ? AppLocalizations.of(context)!.text_63 : AppLocalizations.of(context)!.text_64,
           style: TextStyle(
             color: Colors.white.withOpacity(0.6),
             fontSize: 11,
@@ -1029,7 +1041,7 @@ class _CommuteState extends State<Commute> {
                 Text(DateFormat('MM/dd HH:mm').format(DateTime.parse(data["time"])),
                     style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 const Spacer(),
-                if (trainType != "區間車" && trainType != "區間快")
+                if (trainType != AppLocalizations.of(context)!.text_65 && trainType != AppLocalizations.of(context)!.text_66)
                   _buildSeatBadge(seatNumber, () => _editSeatNumber(context, seatController, data, "train"), isDark: true),
               ],
             ),
@@ -1066,9 +1078,9 @@ class _CommuteState extends State<Commute> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildRouteStation("出發", data['UserStartingStopName'], CrossAxisAlignment.start),
+                  _buildRouteStation(AppLocalizations.of(context)!.text_67, data['UserStartingStopName'], CrossAxisAlignment.start),
                   const Icon(Icons.trending_flat, color: Colors.grey),
-                  _buildRouteStation("抵達", data['UserDestinationStopName'], CrossAxisAlignment.end),
+                  _buildRouteStation(AppLocalizations.of(context)!.text_68, data['UserDestinationStopName'], CrossAxisAlignment.end),
                 ],
               ),
               const Divider(height: 32),
@@ -1105,7 +1117,7 @@ class _CommuteState extends State<Commute> {
             Icon(Icons.event_seat, size: 14, color: isDark ? Colors.orangeAccent : Colors.blue),
             const SizedBox(width: 4),
             Text(
-              seat.isEmpty ? '填寫座位' : '座位: $seat',
+              seat.isEmpty ? AppLocalizations.of(context)!.text_69 : '座位: $seat',
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -1253,12 +1265,12 @@ class CustomBottomNavigationBar extends StatelessWidget {
             _buildTabItem(
               index: 0,
               icon: Icons.directions_bus,
-              label: '上班通勤',
+              label: AppLocalizations.of(context)!.text_70,
             ),
             _buildTabItem(
               index: 1,
               icon: Icons.airplanemode_active,
-              label: '旅行',
+              label: AppLocalizations.of(context)!.text_71,
             ),
           ],
         ),

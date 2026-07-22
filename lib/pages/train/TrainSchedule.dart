@@ -7,30 +7,62 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 import '../../database/Train/getTrain.dart';
 import '../../database/SQL/schedule.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widget/map.dart';
 import '../../widget/train/RoutePalnner.dart';
 
-final List E500 = [115, 121, 123, 125, 141, 144, 138, 150, 152, 114];
-final List EMU3000 = [123, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295];
-final List EMU900 = [123, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295];
+// E500 電力機車 (PP自強號牽引)
+const List<int> E500 = [
+  101, 103, 105, 107, 109,
+  111, 113, 115, 117, 119,
+  121, 123, 125, 127, 129,
+  131, 133, 135, 137, 139,
+  141, 143, 145, 147, 149,
+  150, 151, 152,
+];
+
+// EMU3000 新自強號
+const List<int> EMU3000 = [
+  101,103,105,107,109,
+  111,113,115,117,119,
+  121,123,125,127,129,
+  131,133,135,137,139,
+  141,143,145,147,149,
+  151,153,155,157,159,
+  161,163,165,167,169,
+  171,173,175,177,179,
+  181,183,185,187,189,
+  191,193,195,197,199,
+  201,203,205,207,209,
+  211,213,215,217,219,
+  221,223,225,227,229,
+  231,233,235,237,239,
+  241,243,245,247,249,
+  251,253,255,257,259,
+  261,263,265,267,269,
+  271,273,275,277,279,
+  281,283,285,287,289,
+  291,293,295
+];final List EMU900 = [123, 135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295];
 final List TzeChiangLimited = [105, 110, 115, 120, 125, 130, 135, 140, 145, 150];
 
 late Set<Polyline> allLines;
 final ScrollController _stopTimesScrollController = ScrollController();
-
+Map<String, dynamic> trainData={};
 String? _currentStationId;
 int _liveDelayMinutes = 0;
 
 class TrainSchedulePage extends StatefulWidget {
-  final Map<String, dynamic> trainData;
+
   final String type;
   final DateTime time;
+  final int trainNo;
 
   const TrainSchedulePage({
     Key? key,
-    required this.trainData,
+
     required this.type,
-    required this.time,
+    required this.time, required this.trainNo,
   }) : super(key: key);
 
   @override
@@ -60,10 +92,22 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   @override
   void initState() {
     super.initState();
-    fetchLiveBoardIfToday();
-    _getTrainModel();
-  }
+     _fetchTrain();
 
+  }
+  Future<Map<String, dynamic> > _fetchTrain() async {
+    trainData = await fetchTrain(
+     widget.trainNo,
+      widget.time,
+    );
+
+    if (mounted) {
+      setState(() {});
+
+    }fetchLiveBoardIfToday();
+    _getTrainModel();
+    return trainData;
+  }
   @override
   void dispose() {
     _liveBoardTimer?.cancel();
@@ -72,22 +116,22 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
 
   // 獲取列車車型
   void _getTrainModel() {
-    final trainNo = widget.trainData['DailyTrainInfo']['TrainNo'];
+    final trainNo = trainData['DailyTrainInfo']['TrainNo'];
     final cleanTrainNo = int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''));
 
     setState(() {
       if (E500.contains(cleanTrainNo)) {
         _trainModel = 'E500';
-        _trainModelDescription = '電力機車頭，最高時速130km/h';
+        _trainModelDescription = AppLocalizations.of(context)!.text_649;
       } else if (EMU3000.contains(cleanTrainNo)) {
         _trainModel = 'EMU3000';
-        _trainModelDescription = '城際電聯車，最高時速130km/h，12節編組';
+        _trainModelDescription = AppLocalizations.of(context)!.text_650;
       } else if (EMU900.contains(cleanTrainNo)) {
         _trainModel = 'EMU900';
-        _trainModelDescription = '區間通勤電聯車，最高時速130km/h，10節編組';
+        _trainModelDescription = AppLocalizations.of(context)!.text_651;
       } else if (TzeChiangLimited.contains(cleanTrainNo)) {
-        _trainModel = '推拉式自強號';
-        _trainModelDescription = '推拉式電聯車，最高時速130km/h，12節編組';
+        _trainModel = AppLocalizations.of(context)!.text_652;
+        _trainModelDescription = AppLocalizations.of(context)!.text_653;
       } else {
         _trainModel = null;
         _trainModelDescription = null;
@@ -95,12 +139,12 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
     });
   }
 
-  Map printStartEndDepartureTimes(Map<String, dynamic> trainData) {
-    final dailyInfo = trainData['DailyTrainInfo'] as Map<String, dynamic>;
+  Map printStartEndDepartureTimes(Map<String, dynamic> _trainData) {
+    final dailyInfo = _trainData['DailyTrainInfo'] as Map<String, dynamic>;
     final startZh = dailyInfo['StartingStationName']['Zh_tw'] as String;
     final endZh = dailyInfo['EndingStationName']['Zh_tw'] as String;
 
-    final stops = (trainData['StopTimes'] as List<dynamic>)
+    final stops = (_trainData['StopTimes'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
 
     String? findDeparture(String stationZh) {
@@ -123,7 +167,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   void _scrollToCurrentStation() {
     if (_currentStationId == null) return;
 
-    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
+    final stopTimes = trainData['StopTimes'] as List<dynamic>;
     final index = stopTimes.indexWhere((s) => s['StationID'] == _currentStationId);
 
     if (index == -1) return;
@@ -160,6 +204,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   }
 
   Future<void> fetchLiveBoardIfToday() async {
+
     final now = DateTime.now();
 
     if (!isSameDay(widget.time, now)) {
@@ -173,7 +218,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
 
     try {
       final result = await fetchTrainStationByTrainNo(
-        widget.trainData['DailyTrainInfo']['TrainNo'],
+        trainData['DailyTrainInfo']['TrainNo'],
       );
 
       if (!mounted || result.isEmpty) return;
@@ -270,278 +315,279 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
             ),
           ),
         ),
-        DraggableScrollableSheet(
-          initialChildSize: 1,
-          minChildSize: 0.2,
-          maxChildSize: 1.0,
-          builder: (BuildContext context, ScrollController scrollController) {
-            return Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                title: const Text(
-                  '列車時刻表',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: primaryBlue,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                centerTitle: true,
-                iconTheme: const IconThemeData(color: primaryBlue),
-                actions: [
-                  // 加入行程按鈕
-                  Container(
-                    margin: const EdgeInsets.only(right: 4),
-                    child: IconButton(
-                      onPressed: () async {
-                        List<dynamic> stationNames = widget.trainData["StopTimes"]
-                            .map((stop) => stop["StationName"] as Map)
-                            .toList();
+    DraggableScrollableSheet(
+    initialChildSize: 1,
+    minChildSize: 0.2,
+    maxChildSize: 1.0,
+    builder: (BuildContext context, ScrollController scrollController) {
+    return Scaffold(
+    backgroundColor: Colors.white,
+    appBar: AppBar(
+    backgroundColor: Colors.white,
+    elevation: 0,
+    title:  Text(
+    AppLocalizations.of(context)!.text_654,
+    style: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: primaryBlue,
+    letterSpacing: -0.5,
+    ),
+    ),
+    centerTitle: true,
+    iconTheme: const IconThemeData(color: primaryBlue),
+    actions: [
+    // 加入行程按鈕
+    Container(
+    margin: const EdgeInsets.only(right: 4),
+    child: IconButton(
+    onPressed: () async {
+    List<dynamic> stationNames = trainData["StopTimes"]
+        .map((stop) => stop["StationName"] as Map)
+        .toList();
 
-                        final result = await showDialog(
-                          context: context,
-                          builder: (context) {
-                            return StationSelectionDialog(stationNames: stationNames);
-                          },
-                        );
+    final result = await showDialog(
+    context: context,
+    builder: (context) {
+    return StationSelectionDialog(stationNames: stationNames);
+    },
+    );
 
-                        if (result != null) {
-                          String getCategory(String category) {
-                            switch (category) {
-                              case '上班通勤':
-                                return 'commute';
-                              case '旅行':
-                                return 'trip';
-                              default:
-                                return 'other';
-                            }
-                          }
+    if (result != null) {
+    String getCategory(String category) {
+    switch (category) {
+    case '上班通勤':
+    return 'commute';
+    case '旅行':
+    return 'trip';
+    default:
+    return 'other';
+    }
+    }
 
-                          Map timeMap = printStartEndDepartureTimes(widget.trainData);
-                          final schedule = ScheduleModel(
-                            type: 'train',
-                            route: widget.trainData['DailyTrainInfo']['TrainNo'],
-                            startingStopName: widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
-                            userStartingStopName: result['departure'],
-                            finalStopName: widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
-                            userDestinationStopName: result['destination'],
-                            time: widget.time.toString(),
-                            category: getCategory(result['category']),
-                            seatNumber: result['seatNumber'],
-                            other: {
-                              "DateTime": widget.time.toString(),
-                              "trainType": widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
-                              "category": getCategory(result['category']),
-                              "seatNumber": result["seatNumber"],
-                              "startDeparture": timeMap["startDeparture"],
-                              "endDeparture": timeMap["endDeparture"]
-                            },
-                          );
+    Map timeMap = printStartEndDepartureTimes(trainData);
+    final schedule = ScheduleModel(
+    type: 'train',
+    route: trainData['DailyTrainInfo']['TrainNo'],
+    startingStopName: trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+    userStartingStopName: result['departure'],
+    finalStopName: trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+    userDestinationStopName: result['destination'],
+    time: widget.time.toString(),
+    category: getCategory(result['category']),
+    seatNumber: result['seatNumber'],
+    other: {
+    "DateTime": widget.time.toString(),
+    "trainType": trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+    "category": getCategory(result['category']),
+    "seatNumber": result["seatNumber"],
+    "startDeparture": timeMap["startDeparture"],
+    "endDeparture": timeMap["endDeparture"]
+    },
+    );
 
-                          final output = await ScheduleService.instance.addSchedule(schedule);
+    final output = await ScheduleService.instance.addSchedule(schedule);
 
-                          if (output == -1) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('該行程已經存在'),
-                                backgroundColor: warningOrange,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          } else if (output == 100) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('行程添加成功'),
-                                backgroundColor: successGreen,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('添加行程失敗'),
-                                backgroundColor: errorRed,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.add_rounded, size: 20, color: primaryBlue),
-                      ),
-                    ),
-                  ),
-                  // 列車資訊按鈕
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: IconButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return Dialog(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Container(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: primaryBlue.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Icon(
-                                            Icons.info_rounded,
-                                            color: primaryBlue,
-                                            size: 24,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text(
-                                          "列車資訊",
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: primaryBlue,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 20),
-                                    _buildServiceItem(
-                                      "無障礙設施",
-                                      widget.trainData['DailyTrainInfo']['WheelchairFlag'] == 1,
-                                      Icons.accessible_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "行李服務",
-                                      widget.trainData['DailyTrainInfo']['PackageServiceFlag'] == 1,
-                                      Icons.luggage_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "餐飲服務",
-                                      widget.trainData['DailyTrainInfo']['DiningFlag'] == 1,
-                                      Icons.restaurant_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "自行車車廂",
-                                      widget.trainData['DailyTrainInfo']['BikeFlag'] == 1,
-                                      Icons.directions_bike_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "哺乳設施",
-                                      widget.trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1,
-                                      Icons.child_care_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "每日行駛",
-                                      widget.trainData['DailyTrainInfo']['DailyFlag'] == 1,
-                                      Icons.calendar_today_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "加班列車",
-                                      widget.trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1,
-                                      Icons.add_alert_rounded,
-                                    ),
-                                    _buildServiceItem(
-                                      "停駛",
-                                      widget.trainData['DailyTrainInfo']['SuspendedFlag'] == 1,
-                                      Icons.block_rounded,
-                                      isError: true,
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Center(
-                                      child: TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text(
-                                          "關閉",
-                                          style: TextStyle(
-                                            color: primaryBlue,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.info_outline_rounded, size: 20, color: primaryBlue),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              body: SingleChildScrollView(
-                controller: scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTrainInfoCard(),
-                    const SizedBox(height: 32),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.timeline_rounded, size: 20, color: primaryBlue),
-                          SizedBox(width: 8),
-                          Text(
-                            '停靠站資訊',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: primaryBlue,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildStopTimesList(),
-                    TrainInfoWidget(trainData: widget.trainData),
-                  ],
-                ),
-              ),
-              bottomNavigationBar: _buildBottomBar(), // 修正後的底部欄
-            );
-          },
-        ),
+    if (output == -1) {
+    ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+    content: Text(AppLocalizations.of(context)!.text_395),
+    backgroundColor: warningOrange,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    ),
+    );
+    } else if (output == 100) {
+    ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+    content:  Text(AppLocalizations.of(context)!.text_396),
+    backgroundColor: successGreen,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    ),
+    );
+    } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+    content:  Text(AppLocalizations.of(context)!.text_397),
+    backgroundColor: errorRed,
+    behavior: SnackBarBehavior.floating,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+    ),
+    ),
+    );
+    }
+    }
+    },
+    icon: Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+    color: surfaceColor,
+    borderRadius: BorderRadius.circular(10),
+    ),
+    child: const Icon(Icons.add_rounded, size: 20, color: primaryBlue),
+    ),
+    ),
+    ),
+    // 列車資訊按鈕
+    Container(
+    margin: const EdgeInsets.only(right: 8),
+    child: IconButton(
+    onPressed: () {
+    showDialog(
+    context: context,
+    builder: (BuildContext context) {
+    return Dialog(
+    backgroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(20),
+    ),
+    child: Container(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    Row(
+    children: [
+    Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+    color: primaryBlue.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(12),
+    ),
+    child: const Icon(
+    Icons.info_rounded,
+    color: primaryBlue,
+    size: 24,
+    ),
+    ),
+    const SizedBox(width: 12),
+    Text(
+    AppLocalizations.of(context)!.text_655,
+    style: TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    color: primaryBlue,
+    ),
+    ),
+    ],
+    ),
+    const SizedBox(height: 20),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_405,
+    trainData['DailyTrainInfo']['WheelchairFlag'] == 1,
+    Icons.accessible_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_656,
+    trainData['DailyTrainInfo']['PackageServiceFlag'] == 1,
+    Icons.luggage_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_657,
+    trainData['DailyTrainInfo']['DiningFlag'] == 1,
+    Icons.restaurant_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_658,
+    trainData['DailyTrainInfo']['BikeFlag'] == 1,
+    Icons.directions_bike_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_659,
+    trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1,
+    Icons.child_care_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_660,
+    trainData['DailyTrainInfo']['DailyFlag'] == 1,
+    Icons.calendar_today_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_661,
+    trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1,
+    Icons.add_alert_rounded,
+    ),
+    _buildServiceItem(
+    AppLocalizations.of(context)!.text_662,
+    trainData['DailyTrainInfo']['SuspendedFlag'] == 1,
+    Icons.block_rounded,
+    isError: true,
+    ),
+    const SizedBox(height: 20),
+    Center(
+    child: TextButton(
+    onPressed: () => Navigator.of(context).pop(),
+    child:  Text(
+    AppLocalizations.of(context)!.text_44,
+    style: TextStyle(
+    color: primaryBlue,
+    fontWeight: FontWeight.w600,
+    ),
+    ),
+    ),
+    ),
+    ],
+    ),
+    ),
+    );
+    },
+    );
+    },
+    icon: Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+    color: surfaceColor,
+    borderRadius: BorderRadius.circular(10),
+    ),
+    child: const Icon(Icons.info_outline_rounded, size: 20, color: primaryBlue),
+    ),
+    ),
+    ),
+    ],
+    ),
+    body: SingleChildScrollView(
+    controller: scrollController,
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    _buildTrainInfoCard(),
+    const SizedBox(height: 32),
+    Padding(
+    padding: EdgeInsets.symmetric(horizontal: 8.0),
+    child: Row(
+    children: [
+    Icon(Icons.timeline_rounded, size: 20, color: primaryBlue),
+    SizedBox(width: 8),
+    Text(
+    AppLocalizations.of(context)!.text_398,
+    style: TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w700,
+    color: primaryBlue,
+    ),
+    ),
+    ],
+    ),
+    ),
+    const SizedBox(height: 16),
+    _buildStopTimesList(),
+    TrainInfoWidget(trainData: trainData),
+    ],
+    ),
+    ),
+    bottomNavigationBar: _buildBottomBar(), // 修正後的底部欄
+    );
+    },
+    )
+
       ],
     );
   }
@@ -589,7 +635,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              isAvailable ? '提供' : '無',
+              isAvailable ? AppLocalizations.of(context)!.text_663 : AppLocalizations.of(context)!.text_648,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -611,9 +657,9 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   }
 
   Widget _buildTrainInfoCard() {
-    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
+    final stopTimes = trainData['StopTimes'] as List<dynamic>;
     bool isCrossDayVar = isCrossDay(stopTimes);
-    final trainNo = widget.trainData['DailyTrainInfo']['TrainNo'];
+    final trainNo = trainData['DailyTrainInfo']['TrainNo'];
     final cleanTrainNo = int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''));
     final isE500 = E500.contains(cleanTrainNo);
 
@@ -662,7 +708,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                        trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -738,8 +784,8 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Text(
-                              '起站',
+                             Text(
+                              AppLocalizations.of(context)!.text_409,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: textSecondary,
@@ -749,7 +795,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          widget.trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -778,8 +824,8 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            const Text(
-                              '終站',
+                             Text(
+                              AppLocalizations.of(context)!.text_410,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: textSecondary,
@@ -802,7 +848,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          widget.trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -820,7 +866,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
             const SizedBox(height: 16),
 
             // 備註
-            if (widget.trainData['DailyTrainInfo']['Note']['Zh_tw'] != null ||
+            if (trainData['DailyTrainInfo']['Note']['Zh_tw'] != null ||
                 isCrossDayVar)
               Container(
                 padding: const EdgeInsets.all(12),
@@ -845,7 +891,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '${widget.trainData['DailyTrainInfo']['Note']['Zh_tw']}${isCrossDayVar ? ' 跨日行駛' : ''}',
+                        '${trainData['DailyTrainInfo']['Note']['Zh_tw']}${isCrossDayVar ? AppLocalizations.of(context)!.text_664 : ''}',
                         style: TextStyle(
                           fontSize: 14,
                           color: isCrossDayVar ? warningOrange : textPrimary,
@@ -864,7 +910,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
 
   Future<Widget> _buildDelayInfo() async {
     try {
-      final delayData = await fetchLiveTrainDelay(widget.trainData['DailyTrainInfo']['TrainNo']);
+      final delayData = await fetchLiveTrainDelay(trainData['DailyTrainInfo']['TrainNo']);
       final hasDelay = delayData.isNotEmpty &&
           (delayData[0]['DelayTime'] != null && delayData[0]['DelayTime'] != 0);
       final delayMinutes = hasDelay ? delayData[0]['DelayTime'] as int : 0;
@@ -904,7 +950,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    hasDelay ? '延誤 $delayMinutes 分鐘' : '準點運行',
+                    hasDelay ? '延誤 $delayMinutes 分鐘' : AppLocalizations.of(context)!.text_665,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -912,7 +958,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     ),
                   ),
                   Text(
-                    '車次 ${widget.trainData['DailyTrainInfo']['TrainNo']}',
+                    '車次 ${trainData['DailyTrainInfo']['TrainNo']}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -928,7 +974,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '即時資訊',
+                AppLocalizations.of(context)!.text_666,
                 style: TextStyle(
                   fontSize: 12,
                   color: primaryBlue,
@@ -1050,7 +1096,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   }
 
   Widget _buildStopTimesList() {
-    final stopTimes = widget.trainData['StopTimes'] as List<dynamic>;
+    final stopTimes = trainData['StopTimes'] as List<dynamic>;
 
     return ListView.builder(
       controller: _stopTimesScrollController,
@@ -1177,8 +1223,8 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                           color: primaryBlue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Text(
-                          '目前位置',
+                        child:  Text(
+                          AppLocalizations.of(context)!.text_637,
                           style: TextStyle(
                             fontSize: 11,
                             color: primaryBlue,
@@ -1232,7 +1278,7 @@ class TrainInfoWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> listTrainInfo = [
       {
-        'TrainTypeName': '自強(推拉式自強號且無自行車車廂)',
+        'TrainTypeName': AppLocalizations.of(context)!.text_667,
         'formation': '12節車廂（2M12T）',
         'length': '278.02m',
         'maxSpeed': '130km/h',
@@ -1242,7 +1288,7 @@ class TrainInfoWidget extends StatelessWidget {
         'Parent-childCarriage': '12',
       },
       {
-        'TrainTypeName': '自強(推拉式自強號且有自行車車廂)',
+        'TrainTypeName': AppLocalizations.of(context)!.text_668,
         'formation': '12節車廂（2M12T）',
         'length': '278.02m',
         'maxSpeed': '130km/h',
@@ -1252,7 +1298,7 @@ class TrainInfoWidget extends StatelessWidget {
         'bicycle': '12',
       },
       {
-        'TrainTypeName': '太魯閣(太魯閣)',
+        'TrainTypeName': AppLocalizations.of(context)!.text_669,
         'formation': '8節車廂（4M4T）',
         'length': '166.99m',
         'maxSpeed': '130km/h',
@@ -1261,7 +1307,7 @@ class TrainInfoWidget extends StatelessWidget {
         'accessibleCar': '1、8',
       },
       {
-        'TrainTypeName': '普悠瑪(普悠瑪)',
+        'TrainTypeName': AppLocalizations.of(context)!.text_670,
         'formation': '8節車廂（4M4T）',
         'length': '168.39m',
         'maxSpeed': '130km/h',
@@ -1312,8 +1358,8 @@ class TrainInfoWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  '列車編組資訊',
+                 Text(
+                  AppLocalizations.of(context)!.text_671,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -1338,14 +1384,14 @@ class TrainInfoWidget extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(20),
-            child: _buildContent(trainInfo),
+            child: _buildContent(context,trainInfo),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContent(Map<String, dynamic> trainInfo) {
+  Widget _buildContent(context,Map<String, dynamic> trainInfo) {
     final trainNo = trainData['DailyTrainInfo']['TrainNo'].replaceAll(RegExp(r'[^0-9]'), '');
     final isE500 = E500.contains(int.parse(trainNo));
     final isEMU3000 = EMU3000.contains(int.parse(trainNo));
@@ -1363,22 +1409,22 @@ class TrainInfoWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildInfoRow("列車型號", trainInfo['TrainTypeName'],
+        _buildInfoRow(AppLocalizations.of(context)!.text_672, trainInfo['TrainTypeName'],
           icon: Icons.directions_railway_rounded,
           color: primaryBlue,
         ),
         const SizedBox(height: 16),
-        _buildInfoRow("列車編組", trainInfo['formation'],
+        _buildInfoRow(AppLocalizations.of(context)!.text_399, trainInfo['formation'],
           icon: Icons.train_rounded,
           color: textPrimary,
         ),
         const SizedBox(height: 16),
-        _buildInfoRow("列車長度", length,
+        _buildInfoRow(AppLocalizations.of(context)!.text_400, length,
           icon: Icons.straighten_rounded,
           color: textPrimary,
         ),
         const SizedBox(height: 16),
-        _buildInfoRow("最高時速", trainInfo['maxSpeed'],
+        _buildInfoRow(AppLocalizations.of(context)!.text_401, trainInfo['maxSpeed'],
           icon: Icons.speed_rounded,
           color: warningOrange,
           isHighlighted: true,
@@ -1392,7 +1438,7 @@ class TrainInfoWidget extends StatelessWidget {
           children: [
             Expanded(
               child: _buildCompartmentInfo(
-                title: "無障礙車廂",
+                title: AppLocalizations.of(context)!.text_673,
                 value: trainInfo['accessibleCar'] ?? '-',
                 icon: Icons.accessible_rounded,
                 color: successGreen,
@@ -1401,7 +1447,7 @@ class TrainInfoWidget extends StatelessWidget {
             Container(width: 1, height: 40, color: Colors.grey[200]),
             Expanded(
               child: _buildCompartmentInfo(
-                title: "哺集乳室",
+                title: AppLocalizations.of(context)!.text_407,
                 value: trainInfo['nursingCar'] ?? '-',
                 icon: Icons.child_care_rounded,
                 color: purple,
@@ -1417,7 +1463,7 @@ class TrainInfoWidget extends StatelessWidget {
           children: [
             Expanded(
               child: _buildCompartmentInfo(
-                title: "車長室",
+                title: AppLocalizations.of(context)!.text_674,
                 value: trainInfo['officeCar'] ?? '-',
                 icon: Icons.business_center_rounded,
                 color: warningOrange,
@@ -1426,7 +1472,7 @@ class TrainInfoWidget extends StatelessWidget {
             Container(width: 1, height: 40, color: Colors.grey[200]),
             Expanded(
               child: _buildCompartmentInfo(
-                title: trainInfo['Parent-childCarriage'] != null ? "親子車廂" : "自行車車廂",
+                title: trainInfo['Parent-childCarriage'] != null ? AppLocalizations.of(context)!.text_675 : AppLocalizations.of(context)!.text_658,
                 value: trainInfo['Parent-childCarriage'] ?? trainInfo['bicycle'] ?? '-',
                 icon: trainInfo['Parent-childCarriage'] != null
                     ? Icons.family_restroom_rounded

@@ -19,7 +19,7 @@ import 'package:provider/single_child_widget.dart';
 import 'Bike.dart';
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
-import 'HSR.dart';
+import 'pages/HSR/HSR.dart';
 import 'IntercityBus.dart';
 import 'commute.dart';
 import 'database/SQL/schedule.dart';
@@ -36,8 +36,8 @@ import 'pages/nearStop.dart';
 import 'pages/notification.dart';
 import 'plane.dart';
 import 'metro.dart';
-import 'train.dart';
-import 'Bus.dart';
+import 'pages/train/train.dart';
+import 'pages/bus/Bus.dart';
 import 'package:logging/logging.dart';
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 final ValueNotifier<Locale> localeNotifier =
@@ -50,7 +50,7 @@ class AppInitializer {
     });
 
     final log = Logger('MyApp');
-    log.info('應用程式啟動');
+    log.info("app start");
 
     await SecureStorage.initializeApiKey();
 
@@ -165,7 +165,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
   Widget build(BuildContext context) {
 // 監聽 Provider 中的狀態
     final appProvider = Provider.of<AppProvider>(context);
-
+    print("目前語言: ${appProvider.locale}");
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -231,10 +231,10 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
   final double _activeIconSize = 24;
   final double _inactiveIconSize = 22;
   final PageController _pageController = PageController(); // 控制 PageView
-  final List<String> regions = [
-    '宜蘭縣', '花蓮縣', '臺東縣', '澎湖縣', '金門縣', '連江縣', '臺北市',
-    '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹縣',
-    '新竹市', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '嘉義市', '屏東縣',
+  late final List<String> regions = [
+    AppLocalizations.of(context)!.text_74, AppLocalizations.of(context)!.text_76, AppLocalizations.of(context)!.text_78, AppLocalizations.of(context)!.text_80, AppLocalizations.of(context)!.text_82, AppLocalizations.of(context)!.text_84, AppLocalizations.of(context)!.text_7,
+    AppLocalizations.of(context)!.text_8, AppLocalizations.of(context)!.text_9, AppLocalizations.of(context)!.text_6, AppLocalizations.of(context)!.text_10, AppLocalizations.of(context)!.text_11, AppLocalizations.of(context)!.text_12, AppLocalizations.of(context)!.text_92,
+    AppLocalizations.of(context)!.text_13, AppLocalizations.of(context)!.text_94, AppLocalizations.of(context)!.text_96, AppLocalizations.of(context)!.text_98, AppLocalizations.of(context)!.text_100, AppLocalizations.of(context)!.text_101, AppLocalizations.of(context)!.text_102, AppLocalizations.of(context)!.text_104,
   ];
 
   // 初始化页面列表
@@ -292,9 +292,9 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
 
 
         elevation: 0,
-        title: const Text(
-          '台灣通',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.text_220,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: primary,
@@ -334,7 +334,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                           const Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF1A73E8)),
                           const SizedBox(width: 8),
                           Text(
-                            '選擇地區',
+                            AppLocalizations.of(context)!.text_221,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
@@ -516,22 +516,22 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.homeOutline,
                   activeIconPath: SvgAssets.home,
-                  label: '首頁',
+                  label: AppLocalizations.of(context)!.text_222,
                 ),
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.commuteOutlined,
                   activeIconPath: SvgAssets.commuteOutlined,
-                  label: '行程',
+                  label: AppLocalizations.of(context)!.text_223,
                 ),
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.busStop,
                   activeIconPath: SvgAssets.busStop,
-                  label: '站牌',
+                  label: AppLocalizations.of(context)!.text_29,
                 ),
                 _buildAnimatedDestination(
                   iconPath: SvgAssets.personOutline,
                   activeIconPath: SvgAssets.person,
-                  label: '我的',
+                  label: AppLocalizations.of(context)!.text_224,
                 ),
               ],
             ),

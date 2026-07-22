@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../Const/regularConst.dart';
 import '../database/getData.dart';
 import '../database/SQL/schedule.dart';
+import '../l10n/app_localizations.dart';
 
 class RoutePlanner extends StatefulWidget {
   @override
@@ -11,13 +12,13 @@ class RoutePlanner extends StatefulWidget {
 
 class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderStateMixin{
   // 基础数据
-  List<String> transportModes = ['火車', '高鐵', '捷運', '公車', '飛機', '客運', 'Ubike'];
-  String selectedTransport = '公車';
+  late List<String> transportModes = [AppLocalizations.of(context)!.text_585, AppLocalizations.of(context)!.text_586, AppLocalizations.of(context)!.text_587, AppLocalizations.of(context)!.text_588, AppLocalizations.of(context)!.text_589, AppLocalizations.of(context)!.text_590, 'Ubike'];
+  late String selectedTransport = AppLocalizations.of(context)!.text_588;
 
   // 城市数据
-  List<String> cities = [ '臺中市',"臺北市"];
+  late List<String> cities = [ AppLocalizations.of(context)!.text_6,AppLocalizations.of(context)!.text_7];
   List<String> citiesID = [ 'Taichung', 'Taipei'];
-  ValueNotifier<String> selectedCityNotifier = ValueNotifier<String>("臺中市");
+  late ValueNotifier<String> selectedCityNotifier = ValueNotifier<String>(AppLocalizations.of(context)!.text_6);
   ValueNotifier<String> selectedCityIDNotifier = ValueNotifier<String>("Taichung");
   // 公车数据
   ValueNotifier<List<Map<String, dynamic>>> busRoutesNotifier = ValueNotifier([]);
@@ -25,10 +26,10 @@ class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderS
   // TabController 用來監聽當前的 Tab
   late TabController tabController;
   // 站点数据
-  Map<String, List<String>> busStopsByRoute = {
-    '101路': ['市政府站', '101大樓', '信義安和'],
-    '202路': ['台北車站', '士林夜市', '劍潭站'],
-    '33路': ['中山國中', '松山機場', '圓山飯店'],
+  late Map<String, List<String>> busStopsByRoute = {
+    '101路': [AppLocalizations.of(context)!.text_591, '101大樓', AppLocalizations.of(context)!.text_592],
+    '202路': [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_593, AppLocalizations.of(context)!.text_594],
+    '33路': [AppLocalizations.of(context)!.text_595, AppLocalizations.of(context)!.text_596, AppLocalizations.of(context)!.text_597],
   };
 
 // 站点选择
@@ -101,11 +102,11 @@ String? routeArrivalStation;
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('選擇站牌', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.text_598, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: '搜尋站牌',
+                      hintText: AppLocalizations.of(context)!.text_599,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -143,7 +144,7 @@ String? routeArrivalStation;
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text('關閉'),
+                  child:  Text(AppLocalizations.of(context)!.text_44),
                 ),
               ],
             );
@@ -161,13 +162,13 @@ String? routeArrivalStation;
         valueListenable: busRoutesNotifier,
         builder: (context, busRoutes, child) {
           if (busRoutes.isEmpty) {
-            return const Center(
+            return  Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(strokeWidth: 3, color: Colors.blue),
                   SizedBox(height: 16),
-                  Text('正在載入路線數據...', style: TextStyle(color: Colors.grey)),
+                  Text(AppLocalizations.of(context)!.text_600, style: TextStyle(color: Colors.grey)),
                 ],
               ),
             );
@@ -177,15 +178,15 @@ String? routeArrivalStation;
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch, // 讓按鈕填滿寬度
               children: [
-                _buildSectionHeader(Icons.location_city, '選擇城市'),
+                _buildSectionHeader(Icons.location_city, AppLocalizations.of(context)!.text_28),
                 const SizedBox(height: 10),
                 _buildDropdownField(),
 
                 const SizedBox(height: 24),
-                _buildSectionHeader(Icons.directions_bus, '選擇路線'),
+                _buildSectionHeader(Icons.directions_bus, AppLocalizations.of(context)!.text_601),
                 const SizedBox(height: 10),
                 _buildPickerButton(
-                  label: selectedRoute ?? '請選擇路線',
+                  label: selectedRoute ?? AppLocalizations.of(context)!.text_602,
                   onPressed: () => showRoutePicker(),
                   isPlaceholder: selectedRoute == null,
                 ),
@@ -212,7 +213,7 @@ String? routeArrivalStation;
                         shadowColor: Colors.blue.withOpacity(0.4),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       ),
-                      child: const Text('確認行程', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child:  Text(AppLocalizations.of(context)!.text_603, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -296,23 +297,23 @@ String? routeArrivalStation;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(Icons.trip_origin, '行程規畫'),
+        _buildSectionHeader(Icons.trip_origin, AppLocalizations.of(context)!.text_604),
         const SizedBox(height: 15),
         Padding(
           padding: const EdgeInsets.all(10), // 為左側連接線留空間
           child: Column(
             children: [
               _buildTimelineStep(
-                title: '出發站',
-                content: selectedDepartureStation ?? '請選擇出發站',
+                title: AppLocalizations.of(context)!.text_63,
+                content: selectedDepartureStation ?? AppLocalizations.of(context)!.text_161,
                 onTap: () => showStationPicker("departure"),
                 isLast: false,
                 isActive: true,
               ),
               if (selectedDepartureStation != null)
                 _buildTimelineStep(
-                  title: '到達站',
-                  content: selectedArrivalStation ?? '請選擇到達站',
+                  title: AppLocalizations.of(context)!.text_162,
+                  content: selectedArrivalStation ?? AppLocalizations.of(context)!.text_163,
                   onTap: () => showStationPicker2(),
                   isLast: true,
                   isActive: selectedArrivalStation != null,
@@ -355,7 +356,7 @@ String? routeArrivalStation;
               children: [
                 Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 const SizedBox(height: 4),
-                _buildPickerButton(label: content, onPressed: onTap, isPlaceholder: content.contains('請選擇')),
+                _buildPickerButton(label: content, onPressed: onTap, isPlaceholder: content.contains(AppLocalizations.of(context)!.text_605)),
                 if (!isLast) const SizedBox(height: 20),
               ],
             ),
@@ -457,7 +458,7 @@ String? routeArrivalStation;
       context: context,
       builder: (context) => StationPickerDialog(
         stations: targetStops,
-        title: '選擇到達站',
+        title: AppLocalizations.of(context)!.text_606,
       ),
     );
 
@@ -481,8 +482,8 @@ String? routeArrivalStation;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: TextField(
-        decoration: const InputDecoration(
-          hintText: '搜尋站點',
+        decoration:  InputDecoration(
+          hintText: AppLocalizations.of(context)!.text_607,
           prefixIcon: Icon(Icons.search),
           border: OutlineInputBorder(),
         ),
@@ -528,11 +529,11 @@ String? routeArrivalStation;
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('選擇路線', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                   Text(AppLocalizations.of(context)!.text_601, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
                     decoration: InputDecoration(
-                      hintText: '搜尋路線',
+                      hintText: AppLocalizations.of(context)!.text_608,
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -572,7 +573,7 @@ String? routeArrivalStation;
                   onPressed: () {
                     Navigator.of(context).pop(); // 关闭弹窗
                   },
-                  child: const Text('關閉'),
+                  child:  Text(AppLocalizations.of(context)!.text_44),
                 ),
               ],
             );
@@ -599,8 +600,8 @@ String? routeArrivalStation;
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('選擇類別'),
-          content: Text('將路線 $route 添加到以下類別:'),
+          title: Text(AppLocalizations.of(context)!.text_609),
+          content: Text(AppLocalizations.of(context)!.text_610),
           actions: [
             TextButton(
               onPressed: () async {
@@ -626,21 +627,21 @@ String? routeArrivalStation;
                 if (result == -1) {
                   // 如果已经存在相同的记录，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('該行程已經存在。'))
+                       SnackBar(content: Text(AppLocalizations.of(context)!.text_611))
                   );
                 } else if (result == 100) {
                   // 成功添加行程，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('行程添加成功！'))
+                       SnackBar(content: Text(AppLocalizations.of(context)!.text_612))
                   );
                 } else {
                   // 添加行程失败，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('添加行程失敗。'))
+                      SnackBar(content: Text(AppLocalizations.of(context)!.text_613))
                   );
                 }
               },
-              child: Text('添加到旅行'),
+              child: Text(AppLocalizations.of(context)!.text_614),
             ),
             TextButton(
               onPressed: () async {
@@ -667,21 +668,21 @@ String? routeArrivalStation;
                 if (result == -1) {
                   // 如果已经存在相同的记录，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('該行程已經存在。'))
+                       SnackBar(content: Text(AppLocalizations.of(context)!.text_611))
                   );
                 } else if (result == 100) {
                   // 成功添加行程，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('行程添加成功！'))
+                       SnackBar(content: Text(AppLocalizations.of(context)!.text_612))
                   );
                 } else {
                   // 添加行程失败，提示用户
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('添加行程失敗。'))
+                      SnackBar(content: Text(AppLocalizations.of(context)!.text_613))
                   );
                 }
               },
-              child: Text('添加到上班通勤'),
+              child: Text(AppLocalizations.of(context)!.text_615),
             ),
           ],
         );
@@ -698,7 +699,8 @@ class StationPickerDialog extends StatefulWidget {
   const StationPickerDialog({
     super.key,
     required this.stations,
-    this.title = '選擇站點',
+    // this.title = AppLocalizations.of(context)!.text_616,
+    this.title = "選擇站點",
     this.initialSelection,
   });
 
@@ -783,7 +785,7 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
       controller: _searchController,
       onChanged: _runFilter,
       decoration: InputDecoration(
-        hintText: '輸入站名搜尋...',
+        hintText: AppLocalizations.of(context)!.text_617,
         prefixIcon: const Icon(Icons.search, color: Colors.blue),
         suffixIcon: _searchController.text.isNotEmpty
             ? IconButton(
@@ -848,9 +850,9 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
   }
 
   Widget _buildEmptyState() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 40),
-      child: Text('找不到相關站點', style: TextStyle(color: Colors.grey)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Text(AppLocalizations.of(context)!.text_618, style: const TextStyle(color: Colors.grey)),
     );
   }
 
@@ -859,7 +861,7 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
     return [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: Text('取消', style: TextStyle(color: Colors.grey.shade600)),
+        child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.grey.shade600)),
       ),
       ElevatedButton(
         onPressed: _tempSelected == null
@@ -872,7 +874,7 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
-        child: const Text('確認選擇'),
+        child: Text(AppLocalizations.of(context)!.text_619),
       ),
     ];
   }

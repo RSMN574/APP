@@ -4,6 +4,8 @@
 <dict>
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>需要您的位置来显示附近的城市。</string>
+<key>NSCameraUsageDescription</key>
+<string>需要使用相機掃描台鐵與高鐵車票 QR Code。</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

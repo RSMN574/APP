@@ -27,12 +27,11 @@ class CityProvider with ChangeNotifier {
 }
 class AppProvider with ChangeNotifier {
   bool _isDarkTheme = false;
-  String _language = '繁體中文';
+  String _language = 'zh'; // ✅ 改用標準語系代碼作為預設值
 
   bool get isDarkTheme => _isDarkTheme;
   String get language => _language;
 
-  // 初始化，從本地讀取儲存的設定
   AppProvider() {
     _loadSettings();
   }
@@ -40,11 +39,10 @@ class AppProvider with ChangeNotifier {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _isDarkTheme = prefs.getBool('darkTheme') ?? false;
-    _language = prefs.getString('language') ?? '繁體中文';
-    notifyListeners(); // 通知所有頁面更新
+    _language = prefs.getString('language') ?? 'zh'; // ✅ 讀取 'zh' 或 'en'
+    notifyListeners();
   }
 
-  // 切換主題
   void toggleTheme(bool value) async {
     _isDarkTheme = value;
     final prefs = await SharedPreferences.getInstance();
@@ -52,7 +50,6 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // 切換語言
   void setLanguage(String value) async {
     _language = value;
     final prefs = await SharedPreferences.getInstance();
@@ -60,8 +57,16 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // 取得對應的 Locale 物件 (用於 MaterialApp)
-  Locale get locale => _language == 'English' ? const Locale('en') : const Locale('zh', 'TW');
+  // ✅ 修正判斷式：直接比對 'en' 代碼
+  Locale get locale => _language == 'en' ? const Locale('en') : const Locale('zh', 'TW');
+}class CityItem {
+  final String name;
+  final String id;
+
+  const CityItem({
+    required this.name,
+    required this.id,
+  });
 }
 class youbike  {
   final String name;
