@@ -58,36 +58,59 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          AppLocalizations.of(context)!.text_826,
-          style: const TextStyle(
-            color: textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        elevation: 0,  // 改為無陰影
         backgroundColor: Colors.white,
-        elevation: 2,
-        iconTheme: const IconThemeData(color: textPrimary),
+        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.directions_bus,  // 使用公車圖示
+                color: Color(0xFF1A73E8),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              AppLocalizations.of(context)!.text_826,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1A73E8),  // 改為藍色
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            // Tab(text: '首頁'),
             Tab(text: AppLocalizations.of(context)!.text_145),
             Tab(text: AppLocalizations.of(context)!.text_146),
             Tab(text: AppLocalizations.of(context)!.text_147),
           ],
-          labelColor: primaryColor,
-          unselectedLabelColor: textSecondary,
-          indicatorColor: primaryColor,
+          labelColor: const Color(0xFF1A73E8),  // 改為精緻藍
+          unselectedLabelColor: Colors.grey.shade600,
+          indicatorColor: const Color(0xFF1A73E8),
         ),
         actions: [
           PopupMenuButton<String>(
-            iconColor: textPrimary,
+            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF1A73E8)),
+            iconColor: const Color(0xFF1A73E8),
             itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-              SelectView(
-                icon: Icons.train,
-                text: AppLocalizations.of(context)!.text_827,
-                id: 'line',
+              PopupMenuItem<String>(
+                value: 'line',
+                child: Row(
+                  children: [
+                    const Icon(Icons.train, color: Color(0xFF1A73E8), size: 20),
+                    const SizedBox(width: 12),
+                    Text(AppLocalizations.of(context)!.text_827),
+                  ],
+                ),
               ),
             ],
             onSelected: (String action) async {
@@ -98,35 +121,49 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                     MaterialPageRoute(
                       builder: (context) => Scaffold(
                         appBar: AppBar(
-                          elevation: 3,
-                          backgroundColor: primaryColor,
-                          title: Text(
-                            AppLocalizations.of(context)!.text_827,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                          elevation: 0,  // 內頁也改成無陰影
+                          backgroundColor: Colors.white,
+                          title: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.train,
+                                  color: Color(0xFF1A73E8),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                AppLocalizations.of(context)!.text_827,
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A73E8),
+                                ),
+                              ),
+                            ],
                           ),
                           centerTitle: true,
+                          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
                         ),
                         body: FutureBuilder(
-                          future:
-                              mysqlSelect("SELECT * FROM Train.Train_Line;"),
-                          builder:
-                              (BuildContext context, AsyncSnapshot snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
+                          future: mysqlSelect("SELECT * FROM Train.Train_Line;"),
+                          builder: (BuildContext context, AsyncSnapshot snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
                               return Center(
                                 child: CircularProgressIndicator(
-                                    color: primaryColor),
+                                  color: const Color(0xFF1A73E8),
+                                ),
                               );
                             } else if (snapshot.hasError) {
                               return Center(
                                 child: Text(
                                   "加載失敗: ${snapshot.error}",
-                                  style: const TextStyle(
-                                      color: Colors.red, fontSize: 16),
+                                  style: const TextStyle(color: Colors.red, fontSize: 16),
                                 ),
                               );
                             } else if (!snapshot.hasData ||
@@ -135,7 +172,9 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                                 child: Text(
                                   AppLocalizations.of(context)!.text_828,
                                   style: const TextStyle(
-                                      color: textSecondary, fontSize: 16),
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
                                 ),
                               );
                             } else {
@@ -147,21 +186,20 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                                   itemBuilder: (context, index) {
                                     var line = lineData[index];
                                     var lineNameZh = line['LineNameZh'] ?? AppLocalizations.of(context)!.text_321;
-                                    var lineNameEn =
-                                        line['LineNameEn'] ?? 'Unknown';
-                                    var sectionNameZh =
-                                        line['LineSectionNameZh'] ?? AppLocalizations.of(context)!.text_829;
+                                    var lineNameEn = line['LineNameEn'] ?? 'Unknown';
+                                    var sectionNameZh = line['LineSectionNameZh'] ?? AppLocalizations.of(context)!.text_829;
 
                                     return Container(
                                       margin: const EdgeInsets.symmetric(
-                                          vertical: 8, horizontal: 16),
+                                        vertical: 8,
+                                        horizontal: 16,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.05),
+                                            color: Colors.black.withOpacity(0.05),
                                             blurRadius: 8,
                                             offset: const Offset(0, 4),
                                           ),

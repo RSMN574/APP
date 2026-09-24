@@ -317,7 +317,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
         ),
     DraggableScrollableSheet(
     initialChildSize: 1,
-    minChildSize: 0.2,
+    minChildSize: 0.3,
     maxChildSize: 1.0,
     builder: (BuildContext context, ScrollController scrollController) {
     return Scaffold(

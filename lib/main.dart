@@ -7,6 +7,7 @@ import 'package:com.rsmn574.app/pages/traffic.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
+import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -144,9 +145,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
     super.initState();
 
 
-    // 在应用启动时获取定位信息
 
-    getLocation(context);
   }
 
   @override
@@ -236,7 +235,36 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
     AppLocalizations.of(context)!.text_8, AppLocalizations.of(context)!.text_9, AppLocalizations.of(context)!.text_6, AppLocalizations.of(context)!.text_10, AppLocalizations.of(context)!.text_11, AppLocalizations.of(context)!.text_12, AppLocalizations.of(context)!.text_92,
     AppLocalizations.of(context)!.text_13, AppLocalizations.of(context)!.text_94, AppLocalizations.of(context)!.text_96, AppLocalizations.of(context)!.text_98, AppLocalizations.of(context)!.text_100, AppLocalizations.of(context)!.text_101, AppLocalizations.of(context)!.text_102, AppLocalizations.of(context)!.text_104,
   ];
+  Future<String?> fetchAndUpdateLocation(BuildContext context) async {
+    // 1. 取得定位
+    final pos = await LocationService.getCurrentPosition();
+    if (pos == null) {
+      if (!context.mounted) return null;
+      return AppLocalizations.of(context)!.text_916; // 權限或定位服務未開啟
+    }
 
+    if (!context.mounted) return null;
+    Provider.of<LocationProvider>(context, listen: false)
+        .setLocation(pos.latitude, pos.longitude);
+
+    // 2. 查詢行政區
+    final districtInfo = await LocationService.getDistrictFromTDX(
+      latitude: pos.latitude,
+      longitude: pos.longitude,
+    );
+
+    if (districtInfo == null) {
+      if (!context.mounted) return null;
+      return AppLocalizations.of(context)!.text_919;
+    }
+
+    String city = cityNameConverter(districtInfo["city"] ?? "");
+
+    if (!context.mounted) return null;
+    Provider.of<CityProvider>(context, listen: false).setCity(city);
+
+    return city;
+  }
   // 初始化页面列表
   final List<Widget> _pages = [];
 
@@ -246,7 +274,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
 
     // 延迟获取定位信息
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      getLocation(context); // 异步获取定位信息
+      fetchAndUpdateLocation(context);
     });
     _navIconController = AnimationController(
       vsync: this,
@@ -319,110 +347,104 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
             ),
             child: Material(
               color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  // 可以添加點擊效果
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: cityProvider.city,
-                      hint: Row(
-                        children: [
-                          const Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF1A73E8)),
-                          const SizedBox(width: 8),
-                          Text(
-                            AppLocalizations.of(context)!.text_221,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: cityProvider.city,
+                    hint: Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF1A73E8)),
+                        const SizedBox(width: 8),
+                        Text(
+                          AppLocalizations.of(context)!.text_221,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
-                      ),
-                      icon: const Icon(Icons.arrow_drop_down_rounded, size: 22, color: Color(0xFF1A73E8)),
-                      dropdownColor: Colors.white,
-                      elevation: 8,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      menuMaxHeight: 300,
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          cityProvider.setCity(newValue);
-                        }
-                      },
-                      selectedItemBuilder: (BuildContext context) {
-                        return regions.map<Widget>((String region) {
-                          return Container(
-                            alignment: Alignment.centerLeft,
-                            child: Row(
-                              children: [
-                                const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF1A73E8)),
-                                const SizedBox(width: 6),
-                                Text(
-                                  region,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1A73E8),
-                                  ),
+                        ),
+                      ],
+                    ),
+                    icon: const Icon(Icons.arrow_drop_down_rounded, size: 22, color: Color(0xFF1A73E8)),
+                    dropdownColor: Colors.white,
+                    elevation: 8,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    menuMaxHeight: 300,
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        cityProvider.setCity(newValue);
+                      }
+                    },
+                    selectedItemBuilder: (BuildContext context) {
+                      return regions.map<Widget>((String region) {
+                        return Container(
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF1A73E8)),
+                              const SizedBox(width: 6),
+                              Text(
+                                region,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A73E8),
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList();
-                      },
-                      items: regions.map<DropdownMenuItem<String>>((String region) {
-                        final isSelected = cityProvider.city == region;
-                        return DropdownMenuItem<String>(
-                          value: region,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    region,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                      color: isSelected ? const Color(0xFF1A73E8) : Colors.black87,
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_rounded,
-                                    size: 16,
-                                    color: Color(0xFF1A73E8),
-                                  ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         );
-                      }).toList(),
-                    ),
+                      }).toList();
+                    },
+                    items: regions.map<DropdownMenuItem<String>>((String region) {
+                      final isSelected = cityProvider.city == region;
+                      return DropdownMenuItem<String>(
+                        value: region,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  region,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                    color: isSelected ? const Color(0xFF1A73E8) : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_rounded,
+                                  size: 16,
+                                  color: Color(0xFF1A73E8),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
               ),

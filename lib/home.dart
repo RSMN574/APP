@@ -1,131 +1,116 @@
-import 'dart:async';
-import 'dart:convert';
-import 'package:com.rsmn574.app/utils/MRTColor.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
-import 'package:com.rsmn574.app/widget/WeatherCard.dart' hide WeatherData;
+import 'package:com.rsmn574.app/widget/WeatherCard.dart';
 import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
 import 'Const/regularClass.dart';
 import 'Const/regularConst.dart';
-import 'database/bike/getBike.dart';
-import 'database/bus/getBusTime.dart';
-import 'database/getData.dart';
-import 'database/getWeather.dart';
-import 'firebase/placeAPI.dart';
+import 'models/bike.dart';
+import 'state/bike_provider.dart';
 
 import 'l10n/app_localizations.dart';
-import 'models/WeatherData.dart';
 import 'widget/transportGrid.dart';
 
-final ClusterManager bikeCluster = ClusterManager(
-  clusterManagerId: const ClusterManagerId("bike"),
+const ClusterManager _bikeCluster = ClusterManager(
+  clusterManagerId: ClusterManagerId("bike"),
 );
-ValueNotifier<List> youBikeStations = ValueNotifier<List>([]);
 
-class Home extends StatefulWidget {
+class Home extends StatelessWidget {
+  const Home({super.key});
+
   @override
-  _HomeState createState() => _HomeState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BikeProvider(),
+      child: const _HomeContent(),
+    );
+  }
 }
 
-// EventBus eventBus = EventBus(); // 全局事件總線
-
-class _HomeState extends State<Home>
-    with AutomaticKeepAliveClientMixin<Home> {
-  DateTime _selectedTime = DateTime.now().add(Duration(minutes: 1));
-  final TextEditingController _searchController = TextEditingController();
-  Map<String, dynamic>? _selectedStation; // null 代表沒選任何站點
-
-  void _clearSearch() {
-    setState(() {
-      _searchController.clear();
-      _selectedStation = null;
-    });
-  }
-
-
-  final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH時mm分');
-
+class _HomeContent extends StatefulWidget {
+  const _HomeContent();
 
   @override
-  bool get wantKeepAlive => true; // 返回 true，以保持状态
+  State<_HomeContent> createState() => _HomeState();
+}
+
+class _HomeState extends State<_HomeContent>
+    with AutomaticKeepAliveClientMixin<_HomeContent> {
+  @override
+  bool get wantKeepAlive => true;
 
   final FocusNode _searchFocusNode = FocusNode();
-  double _bottomSheetHeightMin = 0.2;
+  final double _bottomSheetHeightMin = 0.2;
   GoogleMapController? _mapController;
   PersistentBottomSheetController? _bottomSheetController;
+  BitmapDescriptor? _bikeMarkerIcon;
   static const LatLng _initialPosition = LatLng(25.0330, 121.5654);
   LatLng _currentPosition = _initialPosition;
-  final ValueNotifier<List> dataNotifier = ValueNotifier<List>([]);
-
 
   // 获取当前位置
   void _getCurrentLocation() async {
     try {
-      // 使用高精度设置
       LocationSettings locationSettings = const LocationSettings(
         accuracy: LocationAccuracy.high,
       );
 
-      // 获取当前位置
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: locationSettings,
       );
 
+      if (!mounted) return;
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
-        print('获取到的当前位置: $_currentPosition');
       });
 
-      // 更新地图的摄像机位置到当前定位
       _mapController?.animateCamera(CameraUpdate.newCameraPosition(
         CameraPosition(
           target: _currentPosition,
-          zoom: 15.0, // 设置合适的缩放级别
+          zoom: 15.0,
         ),
       ));
-    } catch (e) {
-      print(AppLocalizations.of(context)!.text_129);
+    } catch (_) {
+      if (mounted) {
+        debugPrint(AppLocalizations.of(context)!.text_129);
+      }
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // 初始时，确保焦点在搜索框外
     _searchFocusNode.unfocus();
-// 地图创建时调用获取当前定位
     _getCurrentLocation();
   }
 
-  bool _showMainContent = true; // 預設顯示主內容
+  @override
+  void dispose() {
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  bool _showMainContent = true;
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final PageStorageBucket _bucket = PageStorageBucket(); // 用於存儲頁面狀態
 
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
-    const double _bottomSheetHeightMin = 0.3; // 這個變數應該來自你的程式碼
+    const double mainSheetMin = 0.3;
     final mapHeight = screenHeight -
-        (screenHeight * _bottomSheetHeightMin) -
+        (screenHeight * mainSheetMin) -
         appBarHeight -
         bottomNavBarHeight;
 
-    return WillPopScope(
-      onWillPop: () async {
-
-        return true; // 在索引为0时允许默认返回导航
-      },
+    return PopScope(
+      canPop: true,
       child: Scaffold(
         body: Stack(
           children: [
@@ -136,99 +121,99 @@ class _HomeState extends State<Home>
                   onMapCreated: (GoogleMapController controller) {
                     _mapController = controller;
                   },
-                  // onCameraMove: (CameraPosition position) {},
-                  onCameraIdle: () {}, clusterManagers: {
-                  bikeCluster,
-                },
+                  onCameraIdle: () {},
+                  clusterManagers: {
+                    _bikeCluster,
+                  },
                 ),
               ),
             ),
-            _buildMainContent(context)
+            if (_showMainContent) _buildMainContent(context),
           ],
         ),
       ),
     );
   }
 
-
-
   Future<void> _fetchData() async {
-    youBikeStations.value =
-        await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
-
-    _loadBikeMarkers(); // 更新標記
+    await context.read<BikeProvider>().loadStations();
+    if (mounted && _bottomSheetController != null) {
+      await _loadBikeMarkers();
+    }
   }
-
-
 
   Future<void> _loadBikeMarkers() async {
-    // 延迟执行以确保在构建完成后访问 context
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final provider = Provider.of<MarkerProvider>(context, listen: false);
+    final provider = Provider.of<MarkerProvider>(context, listen: false);
+    final customIcon = _bikeMarkerIcon ??= await BitmapDescriptor.asset(
+      const ImageConfiguration(size: Size(8, 8)),
+      'assets/img/ubike_icon.png',
+    );
 
-      BitmapDescriptor customIcon = await BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(size: Size(8, 8)), // 调整大小
-        'assets/img/ubike_icon.png',
-      );
+    if (!mounted || _bottomSheetController == null) return;
 
-      Set<Marker> markerCache = {};
-      List<youbike> clusterItems = [];
+    final markerCache = <Marker>{};
+    final clusterItems = <youbike>[];
 
-      for (var station in youBikeStations.value) {
-        final lat = json.decode(station["StationPosition"])["PositionLat"];
-        final lon = json.decode(station["StationPosition"])["PositionLon"];
-        final stationId = station["StationUID"];
-        final stationName = json.decode(station["StationName"])["Zh_tw"];
-
-        final marker = Marker(
-            clusterManagerId: bikeCluster.clusterManagerId,
-          markerId: MarkerId(stationId),
-          icon: customIcon,
-          position: LatLng(lat, lon),
-          infoWindow: InfoWindow(
-            title: stationName,
-            snippet: "Capacity: ${station["BikesCapacity"]}",
-          ),
-          onTap: () {
-            _updateSelectedStation(station); // 這個函數用來記錄目前選中的站點，並打開下方的資訊面板
-          },
-        );
-        markerCache.add(marker);
-
-        clusterItems.add(youbike(stationId, LatLng(lat, lon)));
+    for (final station in context.read<BikeProvider>().stations) {
+      final lat = station.stationPosition.positionLat;
+      final lon = station.stationPosition.positionLon;
+      if (lat == 0 || lon == 0 || lat.abs() > 90 || lon.abs() > 180) {
+        continue;
       }
+      final stationId = station.stationUID;
+      final stationName = station.stationName.zhTw;
 
-      provider.setMarkers(markerCache);
-      provider.setItems(clusterItems);
-    });
+      final marker = Marker(
+        clusterManagerId: _bikeCluster.clusterManagerId,
+        markerId: MarkerId(stationId),
+        icon: customIcon,
+        position: LatLng(lat, lon),
+        infoWindow: InfoWindow(
+          title: stationName,
+          snippet: "Capacity: ${station.bikesCapacity}",
+        ),
+        onTap: () => _updateSelectedStation(station),
+      );
+      markerCache.add(marker);
+
+      clusterItems.add(youbike(stationId, LatLng(lat, lon)));
+    }
+
+    provider.setMarkers(markerCache);
+    provider.setItems(clusterItems);
   }
 
-//////////////////////////////////////////////////////
   Future<void> _handleClick(String type) async {
-    if (type == "bike") {
-      setState(() {
-        _showMainContent = false; // 隱藏主內容
-      });
-      _fetchData();
-      // 显示第二个 BottomSheet
-      _bottomSheetController = showBottomSheet(
-        context: context,
-        builder: (context) {
-          return _buildBikeContent(context);
-        },
-      );
+    if (type != 'bike') return;
+    if (_bottomSheetController != null) return;
 
-      // 监听 BottomSheet 是否关闭
-      _bottomSheetController!.closed.then((_) {
-        // 这里可以处理 BottomSheet 关闭后的逻辑
-        // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-        Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-        setState(() {
-          _showMainContent = true; // 主內容
-          _selectedStation = null;
-        });
+    setState(() => _showMainContent = false);
+    _openBikeBottomSheet();
+    await _fetchData();
+  }
+
+  void _openBikeBottomSheet() {
+    final bikeProvider = context.read<BikeProvider>();
+    final controller = showBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent, // 讓 Container 自己控制背景
+      builder: (_) => ChangeNotifierProvider.value(
+        value: bikeProvider,
+        child: Builder(builder: _buildBikeContent),
+      ),
+    );
+    _bottomSheetController = controller;
+
+    controller.closed.whenComplete(() {
+      if (!mounted || !identical(_bottomSheetController, controller)) return;
+      _bottomSheetController = null;
+      Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+      Provider.of<MarkerProvider>(context, listen: false).setItems([]);
+      context.read<BikeProvider>().clearSelection();
+      setState(() {
+        _showMainContent = true;
       });
-    }
+    });
   }
 
   Widget _buildMainContent(BuildContext context) {
@@ -245,146 +230,162 @@ class _HomeState extends State<Home>
               height: 800,
               decoration: BoxDecoration(
                 color: AppThemes.getSurface(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), // LMG: 增加圓角
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
               ),
               child: SingleChildScrollView(
                 controller: scrollController,
                 child: Column(
                   children: [
-                    // WeatherWidget(),
                     TransportGrid(onClick: _handleClick),
                     const ImgSwiper(),
-                    // 插入天氣卡片
-                    WeatherAlertCard(cityName: AppLocalizations.of(context)!.text_6,),
-
+                    const WeatherAlertCard(
+                      cityName: '台中市',
+                    ),
                   ],
                 ),
               ),
             ),
-            // Positioned(
-            //   top: 0,
-            //   left: 0,
-            //   right: 0,
-            //   child: _buildSearchBar(),
-            // ),
           ],
         );
       },
     );
   }
 
+  void _updateSelectedStation(YouBikeStation? station) {
+    final bike = context.read<BikeProvider>();
+    if (station != null) {
+      _mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: LatLng(station.stationPosition.positionLat,
+                station.stationPosition.positionLon),
+            zoom: 23.0,
+          ),
+        ),
+      );
 
-
-
-  Future<Map<String, dynamic>?>? _bikeAvailabilityFuture;
-
-  void _updateSelectedStation(Map<String, dynamic> station) {
-   if(station.isNotEmpty){
-     _mapController?.animateCamera(
-       CameraUpdate.newCameraPosition(
-         CameraPosition(
-           target: LatLng(json.decode(station["StationPosition"])["PositionLat"], json.decode(station["StationPosition"])["PositionLon"]),
-           zoom: 23.0, // 可根據需求調整放大倍率
-         ),
-       ),
-     );
-
-     setState(() {
-       _selectedStation = station;
-       _bikeAvailabilityFuture =
-           getBikeAvailability("Taichung", station["StationID"]);
-     });
-   }else{
-     setState(() {
-       _selectedStation = null;
-       
-     });
-   }
-    // 這裡可以控制 bottom sheet 彈出
-    _bottomSheetController = showBottomSheet(
-        context: context,
-        builder: (context) {
-          return _buildBikeContent(context);
-        });
-    // 监听 BottomSheet 是否关闭
-    _bottomSheetController!.closed.then((_) {
-      // 这里可以处理 BottomSheet 关闭后的逻辑
-      // 获取 MarkerProvider 的实例，并调用 setMarker 方法
-      Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
-      setState(() {
-        _showMainContent = true; // 主內容
-      });
-    });
+      bike.selectStation(station);
+    } else {
+      bike.clearSelection();
+    }
+    final refreshBottomSheet = _bottomSheetController?.setState;
+    if (refreshBottomSheet != null) {
+      refreshBottomSheet(() {});
+    }
   }
 
   Widget _buildBikeContent(BuildContext context) {
-    return   Container(
-      decoration: BoxDecoration(
+    final bike = context.watch<BikeProvider>();
+    return Container(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            spreadRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)), // LMG: 圓角
       ),
-      child: _selectedStation == null
-          // ? _buildPlaceholder(AppLocalizations.of(context)!.text_130, Icons.location_off_outlined)
-      ?BikeDefaultContent(onStationSelected:_updateSelectedStation )
+      child: bike.selectedStation == null
+          ? bike.isLoadingStations
+          ? _buildLoadingState(context)
+          : bike.stationError != null
+          ? _buildStationLoadError()
+          : BikeDefaultContent(
+        stations: bike.stations,
+        onStationSelected: _updateSelectedStation,
+      )
           : FutureBuilder<Map<String, dynamic>?>(
-        future: _bikeAvailabilityFuture,
+        future: bike.availabilityFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoadingState(context);
           }
 
           if (snapshot.hasError || !snapshot.hasData) {
-            return _buildPlaceholder(
-              snapshot.hasError ? AppLocalizations.of(context)!.text_131 : AppLocalizations.of(context)!.text_132,
+            return _buildAvailabilityError(
+              snapshot.hasError
+                  ? AppLocalizations.of(context)!.text_131
+                  : AppLocalizations.of(context)!.text_132,
               snapshot.hasError
                   ? Icons.error_outline
                   : Icons.info_outline,
             );
           }
 
-          final stationName =
-          json.decode(_selectedStation!["StationName"])["Zh_tw"];
+          final stationName = bike.selectedStation!.stationName.zhTw;
           final data = snapshot.data!;
 
           return _buildContentSection(context, stationName, data);
         },
       ),
     );
-
-
-
   }
 
-  /// Loading 狀態 widget
+  Widget _buildAvailabilityError(String text, IconData icon) {
+    return SizedBox(
+      height: 300,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 40, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                final station = context.read<BikeProvider>().selectedStation;
+                if (station != null) _updateSelectedStation(station);
+              },
+              child: const Text('重試'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStationLoadError() {
+    return SizedBox(
+      height: 300,
+      child: Center(
+        child: TextButton(
+          onPressed: () async {
+            await context.read<BikeProvider>().loadStations(force: true);
+            if (mounted && _bottomSheetController != null) {
+              await _loadBikeMarkers();
+            }
+          },
+          child: const Text('無法載入站點，點此重試'),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLoadingState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Center( child:
           LoadingAnimationWidget.stretchedDots(
-            color: Colors.black,
+            color: const Color(0xFF1A73E8), // LMG: 使用主題色
             size: 40,
-          ),
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_133,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContentSection(BuildContext context, String stationName, Map<String, dynamic> data) {
+  Widget _buildContentSection(
+      BuildContext context, String stationName, Map<String, dynamic> data) {
     final rentDetails = data["AvailableRentBikesDetail"] ??
         {"GeneralBikes": 0, "ElectricBikes": 0};
 
@@ -393,63 +394,58 @@ class _HomeState extends State<Home>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 站點標題 (已新增關閉按鈕)
+          // 站點標題
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 5),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+                bottom: BorderSide(
+                    color: Colors.grey.withValues(alpha: 0.15), width: 1),
               ),
             ),
             child: Row(
               children: [
-                // 左側圖標和標題
                 Container(
-                  padding: const EdgeInsets.all(5),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(5),
+                    color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.pin_drop,
-                    color: Theme.of(context).primaryColor,
-                    size: 16,
+                    color: Color(0xFF1A73E8),
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     stationName,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800],
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[850],
+                      fontSize: 16,
                     ),
                   ),
                 ),
-
-                // 新增的關閉按鈕
                 IconButton(
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(), // 移除默認的最小點擊區域
+                  constraints: const BoxConstraints(),
                   icon: Icon(
-                    Icons.close,
-                    size: 20,
+                    Icons.close_rounded,
+                    size: 22,
                     color: Colors.grey[500],
                   ),
                   onPressed: () {
-                    // 處理關閉邏輯，例如：
-                    _updateSelectedStation({});
-                    // 或者調用回調函數：
-                    // widget.onClose?.call();
+                    _updateSelectedStation(null);
                   },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          // 主要數據卡片 (保持不變)
+          // 主要數據卡片
           _buildCompactDataGrid(
             context,
             rentBikes: data["AvailableRentBikes"]?.toString() ?? '0',
@@ -463,52 +459,43 @@ class _HomeState extends State<Home>
   }
 
   Widget _buildCompactDataGrid(
-    BuildContext context, {
-    required String rentBikes,
-    required String returnSpots,
-    required String generalBikes,
-    required String electricBikes,
-  }) {
+      BuildContext context, {
+        required String rentBikes,
+        required String returnSpots,
+        required String generalBikes,
+        required String electricBikes,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 第一行：主要指標
         Row(
           children: [
             _buildMetricTile(
               context,
               icon: Icons.pedal_bike,
-              color: Colors.green[600]!,
+              color: const Color(0xFF34C759),
               title: AppLocalizations.of(context)!.text_134,
               value: rentBikes,
               widthFactor: 0.5,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             _buildMetricTile(
               context,
               icon: Icons.local_parking,
-              color: Colors.blue[600]!,
+              color: const Color(0xFF1A73E8),
               title: AppLocalizations.of(context)!.text_135,
               value: returnSpots,
               widthFactor: 0.5,
             ),
           ],
         ),
-        const SizedBox(height: 10),
-
-        // 第二行：車型分布
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 5,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,12 +503,12 @@ class _HomeState extends State<Home>
               Text(
                 AppLocalizations.of(context)!.text_136,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
                   color: Colors.grey[700],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               _buildBikeTypeRow(
                 context,
                 general: generalBikes,
@@ -535,26 +522,20 @@ class _HomeState extends State<Home>
   }
 
   Widget _buildMetricTile(
-    BuildContext context, {
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String value,
-    double widthFactor = 1.0,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required Color color,
+        required String title,
+        required String value,
+        double widthFactor = 1.0,
+      }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.1),
-              blurRadius: 6,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,31 +543,32 @@ class _HomeState extends State<Home>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
+                    shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: color, size: 14),
+                  child: Icon(icon, color: color, size: 16),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 8),
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               value,
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
                 color: color,
+                height: 1.1,
               ),
             ),
           ],
@@ -606,66 +588,61 @@ class _HomeState extends State<Home>
           value: general,
           color: Colors.grey[700]!,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         _buildTypeChip(
           context,
           icon: Icons.electric_bike,
           label: AppLocalizations.of(context)!.text_138,
           value: electric,
-          color: Colors.blue[600]!,
+          color: const Color(0xFF1A73E8),
         ),
       ],
     );
   }
 
   Widget _buildTypeChip(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        required String value,
+        required Color color,
+      }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 3,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(5),
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 12, color: color),
+              child: Icon(icon, size: 16, color: color),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[600],
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: color,
                   ),
                 ),
@@ -676,412 +653,49 @@ class _HomeState extends State<Home>
       ),
     );
   }
-  // 更灵活的模糊搜索版本（包含/开头/结尾匹配）
-  List<Map<String, dynamic>> fuzzySearchStations(String keyword) {
-    if (keyword.isEmpty) return [];
-
-    final keywordLower = keyword.toLowerCase();
-
-    return youBikeStations.value.where((station) {
-      try {
-        final stationName = json.decode(station["StationName"])["Zh_tw"].toString().toLowerCase();
-
-        // 多种匹配方式
-        return stationName.contains(keywordLower) ||  // 包含
-            stationName.startsWith(keywordLower) || // 开头
-            stationName.endsWith(keywordLower);    // 结尾
-      } catch (e) {
-        return false;
-      }
-    }).map((e) => e as Map<String, dynamic>).toList();
-  }
-  Widget _buildPlaceholder(String text, IconData icon) {
-    return Container(
-      height: 300,
-      color: bgColor,
-      child: Column(
-        children: [
-          // 搜尋框
-          Container(
-            decoration: ShapeDecoration(
-              color: Colors.white.withOpacity(0.95),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(40),
-              ),
-              shadows: const [
-                BoxShadow(
-                  color: Color(0x19000000),
-                  blurRadius: 25,
-                  offset: Offset(0, 0),
-                )
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (searchText) {
-                setState(() {}); // 觸發UI更新
-              },
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.text_139,
-                hintStyle: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 8),
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: Colors.grey[700],
-                    size: 24,
-                  ),
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                  icon: Icon(
-                    Icons.clear_rounded,
-                    color: Colors.grey[700],
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {});
-                  },
-                )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 20,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.transparent,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // 動態顯示搜尋結果或預設內容
-          Expanded(
-            child: _searchController.text.isEmpty
-                ? BikeDefaultContent(onStationSelected:_updateSelectedStation)// 顯示預設內容
-                : _buildSearchResults(), // 顯示搜尋結果
-          ),
-        ],
-      ),
-    );
-  }
-
-// 搜尋結果列表
-  Widget _buildSearchResults() {
-    final List<Map<String, dynamic>> results = fuzzySearchStations(_searchController.text);
-
-    if (results.isEmpty) {
-      return Center(
-        child: Text(
-          '找不到符合「${_searchController.text}」的站點',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8),
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final station = results[index];
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 12,
-                spreadRadius: 2,
-                offset: const Offset(0, 4),
-              )
-            ],
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.white.withOpacity(0.95),
-                Colors.grey.shade50,
-              ],
-            ),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              // 点击处理逻辑
-            },
-            splashColor: Colors.blue.withOpacity(0.1),
-            highlightColor: Colors.transparent,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 图标区域
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.electric_bike_rounded,
-                      color: Colors.red[600],
-                      size: 28,
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // 文字信息区域
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          json.decode(station["StationName"])["Zh_tw"],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          json.decode(station["StationAddress"])["Zh_tw"],
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 车辆数量指示器
-                  // Column(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   crossAxisAlignment: CrossAxisAlignment.end,
-                  //   children: [
-                  //     Text(
-                  //       '可借',
-                  //       style: TextStyle(
-                  //         fontSize: 12,
-                  //         color: Colors.grey[500],
-                  //       ),
-                  //     ),
-                  //     // const SizedBox(height: 4),
-                  //     // Container(
-                  //     //   padding: const EdgeInsets.symmetric(
-                  //     //     horizontal: 12,
-                  //     //     vertical: 6,
-                  //     //   ),
-                  //     //   decoration: BoxDecoration(
-                  //     //     color: (station["AvailableRentBikes"] ?? 0) > 0
-                  //     //         ? Colors.green.withOpacity(0.15)
-                  //     //         : Colors.red.withOpacity(0.15),
-                  //     //     borderRadius: BorderRadius.circular(8),
-                  //     //     border: Border.all(
-                  //     //       color: (station["AvailableRentBikes"] ?? 0) > 0
-                  //     //           ? Colors.green.withOpacity(0.3)
-                  //     //           : Colors.red.withOpacity(0.3),
-                  //     //       width: 1,
-                  //     //     ),
-                  //     //   ),
-                  //     //   child: Text(
-                  //     //     '${station["AvailableRentBikes"] ?? 0}',
-                  //     //     style: TextStyle(
-                  //     //       fontSize: 16,
-                  //     //       fontWeight: FontWeight.w700,
-                  //     //       color: (station["AvailableRentBikes"] ?? 0) > 0
-                  //     //           ? Colors.green[800]
-                  //     //           : Colors.red[800],
-                  //     //     ),
-                  //     //   ),
-                  //     // ),
-                  //   ],
-                  // ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-
-
 }
 
-
-class HomeProvider extends ChangeNotifier {
-  int _currentIndex = 0;
-  bool _showMainContent = true;
-
-  int get currentIndex => _currentIndex;
-  bool get showMainContent => _showMainContent;
-
-  void setIndex(int index) {
-    if (_currentIndex != index) {
-      _currentIndex = index;
-      notifyListeners();
-    }
-  }
-
-  void setShowMainContent(bool show) {
-    if (_showMainContent != show) {
-      _showMainContent = show;
-      notifyListeners();
-    }
-  }
-}
-class BikeProvider extends ChangeNotifier {
-  List<Map<String, dynamic>> _stations = [];
-  Map<String, dynamic>? _selectedStation;
-  Map<String, dynamic>? _availabilityData;
-  bool _isLoading = false;
-
-  List<Map<String, dynamic>> get stations => _stations;
-  Map<String, dynamic>? get selectedStation => _selectedStation;
-  Map<String, dynamic>? get availabilityData => _availabilityData;
-  bool get isLoading => _isLoading;
-
-  // 加載站點列表
-  Future<void> loadStations() async {
-    try {
-      _stations = await mysqlSelect("SELECT * FROM Bike.Bike_taichung_Station;");
-      notifyListeners();
-    } catch (e) {
-      // 處理錯誤
-      // print(AppLocalizations.of(context)!.text_141);
-    }
-  }
-
-  // 選中站點
-  void selectStation(Map<String, dynamic> station) {
-    _selectedStation = station;
-    _loadAvailability(station['StationID']);
-    notifyListeners();
-  }
-
-  void clearSelectedStation() {
-    _selectedStation = null;
-    _availabilityData = null;
-    notifyListeners();
-  }
-
-  // 加載站點可用性
-  Future<void> _loadAvailability(String stationId) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      _availabilityData = await getBikeAvailability('Taichung', stationId);
-    } catch (e) {
-      _availabilityData = null;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-}
-class BikeMarkerManager {
-  static BitmapDescriptor? _customIcon;
-  static bool _isInitialized = false;
-
-  static Future<void> init() async {
-    if (_isInitialized) return;
-    _customIcon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(8, 8)),
-      'assets/img/ubike_icon.png',
-    );
-    _isInitialized = true;
-  }
-
-  static Set<Marker> buildMarkers(List<Map<String, dynamic>> stations, Function(Map<String, dynamic>) onTap) {
-    final markers = <Marker>{};
-    for (var station in stations) {
-      final lat = json.decode(station["StationPosition"])["PositionLat"];
-      final lon = json.decode(station["StationPosition"])["PositionLon"];
-      final stationId = station["StationUID"];
-      final stationName = json.decode(station["StationName"])["Zh_tw"];
-
-      markers.add(
-        Marker(
-          markerId: MarkerId(stationId),
-          icon: _customIcon!,
-          position: LatLng(lat, lon),
-          infoWindow: InfoWindow(
-            title: stationName,
-            snippet: "Capacity: ${station["BikesCapacity"]}",
-          ),
-          onTap: () => onTap(station),
-        ),
-      );
-    }
-    return markers;
-  }
-
-  static List<youbike> buildClusterItems(List<Map<String, dynamic>> stations) {
-    return stations.map((station) {
-      final lat = json.decode(station["StationPosition"])["PositionLat"];
-      final lon = json.decode(station["StationPosition"])["PositionLon"];
-      return youbike(station["StationUID"], LatLng(lat, lon));
-    }).toList();
-  }
-}
 class BikeDefaultContent extends StatefulWidget {
-  final Function(Map<String, dynamic>) onStationSelected; // 新增回調
-
   const BikeDefaultContent({
     super.key,
-    required this.onStationSelected, // 必傳參數
+    required this.stations,
+    required this.onStationSelected,
   });
+
+  final List<YouBikeStation> stations;
+  final ValueChanged<YouBikeStation> onStationSelected;
+
   @override
   State<BikeDefaultContent> createState() => _BikeState();
 }
 
 class _BikeState extends State<BikeDefaultContent> {
-  TextEditingController _searchController = TextEditingController();
-  Map<String, dynamic>? _selectedStation;
+  final TextEditingController _searchController = TextEditingController();
   final List<String> _searchHistory = [];
   static const int _maxHistoryCount = 5;
 
   void _clearSearch() {
     setState(() {
       _searchController.clear();
-      _selectedStation = null;
     });
   }
 
-  List<Map<String, dynamic>> fuzzySearchStations(String keyword) {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<YouBikeStation> fuzzySearchStations(String keyword) {
     if (keyword.isEmpty) return [];
-    _addToSearchHistory(keyword);
     final keywordLower = keyword.toLowerCase();
 
-    return youBikeStations.value.where((station) {
-      try {
-        final stationName = json.decode(station["StationName"])["Zh_tw"].toString().toLowerCase();
-        return stationName.contains(keywordLower) ||
-            stationName.startsWith(keywordLower) ||
-            stationName.endsWith(keywordLower);
-      } catch (e) {
-        return false;
-      }
-    }).map((e) => e as Map<String, dynamic>).toList();
+    return widget.stations.where((station) {
+      final stationName = station.stationName.zhTw.toLowerCase();
+      return stationName.contains(keywordLower) ||
+          stationName.startsWith(keywordLower) ||
+          stationName.endsWith(keywordLower);
+    }).toList();
   }
 
   void _addToSearchHistory(String query) {
@@ -1102,36 +716,35 @@ class _BikeState extends State<BikeDefaultContent> {
   }
 
   Widget _buildDefaultContent(IconData icon, String text) {
-    return SingleChildScrollView( // 添加滾動以防止溢出
+    return SingleChildScrollView(
       child: Column(
-        mainAxisSize: MainAxisSize.min, // 重要：讓 Column 只佔用需要的空間
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 美化後的圖標和文字
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.only(top: 24, bottom: 16), // 減少 padding
+            padding: const EdgeInsets.only(top: 30, bottom: 20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 60, // 縮小尺寸
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEEF3FB),
+                  width: 64,
+                  height: 64,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEEF3FB),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     icon,
-                    size: 28, // 縮小圖標
+                    size: 32,
                     color: const Color(0xFF1A73E8),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
                   text,
                   style: const TextStyle(
-                    fontSize: 14, // 縮小字體
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF1A73E8),
                   ),
@@ -1140,44 +753,43 @@ class _BikeState extends State<BikeDefaultContent> {
               ],
             ),
           ),
-          // 美化後的歷史記錄標題
           if (_searchHistory.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // 減少 padding
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEEF3FB),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.history_rounded,
-                      size: 14, // 縮小圖標
+                      size: 16,
                       color: Color(0xFF1A73E8),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
                     AppLocalizations.of(context)!.text_142,
                     style: const TextStyle(
-                      fontSize: 13, // 縮小字體
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
                       color: Colors.black87,
                     ),
                   ),
                 ],
               ),
             ),
-          // 美化後的歷史記錄列表
           if (_searchHistory.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // 減少 padding
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _searchHistory.map((query) => _buildHistoryChip(query)).toList(),
+                spacing: 10,
+                runSpacing: 10,
+                children:
+                _searchHistory.map((query) => _buildHistoryChip(query)).toList(),
               ),
             ),
         ],
@@ -1193,21 +805,21 @@ class _BikeState extends State<BikeDefaultContent> {
           _searchController.text = query;
           setState(() {});
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // 減少 padding
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 6,
-                offset: const Offset(0, 1),
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
             border: Border.all(
-              color: const Color(0xFFEEF3FB),
+              color: Colors.grey.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -1217,23 +829,23 @@ class _BikeState extends State<BikeDefaultContent> {
               Text(
                 query,
                 style: const TextStyle(
-                  fontSize: 12, // 縮小字體
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
                 ),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 6),
               GestureDetector(
                 onTap: () => _removeFromHistory(query),
                 child: Container(
-                  padding: const EdgeInsets.all(1),
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: Colors.grey[400],
+                    color: Colors.grey[300],
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.close_rounded,
-                    size: 10, // 縮小圖標
+                    size: 12,
                     color: Colors.white,
                   ),
                 ),
@@ -1248,25 +860,24 @@ class _BikeState extends State<BikeDefaultContent> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 300, // 確保有固定高度
+      height: 300,
       color: const Color(0xFFF8FAFD),
       child: Column(
         children: [
-          // 搜尋框區域 - 使用固定高度
           SizedBox(
-            height: 80, // 固定高度
+            height: 80,
             child: Column(
               children: [
                 Container(
-                  margin: const EdgeInsets.all(12), // 減少 margin
+                  margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12), // 縮小圓角
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -1278,16 +889,16 @@ class _BikeState extends State<BikeDefaultContent> {
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.text_143,
                       hintStyle: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 14, // 縮小字體
+                        color: Colors.grey[400],
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                       prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 12, right: 6), // 減少 padding
+                        padding: const EdgeInsets.only(left: 16, right: 8),
                         child: Icon(
                           Icons.search_rounded,
-                          color: Colors.grey[700],
-                          size: 20, // 縮小圖標
+                          color: Colors.grey[600],
+                          size: 22,
                         ),
                       ),
                       suffixIcon: _searchController.text.isNotEmpty
@@ -1297,16 +908,16 @@ class _BikeState extends State<BikeDefaultContent> {
                           onTap: _clearSearch,
                           borderRadius: BorderRadius.circular(16),
                           child: Container(
-                            width: 28,
-                            height: 28,
-                            margin: const EdgeInsets.all(3),
+                            width: 30,
+                            height: 30,
+                            margin: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
                               color: Colors.grey[200],
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.clear_rounded,
-                              size: 16, // 縮小圖標
+                              size: 16,
                               color: Colors.grey,
                             ),
                           ),
@@ -1314,11 +925,11 @@ class _BikeState extends State<BikeDefaultContent> {
                       )
                           : null,
                       contentPadding: const EdgeInsets.symmetric(
-                        vertical: 12, // 減少 padding
+                        vertical: 14,
                         horizontal: 16,
                       ),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
@@ -1329,7 +940,6 @@ class _BikeState extends State<BikeDefaultContent> {
               ],
             ),
           ),
-          // 內容區域 - 使用 Expanded 確保正確佈局
           Expanded(
             child: _searchController.text.isEmpty
                 ? _buildDefaultContent(Icons.location_off_outlined, '請選擇站點')
@@ -1339,8 +949,9 @@ class _BikeState extends State<BikeDefaultContent> {
       ),
     );
   }
+
   Widget _buildSearchResults() {
-    final List<Map<String, dynamic>> results = fuzzySearchStations(_searchController.text);
+    final List<YouBikeStation> results = fuzzySearchStations(_searchController.text);
 
     if (results.isEmpty) {
       return Center(
@@ -1348,24 +959,24 @@ class _BikeState extends State<BikeDefaultContent> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEEF3FB),
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEF3FB),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.search_off_rounded,
-                size: 28,
+                size: 32,
                 color: Color(0xFF1A73E8),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               '找不到符合「${_searchController.text}」的站點',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                color: Colors.grey,
+                color: Colors.grey[600],
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -1387,9 +998,10 @@ class _BikeState extends State<BikeDefaultContent> {
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
+              _addToSearchHistory(_searchController.text);
               widget.onStationSelected(station);
             },
-            splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+            splashColor: const Color(0xFF1A73E8).withValues(alpha: 0.1),
             highlightColor: const Color(0xFFEEF3FB),
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -1398,29 +1010,29 @@ class _BikeState extends State<BikeDefaultContent> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 12,
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
+                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 圖標區域
                   Container(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [
-                          const Color(0xFF34C759),
-                          const Color(0xFF34C759).withOpacity(0.8),
+                          Color(0xFF34C759),
+                          Color(0xFF28A745),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.electric_bike_rounded,
@@ -1429,13 +1041,12 @@ class _BikeState extends State<BikeDefaultContent> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // 文字資訊區域
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          json.decode(station["StationName"])["Zh_tw"],
+                          station.stationName.zhTw,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
@@ -1446,9 +1057,9 @@ class _BikeState extends State<BikeDefaultContent> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          json.decode(station["StationAddress"])["Zh_tw"],
+                          station.stationAddress.zhTw,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             color: Colors.grey[600],
                             height: 1.4,
                             fontWeight: FontWeight.w500,
@@ -1460,10 +1071,10 @@ class _BikeState extends State<BikeDefaultContent> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(
+                  Icon(
                     Icons.arrow_forward_ios_rounded,
                     size: 16,
-                    color: Colors.grey,
+                    color: Colors.grey[400],
                   ),
                 ],
               ),

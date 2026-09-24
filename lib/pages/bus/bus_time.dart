@@ -132,68 +132,50 @@ void _scrollToIndex(int index) {
 
 }
   Future<Set<Polyline>> _loadShape(int direction) async {
-    // 檢查 widget 是否還在活動狀態
-    // if (!mounted) return {};
-
     try {
-      final List<dynamic> data = await getShape(
-          widget.city,
-          widget.routeName,
-          widget.routeID
+      final data = await getShape(
+        widget.city,
+        widget.routeName,
+        widget.routeID,
       );
 
-      // 再次檢查，因為 await 後 widget 可能已被銷毀
-      // if (!mounted) return {};
+      if (!mounted) return {};
 
       final Set<Polyline> polylines = {};
 
       for (final item in data) {
-        // 提前檢查方向，避免不必要的類型轉換
         if (item['Direction'] != direction) continue;
 
-        // 使用局部變數避免重複訪問
         final encoded = item['EncodedPolyline'];
         if (encoded is! String || encoded.isEmpty) continue;
 
-        // 提取常數
-        final polylineId = PolylineId('${widget.routeName}_$direction');
-        final points = decodePolyline(encoded);
-
         polylines.add(
           Polyline(
-            polylineId: polylineId,
-            points: points,
+            polylineId: PolylineId(
+              '${widget.routeName}_${item['ShapeID'] ?? polylines.length}',
+            ),
+            points: decodePolyline(encoded),
             width: 4,
             color: Colors.blue,
-            // 效能優化選項
-            consumeTapEvents: false,
-            visible: true,
-            geodesic: false,
           ),
         );
       }
-          // ✅ 安全地更新 UI 和 Provider
-      if (mounted) {
-        setState(() {
-          // 注意：Provider 不應該在 setState 內呼叫
-          // 將 Provider 更新移到外面
-        });
 
-        // ✅ 更新 Provider（不需要 setState 包裝）
-        final polylineProvider = Provider.of<PolylineProvider>(context, listen: false);
-        polylineProvider.setPolylines(polylines);
-            }
+      context.read<PolylineProvider>().setPolylines(polylines);
 
       return polylines;
+    } catch (e, stack) {
+      debugPrint('Load Shape Error: $e');
+      debugPrintStack(stackTrace: stack);
 
-    } catch (e) {
-      debugPrint(AppLocalizations.of(context)!.text_337);
       if (mounted) {
-        // 可選：顯示錯誤訊息
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.text_338)),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.text_338),
+          ),
         );
       }
+
       return {};
     }
   }
@@ -1208,7 +1190,7 @@ print(data);
                   onTap: () => _tabController.animateTo(0),
                 ),
               ),
-            if (stopNamesWithTime1.isNotEmpty && stopNamesWithTime2.isNotEmpty&& widget.hasSubRoutes==false)
+
               const SizedBox(width: 12),
             if (stopNamesWithTime2.isNotEmpty)
               Expanded(

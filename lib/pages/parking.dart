@@ -259,13 +259,13 @@ class _ParkingState extends State<Parking> {
       final results = await Future.wait([
         mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_$cityCode;'),
         mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="TXG";',
+          'SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="${convertCityCode(cityCode)}";',
         ),
         mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="TXG";',
+          'SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="${convertCityCode(cityCode)}";',
         ),
         mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="TXG";',
+          'SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="${convertCityCode(cityCode)}";',
         ),
       ]);
 

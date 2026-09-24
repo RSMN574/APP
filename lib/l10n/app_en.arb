@@ -315,7 +315,7 @@
 "text_313": "Peak",
 "text_314": "Off-peak period",
 "text_315": "Now",
-"text_316": "Station is approaching.",
+"text_316": "approaching",
 "text_317": "The shift is over.",
 "text_318": "Select the sorting method.",
 "text_319": "Time: Early → Late",
@@ -959,5 +959,5 @@
 "text_957": "Saved Route",
 "text_958": "Saved Stop",
 "text_959": "plan",
-"text_960": "shuttleBus",
+"text_960": "shuttleBus"
 }

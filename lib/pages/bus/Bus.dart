@@ -687,9 +687,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
               // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
               color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Theme.of(context).dividerColor.withOpacity(0.15),
-              ),
+
 
             ),
             child: DropdownButtonHideUnderline(
@@ -852,9 +850,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
               decoration: BoxDecoration(
                 color: AppThemes.getCardColor(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor.withOpacity(0.1),
-                ),
+
               ),
               child: ValueListenableBuilder<SearchType>(
                 valueListenable: _dropdownValueNotifier,
@@ -1328,10 +1324,11 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     );
   }
   Widget _buildStopCard(Map<String, dynamic> stop) {
+    print(stop);
     return _buildInfoCard(
       title: stop["stopName"]?.toString() ?? '',
       onTap: () => _navigateToStopDetails(stop),
-      onRemove: () => _showConfirmDialog(context, stop["UID"], "FavoritesStop"),
+      onRemove: () => _showConfirmDialog(context, stop["stopName"], "FavoritesStop"),
     );
   }
 

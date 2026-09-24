@@ -114,12 +114,12 @@ class _NotificationPageState extends State<NotificationPage> {
         ],
       ),
       body: notifications.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(context)
           : _buildNotificationList(),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -148,7 +148,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 32),
             Text(
-              AppLocalizations.of(context as BuildContext)!.text_436,
+              AppLocalizations.of(context )!.text_436,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -158,7 +158,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              AppLocalizations.of(context as BuildContext)!.text_437,
+              AppLocalizations.of(context )!.text_437,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -174,7 +174,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Text(
-                AppLocalizations.of(context as BuildContext)!.text_438,
+                AppLocalizations.of(context )!.text_438,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,

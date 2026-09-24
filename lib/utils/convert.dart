@@ -156,3 +156,31 @@ List<LatLng> decodePolyline(String encoded) {
   return points;
 }
 
+String convertCityCode(String city) {
+  const cityCodes = {
+    'taipei': 'TPE',
+    'newtaipei': 'NWT',
+    'taoyuan': 'TAO',
+    'taichung': 'TXG',
+    'tainan': 'TNN',
+    'kaohsiung': 'KHH',
+    'keelung': 'KEE',
+    'hsinchu': 'HSZ',
+    'hsinchucity': 'HSZ',
+    'miaoli': 'MIA',
+    'changhua': 'CHA',
+    'nantou': 'NAN',
+    'yunlin': 'YUN',
+    'chiayi': 'CYI',
+    'chiayicity': 'CYI',
+    'pingtung': 'PIF',
+    'yilan': 'ILA',
+    'hualien': 'HUA',
+    'taitung': 'TTT',
+    'penghu': 'PEN',
+    'kinmen': 'KIN',
+    'lienchiang': 'LIE',
+  };
+
+  return cityCodes[city.trim().toLowerCase()] ?? city.toUpperCase();
+}
