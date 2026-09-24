@@ -1,8 +1,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../firebase/placeAPI.dart';
-import '../Const/regularClass.dart';
+import '../firebase/place_api.dart';
+import '../const/regular_class.dart';
 import '../l10n/app_localizations.dart';
 
 class SearchPage extends StatefulWidget {

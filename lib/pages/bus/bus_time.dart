@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
-import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:com.rsmn574.app/widget/bus/bubble.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,19 +11,18 @@ import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../Const/regularClass.dart';
-import '../../Const/regularConst.dart';
-import '../../database/SQL/favorite_feature.dart';
-import '../../database/bus/getBusTime.dart';
-import '../../database/getData.dart';
+import '../../const/regular_class.dart';
+import '../../const/regular_const.dart';
+import '../../database/sql/favorite_feature.dart';
+import '../../database/bus/get_bus_time.dart';
+import '../../database/get_data.dart';
 import '../../l10n/app_localizations.dart';
 import '../../models/bus.dart';
 import '../../task/task.dart';
 import '../../utils/convert.dart';
 import '../../widget/map.dart';
-import 'busStopInfo.dart';
+import 'bus_stop_info.dart';
 late String? nearestStop ;
 class Mark {
   final List<dynamic>? highlight;
@@ -85,7 +83,10 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
       _tabController = TabController(length: 2, vsync: this); // 兩個 Tab
     }
 // 添加监听器
-    _tabController.addListener(() {
+    _tabController.addListener(_handleTabChange);
+  }
+
+  void _handleTabChange() {
       if (_tabController.indexIsChanging) {
         // 标签正在更改
         if (kDebugMode) {
@@ -102,12 +103,6 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
        }
       }
-    });
-
-
-
-
-
   }
 
 
@@ -220,10 +215,8 @@ void _scrollToIndex(int index) {
       markers.add(marker);
     }
   }
-    setState(() {
-      Provider.of<MarkerProvider>(context, listen: false).setMarkers(markers);
-
-    });
+    if (!mounted) return;
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers(markers);
 
   }
   void _startAutoReload() {
@@ -244,7 +237,12 @@ void _scrollToIndex(int index) {
   @override
   void dispose() {
     _timer?.cancel(); // 停止定时器
+    _tabController.removeListener(_handleTabChange);
+    _scrollController.dispose();
+    _directionNotifier.dispose();
+    _dataNotifier.dispose();
     remainingSecondsNotifier.dispose(); // 释放 ValueNotifier
+    isTimerOn.dispose();
     _tabController.dispose(); // 释放 TabController
     super.dispose();
 
@@ -2043,4 +2041,3 @@ class _BusDetailPageState extends State<BusDetailPage> {
     );
   }
 }
-

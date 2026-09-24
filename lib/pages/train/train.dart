@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
+import 'package:com.rsmn574.app/pages/train/train_schedule.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
-import 'package:com.rsmn574.app/widget/SelectView.dart';
-import 'package:com.rsmn574.app/widget/train/StationDialog.dart';
+import 'package:com.rsmn574.app/widget/select_view.dart';
+import 'package:com.rsmn574.app/widget/train/station_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import '../../database/getData.dart';
-import '../../database/Train/getTrain.dart';
+import '../../database/get_data.dart';
+import '../../database/train/get_train.dart';
 import '../../l10n/app_localizations.dart';
 
 const Color primaryColor = Color(0xFF2A5CAA);
@@ -3375,12 +3375,13 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   Future<Map<String, dynamic>> queryTrainList() async {
     final weekday = widget.date.weekday % 7;
-    final url = 'http://hidden.rsmn574.com:3920/api/train'
+    final url = 'https://hidden.rsmn574.com:3920/api/train'
         '?from=${widget.departure["StationID"]}'
         '&to=${widget.destination["StationID"]}'
         '&day=$weekday';
 
-    final res = await http.get(Uri.parse(url));
+    final res =
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
     if (res.statusCode != 200) {
       throw Exception('API ${res.statusCode}');
     }

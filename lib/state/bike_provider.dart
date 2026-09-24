@@ -13,14 +13,22 @@ class BikeProvider extends ChangeNotifier {
   Future<Map<String, dynamic>>? _availabilityFuture;
   Future<void>? _stationLoadFuture;
   Object? _stationError;
+  Object? _availabilityError;
+  String _city = 'Taichung';
 
   List<YouBikeStation> get stations => _stations;
   YouBikeStation? get selectedStation => _selectedStation;
   Future<Map<String, dynamic>>? get availabilityFuture => _availabilityFuture;
   Object? get stationError => _stationError;
+  Object? get availabilityError => _availabilityError;
+  String get city => _city;
   bool get isLoadingStations => _stationLoadFuture != null;
 
-  Future<void> loadStations({bool force = false}) {
+  Future<void> loadStations({
+    String city = 'Taichung',
+    bool force = false,
+  }) {
+    _city = city;
     if (!force && _stations.isNotEmpty) return Future.value();
     if (_stationLoadFuture != null) return _stationLoadFuture!;
 
@@ -33,7 +41,7 @@ class BikeProvider extends ChangeNotifier {
   Future<void> _loadStations() async {
     _stationError = null;
     try {
-      _stations = await _repository.fetchStations('Taichung');
+      _stations = await _repository.fetchStations(_city);
     } catch (error, stackTrace) {
       _stationError = error;
       debugPrint('Unable to load YouBike stations: $error');
@@ -46,13 +54,28 @@ class BikeProvider extends ChangeNotifier {
 
   void selectStation(YouBikeStation station) {
     _selectedStation = station;
-    _availabilityFuture = _repository.fetchAvailability('Taichung', station.stationID);
+    _availabilityError = null;
+    _availabilityFuture = _loadAvailability(station.stationID);
     notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> _loadAvailability(String stationId) async {
+    try {
+      return await _repository.fetchAvailability(_city, stationId);
+    } catch (error, stackTrace) {
+      _availabilityError = error;
+      debugPrint('Unable to load YouBike availability: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      rethrow;
+    } finally {
+      notifyListeners();
+    }
   }
 
   void clearSelection() {
     _selectedStation = null;
     _availabilityFuture = null;
+    _availabilityError = null;
     notifyListeners();
   }
 }

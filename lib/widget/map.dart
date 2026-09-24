@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-import '../Const/regularClass.dart';
+import '../const/regular_class.dart';
 import '../l10n/app_localizations.dart';
 
 class map extends StatefulWidget {

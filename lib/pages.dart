@@ -7,7 +7,7 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'firebase/FCM.dart';
+import 'firebase/fcm.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/city.dart';
 import 'pages/mileage/mileage_page.dart';

@@ -1,4 +1,4 @@
-import '../../../database/getData.dart';
+import '../../../database/get_data.dart';
 import '../../../models/bus.dart';
 
 /// Provides bus data to the feature state layer.

@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-import '../database/traffic/getTraffic.dart';
+import '../database/traffic/get_traffic.dart';
 import '../l10n/app_localizations.dart';
 
 class Traffic extends StatefulWidget {
@@ -15,7 +15,6 @@ class Traffic extends StatefulWidget {
 }
 
 // 請確定檔案最上方有 import：
-
 
 // 如果你已經在同一檔案有 FreeWayInfoPage、tdxService 等，請保持其他程式碼不變。
 
@@ -73,13 +72,16 @@ class _TrafficState extends State<Traffic> {
   // -----------------------------
   Future<void> _initLocation() async {
     LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
     }
 
-    if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+    if (permission == LocationPermission.always ||
+        permission == LocationPermission.whileInUse) {
       _startPositionStream();
     } else {
+      if (!mounted) return;
       setState(() {
         gps = AppLocalizations.of(context)!.text_625;
       });
@@ -95,8 +97,9 @@ class _TrafficState extends State<Traffic> {
       // timeLimit: Duration(seconds:1) // 若使用舊版可用 getPositionStream(...).listen(...)
     );
 
-    _positionStreamSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (Position pos) {
+    _positionStreamSub =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+      (Position pos) {
         if (pos == null) return;
         _onNewPosition(pos);
       },
@@ -124,12 +127,8 @@ class _TrafficState extends State<Traffic> {
     if (pos.heading != null && pos.heading.isFinite && pos.heading >= 0) {
       bearing = pos.heading;
     } else if (_lastPosition != null) {
-      bearing = _calcBearing(
-          _lastPosition!.latitude,
-          _lastPosition!.longitude,
-          pos.latitude,
-          pos.longitude
-      );
+      bearing = _calcBearing(_lastPosition!.latitude, _lastPosition!.longitude,
+          pos.latitude, pos.longitude);
     }
     direction = _bearingToDirection(bearing);
 
@@ -137,14 +136,14 @@ class _TrafficState extends State<Traffic> {
     double speedKmh = 0.0;
     if (pos.speed != null && pos.speed.isFinite && pos.speed >= 0) {
       speedKmh = pos.speed * 3.6; // m/s -> km/h
-    } else if (_lastPosition != null && pos.timestamp != null && _lastPosition!.timestamp != null) {
-      final distance = Geolocator.distanceBetween(
-          _lastPosition!.latitude,
-          _lastPosition!.longitude,
-          pos.latitude,
-          pos.longitude
-      ); // 公尺
-      final dt = pos.timestamp!.difference(_lastPosition!.timestamp!).inMilliseconds / 1000.0;
+    } else if (_lastPosition != null &&
+        pos.timestamp != null &&
+        _lastPosition!.timestamp != null) {
+      final distance = Geolocator.distanceBetween(_lastPosition!.latitude,
+          _lastPosition!.longitude, pos.latitude, pos.longitude); // 公尺
+      final dt =
+          pos.timestamp!.difference(_lastPosition!.timestamp!).inMilliseconds /
+              1000.0;
       if (dt > 0) {
         speedKmh = (distance / dt) * 3.6;
       }
@@ -157,7 +156,9 @@ class _TrafficState extends State<Traffic> {
 
     // 平滑速度 (移動平均)
     if (_speedBuffer.length > _speedBufferSize) _speedBuffer.removeAt(0);
-    vdSpeed = _speedBuffer.isNotEmpty ? (_speedBuffer.reduce((a, b) => a + b) / _speedBuffer.length) : 0.0;
+    vdSpeed = _speedBuffer.isNotEmpty
+        ? (_speedBuffer.reduce((a, b) => a + b) / _speedBuffer.length)
+        : 0.0;
 
     // 儲存為 last position
     _lastPosition = pos;
@@ -166,7 +167,6 @@ class _TrafficState extends State<Traffic> {
     setState(() {});
   }
 
-
   // -----------------------------
   // 模擬資料更新（不接 API）
   // -----------------------------
@@ -174,6 +174,7 @@ class _TrafficState extends State<Traffic> {
     setState(() => loading = true);
 
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
     setState(() {
       // 若實際有 GPS 則 vdSpeed 會被上面的 stream 覆蓋，這裡只在沒有 stream 時模擬：
@@ -228,13 +229,15 @@ class _TrafficState extends State<Traffic> {
     final toRad = (double d) => d * pi / 180.0;
     final dLon = toRad(lon2 - lon1);
     final y = sin(dLon) * cos(toRad(lat2));
-    final x = cos(toRad(lat1)) * sin(toRad(lat2)) - sin(toRad(lat1)) * cos(toRad(lat2)) * cos(dLon);
+    final x = cos(toRad(lat1)) * sin(toRad(lat2)) -
+        sin(toRad(lat1)) * cos(toRad(lat2)) * cos(dLon);
     final brng = atan2(y, x);
     return (brng * 180 / pi + 360) % 360;
   }
 
   String _bearingToDirection(double bearing) {
-    if (bearing < 22.5 || bearing >= 337.5) return AppLocalizations.of(context)!.text_628;
+    if (bearing < 22.5 || bearing >= 337.5)
+      return AppLocalizations.of(context)!.text_628;
     if (bearing < 67.5) return AppLocalizations.of(context)!.text_629;
     if (bearing < 112.5) return AppLocalizations.of(context)!.text_630;
     if (bearing < 157.5) return AppLocalizations.of(context)!.text_631;
@@ -296,14 +299,15 @@ class _TrafficState extends State<Traffic> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("GPS：$gps", style: const TextStyle(fontSize: 16)),
-                    Text("精度：約 ${gpsAccuracy.toStringAsFixed(1)} 公尺", style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                    Text("行車方向：$direction", style: const TextStyle(fontSize: 16)),
+                    Text("精度：約 ${gpsAccuracy.toStringAsFixed(1)} 公尺",
+                        style:
+                            const TextStyle(fontSize: 14, color: Colors.grey)),
+                    Text("行車方向：$direction",
+                        style: const TextStyle(fontSize: 16)),
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
               _buildCard(
                 AppLocalizations.of(context)!.text_638,
                 Text(
@@ -315,7 +319,6 @@ class _TrafficState extends State<Traffic> {
                 ),
               ),
               const SizedBox(height: 16),
-
               _buildCard(
                 AppLocalizations.of(context)!.text_639,
                 Text(
@@ -325,7 +328,6 @@ class _TrafficState extends State<Traffic> {
                 ),
               ),
               const SizedBox(height: 16),
-
               _buildCard(
                 "即時速度（km/h）",
                 Text(
@@ -335,34 +337,32 @@ class _TrafficState extends State<Traffic> {
                 ),
               ),
               const SizedBox(height: 16),
-
               _buildCard(
                 AppLocalizations.of(context)!.text_640,
                 frontEvents.isEmpty
-                    ?  Text(
-                  AppLocalizations.of(context)!.text_641,
-                  style: TextStyle(fontSize: 18),
-                )
+                    ? Text(
+                        AppLocalizations.of(context)!.text_641,
+                        style: TextStyle(fontSize: 18),
+                      )
                     : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: frontEvents.map((event) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        "• ${event["type"]}：${event["description"]}（距離 ${(event["distance"] / 1000).toStringAsFixed(2)} km）",
-                        style: const TextStyle(fontSize: 18),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: frontEvents.map((event) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              "• ${event["type"]}：${event["description"]}（距離 ${(event["distance"] / 1000).toStringAsFixed(2)} km）",
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }).toList(),
-                ),
               ),
               const SizedBox(height: 30),
-
               CupertinoButton.filled(
                 onPressed: loading ? null : _loadMockData,
                 child: loading
                     ? const CupertinoActivityIndicator(color: Colors.white)
-                    :  Text(AppLocalizations.of(context)!.text_642),
+                    : Text(AppLocalizations.of(context)!.text_642),
               ),
             ],
           ),
@@ -495,7 +495,8 @@ class _TrafficState extends State<Traffic> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: SingleChildScrollView( // 添加滾動支持
+        child: SingleChildScrollView(
+          // 添加滾動支持
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -552,8 +553,7 @@ class _TrafficState extends State<Traffic> {
         children: [
           Text(
             title,
-            style:
-            const TextStyle(fontSize: 14, color: Colors.black54),
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
           ),
           const SizedBox(height: 12),
           child,
@@ -563,28 +563,14 @@ class _TrafficState extends State<Traffic> {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 class FreeWayInfoPage extends StatelessWidget {
   const FreeWayInfoPage({super.key});
-
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title:  Text(AppLocalizations.of(context)!.text_643),
+        title: Text(AppLocalizations.of(context)!.text_643),
       ),
       body: FutureBuilder<List<dynamic>>(
         future: fetchFreewayRoadEvent(),
@@ -597,7 +583,7 @@ class FreeWayInfoPage extends StatelessWidget {
           }
           final events = snapshot.data ?? [];
           if (events.isEmpty) {
-            return  Center(child: Text(AppLocalizations.of(context)!.text_645));
+            return Center(child: Text(AppLocalizations.of(context)!.text_645));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(12),
@@ -619,7 +605,8 @@ class FreeWayInfoPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event['EventTitle'] ?? AppLocalizations.of(context)!.text_646,
+                        event['EventTitle'] ??
+                            AppLocalizations.of(context)!.text_646,
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -628,10 +615,13 @@ class FreeWayInfoPage extends StatelessWidget {
                           ? '${location['Road'] ?? ''} ${location['Direction'] ?? ''} ${location['StartKM'] ?? ''}～${location['EndKM'] ?? ''} (${location['SectionStart'] ?? ''} → ${location['SectionEnd'] ?? ''})'
                           : AppLocalizations.of(context)!.text_647),
                       const SizedBox(height: 4),
-                      Text('影響：${impact['Description'] ?? AppLocalizations.of(context)!.text_648}'),
-                      Text('阻斷車道：${impact['BlockedLanes'] ?? AppLocalizations.of(context)!.text_648}'),
+                      Text(
+                          '影響：${impact['Description'] ?? AppLocalizations.of(context)!.text_648}'),
+                      Text(
+                          '阻斷車道：${impact['BlockedLanes'] ?? AppLocalizations.of(context)!.text_648}'),
                       const SizedBox(height: 4),
-                      Text('來源：${event['Source'] ?? AppLocalizations.of(context)!.text_321}'),
+                      Text(
+                          '來源：${event['Source'] ?? AppLocalizations.of(context)!.text_321}'),
                       Text(
                           '發布時間：${event['PublishTime'] ?? AppLocalizations.of(context)!.text_321} 更新：${event['LastUpdateTime'] ?? AppLocalizations.of(context)!.text_321}'),
                     ],
@@ -645,12 +635,3 @@ class FreeWayInfoPage extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
-

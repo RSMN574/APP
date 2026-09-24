@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -67,10 +68,10 @@ class TokenManager {
       final response = await http.post(
         Uri.parse(AppConfig.tokenServiceUrl),
         headers: {
-          "Authorization": AppConfig.tokenServiceApiKey,
+          "Authorization": "Bearer ${AppConfig.tokenServiceApiKey}",
           "X-Timestamp": now,
         },
-      );
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -92,12 +93,13 @@ class TokenManager {
 
         return token;
       } else {
-        print("更新 Token 失敗: ${response.statusCode}");
+        throw HttpException(
+          'Token service rejected the request: ${response.statusCode}',
+        );
       }
-    } catch (e) {
-      print("無法更新 Token: $e");
+    } catch (_) {
+      rethrow;
     }
-    return null;
   }
 
   /// ⏰ 啟動自動刷新（例如每 55 分鐘）

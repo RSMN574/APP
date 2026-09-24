@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../database/SQL/sqlite.dart';
+import '../database/sql/sqlite.dart';
 import '../l10n/app_localizations.dart';
 
 class NotificationPage extends StatefulWidget {

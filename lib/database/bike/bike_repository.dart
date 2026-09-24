@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:com.rsmn574.app/database/bike/getBike.dart';
-import 'package:com.rsmn574.app/database/getData.dart';
+import 'package:com.rsmn574.app/database/bike/get_bike.dart';
+import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/models/bike.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 

@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-import '../../Const/regularClass.dart';
-import '../../database/SQL/schedule.dart';
+import '../../const/regular_class.dart';
+import '../../database/sql/schedule.dart';
 import '../../l10n/app_localizations.dart';
 
 class SettingsPage extends StatefulWidget {

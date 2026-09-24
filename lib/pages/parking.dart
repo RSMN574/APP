@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:com.rsmn574.app/database/getData.dart';
+import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -10,10 +10,10 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../Const/regularClass.dart';
-import '../Const/regularConst.dart';
-import '../database/EV_station/EV_station.dart';
-import '../database/park/getPark.dart';
+import '../const/regular_class.dart';
+import '../const/regular_const.dart';
+import '../database/ev_station/ev_station.dart';
+import '../database/park/get_park.dart';
 import '../utils/convert.dart';
 import '../utils/share.dart';
 import '../widget/map.dart';

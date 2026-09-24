@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../database/getData.dart';
+import '../../database/get_data.dart';
 
 class MileagePage extends StatefulWidget {
   const MileagePage({super.key});

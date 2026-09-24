@@ -1,17 +1,17 @@
 import 'dart:convert';
 
-import 'package:com.rsmn574.app/pages/HSR/HSRSchedulePage.dart';
+import 'package:com.rsmn574.app/pages/hsr/hsr_schedule_page.dart';
 import 'package:com.rsmn574.app/pages/bus/bus_time.dart';
-import 'package:com.rsmn574.app/pages/train/TrainSchedule.dart';
+import 'package:com.rsmn574.app/pages/train/train_schedule.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'Const/regularConst.dart';
-import 'database/HSR/getHSR.dart';
-import 'database/Train/getTrain.dart';
-import 'database/getData.dart';
-import 'database/SQL/schedule.dart';
+import 'const/regular_const.dart';
+import 'database/hsr/get_hsr.dart';
+import 'database/train/get_train.dart';
+import 'database/get_data.dart';
+import 'database/sql/schedule.dart';
 import 'l10n/app_localizations.dart';
 import 'models/bus.dart';
 // 定義品牌色

@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
-import 'Const/regularConst.dart';
-import 'database/flight/getFlight.dart';
+import 'const/regular_const.dart';
+import 'database/flight/get_flight.dart';
 import 'l10n/app_localizations.dart';
 
 final PageController pageController = PageController();

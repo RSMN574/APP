@@ -1,4 +1,4 @@
-import 'package:com.rsmn574.app/widget/WeatherCard.dart';
+import 'package:com.rsmn574.app/widget/weather_card.dart';
 import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
@@ -8,13 +8,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
-import 'Const/regularClass.dart';
-import 'Const/regularConst.dart';
+import 'const/regular_class.dart';
+import 'const/regular_const.dart';
 import 'models/bike.dart';
 import 'state/bike_provider.dart';
 
 import 'l10n/app_localizations.dart';
-import 'widget/transportGrid.dart';
+import 'widget/transport_grid.dart';
 
 const ClusterManager _bikeCluster = ClusterManager(
   clusterManagerId: ClusterManagerId("bike"),
