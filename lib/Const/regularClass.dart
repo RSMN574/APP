@@ -15,16 +15,17 @@ class LocationProvider with ChangeNotifier {
     notifyListeners();
   }
 }
+
 class CityProvider with ChangeNotifier {
-  String _city = '臺北市';  // 默认城市
+  String _city = '臺北市'; // 默认城市
   String get city => _city;
 
   void setCity(String newCity) {
     _city = newCity;
     notifyListeners(); // 通知监听者状态已更新
   }
-
 }
+
 class AppProvider with ChangeNotifier {
   bool _isDarkTheme = false;
   String _language = 'zh'; // ✅ 改用標準語系代碼作為預設值
@@ -43,23 +44,25 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleTheme(bool value) async {
+  Future<void> toggleTheme(bool value) async {
     _isDarkTheme = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('darkTheme', value);
     notifyListeners();
   }
 
-  void setLanguage(String value) async {
+  Future<void> setLanguage(String value) async {
     _language = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', value);
     notifyListeners();
   }
 
-  // ✅ 修正判斷式：直接比對 'en' 代碼
-  Locale get locale => _language == 'en' ? const Locale('en') : const Locale('zh', 'TW');
-}class CityItem {
+  Locale get locale =>
+      _language == 'en' ? const Locale('en') : const Locale('zh');
+}
+
+class CityItem {
   final String name;
   final String id;
 
@@ -68,7 +71,8 @@ class AppProvider with ChangeNotifier {
     required this.id,
   });
 }
-class youbike  {
+
+class youbike {
   final String name;
   final LatLng latLng;
 
@@ -77,6 +81,7 @@ class youbike  {
   @override
   LatLng get location => latLng;
 }
+
 class PolylineProvider extends ChangeNotifier {
   Set<Polyline> _polylines = {};
 
@@ -101,6 +106,7 @@ class PolylineProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
 class MarkerProvider extends ChangeNotifier {
   Set<Marker> _markers = {};
   List<youbike> _items = []; // ClusterManager 需要的是這個

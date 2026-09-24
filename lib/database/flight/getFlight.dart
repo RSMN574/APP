@@ -4,13 +4,13 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../../Const/regularConst.dart';
-//取得指定[國內機場]氣象資訊觀測資料
-Future <List<dynamic>> getAirportMETAR(String location) async {
 
-    const String url =
+//取得指定[國內機場]氣象資訊觀測資料
+Future<List<dynamic>> getAirportMETAR(String location) async {
+  const String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/METAR/Airport/rmq?%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final token = tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -24,18 +24,17 @@ Future <List<dynamic>> getAirportMETAR(String location) async {
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List jsonData = json.decode(response.body) ;
-
+  final List jsonData = json.decode(response.body);
 
   return jsonData;
 }
-//取得指定[機場的即時航班]資料
-Future <List<dynamic>> getAirportFIDS(String location) async {
 
+//取得指定[機場的即時航班]資料
+Future<List<dynamic>> getAirportFIDS(String location) async {
   const String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/tpe?%24top=30&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final token = tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -49,17 +48,16 @@ Future <List<dynamic>> getAirportFIDS(String location) async {
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List jsonData = json.decode(response.body) ;
-
+  final List jsonData = json.decode(response.body);
 
   return jsonData;
 }
-Future <List<dynamic>> getAirportFIDSDeparture(String airport) async {
 
+Future<List<dynamic>> getAirportFIDSDeparture(String airport) async {
   final String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/$airport?%24top=70&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final token = tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -73,17 +71,16 @@ Future <List<dynamic>> getAirportFIDSDeparture(String airport) async {
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List jsonData = json.decode(response.body) ;
-
+  final List jsonData = json.decode(response.body);
 
   return jsonData;
 }
-Future <List<dynamic>> getAirportFIDSArrival(String airport) async {
 
+Future<List<dynamic>> getAirportFIDSArrival(String airport) async {
   final String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Arrival/$airport?%24top=70&%24format=JSON';
   final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final token = tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -97,14 +94,13 @@ Future <List<dynamic>> getAirportFIDSArrival(String airport) async {
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List jsonData = json.decode(response.body) ;
-
+  final List jsonData = json.decode(response.body);
 
   return jsonData;
 }
-//取得指定[即時航班]資料
-Future <List<dynamic>> getFlight(String airlineId,String flightNumber) async {
 
+//取得指定[即時航班]資料
+Future<List<dynamic>> getFlight(String airlineId, String flightNumber) async {
 // 先處理 filter 字串（未編碼）
   final String filterRaw = "AirlineID eq '$airlineId'";
 
@@ -117,7 +113,7 @@ Future <List<dynamic>> getFlight(String airlineId,String flightNumber) async {
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Flight/$flightNumber?\$filter=$encodedFilter&\$format=JSON';
 
   final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final token = tokenResponse.body;
   // 发起 GET 请求
   final response = await http.get(
     Uri.parse(url),
@@ -131,13 +127,14 @@ Future <List<dynamic>> getFlight(String airlineId,String flightNumber) async {
   if (response.statusCode != 200) {
     throw HttpException('HTTP error! status: ${response.statusCode}');
   }
-  final List jsonData = json.decode(response.body) ;
-
+  final List jsonData = json.decode(response.body);
 
   return jsonData;
 }
+
 class AirportService {
-  static const String apiUrl = "http://hidden.rsmn574.com:3920/token/data/airports.json";
+  static const String apiUrl =
+      "https://hidden.rsmn574.com:3920/token/data/airports.json";
 
   static Future<Map<String, dynamic>> loadAirportData(String code) async {
     final response = await http.get(Uri.parse(apiUrl));

@@ -39,10 +39,12 @@ import 'plane.dart';
 import 'metro.dart';
 import 'pages/train/train.dart';
 import 'pages/bus/Bus.dart';
+import 'features/bus/state/bus_provider.dart';
 import 'package:logging/logging.dart';
+
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
-final ValueNotifier<Locale> localeNotifier =
-ValueNotifier(const Locale('zh'));
+final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('zh'));
+
 class AppInitializer {
   static Future<void> initialize() async {
     Logger.root.level = Level.ALL;
@@ -56,14 +58,15 @@ class AppInitializer {
     await SecureStorage.initializeApiKey();
 
     try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform);
       await requestPermission();
       await initializeNotifications();
       setupForegroundMessageHandler();
       await setupFirebaseMessaging();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       final tokenManager = TokenManager();
-      await tokenManager.getToken();  // 啟動時先確保有 token
+      await tokenManager.getToken(); // 啟動時先確保有 token
       tokenManager.startAutoRefresh(); // 啟動定時更新
     } catch (e, stack) {
       log.severe('Firebase 初始化失敗', e, stack);
@@ -75,6 +78,7 @@ class AppInitializer {
     };
   }
 }
+
 class ProviderSetup {
   static List<SingleChildWidget> getProviders() {
     return [
@@ -83,9 +87,11 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => MarkerProvider()),
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
       ChangeNotifierProvider(create: (_) => AppProvider()),
+      ChangeNotifierProvider(create: (_) => BusProvider()),
     ];
   }
 }
+
 class AppRoutes {
   static const String plane = "plane";
   static const String train = "train";
@@ -107,14 +113,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppInitializer.initialize();
 
-
   runApp(MultiProvider(
     providers: ProviderSetup.getProviders(),
     child: const NavigationBarApp(),
   ));
-
 }
-
 
 // 定义 SVG 资源路径的常量类
 class SvgAssets {
@@ -137,22 +140,19 @@ class NavigationBarApp extends StatefulWidget {
 }
 
 class _NavigationBarAppState extends State<NavigationBarApp>
-    with SingleTickerProviderStateMixin { // 使用 SingleTickerProviderStateMixin
-
+    with SingleTickerProviderStateMixin {
+  // 使用 SingleTickerProviderStateMixin
 
   @override
   void initState() {
     super.initState();
-
-
-
   }
 
   @override
   void dispose() {
-
     super.dispose();
   }
+
   // 監聽應用的生命周期變化
   void didChangeLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -167,54 +167,50 @@ class _NavigationBarAppState extends State<NavigationBarApp>
     print("目前語言: ${appProvider.locale}");
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTap: () {
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child:  MaterialApp(
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-
-        supportedLocales: const [
-          Locale('zh'),
-          Locale('en'),
-        ],
-
-        debugShowCheckedModeBanner: false,
-        routes: {
-          AppRoutes.plane: (BuildContext context) => (Plane()),
-          AppRoutes.train: (BuildContext context) => (Train()),
-          AppRoutes.metro: (BuildContext context) => (Metro()),
-          AppRoutes.bus: (BuildContext context) => (const Bus()),
-          AppRoutes.notification: (BuildContext context) => (NotificationPage()),
-          AppRoutes.home: (BuildContext context) => (Home()),
-          AppRoutes.bike: (BuildContext context) => (Bike()),
-          AppRoutes.HSR: (BuildContext context) => (HSR()),
-          AppRoutes.EVStation: (BuildContext context) => (EVStation()),
-          AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),
-          AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
-          AppRoutes.parking: (BuildContext context) => (Parking()),
-          AppRoutes.traffic: (BuildContext context) => (Traffic()),
-          AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusManager.instance.primaryFocus?.unfocus();
         },
-       //themeMode: appProvider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
+        child: MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
 
-        // darkTheme: AppThemes.darkTheme,
-        theme: AppThemes.lightTheme,
-        // --- 重點：套用語言 ---
-        locale: appProvider.locale,
+          supportedLocales: AppLocalizations.supportedLocales,
 
-        // themeMode: ThemeMode.system,
-        home: const TaiwanPass(),
-      )
-    );
+          debugShowCheckedModeBanner: false,
+          routes: {
+            AppRoutes.plane: (BuildContext context) => (Plane()),
+            AppRoutes.train: (BuildContext context) => (Train()),
+            AppRoutes.metro: (BuildContext context) => (Metro()),
+            AppRoutes.bus: (BuildContext context) => (const Bus()),
+            AppRoutes.notification: (BuildContext context) =>
+                (NotificationPage()),
+            AppRoutes.home: (BuildContext context) => (Home()),
+            AppRoutes.bike: (BuildContext context) => (Bike()),
+            AppRoutes.HSR: (BuildContext context) => (HSR()),
+            AppRoutes.EVStation: (BuildContext context) => (EVStation()),
+            AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),
+            AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
+            AppRoutes.parking: (BuildContext context) => (Parking()),
+            AppRoutes.traffic: (BuildContext context) => (Traffic()),
+            AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
+          },
+          theme: AppThemes.lightTheme,
+          darkTheme: AppThemes.darkTheme,
+          themeMode: appProvider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
+          // --- 重點：套用語言 ---
+          locale: appProvider.locale,
+
+          // themeMode: ThemeMode.system,
+          home: const TaiwanPass(),
+        ));
   }
-
 }
+
 class TaiwanPass extends StatefulWidget {
   const TaiwanPass({super.key});
 
@@ -222,7 +218,8 @@ class TaiwanPass extends StatefulWidget {
   State<TaiwanPass> createState() => _TaiwanPassState();
 }
 
-class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateMixin{
+class _TaiwanPassState extends State<TaiwanPass>
+    with SingleTickerProviderStateMixin {
   int currentPageIndex = 0;
   String? selectedRegion;
   // 在 State 類別新增動畫控制器
@@ -231,9 +228,28 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
   final double _inactiveIconSize = 22;
   final PageController _pageController = PageController(); // 控制 PageView
   late final List<String> regions = [
-    AppLocalizations.of(context)!.text_74, AppLocalizations.of(context)!.text_76, AppLocalizations.of(context)!.text_78, AppLocalizations.of(context)!.text_80, AppLocalizations.of(context)!.text_82, AppLocalizations.of(context)!.text_84, AppLocalizations.of(context)!.text_7,
-    AppLocalizations.of(context)!.text_8, AppLocalizations.of(context)!.text_9, AppLocalizations.of(context)!.text_6, AppLocalizations.of(context)!.text_10, AppLocalizations.of(context)!.text_11, AppLocalizations.of(context)!.text_12, AppLocalizations.of(context)!.text_92,
-    AppLocalizations.of(context)!.text_13, AppLocalizations.of(context)!.text_94, AppLocalizations.of(context)!.text_96, AppLocalizations.of(context)!.text_98, AppLocalizations.of(context)!.text_100, AppLocalizations.of(context)!.text_101, AppLocalizations.of(context)!.text_102, AppLocalizations.of(context)!.text_104,
+    AppLocalizations.of(context)!.text_74,
+    AppLocalizations.of(context)!.text_76,
+    AppLocalizations.of(context)!.text_78,
+    AppLocalizations.of(context)!.text_80,
+    AppLocalizations.of(context)!.text_82,
+    AppLocalizations.of(context)!.text_84,
+    AppLocalizations.of(context)!.text_7,
+    AppLocalizations.of(context)!.text_8,
+    AppLocalizations.of(context)!.text_9,
+    AppLocalizations.of(context)!.text_6,
+    AppLocalizations.of(context)!.text_10,
+    AppLocalizations.of(context)!.text_11,
+    AppLocalizations.of(context)!.text_12,
+    AppLocalizations.of(context)!.text_92,
+    AppLocalizations.of(context)!.text_13,
+    AppLocalizations.of(context)!.text_94,
+    AppLocalizations.of(context)!.text_96,
+    AppLocalizations.of(context)!.text_98,
+    AppLocalizations.of(context)!.text_100,
+    AppLocalizations.of(context)!.text_101,
+    AppLocalizations.of(context)!.text_102,
+    AppLocalizations.of(context)!.text_104,
   ];
   Future<String?> fetchAndUpdateLocation(BuildContext context) async {
     // 1. 取得定位
@@ -265,6 +281,7 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
 
     return city;
   }
+
   // 初始化页面列表
   final List<Widget> _pages = [];
 
@@ -285,17 +302,15 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
       Home(),
       Commute(),
       NearbyStationsPage(),
-
       InfoPages(),
-
     ]);
 
     ScheduleService.instance.initDatabase();
 
     // 获取天气信息
     // getWeatherInfo(context);
-
   }
+
   Widget _buildPage(int index) {
     switch (index) {
       case 0:
@@ -310,15 +325,14 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
         return const SizedBox.shrink();
     }
   }
+
   @override
   Widget build(BuildContext context) {
-
-    final cityProvider = Provider.of<CityProvider>(context); // 获取 CityProvider 实例
+    final cityProvider =
+        Provider.of<CityProvider>(context); // 获取 CityProvider 实例
 
     return Scaffold(
       appBar: AppBar(
-
-
         elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.text_220,
@@ -329,7 +343,6 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
             letterSpacing: -0.5,
           ),
         ),
-
         actions: [
           // 豪華版地區選擇下拉選單
           Container(
@@ -348,13 +361,15 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
             child: Material(
               color: Colors.transparent,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: cityProvider.city,
                     hint: Row(
                       children: [
-                        const Icon(Icons.location_on_rounded, size: 18, color: Color(0xFF1A73E8)),
+                        const Icon(Icons.location_on_rounded,
+                            size: 18, color: Color(0xFF1A73E8)),
                         const SizedBox(width: 8),
                         Text(
                           AppLocalizations.of(context)!.text_221,
@@ -366,7 +381,8 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                         ),
                       ],
                     ),
-                    icon: const Icon(Icons.arrow_drop_down_rounded, size: 22, color: Color(0xFF1A73E8)),
+                    icon: const Icon(Icons.arrow_drop_down_rounded,
+                        size: 22, color: Color(0xFF1A73E8)),
                     dropdownColor: Colors.white,
                     elevation: 8,
                     style: const TextStyle(
@@ -387,7 +403,8 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                           alignment: Alignment.centerLeft,
                           child: Row(
                             children: [
-                              const Icon(Icons.location_on_rounded, size: 16, color: Color(0xFF1A73E8)),
+                              const Icon(Icons.location_on_rounded,
+                                  size: 16, color: Color(0xFF1A73E8)),
                               const SizedBox(width: 6),
                               Text(
                                 region,
@@ -402,15 +419,19 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                         );
                       }).toList();
                     },
-                    items: regions.map<DropdownMenuItem<String>>((String region) {
+                    items:
+                        regions.map<DropdownMenuItem<String>>((String region) {
                       final isSelected = cityProvider.city == region;
                       return DropdownMenuItem<String>(
                         value: region,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                            color: isSelected
+                                ? const Color(0xFFEEF3FB)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -419,7 +440,9 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                                 width: 8,
                                 height: 8,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
+                                  color: isSelected
+                                      ? const Color(0xFF1A73E8)
+                                      : Colors.grey[400],
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -429,8 +452,12 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
                                   region,
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                    color: isSelected ? const Color(0xFF1A73E8) : Colors.black87,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF1A73E8)
+                                        : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -503,8 +530,6 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
     );
   }
 
-
-
   Widget _buildNavigationBar() {
     return Container(
       decoration: BoxDecoration(
@@ -523,11 +548,12 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
           child: NavigationBarTheme(
             data: AppThemes.getNavigationBarTheme(context),
             child: NavigationBar(
-
               selectedIndex: currentPageIndex,
               animationDuration: const Duration(milliseconds: 800),
               onDestinationSelected: (int index) {
-                _navIconController.forward().then((_) => _navIconController.reverse());
+                _navIconController
+                    .forward()
+                    .then((_) => _navIconController.reverse());
                 _pageController.animateToPage(
                   index,
                   duration: const Duration(milliseconds: 500),
@@ -606,13 +632,10 @@ class _TaiwanPassState extends State<TaiwanPass> with SingleTickerProviderStateM
     );
   }
 
-
-
   void hideKeyboard(BuildContext context) {
     FocusScopeNode currentFocus = FocusScope.of(context);
     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
   }
-
 }

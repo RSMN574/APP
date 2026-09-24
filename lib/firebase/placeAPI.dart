@@ -5,12 +5,14 @@ import 'package:provider/provider.dart';
 
 import '../Const/regularClass.dart';
 import '../utils/convert.dart';
+import '../config/app_config.dart';
 
 class PlacesService {
-  final String apiKey = 'AIzaSyB2rwLvaJa9EC52izD0DXJLiJK2EW-6LjI';
+  String get apiKey => AppConfig.placesApiKey;
 
   Future<List> getPlaceAutocomplete(String input, context) async {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final locationProvider =
+        Provider.of<LocationProvider>(context, listen: false);
 
     if (input.trim().isEmpty) {
       // 如果輸入是空的，直接返回空列表
@@ -28,7 +30,6 @@ class PlacesService {
         // 'radius': '5000', // 先拿掉
       },
     );
-
 
     final http.Response response = await http.get(uri);
 
@@ -70,8 +71,6 @@ class PlacesService {
     // 只返回經過處理的 prediction 陣列
     return placesWithDistance.map((e) => e['prediction']).toList();
   }
-
-
 
 // 取得地點的詳細資訊（主要是為了拿經緯度）
   Future<Map<String, dynamic>?> _fetchPlaceDetail(String placeId) async {
@@ -127,5 +126,4 @@ class PlacesService {
     }
     return null;
   }
-
 }

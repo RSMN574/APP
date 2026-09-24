@@ -58,7 +58,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        elevation: 0,  // 改為無陰影
+        elevation: 0, // 改為無陰影
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
         title: Row(
@@ -69,7 +69,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
-                Icons.directions_bus,  // 使用公車圖示
+                Icons.directions_bus, // 使用公車圖示
                 color: Color(0xFF1A73E8),
                 size: 20,
               ),
@@ -80,7 +80,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A73E8),  // 改為藍色
+                color: Color(0xFF1A73E8), // 改為藍色
               ),
             ),
           ],
@@ -93,7 +93,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
             Tab(text: AppLocalizations.of(context)!.text_146),
             Tab(text: AppLocalizations.of(context)!.text_147),
           ],
-          labelColor: const Color(0xFF1A73E8),  // 改為精緻藍
+          labelColor: const Color(0xFF1A73E8), // 改為精緻藍
           unselectedLabelColor: Colors.grey.shade600,
           indicatorColor: const Color(0xFF1A73E8),
         ),
@@ -121,7 +121,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                     MaterialPageRoute(
                       builder: (context) => Scaffold(
                         appBar: AppBar(
-                          elevation: 0,  // 內頁也改成無陰影
+                          elevation: 0, // 內頁也改成無陰影
                           backgroundColor: Colors.white,
                           title: Row(
                             children: [
@@ -148,12 +148,16 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                             ],
                           ),
                           centerTitle: true,
-                          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+                          iconTheme:
+                              const IconThemeData(color: Color(0xFF1A73E8)),
                         ),
                         body: FutureBuilder(
-                          future: mysqlSelect("SELECT * FROM Train.Train_Line;"),
-                          builder: (BuildContext context, AsyncSnapshot snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
+                          future:
+                              mysqlSelect("SELECT * FROM Train.Train_Line;"),
+                          builder:
+                              (BuildContext context, AsyncSnapshot snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
                               return Center(
                                 child: CircularProgressIndicator(
                                   color: const Color(0xFF1A73E8),
@@ -163,7 +167,8 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                               return Center(
                                 child: Text(
                                   "加載失敗: ${snapshot.error}",
-                                  style: const TextStyle(color: Colors.red, fontSize: 16),
+                                  style: const TextStyle(
+                                      color: Colors.red, fontSize: 16),
                                 ),
                               );
                             } else if (!snapshot.hasData ||
@@ -185,9 +190,14 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                                   itemCount: lineData.length,
                                   itemBuilder: (context, index) {
                                     var line = lineData[index];
-                                    var lineNameZh = line['LineNameZh'] ?? AppLocalizations.of(context)!.text_321;
-                                    var lineNameEn = line['LineNameEn'] ?? 'Unknown';
-                                    var sectionNameZh = line['LineSectionNameZh'] ?? AppLocalizations.of(context)!.text_829;
+                                    var lineNameZh = line['LineNameZh'] ??
+                                        AppLocalizations.of(context)!.text_321;
+                                    var lineNameEn =
+                                        line['LineNameEn'] ?? 'Unknown';
+                                    var sectionNameZh =
+                                        line['LineSectionNameZh'] ??
+                                            AppLocalizations.of(context)!
+                                                .text_829;
 
                                     return Container(
                                       margin: const EdgeInsets.symmetric(
@@ -199,7 +209,8 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.05),
+                                            color:
+                                                Colors.black.withOpacity(0.05),
                                             blurRadius: 8,
                                             offset: const Offset(0, 4),
                                           ),
@@ -456,7 +467,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                    color: const Color(0xFF1A73E8)
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Icon(
@@ -511,7 +523,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               if (widget.controller.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(AppLocalizations.of(context)!.text_833),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_833),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -524,14 +537,16 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
 
                               try {
                                 trainData = await fetchTrain(
-                                  int.parse(widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''))
-                                  ,
+                                  int.parse(widget.controller.text
+                                      .replaceAll(RegExp(r'[^0-9]'), '')),
                                   selectedDate,
                                 );
-                                if (trainData==null||trainData.isEmpty) {
+                                if (trainData == null || trainData.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(AppLocalizations.of(context)!.text_834),
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .text_834),
                                       backgroundColor: const Color(0xFFFF9500),
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
@@ -544,18 +559,19 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => TrainSchedulePage(
-
-                                        type: 'trainNo',
-                                        time: selectedDate,
-                                        trainNo: int.parse(widget.controller.text.replaceAll(RegExp(r'[^0-9]'), ''))
-                                      ),
+                                          type: 'trainNo',
+                                          time: selectedDate,
+                                          trainNo: int.parse(
+                                              widget.controller.text.replaceAll(
+                                                  RegExp(r'[^0-9]'), ''))),
                                     ),
                                   );
                                 }
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(AppLocalizations.of(context)!.text_834),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_834),
                                     backgroundColor: const Color(0xFFFF9500),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -659,6 +675,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     );
   }
 }
+
 class RouteSearchPage extends StatefulWidget {
   final TextEditingController departureController;
   final TextEditingController destinationController;
@@ -676,9 +693,21 @@ class RouteSearchPage extends StatefulWidget {
 class _RouteSearchPageState extends State<RouteSearchPage> {
   // 縣市和對應站名資料
   late final Map<String, List<String>> stationData = {
-    AppLocalizations.of(context)!.text_174: [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_837, AppLocalizations.of(context)!.text_178],
-    AppLocalizations.of(context)!.text_8: [AppLocalizations.of(context)!.text_838, AppLocalizations.of(context)!.text_839, AppLocalizations.of(context)!.text_840],
-    AppLocalizations.of(context)!.text_11: [AppLocalizations.of(context)!.text_192, AppLocalizations.of(context)!.text_841, AppLocalizations.of(context)!.text_842],
+    AppLocalizations.of(context)!.text_174: [
+      AppLocalizations.of(context)!.text_175,
+      AppLocalizations.of(context)!.text_837,
+      AppLocalizations.of(context)!.text_178
+    ],
+    AppLocalizations.of(context)!.text_8: [
+      AppLocalizations.of(context)!.text_838,
+      AppLocalizations.of(context)!.text_839,
+      AppLocalizations.of(context)!.text_840
+    ],
+    AppLocalizations.of(context)!.text_11: [
+      AppLocalizations.of(context)!.text_192,
+      AppLocalizations.of(context)!.text_841,
+      AppLocalizations.of(context)!.text_842
+    ],
   };
 
   Map<String, dynamic> departureSelectedStation = {};
@@ -780,7 +809,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   }
 
   void _swapStations() {
-    if (departureSelectedStation.isEmpty && destinationSelectedStation.isEmpty) {
+    if (departureSelectedStation.isEmpty &&
+        destinationSelectedStation.isEmpty) {
       return;
     }
 
@@ -801,7 +831,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       _isDepartureSelected = _isDestinationSelected;
       _isDestinationSelected = tempSelected;
 
-      if (widget.departureController.text == widget.destinationController.text &&
+      if (widget.departureController.text ==
+              widget.destinationController.text &&
           widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -894,14 +925,17 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final selectedStation = await StationDialog.showStationDialog(context);
+                            final selectedStation =
+                                await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 departureSelectedStation = selectedStation;
                                 _isDepartureSelected = true;
                                 widget.departureController.text =
-                                    departureSelectedStation['StationName']['Zh_tw'] ??
-                                        departureSelectedStation['StationName'] ??
+                                    departureSelectedStation['StationName']
+                                            ['Zh_tw'] ??
+                                        departureSelectedStation[
+                                            'StationName'] ??
                                         AppLocalizations.of(context)!.text_160;
                               });
                             }
@@ -933,7 +967,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   decoration: BoxDecoration(
                                     color: _isDepartureSelected
                                         ? const Color(0xFF1A73E8)
-                                        : const Color(0xFF1A73E8).withOpacity(0.1),
+                                        : const Color(0xFF1A73E8)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -947,7 +982,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_845,
@@ -963,7 +999,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDepartureSelected
                                             ? widget.departureController.text
-                                            : AppLocalizations.of(context)!.text_161,
+                                            : AppLocalizations.of(context)!
+                                                .text_161,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDepartureSelected
@@ -981,7 +1018,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                      color: const Color(0xFF1A73E8)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Icon(
@@ -1034,22 +1072,27 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final selectedStation = await StationDialog.showStationDialog(context);
+                            final selectedStation =
+                                await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 destinationSelectedStation = selectedStation;
                                 _isDestinationSelected = true;
                                 widget.destinationController.text =
-                                    destinationSelectedStation['StationName']['Zh_tw'] ??
-                                        destinationSelectedStation['StationName'] ??
+                                    destinationSelectedStation['StationName']
+                                            ['Zh_tw'] ??
+                                        destinationSelectedStation[
+                                            'StationName'] ??
                                         AppLocalizations.of(context)!.text_160;
                               });
 
                               // 檢查是否與出發地相同
-                              if (widget.departureController.text == widget.destinationController.text) {
+                              if (widget.departureController.text ==
+                                  widget.destinationController.text) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(AppLocalizations.of(context)!.text_157),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_157),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1087,7 +1130,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   decoration: BoxDecoration(
                                     color: _isDestinationSelected
                                         ? const Color(0xFF34C759)
-                                        : const Color(0xFF34C759).withOpacity(0.1),
+                                        : const Color(0xFF34C759)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1101,7 +1145,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_846,
@@ -1117,7 +1162,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDestinationSelected
                                             ? widget.destinationController.text
-                                            : AppLocalizations.of(context)!.text_847,
+                                            : AppLocalizations.of(context)!
+                                                .text_847,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDestinationSelected
@@ -1135,7 +1181,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF34C759).withOpacity(0.1),
+                                      color: const Color(0xFF34C759)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Icon(
@@ -1190,7 +1237,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   decoration: BoxDecoration(
                                     color: selectedDate != null
                                         ? const Color(0xFFFF9500)
-                                        : const Color(0xFFFF9500).withOpacity(0.1),
+                                        : const Color(0xFFFF9500)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1204,7 +1252,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_164,
@@ -1220,7 +1269,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
-                                            : AppLocalizations.of(context)!.text_165,
+                                            : AppLocalizations.of(context)!
+                                                .text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1238,7 +1288,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFF9500).withOpacity(0.1),
+                                      color: const Color(0xFFFF9500)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Icon(
@@ -1286,7 +1337,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDepartureSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_848),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_848),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1300,7 +1352,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDestinationSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_849),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_849),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1317,7 +1370,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   builder: (context) => RoutePage(
                                     departure: departureSelectedStation,
                                     destination: destinationSelectedStation,
-                                    date: selectedDate ?? DateTime.now().add(const Duration(minutes: 1)),
+                                    date: selectedDate ??
+                                        DateTime.now()
+                                            .add(const Duration(minutes: 1)),
                                   ),
                                 ),
                               );
@@ -1326,7 +1381,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                             splashColor: Colors.white.withOpacity(0.2),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child:  Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -1380,7 +1435,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                       Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1415,6 +1470,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     );
   }
 }
+
 class StationSearchPage extends StatefulWidget {
   final TextEditingController controller;
 
@@ -1427,12 +1483,36 @@ class StationSearchPage extends StatefulWidget {
 class _StationSearchPageState extends State<StationSearchPage> {
   final TextEditingController _controller = TextEditingController();
   late final Map<String, List<String>> stations = {
-    AppLocalizations.of(context)!.text_174: [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_176, AppLocalizations.of(context)!.text_177],
-    AppLocalizations.of(context)!.text_8: [AppLocalizations.of(context)!.text_178, AppLocalizations.of(context)!.text_179, AppLocalizations.of(context)!.text_180],
-    AppLocalizations.of(context)!.text_9: [AppLocalizations.of(context)!.text_181, AppLocalizations.of(context)!.text_182, AppLocalizations.of(context)!.text_183],
-    AppLocalizations.of(context)!.text_184: [AppLocalizations.of(context)!.text_185, AppLocalizations.of(context)!.text_186, AppLocalizations.of(context)!.text_187],
-    AppLocalizations.of(context)!.text_188: [AppLocalizations.of(context)!.text_189, AppLocalizations.of(context)!.text_190, AppLocalizations.of(context)!.text_191],
-    AppLocalizations.of(context)!.text_11: [AppLocalizations.of(context)!.text_192, AppLocalizations.of(context)!.text_193, AppLocalizations.of(context)!.text_194],
+    AppLocalizations.of(context)!.text_174: [
+      AppLocalizations.of(context)!.text_175,
+      AppLocalizations.of(context)!.text_176,
+      AppLocalizations.of(context)!.text_177
+    ],
+    AppLocalizations.of(context)!.text_8: [
+      AppLocalizations.of(context)!.text_178,
+      AppLocalizations.of(context)!.text_179,
+      AppLocalizations.of(context)!.text_180
+    ],
+    AppLocalizations.of(context)!.text_9: [
+      AppLocalizations.of(context)!.text_181,
+      AppLocalizations.of(context)!.text_182,
+      AppLocalizations.of(context)!.text_183
+    ],
+    AppLocalizations.of(context)!.text_184: [
+      AppLocalizations.of(context)!.text_185,
+      AppLocalizations.of(context)!.text_186,
+      AppLocalizations.of(context)!.text_187
+    ],
+    AppLocalizations.of(context)!.text_188: [
+      AppLocalizations.of(context)!.text_189,
+      AppLocalizations.of(context)!.text_190,
+      AppLocalizations.of(context)!.text_191
+    ],
+    AppLocalizations.of(context)!.text_11: [
+      AppLocalizations.of(context)!.text_192,
+      AppLocalizations.of(context)!.text_193,
+      AppLocalizations.of(context)!.text_194
+    ],
   };
 
   String? selectedCity;
@@ -1564,7 +1644,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                       Text(
+                      Text(
                         AppLocalizations.of(context)!.text_851,
                         style: TextStyle(
                           fontSize: 24,
@@ -1606,10 +1686,13 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            selectedStation = await StationDialog.showStationDialog(context);
+                            selectedStation =
+                                await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
-                                _controller.text = selectedStation?['StationName']['Zh_tw'] ?? '';
+                                _controller.text =
+                                    selectedStation?['StationName']['Zh_tw'] ??
+                                        '';
                               });
                             }
                           },
@@ -1640,7 +1723,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                   decoration: BoxDecoration(
                                     color: selectedStation != null
                                         ? const Color(0xFF1A73E8)
-                                        : const Color(0xFF1A73E8).withOpacity(0.1),
+                                        : const Color(0xFF1A73E8)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1654,7 +1738,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_853,
@@ -1670,7 +1755,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                       Text(
                                         selectedStation != null
                                             ? _controller.text
-                                            : AppLocalizations.of(context)!.text_200,
+                                            : AppLocalizations.of(context)!
+                                                .text_200,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedStation != null
@@ -1688,7 +1774,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1A73E8).withOpacity(0.1),
+                                      color: const Color(0xFF1A73E8)
+                                          .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: const Icon(
@@ -1743,7 +1830,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                   decoration: BoxDecoration(
                                     color: selectedDate != null
                                         ? const Color(0xFFFF9500)
-                                        : const Color(0xFFFF9500).withOpacity(0.1),
+                                        : const Color(0xFFFF9500)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1757,7 +1845,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_164,
@@ -1773,7 +1862,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                       Text(
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
-                                            : AppLocalizations.of(context)!.text_165,
+                                            : AppLocalizations.of(context)!
+                                                .text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1827,7 +1917,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                               if (selectedStation == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_200),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_200),
                                     backgroundColor: const Color(0xFFFF3B30),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1842,7 +1933,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => StationPage(
-                                    stationName: selectedStation?['StationName']['Zh_tw'],
+                                    stationName: selectedStation?['StationName']
+                                        ['Zh_tw'],
                                     stationID: selectedStation?["StationID"],
                                     datetime: selectedDate ?? DateTime.now(),
                                   ),
@@ -1853,7 +1945,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                             splashColor: Colors.white.withOpacity(0.2),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child:  Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -1907,7 +1999,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                       Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1941,7 +2033,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                       Padding(
+                      Padding(
                         padding: EdgeInsets.only(left: 4, bottom: 12),
                         child: Text(
                           AppLocalizations.of(context)!.text_203,
@@ -1972,7 +2064,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 // 這裡可以設置對應的 selectedStation
                               },
                               borderRadius: BorderRadius.circular(20),
-                              splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                              splashColor:
+                                  const Color(0xFF1A73E8).withOpacity(0.1),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -1982,7 +2075,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                   color: const Color(0xFFEEF3FB),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: const Color(0xFF1A73E8).withOpacity(0.2),
+                                    color: const Color(0xFF1A73E8)
+                                        .withOpacity(0.2),
                                     width: 1,
                                   ),
                                 ),
@@ -2010,6 +2104,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
     );
   }
 }
+
 class StationPage extends StatefulWidget {
   final String stationName;
   final String stationID;
@@ -2048,6 +2143,7 @@ class _StationPageState extends State<StationPage>
     _tabController.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2105,7 +2201,8 @@ class _StationPageState extends State<StationPage>
         '4': AppLocalizations.of(context)!.text_861,
         '5': AppLocalizations.of(context)!.text_862,
       };
-      return stationClassMap[stationClass] ?? AppLocalizations.of(context)!.text_863;
+      return stationClassMap[stationClass] ??
+          AppLocalizations.of(context)!.text_863;
     }
 
     return FutureBuilder<List<dynamic>>(
@@ -2172,7 +2269,7 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                   Text(
+                  Text(
                     AppLocalizations.of(context)!.text_205,
                     style: TextStyle(
                       fontSize: 18,
@@ -2222,7 +2319,7 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 24),
-                   Text(
+                  Text(
                     AppLocalizations.of(context)!.text_864,
                     style: TextStyle(
                       fontSize: 20,
@@ -2299,7 +2396,8 @@ class _StationPageState extends State<StationPage>
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    data[0]['StationNameZh_tw'] ?? AppLocalizations.of(context)!.text_160,
+                                    data[0]['StationNameZh_tw'] ??
+                                        AppLocalizations.of(context)!.text_160,
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700,
@@ -2315,7 +2413,8 @@ class _StationPageState extends State<StationPage>
                             _buildInfoItem(
                               icon: Icons.location_on_rounded,
                               label: AppLocalizations.of(context)!.text_866,
-                              value: data[1]['StationAddress'] ?? AppLocalizations.of(context)!.text_867,
+                              value: data[1]['StationAddress'] ??
+                                  AppLocalizations.of(context)!.text_867,
                             ),
                             _buildInfoItem(
                               icon: Icons.grade_rounded,
@@ -2325,12 +2424,14 @@ class _StationPageState extends State<StationPage>
                             _buildInfoItem(
                               icon: Icons.phone_rounded,
                               label: AppLocalizations.of(context)!.text_869,
-                              value: data[1]['StationPhone'] ?? AppLocalizations.of(context)!.text_870,
+                              value: data[1]['StationPhone'] ??
+                                  AppLocalizations.of(context)!.text_870,
                             ),
                             _buildInfoItem(
                               icon: Icons.qr_code_rounded,
                               label: AppLocalizations.of(context)!.text_871,
-                              value: data[1]['StationID'] ?? AppLocalizations.of(context)!.text_872,
+                              value: data[1]['StationID'] ??
+                                  AppLocalizations.of(context)!.text_872,
                             ),
                           ],
                         ),
@@ -2344,9 +2445,9 @@ class _StationPageState extends State<StationPage>
                   List<Map<String, String>> facilityMaps = [];
                   for (int i = 0; i < 5; i++) {
                     String? mapName =
-                    station['FacilityMapURLs${i}MapNameZh_tw'] as String?;
+                        station['FacilityMapURLs${i}MapNameZh_tw'] as String?;
                     String? mapURL =
-                    station['FacilityMapURLs${i}MapURL'] as String?;
+                        station['FacilityMapURLs${i}MapURL'] as String?;
                     if (mapURL != null) {
                       facilityMaps.add({
                         'mapName': mapName ?? '',
@@ -2356,7 +2457,7 @@ class _StationPageState extends State<StationPage>
                   }
 
                   String? elevatorInfo =
-                  station['Elevators0Description'] as String?;
+                      station['Elevators0Description'] as String?;
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -2387,7 +2488,8 @@ class _StationPageState extends State<StationPage>
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFEEF3FB),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                         child: const Icon(
                                           Icons.map_rounded,
@@ -2421,7 +2523,8 @@ class _StationPageState extends State<StationPage>
                                         color: Colors.grey[100],
                                         child: Center(
                                           child: Text(
-                                            AppLocalizations.of(context)!.text_873,
+                                            AppLocalizations.of(context)!
+                                                .text_873,
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: Colors.grey[600],
@@ -2437,7 +2540,6 @@ class _StationPageState extends State<StationPage>
                             ),
                           );
                         }).toList(),
-
                         if (elevatorInfo != null)
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
@@ -2458,7 +2560,8 @@ class _StationPageState extends State<StationPage>
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF34C759).withOpacity(0.1),
+                                    color: const Color(0xFF34C759)
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
@@ -2544,6 +2647,7 @@ class _StationPageState extends State<StationPage>
       ),
     );
   }
+
   Widget _buildTrainInfoPage() {
     late final ValueNotifier<double> itemHeightNotifier =
         ValueNotifier(12.0); // 初始高度
@@ -2585,7 +2689,6 @@ class _StationPageState extends State<StationPage>
         }
       }
     }
-
 
     return Container(
       color: Colors.white,
@@ -2680,7 +2783,7 @@ class _StationPageState extends State<StationPage>
                     ),
                   ),
                   const SizedBox(height: 16),
-                   Text(
+                  Text(
                     AppLocalizations.of(context)!.text_876,
                     style: TextStyle(
                       fontSize: 16,
@@ -2712,16 +2815,26 @@ class _StationPageState extends State<StationPage>
                     itemCount: trainData.length,
                     itemBuilder: (context, index) {
                       var train = trainData[index];
-                      String trainNo = (train['TrainNo']) ?? AppLocalizations.of(context)!.text_321;
-                      String trainType = convertTrainType(train['TrainTypeName']['Zh_tw']);
-                      String departureTime = _formatTime(train['DepartureTime'] ?? AppLocalizations.of(context)!.text_321);
+                      String trainNo = (train['TrainNo']) ??
+                          AppLocalizations.of(context)!.text_321;
+                      String trainType =
+                          convertTrainType(train['TrainTypeName']['Zh_tw']);
+                      String departureTime = _formatTime(
+                          train['DepartureTime'] ??
+                              AppLocalizations.of(context)!.text_321);
                       int? delayTime = train['DelayTime'];
-                      String endingStation = train['EndingStationName']['Zh_tw'] ?? AppLocalizations.of(context)!.text_321;
-
+                      String endingStation = train['EndingStationName']
+                              ['Zh_tw'] ??
+                          AppLocalizations.of(context)!.text_321;
 
                       // 判斷是否為未讀/重要狀態（延誤的列車）
                       bool isDelayed = delayTime != null && delayTime > 0;
-                      bool isExpress = trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879);
+                      bool isExpress = trainType.contains(
+                              AppLocalizations.of(context)!.text_877) ||
+                          trainType.contains(
+                              AppLocalizations.of(context)!.text_878) ||
+                          trainType
+                              .contains(AppLocalizations.of(context)!.text_879);
 
                       return Transform.translate(
                         offset: Offset(0, index * 0.3), // 微妙的層次感
@@ -2729,45 +2842,51 @@ class _StationPageState extends State<StationPage>
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () async {
-
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TrainSchedulePage(
-
                                     type: 'trainNo',
-                                    time: widget.datetime,trainNo: int.parse(train['TrainNo'].replaceAll(RegExp(r'[^0-9]'), '')),
+                                    time: widget.datetime,
+                                    trainNo: int.parse(train['TrainNo']
+                                        .replaceAll(RegExp(r'[^0-9]'), '')),
                                   ),
                                 ),
                               );
                             },
                             borderRadius: BorderRadius.circular(20),
-                            splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-                            highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
+                            splashColor:
+                                const Color(0xFF1A73E8).withOpacity(0.1),
+                            highlightColor:
+                                const Color(0xFFEEF3FB).withOpacity(0.5),
                             child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 20),
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 20),
                               padding: const EdgeInsets.all(0),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(isDelayed ? 0.08 : 0.04),
+                                    color: Colors.black
+                                        .withOpacity(isDelayed ? 0.08 : 0.04),
                                     blurRadius: isDelayed ? 20 : 12,
                                     offset: Offset(0, isDelayed ? 6 : 3),
                                   ),
                                 ],
                                 border: isDelayed
                                     ? Border.all(
-                                  color: const Color(0xFFFF3B30).withOpacity(0.2),
-                                  width: 1.5,
-                                )
+                                        color: const Color(0xFFFF3B30)
+                                            .withOpacity(0.2),
+                                        width: 1.5,
+                                      )
                                     : isExpress
-                                    ? Border.all(
-                                  color: const Color(0xFF1A73E8).withOpacity(0.1),
-                                  width: 1,
-                                )
-                                    : null,
+                                        ? Border.all(
+                                            color: const Color(0xFF1A73E8)
+                                                .withOpacity(0.1),
+                                            width: 1,
+                                          )
+                                        : null,
                               ),
                               child: Stack(
                                 children: [
@@ -2783,7 +2902,8 @@ class _StationPageState extends State<StationPage>
                                           gradient: LinearGradient(
                                             colors: [
                                               const Color(0xFFFF3B30),
-                                              const Color(0xFFFF3B30).withOpacity(0.7),
+                                              const Color(0xFFFF3B30)
+                                                  .withOpacity(0.7),
                                             ],
                                             begin: Alignment.topCenter,
                                             end: Alignment.bottomCenter,
@@ -2804,18 +2924,23 @@ class _StationPageState extends State<StationPage>
                                       bottom: 20,
                                     ),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // 車次圖標區域
                                         Container(
                                           width: 48,
                                           height: 48,
                                           decoration: BoxDecoration(
-                                            gradient: _getTrainTypeGradient(trainType),
-                                            borderRadius: BorderRadius.circular(14),
+                                            gradient: _getTrainTypeGradient(
+                                                trainType),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: _getTrainTypeColor(trainType).withOpacity(0.3),
+                                                color: _getTrainTypeColor(
+                                                        trainType)
+                                                    .withOpacity(0.3),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -2832,22 +2957,30 @@ class _StationPageState extends State<StationPage>
                                         // 內容區域
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               // 車次和時間
                                               Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         Text(
                                                           '車次 $trainNo',
                                                           style: TextStyle(
                                                             fontSize: 17,
-                                                            fontWeight: FontWeight.w700,
-                                                            color: isDelayed ? Colors.black87 : Colors.grey[700],
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: isDelayed
+                                                                ? Colors.black87
+                                                                : Colors
+                                                                    .grey[700],
                                                             height: 1.3,
                                                           ),
                                                         ),
@@ -2865,21 +2998,33 @@ class _StationPageState extends State<StationPage>
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 6),
                                                     decoration: BoxDecoration(
                                                       color: isDelayed
-                                                          ? const Color(0xFFFF3B30).withOpacity(0.1)
-                                                          : const Color(0xFF1A73E8).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(10),
+                                                          ? const Color(
+                                                                  0xFFFF3B30)
+                                                              .withOpacity(0.1)
+                                                          : const Color(
+                                                                  0xFF1A73E8)
+                                                              .withOpacity(0.1),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
                                                     ),
                                                     child: Text(
                                                       departureTime,
                                                       style: TextStyle(
                                                         fontSize: 15,
-                                                        fontWeight: FontWeight.w700,
+                                                        fontWeight:
+                                                            FontWeight.w700,
                                                         color: isDelayed
-                                                            ? const Color(0xFFFF3B30)
-                                                            : const Color(0xFF1A73E8),
+                                                            ? const Color(
+                                                                0xFFFF3B30)
+                                                            : const Color(
+                                                                0xFF1A73E8),
                                                       ),
                                                     ),
                                                   ),
@@ -2896,18 +3041,22 @@ class _StationPageState extends State<StationPage>
                                                       style: TextStyle(
                                                         fontSize: 15,
                                                         color: Colors.grey[600],
-                                                        fontWeight: FontWeight.w500,
+                                                        fontWeight:
+                                                            FontWeight.w500,
                                                         height: 1.4,
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
 
                                                   // 狀態標籤
                                                   if (isDelayed)
-                                                    _buildStatusBadge('延誤 ${delayTime}分', const Color(0xFFFF3B30))
+                                                    _buildStatusBadge(
+                                                        '延誤 ${delayTime}分',
+                                                        const Color(0xFFFF3B30))
                                                   // else if (isExpress)
                                                   //   _buildStatusBadge('快速', const Color(0xFF1A73E8))
                                                   // else
@@ -2920,33 +3069,51 @@ class _StationPageState extends State<StationPage>
                                               Row(
                                                 children: [
                                                   Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 10,
+                                                        vertical: 4),
                                                     decoration: BoxDecoration(
-                                                      color: _getTrainTypeColor(trainType).withOpacity(0.1),
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      color: _getTrainTypeColor(
+                                                              trainType)
+                                                          .withOpacity(0.1),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
                                                       border: Border.all(
-                                                        color: _getTrainTypeColor(trainType).withOpacity(0.3),
+                                                        color:
+                                                            _getTrainTypeColor(
+                                                                    trainType)
+                                                                .withOpacity(
+                                                                    0.3),
                                                       ),
                                                     ),
                                                     child: Text(
                                                       (trainType),
                                                       style: TextStyle(
                                                         fontSize: 12,
-                                                        color: _getTrainTypeColor(trainType),
-                                                        fontWeight: FontWeight.w600,
+                                                        color:
+                                                            _getTrainTypeColor(
+                                                                trainType),
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
                                                   const Spacer(),
                                                   // 導航箭頭
                                                   Container(
-                                                    padding: const EdgeInsets.all(6),
+                                                    padding:
+                                                        const EdgeInsets.all(6),
                                                     decoration: BoxDecoration(
                                                       color: Colors.grey[100],
-                                                      borderRadius: BorderRadius.circular(10),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
                                                     ),
                                                     child: const Icon(
-                                                      Icons.arrow_forward_ios_rounded,
+                                                      Icons
+                                                          .arrow_forward_ios_rounded,
                                                       size: 14,
                                                       color: Colors.grey,
                                                     ),
@@ -2968,15 +3135,14 @@ class _StationPageState extends State<StationPage>
                     },
                   ),
                 ),
-
               ],
             );
           }
         },
       ),
     );
-
   }
+
 // 輔助方法
   Widget _buildStatusBadge(String text, Color color) {
     return Container(
@@ -3013,11 +3179,14 @@ class _StationPageState extends State<StationPage>
   }
 
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
+        trainType.contains(AppLocalizations.of(context)!.text_878) ||
+        trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return const Color(0xFF1A73E8); // 藍色 - 特快車
     } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return const Color(0xFF34C759); // 綠色 - 普通快車
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
+        trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return const Color(0xFFFF9500); // 橙色 - 區間車
     } else {
       return const Color(0xFFAF52DE); // 紫色 - 其他
@@ -3025,11 +3194,14 @@ class _StationPageState extends State<StationPage>
   }
 
   IconData _getTrainTypeIcon(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
+        trainType.contains(AppLocalizations.of(context)!.text_878) ||
+        trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return Icons.directions_railway_filled_rounded;
     } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return Icons.train_rounded;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
+        trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return Icons.directions_subway_rounded;
     } else {
       return Icons.directions_transit_rounded;
@@ -3037,7 +3209,9 @@ class _StationPageState extends State<StationPage>
   }
 
   String _getTrainTypeCategory(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
+        trainType.contains(AppLocalizations.of(context)!.text_878) ||
+        trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return AppLocalizations.of(context)!.text_885;
     } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return AppLocalizations.of(context)!.text_886;
@@ -3049,6 +3223,7 @@ class _StationPageState extends State<StationPage>
       return AppLocalizations.of(context)!.text_542;
     }
   }
+
 // 標題欄 - 放在頂部只顯示一次
   Widget _buildHeaderRow() {
     return Container(
@@ -3062,31 +3237,36 @@ class _StationPageState extends State<StationPage>
           // 車次標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_887, Icons.confirmation_number_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_887,
+                Icons.confirmation_number_rounded),
           ),
 
           // 發車時間標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_888, Icons.schedule_rounded),
+            child: _buildHeaderItem(
+                AppLocalizations.of(context)!.text_888, Icons.schedule_rounded),
           ),
 
           // 車種標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_889, Icons.train_rounded),
+            child: _buildHeaderItem(
+                AppLocalizations.of(context)!.text_889, Icons.train_rounded),
           ),
 
           // 終點站標題
           Expanded(
             flex: 3,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_57, Icons.flag_rounded),
+            child: _buildHeaderItem(
+                AppLocalizations.of(context)!.text_57, Icons.flag_rounded),
           ),
 
           // 狀態標題
           Expanded(
             flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_890, Icons.info_outline_rounded),
+            child: _buildHeaderItem(AppLocalizations.of(context)!.text_890,
+                Icons.info_outline_rounded),
           ),
 
           // 空白對齊箭頭
@@ -3118,9 +3298,6 @@ class _StationPageState extends State<StationPage>
     );
   }
 
-
-
-
   String _formatTime(String time) {
     try {
       final parsedTime = DateTime.parse('1970-01-01 $time');
@@ -3146,7 +3323,6 @@ class RoutePage extends StatefulWidget {
   State<RoutePage> createState() => _RoutePageState();
 }
 
-
 class _RoutePageState extends State<RoutePage> {
   // =============================
   // 篩選條件
@@ -3160,7 +3336,8 @@ class _RoutePageState extends State<RoutePage> {
   // 滾動控制器
   // =============================
   final ItemScrollController _itemScrollController = ItemScrollController();
-  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
 
   // =============================
   // 滾動狀態追蹤
@@ -3198,8 +3375,7 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   Future<Map<String, dynamic>> queryTrainList() async {
     final weekday = widget.date.weekday % 7;
-    final url =
-        'http://hidden.rsmn574.com:3920/api/train'
+    final url = 'http://hidden.rsmn574.com:3920/api/train'
         '?from=${widget.departure["StationID"]}'
         '&to=${widget.destination["StationID"]}'
         '&day=$weekday';
@@ -3224,9 +3400,7 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   int trainDepMinutes(dynamic t) {
-    final timeStr = t['transfer'] == true
-        ? t['leg1']['depTime']
-        : t['depTime'];
+    final timeStr = t['transfer'] == true ? t['leg1']['depTime'] : t['depTime'];
     return _timeToMinutes(timeStr);
   }
 
@@ -3251,9 +3425,9 @@ class _RoutePageState extends State<RoutePage> {
 
       final types = t['transfer']
           ? [
-        t['leg1']['TrainTypeName'],
-        t['leg2']['TrainTypeName'],
-      ]
+              t['leg1']['TrainTypeName'],
+              t['leg2']['TrainTypeName'],
+            ]
           : [t['TrainTypeName']];
 
       if (allowedTrainTypes.isNotEmpty &&
@@ -3264,7 +3438,7 @@ class _RoutePageState extends State<RoutePage> {
       return true;
     }).toList()
       ..sort(
-            (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
+        (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
       );
   }
 
@@ -3288,7 +3462,8 @@ class _RoutePageState extends State<RoutePage> {
     if (_shouldAutoScroll) return true;
     if (_previousDate != null && widget.date != _previousDate) return true;
     if (_lastScrollTime == null ||
-        DateTime.now().difference(_lastScrollTime!) > const Duration(seconds: 2)) {
+        DateTime.now().difference(_lastScrollTime!) >
+            const Duration(seconds: 2)) {
       return true;
     }
     return false;
@@ -3298,11 +3473,14 @@ class _RoutePageState extends State<RoutePage> {
   // 取得車種顏色
   // =============================
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) || trainType.contains(AppLocalizations.of(context)!.text_878) || trainType.contains(AppLocalizations.of(context)!.text_879)) {
+    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
+        trainType.contains(AppLocalizations.of(context)!.text_878) ||
+        trainType.contains(AppLocalizations.of(context)!.text_879)) {
       return primaryBlue;
     } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
       return successGreen;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) || trainType.contains(AppLocalizations.of(context)!.text_884)) {
+    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
+        trainType.contains(AppLocalizations.of(context)!.text_884)) {
       return warningOrange;
     } else {
       return purple;
@@ -3320,16 +3498,12 @@ class _RoutePageState extends State<RoutePage> {
     return InkWell(
       onTap: () async {
         try {
-
           if (context.mounted) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => TrainSchedulePage(
-
-                  type: 'trainNo',
-                  time: widget.date,trainNo:trainNo
-                ),
+                    type: 'trainNo', time: widget.date, trainNo: trainNo),
               ),
             );
           }
@@ -3360,7 +3534,8 @@ class _RoutePageState extends State<RoutePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(AppLocalizations.of(context)!.text_67, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(AppLocalizations.of(context)!.text_67,
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
                     t['depTime'],
                     style: const TextStyle(
@@ -3372,16 +3547,18 @@ class _RoutePageState extends State<RoutePage> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: successGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.directions_railway_rounded, size: 16, color: successGreen),
+                    Icon(Icons.directions_railway_rounded,
+                        size: 16, color: successGreen),
                     const SizedBox(width: 4),
-                     Text(
+                    Text(
                       AppLocalizations.of(context)!.text_892,
                       style: TextStyle(
                         fontSize: 12,
@@ -3395,7 +3572,8 @@ class _RoutePageState extends State<RoutePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                   Text(AppLocalizations.of(context)!.text_68, style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(AppLocalizations.of(context)!.text_68,
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
                     t['arrTime'],
                     style: const TextStyle(
@@ -3429,7 +3607,8 @@ class _RoutePageState extends State<RoutePage> {
                     ),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.train_rounded, size: 18, color: Colors.white),
+                  child: const Icon(Icons.train_rounded,
+                      size: 18, color: Colors.white),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -3457,7 +3636,8 @@ class _RoutePageState extends State<RoutePage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: typeColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
@@ -3510,22 +3690,29 @@ class _RoutePageState extends State<RoutePage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: tight ? errorRed.withOpacity(0.1) : warningOrange.withOpacity(0.1),
+                color: tight
+                    ? errorRed.withOpacity(0.1)
+                    : warningOrange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: tight ? errorRed.withOpacity(0.3) : warningOrange.withOpacity(0.3),
+                  color: tight
+                      ? errorRed.withOpacity(0.3)
+                      : warningOrange.withOpacity(0.3),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    tight ? Icons.warning_amber_rounded : Icons.timeline_rounded,
+                    tight
+                        ? Icons.warning_amber_rounded
+                        : Icons.timeline_rounded,
                     size: 16,
                     color: tight ? errorRed : warningOrange,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    t['totalTimeHuman'] ?? '${totalMin ~/ 60}小時${totalMin % 60}分',
+                    t['totalTimeHuman'] ??
+                        '${totalMin ~/ 60}小時${totalMin % 60}分',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -3584,7 +3771,8 @@ class _RoutePageState extends State<RoutePage> {
                         await _navigateToTrainDetail(trainNo1);
                       },
                       borderRadius: BorderRadius.circular(12),
-                      splashColor: _getTrainTypeColor(leg1['TrainTypeName']).withOpacity(0.1),
+                      splashColor: _getTrainTypeColor(leg1['TrainTypeName'])
+                          .withOpacity(0.1),
                       child: _buildLegCard(leg1, isFirst: true),
                     ),
                   ),
@@ -3599,7 +3787,8 @@ class _RoutePageState extends State<RoutePage> {
                         await _navigateToTrainDetail(trainNo2);
                       },
                       borderRadius: BorderRadius.circular(12),
-                      splashColor: _getTrainTypeColor(leg2['TrainTypeName']).withOpacity(0.1),
+                      splashColor: _getTrainTypeColor(leg2['TrainTypeName'])
+                          .withOpacity(0.1),
                       child: _buildLegCard(leg2, isFirst: false),
                     ),
                   ),
@@ -3615,16 +3804,16 @@ class _RoutePageState extends State<RoutePage> {
 // 新增：車次詳情導航方法
   Future<void> _navigateToTrainDetail(String trainNo) async {
     try {
-
       if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TrainSchedulePage(
-
-              type: 'trainNo',
-              time: widget.date, trainNo: int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''),)
-            ),
+                type: 'trainNo',
+                time: widget.date,
+                trainNo: int.parse(
+                  trainNo.replaceAll(RegExp(r'[^0-9]'), ''),
+                )),
           ),
         );
       }
@@ -3735,7 +3924,8 @@ class _RoutePageState extends State<RoutePage> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: typeColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -3767,14 +3957,19 @@ class _RoutePageState extends State<RoutePage> {
       ),
     );
   }
+
   Widget _buildTransferStationCard(dynamic station, bool tight) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: tight ? errorRed.withOpacity(0.05) : warningOrange.withOpacity(0.05),
+        color: tight
+            ? errorRed.withOpacity(0.05)
+            : warningOrange.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: tight ? errorRed.withOpacity(0.2) : warningOrange.withOpacity(0.2),
+          color: tight
+              ? errorRed.withOpacity(0.2)
+              : warningOrange.withOpacity(0.2),
         ),
       ),
       child: Row(
@@ -3782,7 +3977,9 @@ class _RoutePageState extends State<RoutePage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: tight ? errorRed.withOpacity(0.1) : warningOrange.withOpacity(0.1),
+              color: tight
+                  ? errorRed.withOpacity(0.1)
+                  : warningOrange.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -3825,7 +4022,15 @@ class _RoutePageState extends State<RoutePage> {
   // 顯示日期的格式
   // =============================
   String _formatDate(DateTime date) {
-    final weekday = [AppLocalizations.of(context)!.text_306, AppLocalizations.of(context)!.text_307, AppLocalizations.of(context)!.text_308, AppLocalizations.of(context)!.text_309, AppLocalizations.of(context)!.text_310, AppLocalizations.of(context)!.text_311, AppLocalizations.of(context)!.text_312][date.weekday - 1];
+    final weekday = [
+      AppLocalizations.of(context)!.text_306,
+      AppLocalizations.of(context)!.text_307,
+      AppLocalizations.of(context)!.text_308,
+      AppLocalizations.of(context)!.text_309,
+      AppLocalizations.of(context)!.text_310,
+      AppLocalizations.of(context)!.text_311,
+      AppLocalizations.of(context)!.text_312
+    ][date.weekday - 1];
     return '${date.year}年${date.month}月${date.day}日 週$weekday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
@@ -3854,7 +4059,8 @@ class _RoutePageState extends State<RoutePage> {
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: const Icon(Icons.arrow_forward_rounded, size: 16, color: primaryBlue),
+              child: const Icon(Icons.arrow_forward_rounded,
+                  size: 16, color: primaryBlue),
             ),
             Text(
               '${widget.destination["StationName"]["Zh_tw"]}',
@@ -3871,7 +4077,8 @@ class _RoutePageState extends State<RoutePage> {
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: queryTrainList(),
-        key: ValueKey('${widget.date.day}-${widget.date.hour}-${widget.date.minute}'),
+        key: ValueKey(
+            '${widget.date.day}-${widget.date.hour}-${widget.date.minute}'),
         builder: (_, s) {
           if (s.connectionState == ConnectionState.waiting) {
             return Center(
@@ -3891,7 +4098,8 @@ class _RoutePageState extends State<RoutePage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
+                    const CircularProgressIndicator(
+                        color: primaryBlue, strokeWidth: 3),
                     const SizedBox(height: 16),
                     Text(
                       AppLocalizations.of(context)!.text_894,
@@ -3931,16 +4139,20 @@ class _RoutePageState extends State<RoutePage> {
                       height: 80,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [errorRed.withOpacity(0.1), errorRed.withOpacity(0.05)],
+                          colors: [
+                            errorRed.withOpacity(0.1),
+                            errorRed.withOpacity(0.05)
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.error_outline_rounded, size: 40, color: errorRed),
+                      child: const Icon(Icons.error_outline_rounded,
+                          size: 40, color: errorRed),
                     ),
                     const SizedBox(height: 16),
-                     Text(
+                    Text(
                       AppLocalizations.of(context)!.text_205,
                       style: TextStyle(
                         fontSize: 18,
@@ -3960,7 +4172,8 @@ class _RoutePageState extends State<RoutePage> {
           }
 
           final data = s.data!;
-          final trains = buildTrains(data['direct'] ?? [], data['transfer'] ?? []);
+          final trains =
+              buildTrains(data['direct'] ?? [], data['transfer'] ?? []);
 
           if (trains.isEmpty) {
             return Center(
@@ -3974,16 +4187,20 @@ class _RoutePageState extends State<RoutePage> {
                       height: 120,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [primaryBlue.withOpacity(0.1), primaryBlue.withOpacity(0.05)],
+                          colors: [
+                            primaryBlue.withOpacity(0.1),
+                            primaryBlue.withOpacity(0.05)
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.train_outlined, size: 50, color: primaryBlue),
+                      child: const Icon(Icons.train_outlined,
+                          size: 50, color: primaryBlue),
                     ),
                     const SizedBox(height: 24),
-                     Text(
+                    Text(
                       AppLocalizations.of(context)!.text_207,
                       style: TextStyle(
                         fontSize: 20,
@@ -4023,7 +4240,8 @@ class _RoutePageState extends State<RoutePage> {
             children: [
               // 日期時間標籤
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 margin: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: surfaceColor,
@@ -4039,7 +4257,8 @@ class _RoutePageState extends State<RoutePage> {
                         color: primaryBlue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.calendar_today_rounded, size: 16, color: primaryBlue),
+                      child: const Icon(Icons.calendar_today_rounded,
+                          size: 16, color: primaryBlue),
                     ),
                     const SizedBox(width: 12),
                     Text(
@@ -4060,11 +4279,13 @@ class _RoutePageState extends State<RoutePage> {
                   itemScrollController: _itemScrollController,
                   itemPositionsListener: _itemPositionsListener,
                   itemCount: trains.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   itemBuilder: (_, i) {
                     final t = trains[i];
                     final isClosest = i == findClosestTrainIndex(trains);
-                    final isAfterSelectedTime = trainDepMinutes(t) >= _selectedMinutes();
+                    final isAfterSelectedTime =
+                        trainDepMinutes(t) >= _selectedMinutes();
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -4073,7 +4294,8 @@ class _RoutePageState extends State<RoutePage> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(isClosest ? 0.1 : 0.04),
+                            color: Colors.black
+                                .withOpacity(isClosest ? 0.1 : 0.04),
                             blurRadius: isClosest ? 20 : 12,
                             offset: Offset(0, isClosest ? 6 : 4),
                           ),
@@ -4081,18 +4303,19 @@ class _RoutePageState extends State<RoutePage> {
                         border: isClosest
                             ? Border.all(color: primaryBlue, width: 2)
                             : !isAfterSelectedTime
-                            ? Border.all(color: Colors.grey[300]!, width: 1)
-                            : null,
+                                ? Border.all(color: Colors.grey[300]!, width: 1)
+                                : null,
                       ),
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-
                           borderRadius: BorderRadius.circular(20),
                           splashColor: primaryBlue.withOpacity(0.1),
                           child: Container(
                             padding: const EdgeInsets.all(20),
-                            child: t['transfer'] ? transferTimeline(t) : directCard(t),
+                            child: t['transfer']
+                                ? transferTimeline(t)
+                                : directCard(t),
                           ),
                         ),
                       ),

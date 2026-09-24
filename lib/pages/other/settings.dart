@@ -4,11 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-
 import '../../Const/regularClass.dart';
 import '../../database/SQL/schedule.dart';
 import '../../l10n/app_localizations.dart';
-
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -19,7 +17,6 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final ValueNotifier<bool> _notificationsEnabled = ValueNotifier(true);
-  final ValueNotifier<bool> _isDarkTheme = ValueNotifier(false);
   late String _selectedLanguage = AppLocalizations.of(context)!.text_72;
   String _appVersion = '1.0.0';
   late String _appName = AppLocalizations.of(context)!.text_445;
@@ -36,14 +33,21 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _notificationsEnabled.value = prefs.getBool('notifications') ?? true;
-    _isDarkTheme.value = prefs.getBool('darkTheme') ?? false;
+    final appProvider = context.read<AppProvider>();
+    final savedDarkTheme = prefs.getBool('darkTheme') ?? false;
+    if (savedDarkTheme != appProvider.isDarkTheme) {
+      await appProvider.toggleTheme(savedDarkTheme);
+    }
+    if (!mounted) return;
     setState(() {
-      _selectedLanguage = prefs.getString('language') ?? AppLocalizations.of(context)!.text_72;
+      _selectedLanguage =
+          prefs.getString('language') ?? AppLocalizations.of(context)!.text_72;
     });
   }
 
   Future<void> _loadAppVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
       _appVersion = packageInfo.version;
       _appName = packageInfo.appName;
@@ -64,18 +68,16 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void dispose() {
     _notificationsEnabled.dispose();
-    _isDarkTheme.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       appBar: AppBar(
-        title:  Text(AppLocalizations.of(context)!.text_446, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.text_446,
+            style: TextStyle(fontWeight: FontWeight.bold)),
         elevation: 0,
-
       ),
       body: ListView(
         children: [
@@ -85,9 +87,10 @@ class _SettingsPageState extends State<SettingsPage> {
               valueListenable: _notificationsEnabled,
               builder: (context, value, child) {
                 return SwitchListTile(
-                  secondary: const Icon(Icons.notifications_active_outlined, color: Colors.blue),
-                  title:  Text(AppLocalizations.of(context)!.text_448),
-                  subtitle:  Text(AppLocalizations.of(context)!.text_449),
+                  secondary: const Icon(Icons.notifications_active_outlined,
+                      color: Colors.blue),
+                  title: Text(AppLocalizations.of(context)!.text_448),
+                  subtitle: Text(AppLocalizations.of(context)!.text_449),
                   value: value,
                   onChanged: (bool newValue) {
                     _notificationsEnabled.value = newValue;
@@ -96,64 +99,61 @@ class _SettingsPageState extends State<SettingsPage> {
                 );
               },
             ),
-            ValueListenableBuilder<bool>(
-              valueListenable: _isDarkTheme,
-              builder: (context, value, child) {
+            Consumer<AppProvider>(
+              builder: (context, appProvider, child) {
                 return SwitchListTile(
-                  secondary: const Icon(Icons.dark_mode_outlined, color: Colors.orange),
-                  title:  Text(AppLocalizations.of(context)!.text_450),
-                  value: value,
-                  onChanged: (bool newValue) {
-                    _isDarkTheme.value = newValue;
-                    _savePreference('darkTheme', newValue);
-                    // 這裡通常需要通知 MyApp 重新 build 以切換主題
-                  },
+                  secondary: const Icon(Icons.dark_mode_outlined,
+                      color: Colors.orange),
+                  title: Text(AppLocalizations.of(context)!.text_450),
+                  value: appProvider.isDarkTheme,
+                  onChanged: appProvider.toggleTheme,
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.language, color: Colors.green),
-              title:  Text(AppLocalizations.of(context)!.text_451),
+              title: Text(AppLocalizations.of(context)!.text_451),
               subtitle: Text(_selectedLanguage),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showLanguageDialog(),
             ),
           ]),
-
           _buildSectionTitle(AppLocalizations.of(context)!.text_452),
           _buildSettingCard([
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.teal),
-              title:  Text(AppLocalizations.of(context)!.text_453),
+              title: Text(AppLocalizations.of(context)!.text_453),
               onTap: () => _showInfoDialog(context),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent),
-              title:  Text(AppLocalizations.of(context)!.text_454),
-              subtitle:  Text(AppLocalizations.of(context)!.text_455),
+              leading: const Icon(Icons.delete_sweep_outlined,
+                  color: Colors.redAccent),
+              title: Text(AppLocalizations.of(context)!.text_454),
+              subtitle: Text(AppLocalizations.of(context)!.text_455),
               onTap: () => _showClearDialog(context),
             ),
           ]),
-
           _buildSectionTitle(AppLocalizations.of(context)!.text_456),
           _buildSettingCard([
             ListTile(
-              leading: const Icon(Icons.star_border_rounded, color: Colors.amber),
-              title:  Text(AppLocalizations.of(context)!.text_457),
+              leading:
+                  const Icon(Icons.star_border_rounded, color: Colors.amber),
+              title: Text(AppLocalizations.of(context)!.text_457),
               onTap: () {
                 // TODO: 實作 Store 跳轉
               },
             ),
             ListTile(
-              leading: const Icon(Icons.alternate_email, color: Colors.blueGrey),
-              title:  Text(AppLocalizations.of(context)!.text_458),
+              leading:
+                  const Icon(Icons.alternate_email, color: Colors.blueGrey),
+              title: Text(AppLocalizations.of(context)!.text_458),
               onTap: () {
                 // TODO: 實作郵件跳轉
               },
             ),
             ListTile(
               leading: const Icon(Icons.help_outline, color: Colors.indigo),
-              title:  Text(AppLocalizations.of(context)!.text_459),
+              title: Text(AppLocalizations.of(context)!.text_459),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigator.push(
@@ -168,9 +168,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 //   ),
                 // );
               },
-            ),   ListTile(
-              leading: const Icon(Icons.settings_accessibility_rounded, color: Colors.indigo),
-              title:  Text(AppLocalizations.of(context)!.text_460),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_accessibility_rounded,
+                  color: Colors.indigo),
+              title: Text(AppLocalizations.of(context)!.text_460),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 // Navigator.push(
@@ -206,7 +208,8 @@ class _SettingsPageState extends State<SettingsPage> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey),
       ),
     );
   }
@@ -219,7 +222,10 @@ class _SettingsPageState extends State<SettingsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(children: children),
@@ -245,7 +251,6 @@ class _SettingsPageState extends State<SettingsPage> {
               RadioListTile<String>(
                 title: Text(l10n.text_72),
                 value: 'zh',
-
                 onChanged: (value) {
                   context.read<AppProvider>().setLanguage(value!);
                   Navigator.pop(context);
@@ -254,7 +259,6 @@ class _SettingsPageState extends State<SettingsPage> {
               RadioListTile<String>(
                 title: const Text('English'),
                 value: 'en',
-
                 onChanged: (value) {
                   context.read<AppProvider>().setLanguage(value!);
                   Navigator.pop(context);
@@ -266,6 +270,7 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
+
   void _showClearDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -278,11 +283,12 @@ class _SettingsPageState extends State<SettingsPage> {
             Text(AppLocalizations.of(context)!.text_462),
           ],
         ),
-        content:  Text(AppLocalizations.of(context)!.text_463),
+        content: Text(AppLocalizations.of(context)!.text_463),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child:  Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.grey)),
+            child: Text(AppLocalizations.of(context)!.text_36,
+                style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
@@ -290,11 +296,15 @@ class _SettingsPageState extends State<SettingsPage> {
               await ScheduleService.instance.clearDatabase();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                   SnackBar(content: Text(AppLocalizations.of(context)!.text_464), behavior: SnackBarBehavior.floating),
+                  SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_464),
+                      behavior: SnackBarBehavior.floating),
                 );
               }
             },
-            child:  Text(AppLocalizations.of(context)!.text_465, style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: Text(AppLocalizations.of(context)!.text_465,
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -306,24 +316,28 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title:  Text(AppLocalizations.of(context)!.text_466),
+        title: Text(AppLocalizations.of(context)!.text_466),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(AppLocalizations.of(context)!.text_467),
             const SizedBox(height: 12),
-             Text(AppLocalizations.of(context)!.text_468, style: TextStyle(fontWeight: FontWeight.w500)),
-            Text(AppLocalizations.of(context)!.text_469, style: const TextStyle(fontWeight: FontWeight.w500)),
-            const Text('• Google Maps API', style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(AppLocalizations.of(context)!.text_468,
+                style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(AppLocalizations.of(context)!.text_469,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
+            const Text('• Google Maps API',
+                style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 12),
-             Text(AppLocalizations.of(context)!.text_470, style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(AppLocalizations.of(context)!.text_470,
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child:  Text(AppLocalizations.of(context)!.text_471),
+            child: Text(AppLocalizations.of(context)!.text_471),
           ),
         ],
       ),

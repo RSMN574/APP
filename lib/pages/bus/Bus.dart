@@ -16,20 +16,24 @@ import 'package:animated_custom_dropdown/custom_dropdown.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../models/bus.dart';
+import '../../features/bus/state/bus_provider.dart';
 
 Timer? _debounceTimer; // 在你的 State 類別頂部宣告這個變數
+
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
 
   @override
   State<Bus> createState() => BusState();
 }
+
 enum SearchType {
   route,
   stop,
 }
+
 final ValueNotifier<SearchType> _dropdownValueNotifier =
-ValueNotifier(SearchType.route);
+    ValueNotifier(SearchType.route);
 
 class MenuItemData {
   final String id;
@@ -42,6 +46,7 @@ class MenuItemData {
     required this.icon,
   });
 }
+
 final List<CityItem> cities = [
   CityItem(name: '全部', id: 'all'),
   CityItem(name: '臺中市', id: 'Taichung'),
@@ -76,17 +81,18 @@ final List<MenuItemData> menuItems = [
     icon: Icons.airport_shuttle,
   ),
 ];
-class BusState extends State<Bus> {
 
+class BusState extends State<Bus> {
   int _current = 0;
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<BusRoute>> favoriteRoutes = ValueNotifier([]);
   List<BusRoute> busData = [];
-ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
+  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
 
-  final ValueNotifier<double> suggestionsHeightNotifier = ValueNotifier<double>(0);
+  final ValueNotifier<double> suggestionsHeightNotifier =
+      ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
@@ -94,9 +100,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   final Color _primaryColor = const Color(0xFF1A73E8);
   final Color _secondaryColor = const Color(0xFFEEF3FB);
 
-
   Future<List<dynamic>>? _suggestionFuture; // 確保有寫 List<dynamic> 用來存住請求的結果
-  String _lastQuery = "";      // 用來紀錄上次搜尋的內容，避免重複請求
+  String _lastQuery = ""; // 用來紀錄上次搜尋的內容，避免重複請求
 // 修正後的 updateCurrent 方法
   Future<int> updateCurrent() async {
     try {
@@ -154,6 +159,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       return 500;
     }
   }
+
   @override
   void initState() {
     super.initState();
@@ -171,6 +177,12 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
 
   @override
   void dispose() {
+    pageController.dispose();
+    favoriteStops.dispose();
+    favoriteRoutes.dispose();
+    suggestionsHeightNotifier.dispose();
+    busIdController.dispose();
+    suggestions.dispose();
     super.dispose();
   }
 
@@ -183,7 +195,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     }
   }
 
-  Future<List<dynamic>> _loadFavorites(String key, {required String city}) async {
+  Future<List<dynamic>> _loadFavorites(String key,
+      {required String city}) async {
     FavoriteService db = FavoriteService();
 
     if (key == "FavoritesRoute") {
@@ -197,15 +210,26 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     return [];
   }
 
-  Future<List> _getData() async {
-    busCurrentCity = correspondingIDNotifier.value;
+  Future<List<BusRoute>> _getData() async {
+    final city = correspondingIDNotifier.value;
+    busCurrentCity = city;
 
-    busData= await getBusRoute(
-      city: correspondingIDNotifier.value,
-    );
-
-
-    return [];
+    try {
+      final routes = await context.read<BusProvider>().loadRoutes(city);
+      if (!mounted) return routes;
+      setState(() {
+        busData = routes;
+      });
+      return routes;
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          busData = [];
+        });
+      }
+      debugPrint('Unable to load bus routes for $city: $error');
+      return [];
+    }
   }
 
   Future<List<dynamic>> _updateSuggestions(String id) async {
@@ -218,9 +242,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       for (final route in busData) {
         final locale = Localizations.localeOf(context);
 
-        final routeName = locale.languageCode == 'en'
-            ? route.routeEn
-            : route.routeZh;
+        final routeName =
+            locale.languageCode == 'en' ? route.routeEn : route.routeZh;
 
         if (routeName.contains(input)) {
           if (input == routeName) {
@@ -237,25 +260,19 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       final String input = busIdController.text;
       final locale = Localizations.localeOf(context);
       final rawData;
-  if(locale.languageCode == 'zh'){
-     rawData = await mysqlSelect(
-        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
-    );
-
-  }else if(locale.languageCode == 'en'){
-     rawData = await mysqlSelect(
-        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'"
-    );
-
-  }else {
-    rawData = await mysqlSelect(
-        "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'"
-    );
-
-  }
+      if (locale.languageCode == 'zh') {
+        rawData = await mysqlSelect(
+            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+      } else if (locale.languageCode == 'en') {
+        rawData = await mysqlSelect(
+            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'");
+      } else {
+        rawData = await mysqlSelect(
+            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
+            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+      }
 
       final seen = <String>{};
       for (var item in rawData) {
@@ -286,7 +303,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
@@ -301,7 +317,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-
             ),
           ),
         ],
@@ -370,7 +385,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -408,7 +422,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -416,7 +429,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
-
                       ),
                     ),
                   ],
@@ -430,14 +442,12 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     );
   }
 
-
   void _navigateToFareInfo() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-
             elevation: 0,
             title: Text(AppLocalizations.of(context)!.text_17),
           ),
@@ -458,7 +468,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -493,7 +502,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                     const SizedBox(height: 12),
                     _buildInfoText(AppLocalizations.of(context)!.text_24),
                     const SizedBox(height: 12),
-                    _buildInfoText("4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
+                    _buildInfoText(
+                        "4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
                   ],
                 ),
               ],
@@ -503,8 +513,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       ),
     );
   }
-
-
 
   Widget _buildInfoText(String text) {
     return Padding(
@@ -538,7 +546,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || (snapshot.data as List).isEmpty) {
+                  } else if (!snapshot.hasData ||
+                      (snapshot.data as List).isEmpty) {
                     return _buildNoDataWidget();
                   } else {
                     final data = snapshot.data as List;
@@ -634,12 +643,14 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     );
   }
 
-  Widget _buildCityDropdown([bool includeAll = true] ) {
+  Widget _buildCityDropdown([bool includeAll = true]) {
     final filteredList = includeAll
         ? cities
-        : cities.where(
-          (city) => city.name != AppLocalizations.of(context)!.text_5,
-    ).toList();
+        : cities
+            .where(
+              (city) => city.name != AppLocalizations.of(context)!.text_5,
+            )
+            .toList();
     return Container(
       // margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -657,7 +668,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       child: Row(
         children: [
           Container(
-
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppThemes.getCardColor(context),
@@ -687,8 +697,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
               // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
               color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(12),
-
-
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
@@ -698,7 +706,9 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                 isExpanded: true,
 
                 // 設定目前的數值與圖示
-                value: currentCityNotifier.value == AppLocalizations.of(context)!.text_5 && !includeAll
+                value: currentCityNotifier.value ==
+                            AppLocalizations.of(context)!.text_5 &&
+                        !includeAll
                     ? null
                     : currentCityNotifier.value,
                 icon: Icon(
@@ -739,8 +749,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                 },
                 // --- 2. 點開後的清單佈局 ---
                 items: filteredList.map((CityItem city) {
-                  final isSelected =
-                      currentCityNotifier.value == city.name;
+                  final isSelected = currentCityNotifier.value == city.name;
 
                   return DropdownMenuItem<String>(
                     value: city.name,
@@ -762,8 +771,9 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                             city.name,
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w500,
                             ),
                           ),
                         ),
@@ -789,13 +799,12 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     updateCurrent();
     return Scaffold(
-
       appBar: _buildAppBar(),
-
       body: GestureDetector(
         onTap: () => hideKeyboard(context),
         child: Column(
@@ -850,7 +859,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
               decoration: BoxDecoration(
                 color: AppThemes.getCardColor(context),
                 borderRadius: BorderRadius.circular(12),
-
               ),
               child: ValueListenableBuilder<SearchType>(
                 valueListenable: _dropdownValueNotifier,
@@ -868,7 +876,8 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                       ),
                       selectedItemBuilder: (BuildContext context) {
                         return SearchType.values.map<Widget>((type) {
-                          final isSelected = _dropdownValueNotifier.value == type;
+                          final isSelected =
+                              _dropdownValueNotifier.value == type;
                           final icon = type == SearchType.route
                               ? Icons.alt_route_rounded
                               : Icons.place_rounded;
@@ -881,7 +890,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primary
+                                            .withOpacity(0.1)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -890,9 +902,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                     size: 18,
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
+                                        : Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -900,12 +913,15 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                   type == SearchType.route ? '路線' : '站牌',
                                   style: TextStyle(
                                     fontSize: 14,
-                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[700],
+                                        : Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[700],
                                   ),
                                 ),
                               ],
@@ -937,7 +953,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withOpacity(0.08)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -948,9 +967,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[800]
-                                        : const Color(0xFFEEF3FB),
+                                        : Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[800]
+                                            : const Color(0xFFEEF3FB),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -958,9 +978,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                     size: 18,
                                     color: isSelected
                                         ? Colors.white
-                                        : Theme.of(context).brightness == Brightness.dark
-                                        ? Colors.grey[400]
-                                        : const Color(0xFF1A73E8),
+                                        : Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey[400]
+                                            : const Color(0xFF1A73E8),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -969,12 +990,17 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                                     type == SearchType.route ? '路線' : '站牌',
                                     style: TextStyle(
                                       fontSize: 15,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
                                       color: isSelected
-                                          ? Theme.of(context).colorScheme.primary
-                                          : Theme.of(context).brightness == Brightness.dark
-                                          ? Colors.grey[300]
-                                          : Colors.black87,
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                          : Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.grey[300]
+                                              : Colors.black87,
                                     ),
                                   ),
                                 ),
@@ -1021,14 +1047,17 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                   onChanged: (text) async {
                     if (text.isNotEmpty) {
                       double screenHeight = MediaQuery.of(context).size.height;
-                      double bottomInset = MediaQuery.of(context).viewInsets.bottom;
-                      double appBarHeight = AppBar().preferredSize.height + MediaQuery.of(context).padding.top;
+                      double bottomInset =
+                          MediaQuery.of(context).viewInsets.bottom;
+                      double appBarHeight = AppBar().preferredSize.height +
+                          MediaQuery.of(context).padding.top;
 
                       if (_dropdownValueNotifier.value == SearchType.route) {
                         await _updateSuggestions('route');
                         suggestionsHeightNotifier.value =
                             screenHeight - bottomInset - appBarHeight - 200;
-                      } else if (_dropdownValueNotifier.value == SearchType.stop) {
+                      } else if (_dropdownValueNotifier.value ==
+                          SearchType.stop) {
                         await _updateSuggestions('stop');
                         suggestionsHeightNotifier.value =
                             screenHeight - bottomInset - appBarHeight - 200;
@@ -1060,32 +1089,35 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                     ),
                     suffixIcon: busIdController.text.isNotEmpty
                         ? Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[800]
-                            : const Color(0xFFEEF3FB),
-                        shape: BoxShape.circle,
-                      ),
-                      child: GestureDetector(
-                        onTap: () {
-                          busIdController.clear();
-                          suggestions.value.clear();
-                          suggestionsHeightNotifier.value = 0;
-                        },
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey[400]
-                              : Colors.grey[600],
-                        ),
-                      ),
-                    )
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey[800]
+                                  : const Color(0xFFEEF3FB),
+                              shape: BoxShape.circle,
+                            ),
+                            child: GestureDetector(
+                              onTap: () {
+                                busIdController.clear();
+                                suggestions.value.clear();
+                                suggestionsHeightNotifier.value = 0;
+                              },
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          )
                         : null,
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 12),
                   ),
                   style: TextStyle(
                     color: Theme.of(context).brightness == Brightness.dark
@@ -1102,6 +1134,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       ),
     );
   }
+
   Widget _buildMainContent() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -1165,39 +1198,40 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-              colors: [
-                const Color(0xFF1A73E8),
-                const Color(0xFF1A73E8).withOpacity(0.9),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            )
+                    colors: [
+                      const Color(0xFF1A73E8),
+                      const Color(0xFF1A73E8).withOpacity(0.9),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
                 : LinearGradient(
-              colors: [
-                Colors.white,
-                Colors.grey[50]!,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+                    colors: [
+                      Colors.white,
+                      Colors.grey[50]!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: isSelected
                 ? [
-              BoxShadow(
-                color: const Color(0xFF1A73E8).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ]
+                    BoxShadow(
+                      color: const Color(0xFF1A73E8).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
                 : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
             border: isSelected
-                ? Border.all(color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
+                ? Border.all(
+                    color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
                 : Border.all(color: Colors.grey[200]!, width: 1),
           ),
           child: Column(
@@ -1207,7 +1241,9 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.2) : const Color(0xFFEEF3FB),
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.2)
+                      : const Color(0xFFEEF3FB),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -1235,7 +1271,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
 
   Widget _buildPageView() {
     return PageView.builder(
-      itemCount:menuItems.length,
+      itemCount: menuItems.length,
       controller: pageController,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
@@ -1261,7 +1297,6 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     );
   }
 
-
   Widget _buildFavoriteStops() {
     return _buildFavoriteList(
       favoriteStops,
@@ -1271,10 +1306,10 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   }
 
   Widget _buildFavoriteList<T>(
-      ValueNotifier<List<T>> notifier,
+    ValueNotifier<List<T>> notifier,
     Widget Function(T) itemBuilder,
-      String emptyMessage,
-      ) {
+    String emptyMessage,
+  ) {
     return FutureBuilder<int>(
       future: updateCurrent(),
       builder: (context, snapshot) {
@@ -1303,14 +1338,13 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       },
     );
   }
+
   Widget _buildRouteCard(BusRoute route) {
     final locale = Localizations.localeOf(context);
 
     return _buildInfoCard(
       title: locale.languageCode == 'en'
-          ? (route.routeEn?.isNotEmpty == true
-          ? route.routeEn!
-          : route.routeZh)
+          ? (route.routeEn?.isNotEmpty == true ? route.routeEn! : route.routeZh)
           : route.routeZh,
       subtitle: locale.languageCode == 'en'
           ? '${route.departureStopNameEn} - ${route.destinationStopNameEn}'
@@ -1323,12 +1357,14 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
       ),
     );
   }
+
   Widget _buildStopCard(Map<String, dynamic> stop) {
     print(stop);
     return _buildInfoCard(
       title: stop["stopName"]?.toString() ?? '',
       onTap: () => _navigateToStopDetails(stop),
-      onRemove: () => _showConfirmDialog(context, stop["stopName"], "FavoritesStop"),
+      onRemove: () =>
+          _showConfirmDialog(context, stop["stopName"], "FavoritesStop"),
     );
   }
 
@@ -1374,18 +1410,18 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
         ),
         subtitle: subtitle != null
             ? Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-          ),
-        )
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              )
             : null,
         trailing: onRemove != null
             ? IconButton(
-          icon: const Icon(Icons.favorite, color: Colors.red),
-          onPressed: onRemove,
-        )
+                icon: const Icon(Icons.favorite, color: Colors.red),
+                onPressed: onRemove,
+              )
             : null,
         onTap: onTap,
       ),
@@ -1465,7 +1501,9 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
             ),
             child: suggestions.value.isNotEmpty
                 ? _buildSuggestionsList()
-                : Center(child: Text(AppLocalizations.of(context)!.text_33, style: const TextStyle(color: Colors.grey))),
+                : Center(
+                    child: Text(AppLocalizations.of(context)!.text_33,
+                        style: const TextStyle(color: Colors.grey))),
           ),
         );
       },
@@ -1490,7 +1528,9 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
           _lastQuery = '';
           return Buslist(
             suggestions: const [],
-            city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
+            city: correspondingIDNotifier.value == 'all'
+                ? "Taipei,Taichung"
+                : correspondingIDNotifier.value,
           );
         }
 
@@ -1521,14 +1561,17 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
           future: _suggestionFuture,
           builder: (context, snapshot) {
             // 如果正在等待（且目前還沒有舊資料），顯示轉圈圈
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
             // 成功取得資料，或是有快取舊資料，直接顯示
             return Buslist(
               suggestions: snapshot.data ?? [],
-              city: correspondingIDNotifier.value == 'all' ? "Taipei,Taichung" : correspondingIDNotifier.value,
+              city: correspondingIDNotifier.value == 'all'
+                  ? "Taipei,Taichung"
+                  : correspondingIDNotifier.value,
             );
           },
         );
@@ -1539,7 +1582,7 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   // 其他方法保持不變，但使用新的顏色變數
   void updatedCorrespondingID() {
     final city = cities.firstWhere(
-          (city) => city.name == currentCityNotifier.value,
+      (city) => city.name == currentCityNotifier.value,
       orElse: () => const CityItem(
         name: '全部',
         id: 'all',
@@ -1561,21 +1604,19 @@ ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
     final isEnglish = locale.languageCode == 'en';
 
     final routeName = isEnglish
-        ? (route.routeEn?.isNotEmpty == true
-        ? route.routeEn!
-        : route.routeZh)
+        ? (route.routeEn?.isNotEmpty == true ? route.routeEn! : route.routeZh)
         : route.routeZh;
 
     final departureName = isEnglish
         ? (route.departureStopNameEn?.isNotEmpty == true
-        ? route.departureStopNameEn!
-        : route.departureStopNameZh)
+            ? route.departureStopNameEn!
+            : route.departureStopNameZh)
         : route.departureStopNameZh;
 
     final destinationName = isEnglish
         ? (route.destinationStopNameEn?.isNotEmpty == true
-        ? route.destinationStopNameEn!
-        : route.destinationStopNameZh)
+            ? route.destinationStopNameEn!
+            : route.destinationStopNameZh)
         : route.destinationStopNameZh;
 
     final jsonField = isEnglish ? "En" : "Zh_tw";
@@ -1612,7 +1653,7 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
           destinationStopName: destinationName,
           operators: "",
           routeMapImageUrl:
-          baseData.isNotEmpty ? baseData[0]["RouteMapImageUrl"] : "",
+              baseData.isNotEmpty ? baseData[0]["RouteMapImageUrl"] : "",
           city: correspondingIDNotifier.value,
           routeID: finalRouteID,
           hasSubRoutes: route.hasSubRoute,
@@ -1621,6 +1662,7 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
       ),
     );
   }
+
   void _navigateToStopDetails(Map<String, dynamic> stop) {
     Navigator.push(
       context,
@@ -1633,7 +1675,8 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
     );
   }
 
-  void _showConfirmDialog(BuildContext context, String item, String SharedPreferencesList) {
+  void _showConfirmDialog(
+      BuildContext context, String item, String SharedPreferencesList) {
     QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
@@ -1649,10 +1692,14 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
     );
   }
 
-  Future<void> _removeFavorite(BuildContext context, String item, String SharedPreferencesList) async {
+  Future<void> _removeFavorite(
+      BuildContext context, String item, String SharedPreferencesList) async {
     favorite_feature db = favorite_feature();
     if (SharedPreferencesList == "FavoritesRoute") {
-      await db.removeFavoriteRoute(item, correspondingIDNotifier.value, );
+      await db.removeFavoriteRoute(
+        item,
+        correspondingIDNotifier.value,
+      );
     } else if (SharedPreferencesList == "FavoritesStop") {
       await db.removeFavoriteStop(item, correspondingIDNotifier.value);
     }
@@ -1675,7 +1722,8 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
                 color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.place, size: 16, color: Color(0xFF1A73E8)),
+              child:
+                  const Icon(Icons.place, size: 16, color: Color(0xFF1A73E8)),
             ),
             title: Text(
               suggestions[index].toString(),
@@ -1698,4 +1746,3 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
     );
   }
 }
-

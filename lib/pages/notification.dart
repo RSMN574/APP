@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-
+import '../database/SQL/sqlite.dart';
 import '../l10n/app_localizations.dart';
 
 class NotificationPage extends StatefulWidget {
@@ -12,84 +9,32 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage> {
   final List<Map<String, String>> notifications = [];
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  Database? _database;
 
   @override
   void initState() {
     super.initState();
-    _setupFirebaseMessaging();
-    _initDatabase().then((db) {
-      _database = db;
-      _loadNotifications(); // 加载已有通知
-    });
+    _loadNotifications();
   }
 
-  Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'notifications.db');
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute(
-          'CREATE TABLE notifications(id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, time TEXT)',
-        );
-      },
-    );
-  }
-
-  void _loadNotifications() async {
-    final List<Map<String, dynamic>> maps = await _database!.query('notifications');
-    print(maps);
+  Future<void> _loadNotifications() async {
+    final maps = await DatabaseHelper().getNotifications();
+    if (!mounted) return;
     setState(() {
-      notifications.clear(); // 清空旧通知
-      notifications.addAll(maps.map((map) => {
-        'title': map['title'] as String,
-        'description': map['description'] as String,
-        'time': map['time'] as String,
-      }));
-    });
-  }
-
-  void _insertNotification(Map<String, String> notification) async {
-    await _database!.insert(
-      'notifications',
-      {
-        'title': notification['title'],
-        'description': notification['description'],
-        'time': notification['time'],
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    _loadNotifications(); // 重新加载通知
-  }
-
-  void _setupFirebaseMessaging() async {
-    NotificationSettings settings = await _firebaseMessaging.requestPermission();
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        if (message.notification != null) {
-          final notification = {
-            'title': message.notification!.title ?? AppLocalizations.of(context as BuildContext)!.text_25,
-            'time': DateTime.now().toString(),
-            'description': message.notification!.body ?? AppLocalizations.of(context as BuildContext)!.text_433,
-          };
-          _insertNotification(notification); // 插入到数据库
-        }
-      });
-    } else {
-      print(AppLocalizations.of(context as BuildContext)!.text_434);
-    }
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('應用從通知打開: ${message.notification?.title}');
-      // 处理点击通知的逻辑
+      notifications.clear();
+      notifications.addAll(
+        maps.map(
+          (map) => {
+            'title': map['title']?.toString() ?? '',
+            'description': map['description']?.toString() ?? '',
+            'time': map['time']?.toString() ?? '',
+          },
+        ),
+      );
     });
   }
 
   @override
-  Widget build( context) {
+  Widget build(context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFD),
       appBar: AppBar(
@@ -148,7 +93,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 32),
             Text(
-              AppLocalizations.of(context )!.text_436,
+              AppLocalizations.of(context)!.text_436,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
@@ -158,7 +103,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 12),
             Text(
-              AppLocalizations.of(context )!.text_437,
+              AppLocalizations.of(context)!.text_437,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -174,7 +119,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Text(
-                AppLocalizations.of(context )!.text_438,
+                AppLocalizations.of(context)!.text_438,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -289,9 +234,9 @@ class _NotificationPageState extends State<NotificationPage> {
               ],
               border: isUnread
                   ? Border.all(
-                color: const Color(0xFF1A73E8).withOpacity(0.2),
-                width: 1.5,
-              )
+                      color: const Color(0xFF1A73E8).withOpacity(0.2),
+                      width: 1.5,
+                    )
                   : null,
             ),
             child: Stack(
@@ -340,7 +285,8 @@ class _NotificationPageState extends State<NotificationPage> {
                           borderRadius: BorderRadius.circular(14),
                           boxShadow: [
                             BoxShadow(
-                              color: _getNotificationColor(notificationType).withOpacity(0.3),
+                              color: _getNotificationColor(notificationType)
+                                  .withOpacity(0.3),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -369,7 +315,9 @@ class _NotificationPageState extends State<NotificationPage> {
                                     style: TextStyle(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w700,
-                                      color: isUnread ? Colors.black87 : Colors.grey[700],
+                                      color: isUnread
+                                          ? Colors.black87
+                                          : Colors.grey[700],
                                       height: 1.3,
                                     ),
                                     maxLines: 2,
@@ -378,7 +326,8 @@ class _NotificationPageState extends State<NotificationPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.grey[100],
                                     borderRadius: BorderRadius.circular(8),
@@ -415,19 +364,25 @@ class _NotificationPageState extends State<NotificationPage> {
                               children: [
                                 // 類型標籤
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: _getNotificationColor(notificationType).withOpacity(0.1),
+                                    color:
+                                        _getNotificationColor(notificationType)
+                                            .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: _getNotificationColor(notificationType).withOpacity(0.3),
+                                      color: _getNotificationColor(
+                                              notificationType)
+                                          .withOpacity(0.3),
                                     ),
                                   ),
                                   child: Text(
                                     _getNotificationTypeText(notificationType),
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: _getNotificationColor(notificationType),
+                                      color: _getNotificationColor(
+                                          notificationType),
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),

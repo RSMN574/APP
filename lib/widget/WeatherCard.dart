@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -40,21 +41,31 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
   String _formatCityName(String name) {
     String formatted = name
-        .replaceAll(AppLocalizations.of(context)!.text_88, AppLocalizations.of(context)!.text_936)
-        .replaceAll(AppLocalizations.of(context)!.text_85, AppLocalizations.of(context)!.text_937)
-        .replaceAll(AppLocalizations.of(context)!.text_89, AppLocalizations.of(context)!.text_938)
-        .replaceAll(AppLocalizations.of(context)!.text_77, AppLocalizations.of(context)!.text_939);
-    if (!formatted.contains(AppLocalizations.of(context)!.text_940) && !formatted.contains(AppLocalizations.of(context)!.text_941)) {
-      if (formatted == AppLocalizations.of(context)!.text_936) formatted = AppLocalizations.of(context)!.text_6;
+        .replaceAll(AppLocalizations.of(context)!.text_88,
+            AppLocalizations.of(context)!.text_936)
+        .replaceAll(AppLocalizations.of(context)!.text_85,
+            AppLocalizations.of(context)!.text_937)
+        .replaceAll(AppLocalizations.of(context)!.text_89,
+            AppLocalizations.of(context)!.text_938)
+        .replaceAll(AppLocalizations.of(context)!.text_77,
+            AppLocalizations.of(context)!.text_939);
+    if (!formatted.contains(AppLocalizations.of(context)!.text_940) &&
+        !formatted.contains(AppLocalizations.of(context)!.text_941)) {
+      if (formatted == AppLocalizations.of(context)!.text_936)
+        formatted = AppLocalizations.of(context)!.text_6;
     }
     return formatted;
   }
 
   IconData _getWeatherIcon(String wx) {
-    if (wx.contains(AppLocalizations.of(context)!.text_111)) return Icons.wb_sunny_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_112)) return Icons.umbrella_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_113)) return Icons.cloud_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_942)) return Icons.cloud_queue_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_111))
+      return Icons.wb_sunny_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_112))
+      return Icons.umbrella_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_113))
+      return Icons.cloud_rounded;
+    if (wx.contains(AppLocalizations.of(context)!.text_942))
+      return Icons.cloud_queue_rounded;
     return Icons.wb_cloudy_rounded;
   }
 
@@ -64,27 +75,33 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
         title.contains(AppLocalizations.of(context)!.text_945)) return errorRed;
     if (title.contains(AppLocalizations.of(context)!.text_946) ||
         title.contains(AppLocalizations.of(context)!.text_947) ||
-        title.contains(AppLocalizations.of(context)!.text_948)) return warningOrange;
+        title.contains(AppLocalizations.of(context)!.text_948))
+      return warningOrange;
     return const Color(0xFFFFCC00);
   }
 
   IconData _getAlertIcon(String title) {
     if (title.contains(AppLocalizations.of(context)!.text_943) ||
         title.contains(AppLocalizations.of(context)!.text_944) ||
-        title.contains(AppLocalizations.of(context)!.text_945)) return Icons.warning_amber_rounded;
+        title.contains(AppLocalizations.of(context)!.text_945))
+      return Icons.warning_amber_rounded;
     if (title.contains(AppLocalizations.of(context)!.text_946) ||
         title.contains(AppLocalizations.of(context)!.text_947) ||
-        title.contains(AppLocalizations.of(context)!.text_948)) return Icons.umbrella_rounded;
+        title.contains(AppLocalizations.of(context)!.text_948))
+      return Icons.umbrella_rounded;
     return Icons.info_outline_rounded;
   }
 
   Future<ComprehensiveWeatherData> fetchAllData() async {
-    const String apiKey = 'CWA-5150C3FB-47F0-4156-8441-02FDEFC90A22';
+    const String apiKey = AppConfig.weatherApiKey;
     final formattedCity = _formatCityName(widget.cityName);
 
-    final weatherUrl = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=$apiKey&locationName=$formattedCity';
-    final warningUrl = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0033-001?Authorization=$apiKey';
-    final earthquakeUrl = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=$apiKey';
+    final weatherUrl =
+        'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=$apiKey&locationName=$formattedCity';
+    final warningUrl =
+        'https://opendata.cwa.gov.tw/api/v1/rest/datastore/W-C0033-001?Authorization=$apiKey';
+    final earthquakeUrl =
+        'https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=$apiKey';
 
     try {
       final responses = await Future.wait([
@@ -108,7 +125,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
             minT: ele[2]['time'][0]['parameter']['parameterName'],
             comfort: ele[3]['time'][0]['parameter']['parameterName'],
             maxT: ele[4]['time'][0]['parameter']['parameterName'],
-            icon: _getWeatherIcon(ele[0]['time'][0]['parameter']['parameterName']),
+            icon: _getWeatherIcon(
+                ele[0]['time'][0]['parameter']['parameterName']),
           );
         }
       }
@@ -120,12 +138,17 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
         for (var r in records) {
           String content = r['contents']?['content']?['contentText'] ?? "";
-          if (content.contains(formattedCity) || r['datasetInfo']?['datasetDescription'] == AppLocalizations.of(context)!.text_949) {
+          if (content.contains(formattedCity) ||
+              r['datasetInfo']?['datasetDescription'] ==
+                  AppLocalizations.of(context)!.text_949) {
             alerts.add(AlertInfo(
-              title: r['datasetInfo']?['datasetDescription'] ?? AppLocalizations.of(context)!.text_950,
+              title: r['datasetInfo']?['datasetDescription'] ??
+                  AppLocalizations.of(context)!.text_950,
               description: content,
-              color: _getAlertColor(r['datasetInfo']?['datasetDescription'] ?? ""),
-              icon: _getAlertIcon(r['datasetInfo']?['datasetDescription'] ?? ""),
+              color:
+                  _getAlertColor(r['datasetInfo']?['datasetDescription'] ?? ""),
+              icon:
+                  _getAlertIcon(r['datasetInfo']?['datasetDescription'] ?? ""),
             ));
           }
         }
@@ -152,12 +175,16 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
                 if (diffDays < 7) {
                   final reportContent = eq['ReportContent'] ?? "";
-                  final location = eqInfo['Epicenter']?['Location'] ?? AppLocalizations.of(context)!.text_321;
-                  final magnitude = eqInfo['EarthquakeMagnitude']?['MagnitudeValue'] ?? AppLocalizations.of(context)!.text_321;
+                  final location = eqInfo['Epicenter']?['Location'] ??
+                      AppLocalizations.of(context)!.text_321;
+                  final magnitude = eqInfo['EarthquakeMagnitude']
+                          ?['MagnitudeValue'] ??
+                      AppLocalizations.of(context)!.text_321;
 
                   alerts.add(AlertInfo(
                     title: "顯著有感地震報告 (規模 $magnitude)",
-                    description: "發生時間: $originTimeStr\n位置: $location\n\n$reportContent",
+                    description:
+                        "發生時間: $originTimeStr\n位置: $location\n\n$reportContent",
                     color: errorRed,
                     icon: Icons.sensors_rounded,
                   ));
@@ -225,7 +252,9 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                 ),
                 child: SingleChildScrollView(
                   child: Text(
-                    alert.description.isEmpty ? AppLocalizations.of(context)!.text_952 : alert.description,
+                    alert.description.isEmpty
+                        ? AppLocalizations.of(context)!.text_952
+                        : alert.description,
                     style: const TextStyle(
                       height: 1.6,
                       fontSize: 14,
@@ -324,7 +353,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
           );
         }
 
-        if (!snapshot.hasData || (snapshot.data!.weather == null && snapshot.data!.alerts.isEmpty)) {
+        if (!snapshot.hasData ||
+            (snapshot.data!.weather == null && snapshot.data!.alerts.isEmpty)) {
           return const SizedBox.shrink();
         }
 
@@ -337,7 +367,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
             children: [
               if (data.alerts.isNotEmpty)
                 ...data.alerts.map((alert) => _buildAlertItem(context, alert)),
-              if (data.weather != null) _buildExpandableWeatherCard(data.weather!),
+              if (data.weather != null)
+                _buildExpandableWeatherCard(data.weather!),
             ],
           ),
         );
@@ -407,7 +438,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
                               color: alert.color.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -509,7 +541,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                               ),
                               const SizedBox(width: 10),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: primaryBlue.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
@@ -589,39 +622,39 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                   curve: Curves.easeInOut,
                   child: _isExpanded
                       ? Column(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: Divider(
-                          height: 1,
-                          color: surfaceColor,
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildDetailItem(
-                            Icons.thermostat_rounded,
-                            AppLocalizations.of(context)!.text_954,
-                            "${weather.minT}°C",
-                            primaryBlue,
-                          ),
-                          _buildDetailItem(
-                            Icons.sunny_snowing,
-                            AppLocalizations.of(context)!.text_955,
-                            "${weather.maxT}°C",
-                            warningOrange,
-                          ),
-                          _buildDetailItem(
-                            Icons.accessibility_new_rounded,
-                            AppLocalizations.of(context)!.text_956,
-                            weather.comfort,
-                            successGreen,
-                          ),
-                        ],
-                      ),
-                    ],
-                  )
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              child: Divider(
+                                height: 1,
+                                color: surfaceColor,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildDetailItem(
+                                  Icons.thermostat_rounded,
+                                  AppLocalizations.of(context)!.text_954,
+                                  "${weather.minT}°C",
+                                  primaryBlue,
+                                ),
+                                _buildDetailItem(
+                                  Icons.sunny_snowing,
+                                  AppLocalizations.of(context)!.text_955,
+                                  "${weather.maxT}°C",
+                                  warningOrange,
+                                ),
+                                _buildDetailItem(
+                                  Icons.accessibility_new_rounded,
+                                  AppLocalizations.of(context)!.text_956,
+                                  weather.comfort,
+                                  successGreen,
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
                       : const SizedBox.shrink(),
                 ),
               ],
@@ -633,7 +666,8 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
   }
 
   // ==================== 詳細項目 ====================
-  Widget _buildDetailItem(IconData icon, String label, String value, Color color) {
+  Widget _buildDetailItem(
+      IconData icon, String label, String value, Color color) {
     return Column(
       children: [
         Container(

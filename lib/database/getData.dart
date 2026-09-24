@@ -13,17 +13,25 @@ import '../secure_storage/secure_storage.dart';
 import 'package:mysql1/mysql1.dart';
 
 import '../utils/convert.dart';
+import '../config/app_config.dart';
+import 'tdx_api_client.dart';
 
 Timer? _idleTimer;
 const int idleTimeout = 30; // 30秒無操作超時
 var result;
 MySQLConnection? conn;
 
-
 int? sum = 0;
 List jsonData = [];
 
 String busCurrentCity = 'Taichung';
+
+String _validatedBusCity(String city) {
+  if (!RegExp(r'^[A-Za-z0-9_]+$').hasMatch(city)) {
+    throw ArgumentError.value(city, 'city', 'Invalid city identifier');
+  }
+  return city;
+}
 
 // 全局連接池
 late ConnectionPool connectionPool;
@@ -32,13 +40,14 @@ bool isPoolInitialized = false;
 // 初始化連接池
 Future<void> initConnectionPool() async {
   if (isPoolInitialized) return;
+  AppConfig.requireDatabaseConfig();
 
   final settings = ConnectionSettings(
-    host: "hidden.rsmn574.com",
+    host: AppConfig.databaseHost,
     port: 3306,
-    user: "onlyForApiRead",
-    password: "@Nick0319Lucas0221",
-    db: "Bus",
+    user: AppConfig.databaseUser,
+    password: AppConfig.databasePassword,
+    db: AppConfig.databaseName,
   );
 
   connectionPool = ConnectionPool(settings, 5); // 5個連接的池
@@ -71,6 +80,7 @@ class ConnectionPool {
     if (_currentTotalConnections < _maxPoolSize) {
       _currentTotalConnections++;
       try {
+        AppConfig.requireDatabaseConfig();
         return await MySqlConnection.connect(_settings);
       } catch (e) {
         _currentTotalConnections--; // 建立失敗，扣回計數器
@@ -138,6 +148,7 @@ class ConnectionPool {
     _currentTotalConnections = 0;
   }
 }
+
 Future<void> connMysql() async {
   // 如果連接已存在，則避免重複連接
   if (conn != null && await checkConnection()) {
@@ -150,11 +161,11 @@ Future<void> connMysql() async {
 
     // 建立連接
     conn = await MySQLConnection.createConnection(
-      host: "hidden.rsmn574.com",
+      host: AppConfig.databaseHost,
       port: 3306,
-      userName: "onlyForApiRead",
-      password: "@Nick0319Lucas0221",
-      databaseName: "Bus",
+      userName: AppConfig.databaseUser,
+      password: AppConfig.databasePassword,
+      databaseName: AppConfig.databaseName,
     );
     await conn!.connect();
 
@@ -179,7 +190,6 @@ Future<void> connMysql() async {
     }
   }
 }
-
 
 Future<bool> checkConnection() async {
   try {
@@ -243,6 +253,7 @@ void _startIdleTimer() {
     disconnect();
   });
 }
+
 Future<Map<String, dynamic>> getBusRouteWithId({
   required String city,
   required String routeId,
@@ -273,13 +284,13 @@ Future<Map<String, dynamic>> getBusRouteWithId({
     final String query = queryBuffer.toString();
 
     // ✅ executeQueryWithRetry 现在返回 IResultSet
-    final IResultSet result = await executeQueryWithRetry(query, params: parameters);
+    final IResultSet result =
+        await executeQueryWithRetry(query, params: parameters);
 
     if (result.rows.isEmpty) return {};
 
     // ✅ 正确转换为 Map
     return result.rows.first.assoc();
-
   } catch (e, stack) {
     debugPrint('GetBusRouteWithId error: $e');
     debugPrintStack(stackTrace: stack);
@@ -287,33 +298,30 @@ Future<Map<String, dynamic>> getBusRouteWithId({
     return {};
   }
 }
+
 Future<List<BusRoute>> getBusRoute({
   required String city,
-
 }) async {
   try {
     String query;
     List<dynamic> parameters = [];
 
-
 // 選擇基礎資料表
     if (city == 'all') {
-      query=("SELECT * FROM Bus.bus_route");
+      query = ("SELECT * FROM Bus.bus_route");
     } else if (city == 'InterCity') {
-      query=("SELECT * FROM Bus.Bus_InterCity_Route");
+      query = ("SELECT * FROM Bus.Bus_InterCity_Route");
     } else {
-      query=("SELECT * FROM Bus.bus_route WHERE City = '$city'");
-
+      query = ("SELECT * FROM Bus.bus_route WHERE City = ?");
+      parameters.add(city);
     }
 
-
-
-    final result = await executeQueryWithRetry(query);
+    final result = await executeQueryWithRetry(query, params: parameters);
 
     return result.rows
         .map(
           (row) => BusRoute.fromJson(row.assoc()),
-    )
+        )
         .toList();
   } catch (e, stack) {
     debugPrint('GetBus error: $e');
@@ -330,34 +338,32 @@ Future<List<BusRoute>> getBusRoute({
     return [];
   }
 }
-Future<List<Map<String, dynamic>>> getBusStop({
-  required String city,required String input
 
-}) async {
+Future<List<Map<String, dynamic>>> getBusStop(
+    {required String city, required String input}) async {
   try {
+    final safeCity = _validatedBusCity(city);
     String query;
     List<dynamic> parameters = [];
 
-
 // 選擇基礎資料表
     if (city == 'all') {
-      query=("SELECT StationName FROM Bus.Bus_${city}_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+      query = ("SELECT StationName FROM Bus.Bus_${safeCity}_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
+      parameters.add('%$input%');
     } else if (city == 'InterCity') {
-      query=("SELECT StationName FROM Bus.Bus_Bus_InterCity_Route_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+      query = ("SELECT StationName FROM Bus.Bus_InterCity_Route_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
+      parameters.add('%$input%');
     } else {
-      query = ("SELECT StationName FROM Bus.Bus_${city}_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+      query = ("SELECT StationName FROM Bus.Bus_${safeCity}_Stop "
+          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
+      parameters.add('%$input%');
     }
 
+    final result = await executeQueryWithRetry(query, params: parameters);
 
-
-    final result = await executeQueryWithRetry(query,);
-
-    return result.rows
-        .map<Map<String, dynamic>>((row) => row.assoc())
-        .toList();
+    return result.rows.map<Map<String, dynamic>>((row) => row.assoc()).toList();
   } catch (e, stack) {
     debugPrint('GetBus error: $e');
     debugPrintStack(stackTrace: stack);
@@ -373,11 +379,12 @@ Future<List<Map<String, dynamic>>> getBusStop({
     return [];
   }
 }
+
 Future<IResultSet> executeQueryWithRetry(
-    String query, {
-      List<dynamic>? params,
-      int maxRetries = 3,
-    }) async {
+  String query, {
+  List<dynamic>? params,
+  int maxRetries = 3,
+}) async {
   int attempts = 0;
   Duration delay = const Duration(milliseconds: 500);
 
@@ -430,7 +437,8 @@ Future<IResultSet> executeQueryWithRetry(
           errorMsg.contains('dead') ||
           errorMsg.contains('socket') ||
           errorMsg.contains('timeout') ||
-          errorMsg.contains('not in connectionestablished'); // ✅ 把上幾題你遇到的錯誤也納入斷線判定
+          errorMsg
+              .contains('not in connectionestablished'); // ✅ 把上幾題你遇到的錯誤也納入斷線判定
 
       // 如果是連線類型的錯誤，嘗試在下次重試前修復連線
       if (isConnectionError) {
@@ -443,19 +451,24 @@ Future<IResultSet> executeQueryWithRetry(
       }
 
       if (attempts >= maxRetries) {
-        throw Exception("Failed to execute query after $maxRetries attempts. Last error: $e");
+        throw Exception(
+            "Failed to execute query after $maxRetries attempts. Last error: $e");
       }
 
       // 指數退避延遲
       await Future.delayed(delay);
-      delay = Duration(milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
+      delay =
+          Duration(milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
     }
   }
 
   throw Exception("Unexpected error in executeQueryWithRetry");
 }
-Future<List<Map<String, dynamic>>> getBusStopOfRoute({required String routeId, required String city,}) async {
 
+Future<List<Map<String, dynamic>>> getBusStopOfRoute({
+  required String routeId,
+  required String city,
+}) async {
   List<Map<String, dynamic>> routeName = [];
 
   late final String query;
@@ -465,22 +478,21 @@ Future<List<Map<String, dynamic>>> getBusStopOfRoute({required String routeId, r
       query = '''
     SELECT *
     FROM Bus.Bus_InterCity_Route_Stop
-    WHERE RouteID = $routeId
+    WHERE RouteID = ?
   ''';
-    }else{
-      // 使用參數化查詢防止SQL注入
+    } else {
       query = '''
   SELECT *
   FROM Bus.stopOfRoute
-  WHERE City = '$city'
-    AND RouteID = $routeId
+  WHERE City = ?
+    AND RouteID = ?
 ''';
     }
 
-
-
     // 使用改進的查詢執行函數，包含重試邏輯
-    var result = await executeQueryWithRetry(query);
+    final parameters =
+        city == 'InterCity' ? <dynamic>[routeId] : <dynamic>[city, routeId];
+    var result = await executeQueryWithRetry(query, params: parameters);
 
     // 清空舊數據
     jsonData = [];
@@ -518,16 +530,21 @@ Future<List<Map<String, dynamic>>> getBusStopOfRoute({required String routeId, r
   }
 }
 
-
-Future<List<Map<String, dynamic>>> GetBusStopInfo({required String stopName, required String city,}) async {
+Future<List<Map<String, dynamic>>> GetBusStopInfo({
+  required String stopName,
+  required String city,
+}) async {
   await connMysql(); // 連接資料庫
 
-  var query =
-      "SELECT  StationID,StationPosition FROM Bus.Bus_${city}_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '$stopName'";
+  final safeCity = _validatedBusCity(city);
+  final query =
+      "SELECT StationID,StationPosition FROM Bus.Bus_${safeCity}_Stop "
+      "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = ?";
   List<Map<String, dynamic>> stopInfo = [];
 
-  jsonData = await mysqlSelect(query);
-  List<dynamic> data = await mysqlSelect(query);
+  final result = await executeQueryWithRetry(query, params: [stopName]);
+  final data = result.rows.map((row) => row.assoc()).toList();
+  jsonData = data;
 
   for (var i in data) {
     stopInfo.add(i);
@@ -574,20 +591,25 @@ Future<dynamic> fetchByUrl(String url, {dynamic other}) async {
   }
 }
 
-Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) async {
+Future<List<Map<String, dynamic>>> fetchTrainStationFacility(
+    String stationID) async {
   try {
     // 连接数据库
     await connMysql();
 
-    String queryFacility =
-        "SELECT * FROM Train.Station_StationFacility WHERE StationID = $stationID;";
-    String queryStation =
-        "SELECT * FROM Train.Train_Station WHERE StationID = $stationID;";
+    const queryFacility =
+        "SELECT * FROM Train.Station_StationFacility WHERE StationID = ?";
+    const queryStation =
+        "SELECT * FROM Train.Train_Station WHERE StationID = ?";
     // 查询设施数据
-    List<Map<String, dynamic>> facilityData = await mysqlSelect(queryFacility);
+    final facilityResult =
+        await executeQueryWithRetry(queryFacility, params: [stationID]);
+    final facilityData = facilityResult.rows.map((row) => row.assoc()).toList();
 
     // 查询车站数据
-    List<Map<String, dynamic>> stationData = await mysqlSelect(queryStation);
+    final stationResult =
+        await executeQueryWithRetry(queryStation, params: [stationID]);
+    final stationData = stationResult.rows.map((row) => row.assoc()).toList();
 
     // 打印调试信息
 
@@ -611,37 +633,45 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(String stationID) a
   }
 }
 
-Future<List> getNearTrainStation(double latitude, double longitude, {double maxDistanceInKm = 30.0, int count = 5}) async {
+Future<List> getNearTrainStation(double latitude, double longitude,
+    {double maxDistanceInKm = 30.0, int count = 5}) async {
   try {
     await connMysql();
 
     String queryNearStation =
         "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
-    List<Map<String, dynamic>> nearStation = await mysqlSelect(queryNearStation);
+    List<Map<String, dynamic>> nearStation =
+        await mysqlSelect(queryNearStation);
 
     _startIdleTimer();
 
     List<Map<String, dynamic>> findNearestStations(
-        List<Map<String, dynamic>> stations,
-        double userLat,
-        double userLon, {
-          required double maxDistance,
-          required int count,
-        }) {
-      final withDistance = stations.map((station) {
-        final pos = json.decode(station["StationPosition"]);
-        final distance = calculateApproxDistance(
-          userLat, userLon,
-          pos["PositionLat"], pos["PositionLon"],
-        )/1000;
-        return {...station, "distance": distance};
-      }).where((s) => s["distance"] <= maxDistance).toList();
+      List<Map<String, dynamic>> stations,
+      double userLat,
+      double userLon, {
+      required double maxDistance,
+      required int count,
+    }) {
+      final withDistance = stations
+          .map((station) {
+            final pos = json.decode(station["StationPosition"]);
+            final distance = calculateApproxDistance(
+                  userLat,
+                  userLon,
+                  pos["PositionLat"],
+                  pos["PositionLon"],
+                ) /
+                1000;
+            return {...station, "distance": distance};
+          })
+          .where((s) => s["distance"] <= maxDistance)
+          .toList();
 
-      withDistance.sort((a, b) => (a["distance"] as double).compareTo(b["distance"] as double));
+      withDistance.sort((a, b) =>
+          (a["distance"] as double).compareTo(b["distance"] as double));
 
       return withDistance.take(count).toList();
     }
-
 
     List<dynamic> nearestStations = findNearestStations(
       nearStation,
@@ -724,14 +754,13 @@ Future<List> getNearTrainStation(double latitude, double longitude, {double maxD
 //   }
 // }
 
-
 enum RouteDirection { directionOne, directionTwo, none }
 
 Future<Map<String, dynamic>?> getRouteStopsAndDirection(
-    String routeName,
-    String originName,
-    String destinationName,
-    ) async {
+  String routeName,
+  String originName,
+  String destinationName,
+) async {
   try {
     // 取得兩個方向的站牌資料
     final direction0 = await getRouteStops(routeName, '0');
@@ -752,9 +781,8 @@ Future<Map<String, dynamic>?> getRouteStopsAndDirection(
     };
 
     // 判斷有效路線方向
-    final validDirections = results.entries
-        .where((e) => e.value['isValid'] == true)
-        .toList();
+    final validDirections =
+        results.entries.where((e) => e.value['isValid'] == true).toList();
 
     if (validDirections.isEmpty) {
       return {
@@ -789,27 +817,28 @@ Future<Map<String, dynamic>?> getRouteStopsAndDirection(
   }
 }
 
-
-Future<Map<String, dynamic>> getRouteStops(String routeName,String direction) async {
+Future<Map<String, dynamic>> getRouteStops(
+    String routeName, String direction) async {
   // SQL 查詢，根據站牌名稱過濾
-  var query = "SELECT * FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND Direction=$direction ;";
+  var query =
+      "SELECT * FROM Bus.Bus_Taichung_Route_Stop WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND Direction=$direction ;";
 
   // 從資料庫取得資料
-  List<Map<String, dynamic>> stopsList = await mysqlSelect(query); // 先等待 Future 完成
-  Map<String, dynamic> stops ={} ;
+  List<Map<String, dynamic>> stopsList =
+      await mysqlSelect(query); // 先等待 Future 完成
+  Map<String, dynamic> stops = {};
   if (stopsList.isNotEmpty) {
     stops = stopsList[0]; // 取第一個元素
   } else {
     // stopsList 為空時的處理方式
   }
 
-
-
   // 若只有一個方向，另一個列表會是空的
   return stops;
 }
 
-Future<List<dynamic>> getGeneralTrainTimetable(String originName,String  destinationName) async {
+Future<List<dynamic>> getGeneralTrainTimetable(
+    String originName, String destinationName) async {
   // SQL 查詢，根據站牌名稱過濾
   var query = '''
 SELECT 
@@ -835,31 +864,11 @@ WHERE
     AND JSON_EXTRACT(t.ServiceDay, '\$.Monday') = 1;
     ''';
 
-
-
   // 從資料庫取得資料
   List<dynamic> stopsList = await mysqlSelect(query); // 先等待 Future 完成
 
-
-
-
-
   return stopsList;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class RouteValidator {
   late final List<Map<String, dynamic>> _stops;
@@ -877,7 +886,8 @@ class RouteValidator {
 
       // 类型安全检查
       if (stopsData is! List) {
-        throw FormatException("Invalid stops data type: ${stopsData.runtimeType}");
+        throw FormatException(
+            "Invalid stops data type: ${stopsData.runtimeType}");
       }
 
       // 深度验证数据结构
@@ -899,8 +909,7 @@ class RouteValidator {
           throw FormatException("Invalid StopName format in stop: $stop");
         }
 
-        if (!stop.containsKey('StopSequence') ||
-            stop['StopSequence'] is! int) {
+        if (!stop.containsKey('StopSequence') || stop['StopSequence'] is! int) {
           throw FormatException("Invalid StopSequence in stop: $stop");
         }
 
@@ -908,7 +917,8 @@ class RouteValidator {
       }).toList();
 
       // 排序并验证顺序
-      _stops.sort((a, b) => (a['StopSequence'] as int).compareTo(b['StopSequence'] as int));
+      _stops.sort((a, b) =>
+          (a['StopSequence'] as int).compareTo(b['StopSequence'] as int));
       _validateSequence();
 
       _initialized = true;
@@ -948,9 +958,8 @@ class RouteValidator {
   }
 
   Map<String, dynamic> _findStop(String zhName) {
-    final index = _stops.indexWhere((stop) =>
-    (stop['StopName']['Zh_tw'] as String) == zhName
-    );
+    final index = _stops
+        .indexWhere((stop) => (stop['StopName']['Zh_tw'] as String) == zhName);
 
     if (index == -1) {
       throw ("Station '$zhName' not found");
@@ -969,7 +978,7 @@ class RouteValidator {
     }
 
     for (int i = 1; i < sequences.length; i++) {
-      if (sequences[i] <= sequences[i-1]) {
+      if (sequences[i] <= sequences[i - 1]) {
         throw FormatException("Invalid StopSequence order at index $i");
       }
     }
