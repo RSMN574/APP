@@ -1,80 +1,115 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/widgets.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
+import '../config/app_config.dart';
 import '../const/regular_class.dart';
 import '../utils/convert.dart';
-import '../config/app_config.dart';
+
+class PlaceRequestCancelledException implements Exception {
+  const PlaceRequestCancelledException();
+
+  @override
+  String toString() => 'Place request was cancelled';
+}
 
 class PlacesService {
+  static const _requestTimeout = Duration(seconds: 12);
+
   String get apiKey => AppConfig.placesApiKey;
 
-  Future<List> getPlaceAutocomplete(String input, context) async {
+  Future<List<dynamic>> getPlaceAutocomplete(
+    String input,
+    BuildContext context, {
+    Future<void>? abortTrigger,
+  }) async {
     final locationProvider =
         Provider.of<LocationProvider>(context, listen: false);
+    if (input.trim().isEmpty) return [];
 
-    if (input.trim().isEmpty) {
-      // 如果輸入是空的，直接返回空列表
-      return [];
-    }
-
-    final Uri uri = Uri.https(
+    final sessionToken = _getSessionToken();
+    final uri = Uri.https(
       'maps.googleapis.com',
       '/maps/api/place/autocomplete/json',
       {
-        'input': input,
+        'input': input.trim(),
         'key': apiKey,
         'components': 'country:tw',
-        // 'location': '${locationProvider.latitude},${locationProvider.longitude}', // 先拿掉
-        // 'radius': '5000', // 先拿掉
+        'sessiontoken': sessionToken,
       },
     );
+    final client = http.Client();
 
-    final http.Response response = await http.get(uri);
-
-    if (response.statusCode != 200) {
-      throw Exception('無法獲取地點建議 (HTTP ${response.statusCode})');
-    }
-
-    final Map<String, dynamic> data = json.decode(response.body);
-
-    if (data['status'] != 'OK') {
-      throw Exception('地點自動完成 API 錯誤: ${data['status']}');
-    }
-
-    List<dynamic> predictions = data['predictions'];
-
-    // 計算每個地點與當前位置的距離，並排序
-    List<Map<String, dynamic>> placesWithDistance = [];
-    for (var prediction in predictions) {
-      final placeId = prediction['place_id'];
-      final detail = await _fetchPlaceDetail(placeId);
-
-      if (detail != null) {
-        final double distance = calculateApproxDistance(
-          locationProvider.latitude,
-          locationProvider.longitude,
-          detail['lat'],
-          detail['lng'],
-        );
-        placesWithDistance.add({
-          'prediction': prediction,
-          'distance': distance,
-        });
+    try {
+      final response = await _send(
+        client,
+        http.Request('GET', uri),
+        abortTrigger: abortTrigger,
+      );
+      if (response.statusCode != 200) {
+        throw Exception('無法獲取地點建議 (HTTP ${response.statusCode})');
       }
+
+      final data = _decodeObject(response.body);
+      final status = data['status'];
+      if (status == 'ZERO_RESULTS') return [];
+      if (status != 'OK') {
+        throw Exception('地點自動完成 API 錯誤: $status');
+      }
+
+      final rawPredictions = data['predictions'];
+      if (rawPredictions is! List) {
+        throw const FormatException('Autocomplete predictions must be a list');
+      }
+      final predictions = rawPredictions
+          .whereType<Map>()
+          .map((prediction) => Map<String, dynamic>.from(prediction))
+          .toList(growable: false);
+
+      final placesWithDistance = await Future.wait(
+        predictions.map((prediction) async {
+          final placeId = prediction['place_id']?.toString();
+          if (placeId == null || placeId.isEmpty) return null;
+          final location = await _fetchPlaceDetail(
+            client,
+            placeId,
+            sessionToken,
+            abortTrigger,
+          );
+          if (location == null) return null;
+          return _PlaceWithDistance(
+            prediction,
+            calculateApproxDistance(
+              locationProvider.latitude,
+              locationProvider.longitude,
+              location.latitude,
+              location.longitude,
+            ),
+          );
+        }),
+      );
+
+      final validPlaces = placesWithDistance
+          .whereType<_PlaceWithDistance>()
+          .toList()
+        ..sort((a, b) => a.distance.compareTo(b.distance));
+      return validPlaces.map((place) => place.prediction).toList();
+    } finally {
+      client.close();
     }
-
-    // 按距離排序，最近的排最前
-    placesWithDistance.sort((a, b) => a['distance'].compareTo(b['distance']));
-
-    // 只返回經過處理的 prediction 陣列
-    return placesWithDistance.map((e) => e['prediction']).toList();
   }
 
-// 取得地點的詳細資訊（主要是為了拿經緯度）
-  Future<Map<String, dynamic>?> _fetchPlaceDetail(String placeId) async {
-    final Uri uri = Uri.https(
+  Future<_PlaceLocation?> _fetchPlaceDetail(
+    http.Client client,
+    String placeId,
+    String sessionToken,
+    Future<void>? abortTrigger,
+  ) async {
+    final uri = Uri.https(
       'maps.googleapis.com',
       '/maps/api/place/details/json',
       {
@@ -82,48 +117,126 @@ class PlacesService {
         'place_id': placeId,
         'fields': 'geometry',
         'language': 'zh-TW',
+        'sessiontoken': sessionToken,
+      },
+    );
+    final response = await _send(
+      client,
+      http.Request('GET', uri),
+      abortTrigger: abortTrigger,
+    );
+    if (response.statusCode != 200) {
+      throw Exception('無法獲取地點詳細資訊 (HTTP ${response.statusCode})');
+    }
+
+    final data = _decodeObject(response.body);
+    if (data['status'] != 'OK') {
+      if (data['status'] == 'NOT_FOUND') return null;
+      throw Exception('地點詳細資訊 API 錯誤: ${data['status']}');
+    }
+
+    final result = data['result'];
+    final geometry = result is Map ? result['geometry'] : null;
+    final location = geometry is Map ? geometry['location'] : null;
+    if (location is! Map ||
+        location['lat'] is! num ||
+        location['lng'] is! num) {
+      throw const FormatException('Place details response has no coordinates');
+    }
+    return _PlaceLocation(
+      (location['lat'] as num).toDouble(),
+      (location['lng'] as num).toDouble(),
+    );
+  }
+
+  Future<http.Response> _send(
+    http.Client client,
+    http.Request request, {
+    Future<void>? abortTrigger,
+  }) async {
+    final responseFuture =
+        client.send(request).then<http.Response>(http.Response.fromStream);
+    final futures = <Future<http.Response>>[responseFuture];
+    if (abortTrigger != null) {
+      futures.add(
+        abortTrigger.then<http.Response>((_) {
+          client.close();
+          throw const PlaceRequestCancelledException();
+        }),
+      );
+    }
+
+    try {
+      return await Future.any(futures).timeout(_requestTimeout);
+    } on TimeoutException {
+      client.close();
+      throw TimeoutException(
+        'Place request timed out after $_requestTimeout',
+      );
+    }
+  }
+
+  Map<String, dynamic> _decodeObject(String body) {
+    final decoded = json.decode(body);
+    if (decoded is! Map) {
+      throw const FormatException('Places API response must be an object');
+    }
+    return Map<String, dynamic>.from(decoded);
+  }
+
+  String _getSessionToken() => DateTime.now().microsecondsSinceEpoch.toString();
+
+  Future<LatLng?> getLatLngFromPlaceId(String placeId) async {
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/place/details/json',
+      {
+        'place_id': placeId,
+        'key': apiKey,
+        'fields': 'geometry',
+        'language': 'zh-TW',
       },
     );
 
-    final http.Response response = await http.get(uri);
-    if (response.statusCode != 200) return null;
-
-    final Map<String, dynamic> data = json.decode(response.body);
-    if (data['status'] != 'OK') return null;
-
-    final location = data['result']['geometry']['location'];
-    return {
-      'lat': location['lat'],
-      'lng': location['lng'],
-    };
-  }
-
-// 生成Session Token
-  String _getSessionToken() {
-    return DateTime.now().millisecondsSinceEpoch.toString();
-  }
-
-  Future<LatLng?> getLatLngFromPlaceId(String placeId) async {
-    final String url =
-        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&key=$apiKey';
-
+    final client = http.Client();
     try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'OK') {
-          final location = data['result']['geometry']['location'];
-          return LatLng(location['lat'], location['lng']);
-        } else {
-          print('Error: ${data['status']}');
-        }
-      } else {
-        print('Failed to fetch place details');
+      final response = await _send(client, http.Request('GET', uri));
+      if (response.statusCode != 200) {
+        throw Exception('無法獲取地點詳細資訊 (HTTP ${response.statusCode})');
       }
-    } catch (e) {
-      print('Error fetching place details: $e');
+      final data = _decodeObject(response.body);
+      if (data['status'] != 'OK') {
+        throw Exception('地點詳細資訊 API 錯誤: ${data['status']}');
+      }
+      final result = data['result'];
+      final geometry = result is Map ? result['geometry'] : null;
+      final location = geometry is Map ? geometry['location'] : null;
+      if (location is! Map ||
+          location['lat'] is! num ||
+          location['lng'] is! num) {
+        throw const FormatException(
+            'Place details response has no coordinates');
+      }
+      return LatLng(
+        (location['lat'] as num).toDouble(),
+        (location['lng'] as num).toDouble(),
+      );
+    } finally {
+      client.close();
     }
-    return null;
   }
+}
+
+class _PlaceLocation {
+  const _PlaceLocation(this.latitude, this.longitude);
+
+  final double latitude;
+  final double longitude;
+}
+
+class _PlaceWithDistance {
+  const _PlaceWithDistance(this.prediction, this.distance);
+
+  final Map<String, dynamic> prediction;
+  final double distance;
 }

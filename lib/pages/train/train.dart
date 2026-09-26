@@ -302,13 +302,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A73E8),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1A73E8),
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: Color(0xFF1A73E8),
+                  onPrimary: Theme.of(context).colorScheme.onPrimary,
+                  surface: Theme.of(context).colorScheme.surface,
+                  onSurface: Color(0xFF1A73E8),
+                ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
                 foregroundColor: Color(0xFF1A73E8),
@@ -727,13 +727,13 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A73E8),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1A73E8),
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: Color(0xFF1A73E8),
+                  onPrimary: Theme.of(context).colorScheme.onPrimary,
+                  surface: Theme.of(context).colorScheme.surface,
+                  onSurface: Color(0xFF1A73E8),
+                ),
             dialogTheme: const DialogThemeData(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
@@ -757,13 +757,13 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
         builder: (context, child) {
           return Theme(
-            data: ThemeData.light().copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF1A73E8),
-                onPrimary: Colors.white,
-                surface: Colors.white,
-                onSurface: Color(0xFF1A73E8),
-              ),
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: Color(0xFF1A73E8),
+                    onPrimary: Theme.of(context).colorScheme.onPrimary,
+                    surface: Theme.of(context).colorScheme.surface,
+                    onSurface: Color(0xFF1A73E8),
+                  ),
               timePickerTheme: TimePickerThemeData(
                 backgroundColor: Colors.white,
                 hourMinuteTextColor: const Color(0xFF1A73E8),
@@ -1528,13 +1528,13 @@ class _StationSearchPageState extends State<StationSearchPage> {
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF1A73E8),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1A73E8),
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: Color(0xFF1A73E8),
+                  onPrimary: Theme.of(context).colorScheme.onPrimary,
+                  surface: Theme.of(context).colorScheme.surface,
+                  onSurface: Color(0xFF1A73E8),
+                ),
             dialogTheme: const DialogThemeData(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
@@ -1558,13 +1558,13 @@ class _StationSearchPageState extends State<StationSearchPage> {
         initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
         builder: (context, child) {
           return Theme(
-            data: ThemeData.light().copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Color(0xFF1A73E8),
-                onPrimary: Colors.white,
-                surface: Colors.white,
-                onSurface: Color(0xFF1A73E8),
-              ),
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: Color(0xFF1A73E8),
+                    onPrimary: Theme.of(context).colorScheme.onPrimary,
+                    surface: Theme.of(context).colorScheme.surface,
+                    onSurface: Color(0xFF1A73E8),
+                  ),
               timePickerTheme: TimePickerThemeData(
                 backgroundColor: Colors.white,
                 hourMinuteTextColor: const Color(0xFF1A73E8),

@@ -10,38 +10,65 @@ class RoutePlanner extends StatefulWidget {
   _RoutePlannerState createState() => _RoutePlannerState();
 }
 
-class _RoutePlannerState extends State<RoutePlanner>  with SingleTickerProviderStateMixin{
+class _RoutePlannerState extends State<RoutePlanner>
+    with SingleTickerProviderStateMixin {
   // 基础数据
-  late List<String> transportModes = [AppLocalizations.of(context)!.text_585, AppLocalizations.of(context)!.text_586, AppLocalizations.of(context)!.text_587, AppLocalizations.of(context)!.text_588, AppLocalizations.of(context)!.text_589, AppLocalizations.of(context)!.text_590, 'Ubike'];
+  late List<String> transportModes = [
+    AppLocalizations.of(context)!.text_585,
+    AppLocalizations.of(context)!.text_586,
+    AppLocalizations.of(context)!.text_587,
+    AppLocalizations.of(context)!.text_588,
+    AppLocalizations.of(context)!.text_589,
+    AppLocalizations.of(context)!.text_590,
+    'Ubike'
+  ];
   late String selectedTransport = AppLocalizations.of(context)!.text_588;
 
   // 城市数据
-  late List<String> cities = [ AppLocalizations.of(context)!.text_6,AppLocalizations.of(context)!.text_7];
-  List<String> citiesID = [ 'Taichung', 'Taipei'];
-  late ValueNotifier<String> selectedCityNotifier = ValueNotifier<String>(AppLocalizations.of(context)!.text_6);
-  ValueNotifier<String> selectedCityIDNotifier = ValueNotifier<String>("Taichung");
+  late List<String> cities = [
+    AppLocalizations.of(context)!.text_6,
+    AppLocalizations.of(context)!.text_7
+  ];
+  List<String> citiesID = ['Taichung', 'Taipei'];
+  late ValueNotifier<String> selectedCityNotifier =
+      ValueNotifier<String>(AppLocalizations.of(context)!.text_6);
+  ValueNotifier<String> selectedCityIDNotifier =
+      ValueNotifier<String>("Taichung");
   // 公车数据
-  ValueNotifier<List<Map<String, dynamic>>> busRoutesNotifier = ValueNotifier([]);
+  ValueNotifier<List<Map<String, dynamic>>> busRoutesNotifier =
+      ValueNotifier([]);
   String? selectedRoute;
   // TabController 用來監聽當前的 Tab
   late TabController tabController;
   // 站点数据
   late Map<String, List<String>> busStopsByRoute = {
-    '101路': [AppLocalizations.of(context)!.text_591, '101大樓', AppLocalizations.of(context)!.text_592],
-    '202路': [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_593, AppLocalizations.of(context)!.text_594],
-    '33路': [AppLocalizations.of(context)!.text_595, AppLocalizations.of(context)!.text_596, AppLocalizations.of(context)!.text_597],
+    '101路': [
+      AppLocalizations.of(context)!.text_591,
+      '101大樓',
+      AppLocalizations.of(context)!.text_592
+    ],
+    '202路': [
+      AppLocalizations.of(context)!.text_175,
+      AppLocalizations.of(context)!.text_593,
+      AppLocalizations.of(context)!.text_594
+    ],
+    '33路': [
+      AppLocalizations.of(context)!.text_595,
+      AppLocalizations.of(context)!.text_596,
+      AppLocalizations.of(context)!.text_597
+    ],
   };
 
 // 站点选择
   String? selectedDepartureStation; // 当前选择的出发站
   String? selectedArrivalStation; // 当前选择的到达站
-int? selectDirection;
-String? routeArrivalStation;
+  int? selectDirection;
+  String? routeArrivalStation;
   String? routeDepartureStation;
 // 出发站和到达站的数据（可能会根据选择的路线进行动态更新）
   List<String> departureStations = []; // 根据选择的路线更新的出发站
   List<String> arrivalStations = []; // 根据选择的路线更新的到达站
- int? RouteID;
+  int? RouteID;
 
   List<String> filteredStops = [];
   TextEditingController departureController = TextEditingController();
@@ -56,13 +83,16 @@ String? routeArrivalStation;
 
   Future<void> fetchBusRoutes() async {
     try {
-      List result = await mysqlSelect("SELECT RouteName,RouteID FROM Bus.bus_route WHERE City = '${selectedCityIDNotifier.value}'");
+      List result = await mysqlSelect(
+          "SELECT RouteName,RouteID FROM Bus.bus_route WHERE City = '${selectedCityIDNotifier.value}'");
 
-      List<Map<String, dynamic>> routes=[];
-      for(var a in result){
+      List<Map<String, dynamic>> routes = [];
+      for (var a in result) {
         // 新增一个元素到列表中
-        routes.add({"route": json.decode(a["RouteName"])["Zh_tw"], "id": a["RouteID"]});
-
+        routes.add({
+          "route": json.decode(a["RouteName"])["Zh_tw"],
+          "id": a["RouteID"]
+        });
       }
 
       // 使用 map 提取 "route" 部分
@@ -86,7 +116,8 @@ String? routeArrivalStation;
   }
 
   void showBusStopPicker(TextEditingController controller) {
-    if (selectedRoute == null || !(busStopsByRoute.containsKey(selectedRoute))) {
+    if (selectedRoute == null ||
+        !(busStopsByRoute.containsKey(selectedRoute))) {
       return;
     }
     showDialog(
@@ -102,7 +133,9 @@ String? routeArrivalStation;
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppLocalizations.of(context)!.text_598, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.text_598,
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
                     decoration: InputDecoration(
@@ -144,7 +177,7 @@ String? routeArrivalStation;
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child:  Text(AppLocalizations.of(context)!.text_44),
+                  child: Text(AppLocalizations.of(context)!.text_44),
                 ),
               ],
             );
@@ -156,37 +189,49 @@ String? routeArrivalStation;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: ValueListenableBuilder<List<Map<String, dynamic>>>(
         valueListenable: busRoutesNotifier,
         builder: (context, busRoutes, child) {
           if (busRoutes.isEmpty) {
-            return  Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(strokeWidth: 3, color: Colors.blue),
+                  CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: colorScheme.primary,
+                  ),
                   SizedBox(height: 16),
-                  Text(AppLocalizations.of(context)!.text_600, style: TextStyle(color: Colors.grey)),
+                  Text(
+                    AppLocalizations.of(context)!.text_600,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
                 ],
               ),
             );
           }
 
-          return SingleChildScrollView( // 加入滾動確保小螢幕不溢出
+          return SingleChildScrollView(
+            // 加入滾動確保小螢幕不溢出
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch, // 讓按鈕填滿寬度
               children: [
-                _buildSectionHeader(Icons.location_city, AppLocalizations.of(context)!.text_28),
+                _buildSectionHeader(
+                    Icons.location_city, AppLocalizations.of(context)!.text_28),
                 const SizedBox(height: 10),
                 _buildDropdownField(),
 
                 const SizedBox(height: 24),
-                _buildSectionHeader(Icons.directions_bus, AppLocalizations.of(context)!.text_601),
+                _buildSectionHeader(Icons.directions_bus,
+                    AppLocalizations.of(context)!.text_601),
                 const SizedBox(height: 10),
                 _buildPickerButton(
-                  label: selectedRoute ?? AppLocalizations.of(context)!.text_602,
+                  label:
+                      selectedRoute ?? AppLocalizations.of(context)!.text_602,
                   onPressed: () => showRoutePicker(),
                   isPlaceholder: selectedRoute == null,
                 ),
@@ -199,21 +244,28 @@ String? routeArrivalStation;
 
                 const SizedBox(height: 40),
                 // 确认按钮
-                if (selectedDepartureStation != null && selectedArrivalStation != null)
+                if (selectedDepartureStation != null &&
+                    selectedArrivalStation != null)
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     child: ElevatedButton(
                       onPressed: () => confirmRouteSelection(
-                          selectedCityNotifier.value, selectedRoute!, selectedDepartureStation!, selectedArrivalStation!),
+                          selectedCityNotifier.value,
+                          selectedRoute!,
+                          selectedDepartureStation!,
+                          selectedArrivalStation!),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.blue.shade700,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         elevation: 4,
-                        shadowColor: Colors.blue.withOpacity(0.4),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shadowColor: colorScheme.primary.withValues(alpha: 0.4),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15)),
                       ),
-                      child:  Text(AppLocalizations.of(context)!.text_603, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      child: Text(AppLocalizations.of(context)!.text_603,
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -227,24 +279,41 @@ String? routeArrivalStation;
 // --- 輔助組件，保持邏輯不變，僅美化外觀 ---
 
   Widget _buildSectionHeader(IconData icon, String title) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.blue.shade700),
+        Icon(icon, size: 20, color: colorScheme.primary),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildDropdownField() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: DropdownButtonFormField<String>(
-        value:  selectedCityNotifier.value,
+        value: selectedCityNotifier.value,
         onChanged: (String? newCity) {
           if (newCity != null) {
             // 1. 找到新城市在列表中的索引
@@ -253,28 +322,47 @@ String? routeArrivalStation;
             // 2. 同步更新兩個 ValueNotifier
             // 注意：ValueNotifier 不需要放在 setState 裡面，它會自動通知監聽者
 
-
-  selectedCityNotifier.value = newCity;
-  selectedCityIDNotifier.value = citiesID[index];
+            selectedCityNotifier.value = newCity;
+            selectedCityIDNotifier.value = citiesID[index];
             fetchBusRoutes();
           }
         },
         decoration: InputDecoration(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none),
         ),
-        items: cities.map((city) => DropdownMenuItem(value: city, child: Text(city))).toList(),
+        items: cities
+            .map((city) => DropdownMenuItem(value: city, child: Text(city)))
+            .toList(),
       ),
     );
   }
 
-  Widget _buildPickerButton({required String label, required VoidCallback onPressed, required bool isPlaceholder}) {
+  Widget _buildPickerButton(
+      {required String label,
+      required VoidCallback onPressed,
+      required bool isPlaceholder}) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isPlaceholder ? Colors.grey.shade300 : Colors.blue.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+        border: Border.all(
+          color: isPlaceholder
+              ? colorScheme.outlineVariant
+              : colorScheme.primary.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: onPressed,
@@ -284,8 +372,22 @@ String? routeArrivalStation;
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: TextStyle(fontSize: 16, color: isPlaceholder ? Colors.grey : Colors.black87, fontWeight: isPlaceholder ? FontWeight.normal : FontWeight.w500)),
-              Icon(Icons.unfold_more, color: Colors.grey.shade400, size: 20),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isPlaceholder
+                      ? colorScheme.onSurfaceVariant
+                      : colorScheme.onSurface,
+                  fontWeight:
+                      isPlaceholder ? FontWeight.normal : FontWeight.w500,
+                ),
+              ),
+              Icon(
+                Icons.unfold_more,
+                color: colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -297,7 +399,8 @@ String? routeArrivalStation;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader(Icons.trip_origin, AppLocalizations.of(context)!.text_604),
+        _buildSectionHeader(
+            Icons.trip_origin, AppLocalizations.of(context)!.text_604),
         const SizedBox(height: 15),
         Padding(
           padding: const EdgeInsets.all(10), // 為左側連接線留空間
@@ -305,7 +408,8 @@ String? routeArrivalStation;
             children: [
               _buildTimelineStep(
                 title: AppLocalizations.of(context)!.text_63,
-                content: selectedDepartureStation ?? AppLocalizations.of(context)!.text_161,
+                content: selectedDepartureStation ??
+                    AppLocalizations.of(context)!.text_161,
                 onTap: () => showStationPicker("departure"),
                 isLast: false,
                 isActive: true,
@@ -313,7 +417,8 @@ String? routeArrivalStation;
               if (selectedDepartureStation != null)
                 _buildTimelineStep(
                   title: AppLocalizations.of(context)!.text_162,
-                  content: selectedArrivalStation ?? AppLocalizations.of(context)!.text_163,
+                  content: selectedArrivalStation ??
+                      AppLocalizations.of(context)!.text_163,
                   onTap: () => showStationPicker2(),
                   isLast: true,
                   isActive: selectedArrivalStation != null,
@@ -332,21 +437,31 @@ String? routeArrivalStation;
     required bool isLast,
     required bool isActive,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return IntrinsicHeight(
       child: Row(
         children: [
           Column(
             children: [
               Container(
-                width: 12, height: 12,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(
-                  color: isActive ? Colors.blue : Colors.grey.shade300,
+                  color: isActive
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: colorScheme.surface, width: 2),
                 ),
               ),
               if (!isLast)
-                Expanded(child: Container(width: 2, color: Colors.grey.shade300)),
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: colorScheme.outlineVariant,
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 15),
@@ -354,9 +469,19 @@ String? routeArrivalStation;
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                _buildPickerButton(label: content, onPressed: onTap, isPlaceholder: content.contains(AppLocalizations.of(context)!.text_605)),
+                _buildPickerButton(
+                    label: content,
+                    onPressed: onTap,
+                    isPlaceholder: content
+                        .contains(AppLocalizations.of(context)!.text_605)),
                 if (!isLast) const SizedBox(height: 20),
               ],
             ),
@@ -365,21 +490,25 @@ String? routeArrivalStation;
       ),
     );
   }
+
   // 构建 TabBar
   PreferredSize _buildTabBar(List routeInfo) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return PreferredSize(
       preferredSize: const Size.fromHeight(60),
       child: Container(
-        color: Colors.white,
+        color: colorScheme.surfaceContainer,
         child: TabBar(
           controller: tabController, // 绑定 TabController
           // controller:  _tabController ,
           indicatorColor: busBlue,
           labelColor: busBlue,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: colorScheme.onSurfaceVariant,
           indicatorWeight: 3.0,
           indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          labelStyle:
+              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           unselectedLabelStyle: const TextStyle(fontSize: 16),
           tabs: [
             Tab(icon: const Icon(Icons.directions_bus), text: routeInfo[0]),
@@ -400,6 +529,7 @@ String? routeArrivalStation;
     );
     return {'route': routeQuery[0], 'stops': stopsQuery};
   }
+
   void showStationPicker(String type) async {
     final data = await _fetchBusRouteData(selectedRoute!);
     final route = data['route'];
@@ -407,7 +537,8 @@ String? routeArrivalStation;
 
     // 解析兩側方向的站點
     List<dynamic> dir0Stops = json.decode(stops[0]["Stops"]);
-    List<dynamic> dir1Stops = (stops.length > 1) ? json.decode(stops[1]["Stops"]) : dir0Stops;
+    List<dynamic> dir1Stops =
+        (stops.length > 1) ? json.decode(stops[1]["Stops"]) : dir0Stops;
 
     // 使用剛才封裝的 StationPickerDialog (需微調支援 Tab 或分兩次)
     // 這裡我們直接呼叫 Dialog
@@ -416,7 +547,8 @@ String? routeArrivalStation;
       builder: (context) => StationPickerDialog(
         // 如果你要支援兩邊方向，建議傳入目前 Tab 對應的列表
         stations: tabController.index == 0 ? dir0Stops : dir1Stops,
-        title: '選擇出發站 (${tabController.index == 0 ? route["DepartureStopNameZh"] : route["DestinationStopNameZh"]} 方向)',
+        title:
+            '選擇出發站 (${tabController.index == 0 ? route["DepartureStopNameZh"] : route["DestinationStopNameZh"]} 方向)',
       ),
     );
 
@@ -437,6 +569,7 @@ String? routeArrivalStation;
       });
     }
   }
+
   void showStationPicker2() async {
     final data = await _fetchBusRouteData(selectedRoute!);
     final route = data['route'];
@@ -450,7 +583,9 @@ String? routeArrivalStation;
       targetStops = json.decode(stops[0]["Stops"]);
     } else {
       // 否則使用回程資料 (index 1)
-      targetStops = (stops.length > 1) ? json.decode(stops[1]["Stops"]) : json.decode(stops[0]["Stops"]);
+      targetStops = (stops.length > 1)
+          ? json.decode(stops[1]["Stops"])
+          : json.decode(stops[0]["Stops"]);
     }
 
     // 呼叫封裝好的 Dialog
@@ -482,7 +617,7 @@ String? routeArrivalStation;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: TextField(
-        decoration:  InputDecoration(
+        decoration: InputDecoration(
           hintText: AppLocalizations.of(context)!.text_607,
           prefixIcon: Icon(Icons.search),
           border: OutlineInputBorder(),
@@ -491,6 +626,7 @@ String? routeArrivalStation;
       ),
     );
   }
+
   // 構建站點列表
   Widget _buildStationList({
     required List<dynamic> stops,
@@ -517,8 +653,7 @@ String? routeArrivalStation;
         String searchQuery = '';
         // 提取 route 部分
 
-
-        List<Map<String,dynamic>> filtered= busRoutesNotifier.value ;
+        List<Map<String, dynamic>> filtered = busRoutesNotifier.value;
 
         return StatefulBuilder(
           builder: (context, setState) {
@@ -529,7 +664,9 @@ String? routeArrivalStation;
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(AppLocalizations.of(context)!.text_601, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(AppLocalizations.of(context)!.text_601,
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
                     decoration: InputDecoration(
@@ -542,9 +679,10 @@ String? routeArrivalStation;
                     onChanged: (value) {
                       setState(() {
                         searchQuery = value;
-                        filtered =   busRoutesNotifier.value.where((item) => item["route"].toString().contains(value)).toList();
-
-
+                        filtered = busRoutesNotifier.value
+                            .where((item) =>
+                                item["route"].toString().contains(value))
+                            .toList();
                       });
                     },
                   ),
@@ -559,10 +697,10 @@ String? routeArrivalStation;
                     return ListTile(
                       title: Text(filtered[index]["route"]),
                       onTap: () {
-                        Navigator.of(context).pop(filtered[index]["route"]); // 返回选择的路线
+                        Navigator.of(context)
+                            .pop(filtered[index]["route"]); // 返回选择的路线
 
-                        RouteID=int.parse(filtered[index]["id"]);
-
+                        RouteID = int.parse(filtered[index]["id"]);
                       },
                     );
                   },
@@ -573,7 +711,7 @@ String? routeArrivalStation;
                   onPressed: () {
                     Navigator.of(context).pop(); // 关闭弹窗
                   },
-                  child:  Text(AppLocalizations.of(context)!.text_44),
+                  child: Text(AppLocalizations.of(context)!.text_44),
                 ),
               ],
             );
@@ -590,12 +728,27 @@ String? routeArrivalStation;
       });
     }
   }
-  void confirmRouteSelection(String selectedCity, String selectedRoute, String selectedDepartureStation, String selectedArrivalStation,){
 
-    _showAddToCategoryDialog(selectedCity,selectedRoute,selectedDepartureStation,selectedArrivalStation,);
+  void confirmRouteSelection(
+    String selectedCity,
+    String selectedRoute,
+    String selectedDepartureStation,
+    String selectedArrivalStation,
+  ) {
+    _showAddToCategoryDialog(
+      selectedCity,
+      selectedRoute,
+      selectedDepartureStation,
+      selectedArrivalStation,
+    );
   }
 
-  void _showAddToCategoryDialog(String city, String route,String Departure,String DestinationS,) {
+  void _showAddToCategoryDialog(
+    String city,
+    String route,
+    String Departure,
+    String DestinationS,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -611,34 +764,34 @@ String? routeArrivalStation;
                     city: city,
                     userStartingStopName: Departure,
                     userDestinationStopName: DestinationS,
-                    startingStopName:routeDepartureStation!,
-                    finalStopName:routeArrivalStation!,
-                    route: route, type: 'bus',
-                    routeID:RouteID,
-                    category:"trip",
-                    other:{"routeID":RouteID.toString(),"category":"trip","direction":selectDirection.toString()}
-                );
+                    startingStopName: routeDepartureStation!,
+                    finalStopName: routeArrivalStation!,
+                    route: route,
+                    type: 'bus',
+                    routeID: RouteID,
+                    category: "trip",
+                    other: {
+                      "routeID": RouteID.toString(),
+                      "category": "trip",
+                      "direction": selectDirection.toString()
+                    });
 
-                final result = await ScheduleService.instance.addSchedule(schedule);
-
-
+                final result =
+                    await ScheduleService.instance.addSchedule(schedule);
 
 // 根据 addSchedule 方法返回的结果进行处理
                 if (result == -1) {
                   // 如果已经存在相同的记录，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text(AppLocalizations.of(context)!.text_611))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_611)));
                 } else if (result == 100) {
                   // 成功添加行程，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text(AppLocalizations.of(context)!.text_612))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_612)));
                 } else {
                   // 添加行程失败，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.of(context)!.text_613))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_613)));
                 }
               },
               child: Text(AppLocalizations.of(context)!.text_614),
@@ -652,34 +805,34 @@ String? routeArrivalStation;
                     city: city,
                     userStartingStopName: Departure,
                     userDestinationStopName: DestinationS,
-                    startingStopName:routeDepartureStation!,
-                    finalStopName:routeArrivalStation!,
-                    route: route, type: 'bus',
-                    routeID:RouteID,
-                    category:"commute",
-                    other:{"routeID":RouteID,"category":"commute","direction":selectDirection.toString()}
-                );
+                    startingStopName: routeDepartureStation!,
+                    finalStopName: routeArrivalStation!,
+                    route: route,
+                    type: 'bus',
+                    routeID: RouteID,
+                    category: "commute",
+                    other: {
+                      "routeID": RouteID,
+                      "category": "commute",
+                      "direction": selectDirection.toString()
+                    });
 
-                final result = await ScheduleService.instance.addSchedule(schedule);
-
-
+                final result =
+                    await ScheduleService.instance.addSchedule(schedule);
 
 // 根据 addSchedule 方法返回的结果进行处理
                 if (result == -1) {
                   // 如果已经存在相同的记录，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text(AppLocalizations.of(context)!.text_611))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_611)));
                 } else if (result == 100) {
                   // 成功添加行程，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(content: Text(AppLocalizations.of(context)!.text_612))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_612)));
                 } else {
                   // 添加行程失败，提示用户
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(AppLocalizations.of(context)!.text_613))
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(AppLocalizations.of(context)!.text_613)));
                 }
               },
               child: Text(AppLocalizations.of(context)!.text_615),
@@ -724,9 +877,9 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
     setState(() {
       _filteredStops = widget.stations
           .where((stop) => stop["StopName"]["Zh_tw"]
-          .toString()
-          .toLowerCase()
-          .contains(query.toLowerCase()))
+              .toString()
+              .toLowerCase()
+              .contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -756,20 +909,22 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
 
   // 1. 美化標題區
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.blue.shade600,
+        color: colorScheme.primary,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on, color: Colors.white, size: 24),
+          Icon(Icons.location_on, color: colorScheme.onPrimary, size: 24),
           const SizedBox(width: 12),
           Text(
             widget.title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colorScheme.onPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 20,
             ),
@@ -781,23 +936,25 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
 
   // 2. 美化搜尋框
   Widget _buildSearchField() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return TextField(
       controller: _searchController,
       onChanged: _runFilter,
       decoration: InputDecoration(
         hintText: AppLocalizations.of(context)!.text_617,
-        prefixIcon: const Icon(Icons.search, color: Colors.blue),
+        prefixIcon: Icon(Icons.search, color: colorScheme.primary),
         suffixIcon: _searchController.text.isNotEmpty
             ? IconButton(
-          icon: const Icon(Icons.clear, size: 20),
-          onPressed: () {
-            _searchController.clear();
-            _runFilter('');
-          },
-        )
+                icon: const Icon(Icons.clear, size: 20),
+                onPressed: () {
+                  _searchController.clear();
+                  _runFilter('');
+                },
+              )
             : null,
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: colorScheme.surfaceContainerHighest,
         contentPadding: const EdgeInsets.symmetric(vertical: 0),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -809,6 +966,8 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
 
   // 3. 美化列表
   Widget _buildStationList() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.4,
@@ -816,43 +975,53 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
       child: _filteredStops.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
-        shrinkWrap: true,
-        itemCount: _filteredStops.length,
-        itemBuilder: (context, index) {
-          final station = _filteredStops[index];
-          final String name = station["StopName"]["Zh_tw"];
-          final bool isSelected = _tempSelected == station;
+              shrinkWrap: true,
+              itemCount: _filteredStops.length,
+              itemBuilder: (context, index) {
+                final station = _filteredStops[index];
+                final String name = station["StopName"]["Zh_tw"];
+                final bool isSelected = _tempSelected == station;
 
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: ListTile(
-              onTap: () => setState(() => _tempSelected = station),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              tileColor: isSelected ? Colors.blue.shade50 : Colors.transparent,
-              leading: Icon(
-                isSelected ? Icons.check_circle : Icons.circle_outlined,
-                color: isSelected ? Colors.blue : Colors.grey,
-              ),
-              title: Text(
-                name,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? Colors.blue.shade800 : Colors.black87,
-                ),
-              ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    onTap: () => setState(() => _tempSelected = station),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    tileColor: isSelected
+                        ? colorScheme.primaryContainer
+                        : Colors.transparent,
+                    leading: Icon(
+                      isSelected ? Icons.check_circle : Icons.circle_outlined,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    title: Text(
+                      name,
+                      style: TextStyle(
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? colorScheme.onPrimaryContainer
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 
   Widget _buildEmptyState() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40),
-      child: Text(AppLocalizations.of(context)!.text_618, style: const TextStyle(color: Colors.grey)),
+      child: Text(
+        AppLocalizations.of(context)!.text_618,
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
     );
   }
 
@@ -861,17 +1030,23 @@ class _StationPickerDialogState extends State<StationPickerDialog> {
     return [
       TextButton(
         onPressed: () => Navigator.pop(context),
-        child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.grey.shade600)),
+        child: Text(
+          AppLocalizations.of(context)!.text_36,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
       ElevatedButton(
         onPressed: _tempSelected == null
             ? null
             : () => Navigator.pop(context, _tempSelected),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
         child: Text(AppLocalizations.of(context)!.text_619),

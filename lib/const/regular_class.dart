@@ -27,34 +27,41 @@ class CityProvider with ChangeNotifier {
 }
 
 class AppProvider with ChangeNotifier {
-  bool _isDarkTheme = false;
-  String _language = 'zh'; // ✅ 改用標準語系代碼作為預設值
+  bool _isDarkTheme;
+  String _language;
 
   bool get isDarkTheme => _isDarkTheme;
   String get language => _language;
 
-  AppProvider() {
-    _loadSettings();
-  }
+  AppProvider({
+    bool isDarkTheme = false,
+    String language = 'zh',
+  })  : _isDarkTheme = isDarkTheme,
+        _language = language;
 
-  Future<void> _loadSettings() async {
+  static Future<AppProvider> load() async {
     final prefs = await SharedPreferences.getInstance();
-    _isDarkTheme = prefs.getBool('darkTheme') ?? false;
-    _language = prefs.getString('language') ?? 'zh'; // ✅ 讀取 'zh' 或 'en'
-    notifyListeners();
+    final savedLanguage = prefs.getString('language') ?? 'zh';
+    return AppProvider(
+      isDarkTheme: prefs.getBool('darkTheme') ?? false,
+      language: savedLanguage == 'en' ? 'en' : 'zh',
+    );
   }
 
   Future<void> toggleTheme(bool value) async {
-    _isDarkTheme = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('darkTheme', value);
+    _isDarkTheme = value;
     notifyListeners();
   }
 
   Future<void> setLanguage(String value) async {
-    _language = value;
+    if (value != 'zh' && value != 'en') {
+      throw ArgumentError.value(value, 'value', 'Unsupported language');
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', value);
+    _language = value;
     notifyListeners();
   }
 

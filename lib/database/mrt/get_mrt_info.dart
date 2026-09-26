@@ -1,9 +1,6 @@
+import '../tdx_api_client.dart';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:http/http.dart' as http;
-
-import '../../const/regular_const.dart';
 import '../../models/mrt_station.dart';
 import '../get_data.dart';
 
@@ -125,22 +122,14 @@ Future<List<dynamic>> getNearMRTFrequency(String city) async {
   final List<dynamic> allData = [];
 
   // 假設 tokenUri 已經定義好
-  final tokenResponse =
-      await http.get(tokenUri).timeout(const Duration(seconds: 20));
-  if (tokenResponse.statusCode != 200) {
-    throw HttpException('Failed to get token: ${tokenResponse.statusCode}');
-  }
-  final token = tokenResponse.body;
-
   // 逐個捷運代碼抓取資料
   for (final code in metroCodes) {
     final url =
         'https://tdx.transportdata.tw/api/basic/v2/Rail/Metro/Frequency/$code?%24format=JSON';
 
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));

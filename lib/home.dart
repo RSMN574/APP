@@ -230,7 +230,8 @@ class _HomeState extends State<_HomeContent>
               height: 800,
               decoration: BoxDecoration(
                 color: AppThemes.getSurface(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), // LMG: 增加圓角
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24)), // LMG: 增加圓角
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -283,44 +284,46 @@ class _HomeState extends State<_HomeContent>
 
   Widget _buildBikeContent(BuildContext context) {
     final bike = context.watch<BikeProvider>();
+    final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)), // LMG: 圓角
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(24)), // LMG: 圓角
       ),
+      color: colors.surface,
       child: bike.selectedStation == null
           ? bike.isLoadingStations
-          ? _buildLoadingState(context)
-          : bike.stationError != null
-          ? _buildStationLoadError()
-          : BikeDefaultContent(
-        stations: bike.stations,
-        onStationSelected: _updateSelectedStation,
-      )
-          : FutureBuilder<Map<String, dynamic>?>(
-        future: bike.availabilityFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingState(context);
-          }
+              ? _buildLoadingState(context)
+              : bike.stationError != null
+                  ? _buildStationLoadError()
+                  : BikeDefaultContent(
+                      stations: bike.stations,
+                      onStationSelected: _updateSelectedStation,
+                    )
+          : FutureBuilder<BikeAvailability?>(
+              future: bike.availabilityFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildLoadingState(context);
+                }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _buildAvailabilityError(
-              snapshot.hasError
-                  ? AppLocalizations.of(context)!.text_131
-                  : AppLocalizations.of(context)!.text_132,
-              snapshot.hasError
-                  ? Icons.error_outline
-                  : Icons.info_outline,
-            );
-          }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return _buildAvailabilityError(
+                    snapshot.hasError
+                        ? AppLocalizations.of(context)!.text_131
+                        : AppLocalizations.of(context)!.text_132,
+                    snapshot.hasError
+                        ? Icons.error_outline
+                        : Icons.info_outline,
+                  );
+                }
 
-          final stationName = bike.selectedStation!.stationName.zhTw;
-          final data = snapshot.data!;
+                final stationName = bike.selectedStation!.stationName.zhTw;
+                final data = snapshot.data!;
 
-          return _buildContentSection(context, stationName, data);
-        },
-      ),
+                return _buildContentSection(context, stationName, data);
+              },
+            ),
     );
   }
 
@@ -366,18 +369,19 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildLoadingState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           LoadingAnimationWidget.stretchedDots(
-            color: const Color(0xFF1A73E8), // LMG: 使用主題色
+            color: colors.primary,
             size: 40,
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_133,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
           ),
         ],
       ),
@@ -385,10 +389,8 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildContentSection(
-      BuildContext context, String stationName, Map<String, dynamic> data) {
-    final rentDetails = data["AvailableRentBikesDetail"] ??
-        {"GeneralBikes": 0, "ElectricBikes": 0};
-
+      BuildContext context, String stationName, BikeAvailability data) {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -408,12 +410,12 @@ class _HomeState extends State<_HomeContent>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                    color: colors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.pin_drop,
-                    color: Color(0xFF1A73E8),
+                    color: colors.onPrimaryContainer,
                     size: 18,
                   ),
                 ),
@@ -423,7 +425,7 @@ class _HomeState extends State<_HomeContent>
                     stationName,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: Colors.grey[850],
+                      color: colors.onSurface,
                       fontSize: 16,
                     ),
                   ),
@@ -434,7 +436,7 @@ class _HomeState extends State<_HomeContent>
                   icon: Icon(
                     Icons.close_rounded,
                     size: 22,
-                    color: Colors.grey[500],
+                    color: colors.onSurfaceVariant,
                   ),
                   onPressed: () {
                     _updateSelectedStation(null);
@@ -448,10 +450,10 @@ class _HomeState extends State<_HomeContent>
           // 主要數據卡片
           _buildCompactDataGrid(
             context,
-            rentBikes: data["AvailableRentBikes"]?.toString() ?? '0',
-            returnSpots: data["AvailableReturnBikes"]?.toString() ?? '0',
-            generalBikes: rentDetails["GeneralBikes"]?.toString() ?? '0',
-            electricBikes: rentDetails["ElectricBikes"]?.toString() ?? '0',
+            rentBikes: data.availableRentBikes.toString(),
+            returnSpots: data.availableReturnBikes.toString(),
+            generalBikes: data.generalBikes.toString(),
+            electricBikes: data.electricBikes.toString(),
           ),
         ],
       ),
@@ -459,12 +461,12 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildCompactDataGrid(
-      BuildContext context, {
-        required String rentBikes,
-        required String returnSpots,
-        required String generalBikes,
-        required String electricBikes,
-      }) {
+    BuildContext context, {
+    required String rentBikes,
+    required String returnSpots,
+    required String generalBikes,
+    required String electricBikes,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -522,13 +524,13 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildMetricTile(
-      BuildContext context, {
-        required IconData icon,
-        required Color color,
-        required String title,
-        required String value,
-        double widthFactor = 1.0,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+    double widthFactor = 1.0,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -601,12 +603,12 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildTypeChip(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required String value,
-        required Color color,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -788,8 +790,9 @@ class _BikeState extends State<BikeDefaultContent> {
               child: Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children:
-                _searchHistory.map((query) => _buildHistoryChip(query)).toList(),
+                children: _searchHistory
+                    .map((query) => _buildHistoryChip(query))
+                    .toList(),
               ),
             ),
         ],
@@ -903,26 +906,26 @@ class _BikeState extends State<BikeDefaultContent> {
                       ),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _clearSearch,
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            margin: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.clear_rounded,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      )
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _clearSearch,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Container(
+                                  width: 30,
+                                  height: 30,
+                                  margin: const EdgeInsets.all(5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            )
                           : null,
                       contentPadding: const EdgeInsets.symmetric(
                         vertical: 14,
@@ -951,7 +954,8 @@ class _BikeState extends State<BikeDefaultContent> {
   }
 
   Widget _buildSearchResults() {
-    final List<YouBikeStation> results = fuzzySearchStations(_searchController.text);
+    final List<YouBikeStation> results =
+        fuzzySearchStations(_searchController.text);
 
     if (results.isEmpty) {
       return Center(

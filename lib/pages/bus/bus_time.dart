@@ -72,7 +72,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
 
-     _loadData(); // 初始加载数据
+    _loadData(); // 初始加载数据
     // 根據是否有子路線決定 Tab 數量
 
 
@@ -87,22 +87,22 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
   }
 
   void _handleTabChange() {
-      if (_tabController.indexIsChanging) {
-        // 标签正在更改
-        if (kDebugMode) {
-          print("Changing to tab: ${_tabController.index}");
-        }
-      } else {
-        // 标签更改已完成
-       if(_tabController.index==0){
-         _loadShape(1);
-         _loadMarkers("stopNamesWithTime1");
-       }else  if(_tabController.index==1){
-         _loadShape(0);
-         _loadMarkers("stopNamesWithTime2");
-
-       }
+    if (_tabController.indexIsChanging) {
+      // 标签正在更改
+      if (kDebugMode) {
+        print("Changing to tab: ${_tabController.index}");
       }
+    } else {
+      // 标签更改已完成
+      if(_tabController.index==0){
+        _loadShape(1);
+        _loadMarkers("stopNamesWithTime1");
+      }else  if(_tabController.index==1){
+        _loadShape(0);
+        _loadMarkers("stopNamesWithTime2");
+
+      }
+    }
   }
 
 
@@ -110,22 +110,22 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
 
 // 滚动到指定索引
-void _scrollToIndex(int index) {
-  const itemHeight = 54.5;
-  const separatorHeight = 9.0;
-  final scrollPosition = (itemHeight + separatorHeight) * index;
-  // 确保 setState 更新完成后调用滚动
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        scrollPosition,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  });
+  void _scrollToIndex(int index) {
+    const itemHeight = 54.5;
+    const separatorHeight = 9.0;
+    final scrollPosition = (itemHeight + separatorHeight) * index;
+    // 确保 setState 更新完成后调用滚动
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          scrollPosition,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
 
-}
+  }
   Future<Set<Polyline>> _loadShape(int direction) async {
     try {
       final data = await getShape(
@@ -178,43 +178,43 @@ void _scrollToIndex(int index) {
   Future<void> _loadMarkers(String stopType) async {
 
     Set<Marker> markers = {};
-  if(stopType=="stopNamesWithTime1"){
+    if(stopType=="stopNamesWithTime1"){
 
-    for (var stop in stopNamesWithTime1) {
+      for (var stop in stopNamesWithTime1) {
 
-      final marker = Marker(
+        final marker = Marker(
 
-        markerId: MarkerId(stop['StopID']),
-        position: LatLng(
-          stop['StopPosition']['PositionLat'],
-          stop['StopPosition']['PositionLon'],
-        ),
-        infoWindow: InfoWindow(
-          title: stop['stopName'] ?? 'Unknown',
-          snippet: stop['StopID'] ?? 'Unknown',
-        ),
-      );
-      markers.add(marker);
+          markerId: MarkerId(stop['StopID']),
+          position: LatLng(
+            stop['StopPosition']['PositionLat'],
+            stop['StopPosition']['PositionLon'],
+          ),
+          infoWindow: InfoWindow(
+            title: stop['stopName'] ?? 'Unknown',
+            snippet: stop['StopID'] ?? 'Unknown',
+          ),
+        );
+        markers.add(marker);
+      }
+    }else   if(stopType=="stopNamesWithTime2" &&stopNamesWithTime2.isEmpty==false ){
+
+      for (var stop in stopNamesWithTime2) {
+
+
+        final marker = Marker(
+          markerId: MarkerId(stop['StopID']),
+          position: LatLng(
+            stop['StopPosition']['PositionLat'],
+            stop['StopPosition']['PositionLon'],
+          ),
+          infoWindow: InfoWindow(
+            title: stop['stopName'] ?? 'Unknown',
+            snippet: stop['StopID'] ?? 'Unknown',
+          ),
+        );
+        markers.add(marker);
+      }
     }
-  }else   if(stopType=="stopNamesWithTime2" &&stopNamesWithTime2.isEmpty==false ){
-
-    for (var stop in stopNamesWithTime2) {
-
-
-      final marker = Marker(
-        markerId: MarkerId(stop['StopID']),
-        position: LatLng(
-          stop['StopPosition']['PositionLat'],
-          stop['StopPosition']['PositionLon'],
-        ),
-        infoWindow: InfoWindow(
-          title: stop['stopName'] ?? 'Unknown',
-          snippet: stop['StopID'] ?? 'Unknown',
-        ),
-      );
-      markers.add(marker);
-    }
-  }
     if (!mounted) return;
     Provider.of<MarkerProvider>(context, listen: false).setMarkers(markers);
 
@@ -256,7 +256,7 @@ void _scrollToIndex(int index) {
         city: widget.city,
         routeId: widget.routeID,
       );
-print(data);
+      print(data);
       final busTimeData = await fetchBusTime(widget.routeName, widget.city,widget.routeID);
 
       // 📌 封裝過濾與抓取邏輯
@@ -323,7 +323,7 @@ print(data);
           nearestStop = null;
           nearestIndex = null; // 距離太遠則不執行自動滾動
         }
-            } catch (e) {
+      } catch (e) {
         debugPrint("⚠️ 定位獲取失敗: $e");
       }
 
@@ -358,12 +358,12 @@ print(data);
       _loadMarkers(isDir0 ? "stopNamesWithTime1" : "stopNamesWithTime2");
       _loadShape(isDir0 ? 0 : 1);
 
-        // 📢 通知 UI 更新
-        _dataNotifier.value = {
-          'routeInfo': [widget.routeName, widget.departureStopName, widget.destinationStopName],
-          'stopNamesWithTime1': stopNamesWithTime1,
-          'stopNamesWithTime2': stopNamesWithTime2,
-        };
+      // 📢 通知 UI 更新
+      _dataNotifier.value = {
+        'routeInfo': [widget.routeName, widget.departureStopName, widget.destinationStopName],
+        'stopNamesWithTime1': stopNamesWithTime1,
+        'stopNamesWithTime2': stopNamesWithTime2,
+      };
 
 
 
@@ -395,46 +395,46 @@ print(data);
         }
 
 
-         if(nextBusTime["PlateNumb"]!=''){
+        if(nextBusTime["PlateNumb"]!=''){
 
-           if(hasPlateNum!=nextBusTime["PlateNumb"]){
-             hasPlateNum=nextBusTime["PlateNumb"]?? "";
-             stopNamesWithTime.add({
-               "stopName": stopName,
-               "nextBusTime": nextBusTime["time"],
-               'color': nextBusTime["color"],
-               "PlateNumb": nextBusTime["PlateNumb"],
-               "Estimates":nextBusTime["Estimates"].toString(),
-               "StopPosition":stop["StopPosition"],
-               "StopID":stop['StopID'],
-               "isHighlighted":isHighlighted
-             });
-           }else{
-             stopNamesWithTime.add({
-               "stopName": stopName,
-               "nextBusTime": nextBusTime["time"],
-               'color': nextBusTime["color"],
-               "PlateNumb": '',
-               "Estimates":nextBusTime["Estimates"].toString(),
-               "StopPosition":stop["StopPosition"],
-               "StopID":stop['StopID'],
-               "isHighlighted":isHighlighted
-             });
-           }
+          if(hasPlateNum!=nextBusTime["PlateNumb"]){
+            hasPlateNum=nextBusTime["PlateNumb"]?? "";
+            stopNamesWithTime.add({
+              "stopName": stopName,
+              "nextBusTime": nextBusTime["time"],
+              'color': nextBusTime["color"],
+              "PlateNumb": nextBusTime["PlateNumb"],
+              "Estimates":nextBusTime["Estimates"].toString(),
+              "StopPosition":stop["StopPosition"],
+              "StopID":stop['StopID'],
+              "isHighlighted":isHighlighted
+            });
+          }else{
+            stopNamesWithTime.add({
+              "stopName": stopName,
+              "nextBusTime": nextBusTime["time"],
+              'color': nextBusTime["color"],
+              "PlateNumb": '',
+              "Estimates":nextBusTime["Estimates"].toString(),
+              "StopPosition":stop["StopPosition"],
+              "StopID":stop['StopID'],
+              "isHighlighted":isHighlighted
+            });
+          }
 
-       }else{
+        }else{
 
-           stopNamesWithTime.add({
-             "stopName": stopName,
-             "nextBusTime": nextBusTime["time"],
-             'color': nextBusTime["color"],
-             "PlateNumb": '',
-             "Estimates":nextBusTime["Estimates"].toString(),
-             "StopPosition":stop["StopPosition"],
-             "StopID":stop['StopID'],
-             "isHighlighted":isHighlighted
-           });
-             }}
+          stopNamesWithTime.add({
+            "stopName": stopName,
+            "nextBusTime": nextBusTime["time"],
+            'color': nextBusTime["color"],
+            "PlateNumb": '',
+            "Estimates":nextBusTime["Estimates"].toString(),
+            "StopPosition":stop["StopPosition"],
+            "StopID":stop['StopID'],
+            "isHighlighted":isHighlighted
+          });
+        }}
 
 
     }
@@ -454,17 +454,17 @@ print(data);
 
       return _buildResult(AppLocalizations.of(context)!.text_339, AppLocalizations.of(context)!.text_317, "", null);
     }
- try{
+    try{
 
 
-   if (stop.containsKey("EstimateTime") ){
+      if (stop.containsKey("EstimateTime") ){
 
 
 
-   }
- }catch(e){
-   return _buildResult(AppLocalizations.of(context)!.text_303, "0","", stop);
- }
+      }
+    }catch(e){
+      return _buildResult(AppLocalizations.of(context)!.text_303, "0","", stop);
+    }
     // 2. 處理「預估到站時間」(EstimateTime)
     if (stop["EstimateTime"] != null) {
       isTimerOn.value = true;
@@ -660,7 +660,7 @@ print(data);
                   ),
                 ),
                 const SizedBox(height: 8),
-                 Text(
+                Text(
                   AppLocalizations.of(context)!.text_32,
                   style: TextStyle(
                     fontSize: 16,
@@ -711,7 +711,7 @@ print(data);
     favorite_feature dbHelper = favorite_feature();
 
     final result = await dbHelper.addFavoriteRoute(
-  widget.data
+        widget.data
     );
 
     // 顯示美化後的提示
@@ -784,7 +784,7 @@ print(data);
                   ),
                 ),
                 const SizedBox(height: 16),
-                 Text(
+                Text(
                   AppLocalizations.of(context)!.text_227,
                   style: TextStyle(
                     fontSize: 20,
@@ -884,322 +884,327 @@ print(data);
   Widget build(BuildContext context) {
 
     return  PopScope(
-      canPop: false,
-      onPopInvoked: ( bool didPop ){
-        if ( didPop ) {
-          Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
+        canPop: false,
+        onPopInvoked: ( bool didPop ){
+          if ( didPop ) {
+            Provider.of<MarkerProvider>(context, listen: false).setMarkers({});
 
             Provider.of<PolylineProvider>(context, listen: false).clearPolylines();
 
 
-        }
-                 // really exit
-        else {
-          /*
+          }
+          // really exit
+          else {
+            /*
             Insert your code
             */
 
-          Navigator.of(context).pop();
-        }
-      },
-      child: ValueListenableBuilder<Map<String, dynamic>?>(
-      valueListenable: _dataNotifier,
-      builder: (context, data, child) {
-        if (data == null) {
-          return  Scaffold(
-            body: Center(child: LoadingAnimationWidget.stretchedDots(
-              color: Colors.black,
-              size: 40,
-            ),),
-          );
-        }
+            Navigator.of(context).pop();
+          }
+        },
+        child: ValueListenableBuilder<Map<String, dynamic>?>(
+          valueListenable: _dataNotifier,
+          builder: (context, data, child) {
+            if (data == null) {
+              return  Scaffold(
+                body: Center(child: LoadingAnimationWidget.stretchedDots(
+                  color: Colors.black,
+                  size: 40,
+                ),),
+              );
+            }
 
-        final routeInfo = data['routeInfo'] as List;
-        final stopNamesWithTime1 = data['stopNamesWithTime1'] as List;
-        final stopNamesWithTime2 = data['stopNamesWithTime2'] as List;
-
-
-        return
-        Stack(
-          children: [
-
-        const Positioned.fill(
-        child: map()
-        ),
+            final routeInfo = data['routeInfo'] as List;
+            final stopNamesWithTime1 = data['stopNamesWithTime1'] as List;
+            final stopNamesWithTime2 = data['stopNamesWithTime2'] as List;
 
 
-        DraggableScrollableSheet(
-            initialChildSize: 1,
-            minChildSize: 0.2,
-            maxChildSize: 1.0,
-            builder: (BuildContext context, ScrollController scrollController) {
-              return
+            return
+              Stack(
+                children: [
 
-                SingleChildScrollView(
-                  controller: scrollController, // 使用 ScrollController 使内容可以滚动
-                  child:
-                      SizedBox(
-                        height:MediaQuery.of(context).size.height,
-                  child:
-                  DefaultTabController(
-                  length: 2,
-                  child: Scaffold(
-
-                    appBar:  AppBar(
-                     
-                      elevation: 0,
-                      leading: Container(
-                    height: 150,
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
-                          color: const Color(0xFF1A73E8),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ),
-                      title: Text(
-                        routeInfo[0],
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A73E8),
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      centerTitle: true,
-                      actions: [
-                        Container(
-                          margin: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
-
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF1A73E8)),
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation: 8,
-                            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
-                              _buildPopupMenuItem(
-                                icon: Icons.info_outline_rounded,
-                                title: AppLocalizations.of(context)!.text_16,
-                                subtitle: AppLocalizations.of(context)!.text_344,
-                                value: 'A',
-                              ),
-                              _buildPopupMenuItem(
-                                icon: Icons.favorite_outline_rounded,
-                                title: AppLocalizations.of(context)!.text_334,
-                                subtitle: AppLocalizations.of(context)!.text_345,
-                                value: 'B',
-                              ),
-                              _buildPopupMenuItem(
-                                icon: Icons.map_rounded,
-                                title: AppLocalizations.of(context)!.text_227,
-                                subtitle: AppLocalizations.of(context)!.text_346,
-                                value: 'C',
-                              ),
-                              _buildPopupMenuItem(
-                                icon: Icons.history_rounded,
-                                title: AppLocalizations.of(context)!.text_347,
-                                subtitle: AppLocalizations.of(context)!.text_348,
-                                value: 'D',
-                              ),
-                            ],
-                            onSelected: (String action) async {
-                              switch (action) {
-                                case 'A':
-                                  _showDevelopmentDialog(AppLocalizations.of(context)!.text_16);
-                                  break;
-                                case 'B':
-                                  await _addRouteToFavorites(routeInfo);
-                                  break;
-                                case 'C':
-                                  _showRouteMapDialog();
-                                  break;
-                                case 'D':
-                                  _navigateToBusDetail();
-                                  break;
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                      bottom: _buildTabBar(routeInfo),
-                    ),
-                    body:
-
-                    Stack(
-                      children: [
-      Container(
-                          color: bgColorWhite,
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              if (stopNamesWithTime1.isEmpty==false) _buildTabContent(stopNamesWithTime1),
-                              if (stopNamesWithTime2.isEmpty==false &&  widget.hasSubRoutes==true) _buildTabContent(stopNamesWithTime2),
-                            ],
-                          ),
-
-      )
-                        ,
-                        if (isTimerOn.value == false)
-                          Positioned(
-                            bottom: 12,
-                            left: 16,
-                            right: 16,
-                            child: Center(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[700]!.withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.1),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child:  Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.pause_circle_filled_rounded,
-                                          color: Colors.white,
-                                          size: 16,
-                                        ),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          AppLocalizations.of(context)!.text_349,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        else if (isTimerOn.value == true)
-                          Positioned(
-                            bottom: 12,
-                            left: 16,
-                            right: 16,
-                            child: Center(
-                              child: ValueListenableBuilder<int>(
-                                valueListenable: remainingSecondsNotifier,
-                                builder: (context, remainingTime, child) {
-                                  final isWarning = remainingTime <= 10;
-
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: BackdropFilter(
-                                      filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                        decoration: BoxDecoration(
-                                          color: (isWarning ? const Color(0xFFFF9500) : const Color(0xFF1A73E8)).withOpacity(0.7),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(0.1),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              isWarning ? Icons.warning_amber_rounded : Icons.autorenew_rounded,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              "$remainingTime 秒",
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          )
-
-
-
-              ],
-                    ),
+                  const Positioned.fill(
+                      child: map()
                   ),
-                )));})
 
-          ],
 
-        );
+                  DraggableScrollableSheet(
+                      initialChildSize: 1,
+                      minChildSize: 0.2,
+                      maxChildSize: 1.0,
+                      builder: (BuildContext context, ScrollController scrollController) {
+                        return
 
-      },
-    ));
+                          SingleChildScrollView(
+                              controller: scrollController, // 使用 ScrollController 使内容可以滚动
+                              child:
+                              SizedBox(
+                                  height:MediaQuery.of(context).size.height,
+                                  child:
+                                  DefaultTabController(
+                                    length: _tabController.length,
+                                    child: Scaffold(
+
+                                      appBar:  AppBar(
+
+                                        elevation: 0,
+                                        leading: Container(
+                                          height: 150,
+                                          margin: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+                                            color: const Color(0xFF1A73E8),
+                                            onPressed: () => Navigator.pop(context),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          routeInfo[0],
+                                          style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1A73E8),
+                                            letterSpacing: -0.5,
+                                          ),
+                                        ),
+                                        centerTitle: true,
+                                        actions: [
+                                          Container(
+                                            margin: const EdgeInsets.all(4),
+                                            decoration: BoxDecoration(
+                                              color:  Theme.of(context).brightness == Brightness.dark ?Color(0xFF2C2C2C)  :Color(0xFFEEF3FB),
+
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: PopupMenuButton<String>(
+                                              icon: const Icon(Icons.more_vert_rounded, size: 20, color: Color(0xFF1A73E8)),
+                                              color: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              elevation: 8,
+                                              itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+                                                _buildPopupMenuItem(
+                                                  icon: Icons.info_outline_rounded,
+                                                  title: AppLocalizations.of(context)!.text_16,
+                                                  subtitle: AppLocalizations.of(context)!.text_344,
+                                                  value: 'A',
+                                                ),
+                                                _buildPopupMenuItem(
+                                                  icon: Icons.favorite_outline_rounded,
+                                                  title: AppLocalizations.of(context)!.text_334,
+                                                  subtitle: AppLocalizations.of(context)!.text_345,
+                                                  value: 'B',
+                                                ),
+                                                _buildPopupMenuItem(
+                                                  icon: Icons.map_rounded,
+                                                  title: AppLocalizations.of(context)!.text_227,
+                                                  subtitle: AppLocalizations.of(context)!.text_346,
+                                                  value: 'C',
+                                                ),
+                                                _buildPopupMenuItem(
+                                                  icon: Icons.history_rounded,
+                                                  title: AppLocalizations.of(context)!.text_347,
+                                                  subtitle: AppLocalizations.of(context)!.text_348,
+                                                  value: 'D',
+                                                ),
+                                              ],
+                                              onSelected: (String action) async {
+                                                switch (action) {
+                                                  case 'A':
+                                                    _showDevelopmentDialog(AppLocalizations.of(context)!.text_16);
+                                                    break;
+                                                  case 'B':
+                                                    await _addRouteToFavorites(routeInfo);
+                                                    break;
+                                                  case 'C':
+                                                    _showRouteMapDialog();
+                                                    break;
+                                                  case 'D':
+                                                    _navigateToBusDetail();
+                                                    break;
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                        bottom: _buildTabBar(routeInfo),
+                                      ),
+                                      body:
+
+                                      Stack(
+                                        children: [
+                                          Container(
+                                            color: bgColorWhite,
+                                            child: TabBarView(
+                                              controller: _tabController,
+                                              children: widget.hasSubRoutes
+                                                  ? [
+                                                _buildTabContent(stopNamesWithTime1),
+                                                _buildTabContent(stopNamesWithTime2),
+                                              ]
+                                                  : [_buildTabContent(stopNamesWithTime1)],
+                                            ),
+
+                                          )
+                                          ,
+                                          if (isTimerOn.value == false)
+                                            Positioned(
+                                              bottom: 12,
+                                              left: 16,
+                                              right: 16,
+                                              child: Center(
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: BackdropFilter(
+                                                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                                    child: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.grey[700]!.withOpacity(0.7),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(
+                                                          color: Colors.white.withOpacity(0.1),
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                      child:  Row(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.pause_circle_filled_rounded,
+                                                            color: Colors.white,
+                                                            size: 16,
+                                                          ),
+                                                          SizedBox(width: 6),
+                                                          Text(
+                                                            AppLocalizations.of(context)!.text_349,
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: Colors.white,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          else if (isTimerOn.value == true)
+                                            Positioned(
+                                              bottom: 12,
+                                              left: 16,
+                                              right: 16,
+                                              child: Center(
+                                                child: ValueListenableBuilder<int>(
+                                                  valueListenable: remainingSecondsNotifier,
+                                                  builder: (context, remainingTime, child) {
+                                                    final isWarning = remainingTime <= 10;
+
+                                                    return ClipRRect(
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      child: BackdropFilter(
+                                                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                                          decoration: BoxDecoration(
+                                                            color: (isWarning ? const Color(0xFFFF9500) : const Color(0xFF1A73E8)).withOpacity(0.7),
+                                                            borderRadius: BorderRadius.circular(12),
+                                                            border: Border.all(
+                                                              color: Colors.white.withOpacity(0.1),
+                                                              width: 1,
+                                                            ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment: MainAxisAlignment.center,
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Icon(
+                                                                isWarning ? Icons.warning_amber_rounded : Icons.autorenew_rounded,
+                                                                color: Colors.white,
+                                                                size: 16,
+                                                              ),
+                                                              const SizedBox(width: 6),
+                                                              Text(
+                                                                "$remainingTime 秒",
+                                                                style: const TextStyle(
+                                                                  fontSize: 13,
+                                                                  fontWeight: FontWeight.w600,
+                                                                  color: Colors.white,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            )
+
+
+
+                                        ],
+                                      ),
+                                    ),
+                                  )));})
+
+                ],
+
+              );
+
+          },
+        ));
   }
 
   PreferredSize _buildTabBar(List routeInfo) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(80),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            if (stopNamesWithTime1.isNotEmpty)
-              Expanded(
-                child: _buildTabButton(
-                  icon: Icons.directions_bus,
-                  text: routeInfo[1],
-                  isSelected: _tabController.index == 0,
-                  onTap: () => _tabController.animateTo(0),
-                ),
+      child: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
+            ],
+          ),
+          child: Row(
+            children: [
+              if (stopNamesWithTime1.isNotEmpty)
+                Expanded(
+                  child: _buildTabButton(
+                    icon: Icons.directions_bus,
+                    text: routeInfo[1],
+                    isSelected: _tabController.index == 0,
+                    onTap: () => _tabController.animateTo(0),
+                  ),
+                ),
 
               const SizedBox(width: 12),
-            if (stopNamesWithTime2.isNotEmpty)
-              Expanded(
-                child: _buildTabButton(
-                  icon: Icons.swap_horiz,
-                  text: routeInfo[2],
-                  isSelected: _tabController.index == 1,
-                  onTap: () => _tabController.animateTo(1),
+              if (widget.hasSubRoutes && stopNamesWithTime2.isNotEmpty)
+                Expanded(
+                  child: _buildTabButton(
+                    icon: Icons.swap_horiz,
+                    text: routeInfo[2],
+                    isSelected: _tabController.index == 1,
+                    onTap: () => _tabController.animateTo(1),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1261,143 +1266,143 @@ print(data);
     // final List<GlobalKey> _itemKeys = [];
     return RefreshIndicator(
 
-    onRefresh: () async {
-      await _loadData(); // 刷新时重新加载数据
-      _startAutoReload();
-    },
-    child: ListView.separated(
-      padding: const EdgeInsets.only(bottom: 40), // ✅ 讓底部留空間
-      controller: _scrollController,
-      itemCount: stopNamesWithTime.length,
-      itemBuilder: (context, index) {
-        // if (_itemKeys.length <= index) {
-        //   _itemKeys.add(GlobalKey());
-        // }
-        final stop = stopNamesWithTime[index];
-        final PlateNumb = stop["PlateNumb"];
+      onRefresh: () async {
+        await _loadData(); // 刷新时重新加载数据
+        _startAutoReload();
+      },
+      child: ListView.separated(
+        padding: const EdgeInsets.only(bottom: 40), // ✅ 讓底部留空間
+        controller: _scrollController,
+        itemCount: stopNamesWithTime.length,
+        itemBuilder: (context, index) {
+          // if (_itemKeys.length <= index) {
+          //   _itemKeys.add(GlobalKey());
+          // }
+          final stop = stopNamesWithTime[index];
+          final PlateNumb = stop["PlateNumb"];
 
-        final color = stop["color"] == '0'
-            ? const Color.fromRGBO(235, 15, 41, 0.85)
-            : (stop["color"] == '2'
-            ? const Color.fromRGBO(225, 85, 104, 0.1)
-            : (stop["color"] == AppLocalizations.of(context)!.text_317
-            ? const Color.fromRGBO(69, 69, 69, 0.1)
-            :(stop["color"] == "min"
-            ? const Color.fromRGBO(13, 168, 255, 0.1)
-            : const Color.fromRGBO(68, 68, 68, 0.1))));
+          final color = stop["color"] == '0'
+              ? const Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["color"] == '2'
+              ? const Color.fromRGBO(225, 85, 104, 0.1)
+              : (stop["color"] == AppLocalizations.of(context)!.text_317
+              ? const Color.fromRGBO(69, 69, 69, 0.1)
+              :(stop["color"] == "min"
+              ? const Color.fromRGBO(13, 168, 255, 0.1)
+              : const Color.fromRGBO(68, 68, 68, 0.1))));
 
-        return Container(
-          // ✅ 使用 StopUID 作為 Key，效能更好且不會洩漏記憶體
-            key: ValueKey(stop['StopUID'] ?? index.toString()),
-            margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
-            decoration:
-               BoxDecoration(
-              border: Border.all(
-                width: 2,
-                color: Colors.transparent,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-
-            height: 54.5, // 設置每個項目的固定高度
-            child:ListTile(
-
-              onTap: () {
-                _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"],stop);
-
-              },
-              leading: Container(
-
-                padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
-                decoration: BoxDecoration(
-                  color: color,
-
-                  borderRadius: BorderRadius.circular(15),
+          return Container(
+            // ✅ 使用 StopUID 作為 Key，效能更好且不會洩漏記憶體
+              key: ValueKey(stop['StopUID'] ?? index.toString()),
+              margin: const EdgeInsets.symmetric(horizontal: 4.0, ), // 外邊距
+              decoration:
+              BoxDecoration(
+                border: Border.all(
+                  width: 2,
+                  color: Colors.transparent,
                 ),
-                child: Text(
-                  stop["nextBusTime"]!,
-                  style: TextStyle(
-                      fontFamily: 'MiSans-normal',
-                      fontSize: 17,
-                      color: stop["color"] == '0'
-                          ? Colors.white
-                          : (stop["color"] == '2'
-                          ? const Color.fromRGBO(255, 85, 104, 1)
-                          : (stop["color"] == AppLocalizations.of(context)!.text_317
-                          ? const Color.fromRGBO(149, 149, 149, 1.0)
-                          :(stop["color"] == "min"
-                          ? const Color.fromRGBO(13, 168, 255, 1)
-                          : const Color.fromRGBO(68, 68, 68, 1))))
+                borderRadius: BorderRadius.circular(10),
+              ),
+
+              height: 54.5, // 設置每個項目的固定高度
+              child:ListTile(
+
+                onTap: () {
+                  _dialogBuilder(context,PlateNumb,    stop["stopName"],stop["Estimates"],stop);
+
+                },
+                leading: Container(
+
+                  padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 6),
+                  decoration: BoxDecoration(
+                    color: color,
+
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                ),
-              ),
-              title: Row(
-                children: [
-                  Text(
-                    stop["stopName"]!,
+                  child: Text(
+                    stop["nextBusTime"]!,
                     style: TextStyle(
-                      fontFamily: 'MiSans',
-                      fontSize: stop["isHighlighted"] == true ? 18 : 17,
-                      fontWeight: stop["isHighlighted"] == true
-                          ? FontWeight.w900
-                          : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
-                      color: stop["isHighlighted"] == true
-                          ? Colors.blue[800]
-                          : (stop["color"] == AppLocalizations.of(context)!.text_317
-                          ? const Color.fromRGBO(136, 136, 136, 1)
-                          : Colors.black),
-                      letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
-                      shadows: stop["isHighlighted"] == true
-                          ? [
-                        Shadow(
-                          offset: Offset(1, 1),
-                          blurRadius: 2.0,
-                          color: Colors.blue.withOpacity(0.5),
-                        )
-                      ]
-                          : [],
+                        fontFamily: 'MiSans-normal',
+                        fontSize: 17,
+                        color: stop["color"] == '0'
+                            ? Colors.white
+                            : (stop["color"] == '2'
+                            ? const Color.fromRGBO(255, 85, 104, 1)
+                            : (stop["color"] == AppLocalizations.of(context)!.text_317
+                            ? const Color.fromRGBO(149, 149, 149, 1.0)
+                            :(stop["color"] == "min"
+                            ? const Color.fromRGBO(13, 168, 255, 1)
+                            : const Color.fromRGBO(68, 68, 68, 1))))
                     ),
                   ),
-                  if(nearestStop!=null)
-                  if (stop["stopName"] == nearestStop) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Color.fromRGBO(13, 168, 255, 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: Color.fromRGBO(13, 168, 255, 0.6)),
-                      ),
-                      child:  Text(
-                        AppLocalizations.of(context)!.text_350,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromRGBO(13, 168, 255, 1),
-                        ),
+                ),
+                title: Row(
+                  children: [
+                    Text(
+                      stop["stopName"]!,
+                      style: TextStyle(
+                        fontFamily: 'MiSans',
+                        fontSize: stop["isHighlighted"] == true ? 18 : 17,
+                        fontWeight: stop["isHighlighted"] == true
+                            ? FontWeight.w900
+                            : (stop["color"] == "0" ? FontWeight.w600 : FontWeight.normal),
+                        color: stop["isHighlighted"] == true
+                            ? Colors.blue[800]
+                            : (stop["color"] == AppLocalizations.of(context)!.text_317
+                            ? const Color.fromRGBO(136, 136, 136, 1)
+                            : Colors.black),
+                        letterSpacing: stop["isHighlighted"] == true ? 1.0 : 0.5,
+                        shadows: stop["isHighlighted"] == true
+                            ? [
+                          Shadow(
+                            offset: Offset(1, 1),
+                            blurRadius: 2.0,
+                            color: Colors.blue.withOpacity(0.5),
+                          )
+                        ]
+                            : [],
                       ),
                     ),
+                    if(nearestStop!=null)
+                      if (stop["stopName"] == nearestStop) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Color.fromRGBO(13, 168, 255, 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: Color.fromRGBO(13, 168, 255, 0.6)),
+                          ),
+                          child:  Text(
+                            AppLocalizations.of(context)!.text_350,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromRGBO(13, 168, 255, 1),
+                            ),
+                          ),
+                        ),
+                      ],
                   ],
-                ],
-              ),
+                ),
 
-              trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
+                trailing: PlateNumb != null ? bubble(plateNum: PlateNumb) : null,
 
-            ));
-      }, separatorBuilder: (BuildContext context, int index) {
-      return const Divider(
-        color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
-        height: 9, // 分隔線與上下元素的間距
-        thickness: 1, // 分隔線的粗細
-        indent: 20, // 分隔線距離左側的間距
-        endIndent: 20, // 分隔線距離右側的間距
-      );
-
-
-    },
-
-    ),
+              ));
+        }, separatorBuilder: (BuildContext context, int index) {
+        return const Divider(
+          color: Color.fromRGBO(231, 231, 231, 1), // 分隔線的顏色
+          height: 9, // 分隔線與上下元素的間距
+          thickness: 1, // 分隔線的粗細
+          indent: 20, // 分隔線距離左側的間距
+          endIndent: 20, // 分隔線距離右側的間距
         );
+
+
+      },
+
+      ),
+    );
   }
 
   Future<void> _dialogBuilder(BuildContext context, plateNumb, stopName, estimates, stop) {
@@ -1803,13 +1808,13 @@ print(data);
     Navigator.of(context).pop();
     // 設定到站通知
     await startReminder(
-    transportType: 'bus',
-    routeName: widget.routeName,
-    routeID: widget.routeID.toString(),
-    city: widget.city,
-    stopID: stop["StopID"],
-    UserStartingStopName:'',
-    UserDestinationStopName: stop["stopName"],
+      transportType: 'bus',
+      routeName: widget.routeName,
+      routeID: widget.routeID.toString(),
+      city: widget.city,
+      stopID: stop["StopID"],
+      UserStartingStopName:'',
+      UserDestinationStopName: stop["stopName"],
     );
 
 
@@ -1885,7 +1890,7 @@ class _BusDetailPageState extends State<BusDetailPage> {
   Future<void> _fetchData() async {
     try {
       List<Map<String, dynamic>> data =
-      await getHistoryData(widget.city, widget.routeId, sum!)?? [];
+          await getHistoryData(widget.city, widget.routeId, sum!)?? [];
       setState(() {
         allBuses = data;
         filteredBuses = List.from(data); // 初始時顯示所有數據

@@ -1,25 +1,16 @@
+import '../tdx_api_client.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/http.dart' as http;
-
-import '../token_manager.dart';
-
 Future<List<dynamic>> fetchFreewayRoadEvent() async {
-
-
-String url="https://tdx.transportdata.tw/api/basic/v1/Traffic/RoadEvent/LiveEvent/Freeway?%24top=30&%24format=JSON";
-
+  String url =
+      "https://tdx.transportdata.tw/api/basic/v1/Traffic/RoadEvent/LiveEvent/Freeway?%24top=30&%24format=JSON";
 
   try {
-
-
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -30,7 +21,7 @@ String url="https://tdx.transportdata.tw/api/basic/v1/Traffic/RoadEvent/LiveEven
     }
 
     // 解析 JSON 数据
-    List<dynamic>  jsonData = await jsonDecode(response.body)["LiveEvents"];
+    List<dynamic> jsonData = await jsonDecode(response.body)["LiveEvents"];
 
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
@@ -39,6 +30,6 @@ String url="https://tdx.transportdata.tw/api/basic/v1/Traffic/RoadEvent/LiveEven
     return jsonData;
   } catch (e) {
     print('Error occurred: $e');
-    return[];
+    return [];
   }
 }

@@ -1,21 +1,17 @@
+import '../tdx_api_client.dart';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../../const/regular_const.dart';
-
 //取得指定[國內機場]氣象資訊觀測資料
 Future<List<dynamic>> getAirportMETAR(String location) async {
   const String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/METAR/Airport/rmq?%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -33,13 +29,10 @@ Future<List<dynamic>> getAirportMETAR(String location) async {
 Future<List<dynamic>> getAirportFIDS(String location) async {
   const String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/tpe?%24top=30&%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -56,13 +49,10 @@ Future<List<dynamic>> getAirportFIDS(String location) async {
 Future<List<dynamic>> getAirportFIDSDeparture(String airport) async {
   final String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Departure/$airport?%24top=70&%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -79,13 +69,10 @@ Future<List<dynamic>> getAirportFIDSDeparture(String airport) async {
 Future<List<dynamic>> getAirportFIDSArrival(String airport) async {
   final String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/Arrival/$airport?%24top=70&%24format=JSON';
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -111,14 +98,10 @@ Future<List<dynamic>> getFlight(String airlineId, String flightNumber) async {
 // 組成完整 URL
   final String url =
       'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Flight/$flightNumber?\$filter=$encodedFilter&\$format=JSON';
-
-  final tokenResponse = await http.get(tokenUri);
-  final token = tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );

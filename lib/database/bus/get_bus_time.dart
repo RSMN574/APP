@@ -1,15 +1,12 @@
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
-import '../../const/regular_const.dart';
 import '../../models/station.dart';
 import '../../utils/convert.dart';
 import '../get_data.dart';
 import '../tdx_api_client.dart';
-import '../token_manager.dart'; // 用于网络请求
 
 Future<List<dynamic>> fetchBusTime(
   String routeName,
@@ -28,10 +25,10 @@ Future<List<dynamic>> fetchBusTime(
 
   try {
     return await client.get(path, queryParams: queryParams) as List<dynamic>;
-  } catch (e) {
-    // 記錄錯誤，返回空列表或拋出異常由調用方處理
-    print('fetchBusTime 錯誤: $e');
-    return [];
+  } catch (e, stackTrace) {
+    debugPrint('fetchBusTime 錯誤: $e');
+    debugPrintStack(stackTrace: stackTrace);
+    rethrow;
   }
 }
 
@@ -46,12 +43,10 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination,
   }
   final String url =
       'https://tdx.transportdata.tw/api/maas/routing?origin=$origin&destination=$destination&gc=1.0&top=10&transit=$transit&transfer_time=5%2C60&depart=$time&first_mile_mode=${option["TravelMode"]}&first_mile_time=10&last_mile_mode=${option["TravelMode"]}&last_mile_time=10';
-  final token = await TokenManager().getToken();
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   ).timeout(const Duration(seconds: 20));
@@ -71,13 +66,9 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination,
 Future<List<Station>> getNearStation(String location) async {
   final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
-
-  final token = await TokenManager().getToken();
-
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   ).timeout(const Duration(seconds: 20));
@@ -123,19 +114,9 @@ Future<List<Map<String, dynamic>>?> getHistoryData(
 
   final String url =
       "https://tdx.transportdata.tw/api/historical/v2/Historical/Bus/RealTimeNearStop/City/$city/Date/${DateFormat('yyyy-MM-dd').format(yesterday)}/RouteID/$routeId?%24top=$sum&%24format=JSONL";
-
-  final tokenResponse =
-      await http.get(tokenUri).timeout(const Duration(seconds: 20));
-
-  if (tokenResponse.statusCode != 200) {
-    throw HttpException(
-        'Failed to get token! status: ${tokenResponse.statusCode}');
-  }
-  final token = await TokenManager().getToken();
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   ).timeout(const Duration(seconds: 20));
@@ -157,7 +138,6 @@ Future<List<Map<String, dynamic>>?> getHistoryData(
 Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
     String routeName, String city, String stopID, String direction) async {
   try {
-    final token = await TokenManager().getToken(); // 獲取 Token
     await connMysql(); // 連接 MySQL（如果必要）
 
     // 使用 Uri 構建 URL
@@ -171,10 +151,9 @@ Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
     );
 
     // 發起 GET 請求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       url,
       headers: {
-        'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));
@@ -204,19 +183,9 @@ Future<List<dynamic>> getShape(
     String city, String routeName, String routeID) async {
   final String url =
       "https://tdx.transportdata.tw/api/basic/v2/Bus/Shape/City/$city/$routeName?%24format=JSON";
-
-  final tokenResponse =
-      await http.get(tokenUri).timeout(const Duration(seconds: 20));
-
-  if (tokenResponse.statusCode != 200) {
-    throw HttpException(
-        'Failed to get token! status: ${tokenResponse.statusCode}');
-  }
-  final token = await TokenManager().getToken();
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   ).timeout(const Duration(seconds: 20));

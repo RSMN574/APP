@@ -33,11 +33,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _notificationsEnabled.value = prefs.getBool('notifications') ?? true;
-    final appProvider = context.read<AppProvider>();
-    final savedDarkTheme = prefs.getBool('darkTheme') ?? false;
-    if (savedDarkTheme != appProvider.isDarkTheme) {
-      await appProvider.toggleTheme(savedDarkTheme);
-    }
     if (!mounted) return;
     setState(() {
       _selectedLanguage =
@@ -73,6 +68,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.text_446,
@@ -87,8 +84,10 @@ class _SettingsPageState extends State<SettingsPage> {
               valueListenable: _notificationsEnabled,
               builder: (context, value, child) {
                 return SwitchListTile(
-                  secondary: const Icon(Icons.notifications_active_outlined,
-                      color: Colors.blue),
+                  secondary: Icon(
+                    Icons.notifications_active_outlined,
+                    color: colorScheme.primary,
+                  ),
                   title: Text(AppLocalizations.of(context)!.text_448),
                   subtitle: Text(AppLocalizations.of(context)!.text_449),
                   value: value,
@@ -102,8 +101,10 @@ class _SettingsPageState extends State<SettingsPage> {
             Consumer<AppProvider>(
               builder: (context, appProvider, child) {
                 return SwitchListTile(
-                  secondary: const Icon(Icons.dark_mode_outlined,
-                      color: Colors.orange),
+                  secondary: Icon(
+                    Icons.dark_mode_outlined,
+                    color: colorScheme.tertiary,
+                  ),
                   title: Text(AppLocalizations.of(context)!.text_450),
                   value: appProvider.isDarkTheme,
                   onChanged: appProvider.toggleTheme,
@@ -111,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.language, color: Colors.green),
+              leading: Icon(Icons.language, color: colorScheme.secondary),
               title: Text(AppLocalizations.of(context)!.text_451),
               subtitle: Text(_selectedLanguage),
               trailing: const Icon(Icons.chevron_right),
@@ -121,13 +122,15 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSectionTitle(AppLocalizations.of(context)!.text_452),
           _buildSettingCard([
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.teal),
+              leading: Icon(Icons.info_outline, color: colorScheme.primary),
               title: Text(AppLocalizations.of(context)!.text_453),
               onTap: () => _showInfoDialog(context),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_sweep_outlined,
-                  color: Colors.redAccent),
+              leading: Icon(
+                Icons.delete_sweep_outlined,
+                color: colorScheme.error,
+              ),
               title: Text(AppLocalizations.of(context)!.text_454),
               subtitle: Text(AppLocalizations.of(context)!.text_455),
               onTap: () => _showClearDialog(context),
@@ -136,8 +139,10 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSectionTitle(AppLocalizations.of(context)!.text_456),
           _buildSettingCard([
             ListTile(
-              leading:
-                  const Icon(Icons.star_border_rounded, color: Colors.amber),
+              leading: Icon(
+                Icons.star_border_rounded,
+                color: colorScheme.tertiary,
+              ),
               title: Text(AppLocalizations.of(context)!.text_457),
               onTap: () {
                 // TODO: 實作 Store 跳轉
@@ -145,14 +150,14 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             ListTile(
               leading:
-                  const Icon(Icons.alternate_email, color: Colors.blueGrey),
+                  Icon(Icons.alternate_email, color: colorScheme.secondary),
               title: Text(AppLocalizations.of(context)!.text_458),
               onTap: () {
                 // TODO: 實作郵件跳轉
               },
             ),
             ListTile(
-              leading: const Icon(Icons.help_outline, color: Colors.indigo),
+              leading: Icon(Icons.help_outline, color: colorScheme.primary),
               title: Text(AppLocalizations.of(context)!.text_459),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
@@ -170,8 +175,10 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.settings_accessibility_rounded,
-                  color: Colors.indigo),
+              leading: Icon(
+                Icons.settings_accessibility_rounded,
+                color: colorScheme.primary,
+              ),
               title: Text(AppLocalizations.of(context)!.text_460),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
@@ -193,7 +200,10 @@ class _SettingsPageState extends State<SettingsPage> {
           Center(
             child: Text(
               'Version $_appVersion ($_buildNumber)',
-              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -208,8 +218,11 @@ class _SettingsPageState extends State<SettingsPage> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Text(
         title,
-        style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.secondary,
+        ),
       ),
     );
   }
@@ -219,13 +232,14 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(children: children),
@@ -278,7 +292,10 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: Theme.of(context).colorScheme.error,
+            ),
             const SizedBox(width: 8),
             Text(AppLocalizations.of(context)!.text_462),
           ],
@@ -288,7 +305,9 @@ class _SettingsPageState extends State<SettingsPage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(AppLocalizations.of(context)!.text_36,
-                style: TextStyle(color: Colors.grey)),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                )),
           ),
           TextButton(
             onPressed: () async {
@@ -303,8 +322,9 @@ class _SettingsPageState extends State<SettingsPage> {
               }
             },
             child: Text(AppLocalizations.of(context)!.text_465,
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -331,7 +351,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 12),
             Text(AppLocalizations.of(context)!.text_470,
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                )),
           ],
         ),
         actions: [

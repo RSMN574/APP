@@ -1,22 +1,17 @@
+import '../tdx_api_client.dart';
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
-import 'package:http/http.dart' as http;
 
-import '../../const/regular_const.dart';
-import '../token_manager.dart';
 Future<List<dynamic>> fetchConnectorLiveStatus(StationID) async {
   String filter = Uri.encodeComponent("StationID eq '$StationID'");
-  var url = "https://tdx.transportdata.tw/api/basic/v1/EV/ConnectorLiveStatus/City/Taichung?\$filter=$filter&\$format=JSON";
-
+  var url =
+      "https://tdx.transportdata.tw/api/basic/v1/EV/ConnectorLiveStatus/City/Taichung?\$filter=$filter&\$format=JSON";
 
   try {
-
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );

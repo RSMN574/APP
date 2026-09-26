@@ -1,24 +1,18 @@
+import 'tdx_api_client.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 
-import '../const/regular_const.dart';
-
-Future<Map<String, dynamic>> fetchTrainRoutes(String origin, String destination, String time) async {
-
+Future<Map<String, dynamic>> fetchTrainRoutes(
+    String origin, String destination, String time) async {
   final baseUrl = 'https://tdx.transportdata.tw/api/basic/v3';
   String encodedTime = Uri.encodeComponent(time);
   // 查詢直達班次
-  final url = '$baseUrl/Rail/TRA/DailyTrainTimetable/OD/$origin/to/$destination/$encodedTime?%24format=JSON';
-
-
-  final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final url =
+      '$baseUrl/Rail/TRA/DailyTrainTimetable/OD/$origin/to/$destination/$encodedTime?%24format=JSON';
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -29,7 +23,7 @@ Future<Map<String, dynamic>> fetchTrainRoutes(String origin, String destination,
   }
 
   // 解析 JSON 数据
-  Map<String, dynamic>  jsonData = await jsonDecode(response.body);
+  Map<String, dynamic> jsonData = await jsonDecode(response.body);
 
   if (response.statusCode == 200) {
     final data = jsonDecode(response.body);
@@ -47,17 +41,15 @@ Future<Map<String, dynamic>> fetchTrainRoutes(String origin, String destination,
 }
 
 // 查詢轉乘路徑
-Future<void> _findTransferRoutes(String origin, String destination, String date,  String baseUrl) async {
+Future<void> _findTransferRoutes(
+    String origin, String destination, String date, String baseUrl) async {
   // Step 1: 查詢所有從起點站出發的班次
-  final fromOriginUrl = '$baseUrl/Rail/TRA/DailyTimetable/OD/$origin/to/$destination/$date';
-
-  final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
+  final fromOriginUrl =
+      '$baseUrl/Rail/TRA/DailyTimetable/OD/$origin/to/$destination/$date';
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(fromOriginUrl),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -68,23 +60,28 @@ Future<void> _findTransferRoutes(String origin, String destination, String date,
   }
 
   // 解析 JSON 数据
-  Map<String, dynamic>  jsonData = await jsonDecode(response.body);
-
+  Map<String, dynamic> jsonData = await jsonDecode(response.body);
 
   // Step 2: 查詢中間站可能的班次
   final transferStation = '1005'; // 替换为合适的中间站 (如宜蘭站)
-  final toTransferUrl = '$baseUrl/Rail/TRA/DailyTimetable/OD/$origin/to/$transferStation/$date';
-  final fromTransferUrl = '$baseUrl/Rail/TRA/DailyTimetable/OD/$transferStation/to/$destination/$date';
+  final toTransferUrl =
+      '$baseUrl/Rail/TRA/DailyTimetable/OD/$origin/to/$transferStation/$date';
+  final fromTransferUrl =
+      '$baseUrl/Rail/TRA/DailyTimetable/OD/$transferStation/to/$destination/$date';
 
-  final response2 = await http.get(Uri.parse(toTransferUrl), headers:    {
-  'Authorization': 'Bearer $token',
-  'accept': 'application/json',
-  },);
+  final response2 = await TdxApiClient().getRaw(
+    Uri.parse(toTransferUrl),
+    headers: {
+      'accept': 'application/json',
+    },
+  );
 
-  final response3 = await http.get(Uri.parse(fromTransferUrl), headers: {
-    'Authorization': 'Bearer $token',
-    'accept': 'application/json',
-  },);
+  final response3 = await TdxApiClient().getRaw(
+    Uri.parse(fromTransferUrl),
+    headers: {
+      'accept': 'application/json',
+    },
+  );
 
   if (response2.statusCode == 200 && response3.statusCode == 200) {
     final toTransferData = jsonDecode(response2.body);
@@ -96,7 +93,8 @@ Future<void> _findTransferRoutes(String origin, String destination, String date,
 }
 
 // 整合轉乘班次
-void _combineTransferRoutes(Map<String, dynamic> toTransfer, Map<String, dynamic> fromTransfer) {
+void _combineTransferRoutes(
+    Map<String, dynamic> toTransfer, Map<String, dynamic> fromTransfer) {
   final transferRoutes = [];
 
   for (var toRoute in toTransfer['DailyTrainInfo']) {
@@ -119,14 +117,10 @@ void _combineTransferRoutes(Map<String, dynamic> toTransfer, Map<String, dynamic
 
 // // 生成請求頭
 Future<Map<String, dynamic>> _generateHeaders(String url) async {
-
-  final tokenResponse = await http.get(tokenUri);
-  final token=tokenResponse.body;
   // 发起 GET 请求
-  final response = await http.get(
+  final response = await TdxApiClient().getRaw(
     Uri.parse(url),
     headers: {
-      'Authorization': 'Bearer $token',
       'accept': 'application/json',
     },
   );
@@ -137,6 +131,6 @@ Future<Map<String, dynamic>> _generateHeaders(String url) async {
   }
 
   // 解析 JSON 数据
-  Map<String, dynamic>  jsonData = await jsonDecode(response.body);
-return jsonData;
+  Map<String, dynamic> jsonData = await jsonDecode(response.body);
+  return jsonData;
 }

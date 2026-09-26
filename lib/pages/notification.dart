@@ -34,23 +34,24 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   @override
-  Widget build(context) {
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFD),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.text_435,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A73E8),
+            color: colorScheme.primary,
             letterSpacing: -0.5,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+        iconTheme: IconThemeData(color: colorScheme.primary),
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert, size: 24),
@@ -65,6 +66,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _buildEmptyState(context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -74,30 +77,30 @@ class _NotificationPageState extends State<NotificationPage> {
             Container(
               width: 140,
               height: 140,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Color(0xFF1A73E8),
-                    Color(0xFF1A73E8),
+                    colorScheme.primary,
+                    colorScheme.primaryContainer,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.notifications_none_rounded,
                 size: 60,
-                color: Color(0xFF1A73E8),
+                color: colorScheme.onPrimary,
               ),
             ),
             const SizedBox(height: 32),
             Text(
               AppLocalizations.of(context)!.text_436,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1A73E8),
+                color: colorScheme.onSurface,
                 letterSpacing: -0.5,
               ),
             ),
@@ -106,7 +109,7 @@ class _NotificationPageState extends State<NotificationPage> {
               AppLocalizations.of(context)!.text_437,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
@@ -115,13 +118,13 @@ class _NotificationPageState extends State<NotificationPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A73E8),
+                color: colorScheme.primary,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: Text(
                 AppLocalizations.of(context)!.text_438,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colorScheme.onPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
@@ -156,15 +159,17 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _buildHeader() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -175,22 +180,22 @@ class _NotificationPageState extends State<NotificationPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.filter_list_rounded,
               size: 20,
-              color: Color(0xFF1A73E8),
+              color: colorScheme.onPrimaryContainer,
             ),
           ),
           const SizedBox(width: 12),
           Text(
             AppLocalizations.of(context as BuildContext)!.text_439,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              color: colorScheme.onSurface,
             ),
           ),
           const Spacer(),
@@ -198,7 +203,7 @@ class _NotificationPageState extends State<NotificationPage> {
             '${notifications.length} 則通知',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -208,6 +213,7 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Widget _buildNotificationCard(Map<String, dynamic> notification, int index) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isUnread = notification['read'] == false;
     final notificationType = notification['type'] ?? 'info';
 
@@ -218,23 +224,24 @@ class _NotificationPageState extends State<NotificationPage> {
         child: InkWell(
           onTap: () => _handleNotificationTap(notification),
           borderRadius: BorderRadius.circular(20),
-          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-          highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
+          splashColor: colorScheme.primary.withValues(alpha: 0.1),
+          highlightColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
           child: Container(
             padding: const EdgeInsets.all(0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surfaceContainer,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isUnread ? 0.08 : 0.04),
+                  color: colorScheme.shadow
+                      .withValues(alpha: isUnread ? 0.1 : 0.05),
                   blurRadius: isUnread ? 20 : 12,
                   offset: Offset(0, isUnread ? 6 : 3),
                 ),
               ],
               border: isUnread
                   ? Border.all(
-                      color: const Color(0xFF1A73E8).withOpacity(0.2),
+                      color: colorScheme.primary.withValues(alpha: 0.2),
                       width: 1.5,
                     )
                   : null,
@@ -252,8 +259,8 @@ class _NotificationPageState extends State<NotificationPage> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            const Color(0xFF1A73E8),
-                            const Color(0xFF1A73E8).withOpacity(0.7),
+                            colorScheme.primary,
+                            colorScheme.primary.withValues(alpha: 0.7),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -295,7 +302,7 @@ class _NotificationPageState extends State<NotificationPage> {
                         child: Icon(
                           _getNotificationIcon(notificationType),
                           size: 24,
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -316,8 +323,8 @@ class _NotificationPageState extends State<NotificationPage> {
                                       fontSize: 17,
                                       fontWeight: FontWeight.w700,
                                       color: isUnread
-                                          ? Colors.black87
-                                          : Colors.grey[700],
+                                          ? colorScheme.onSurface
+                                          : colorScheme.onSurfaceVariant,
                                       height: 1.3,
                                     ),
                                     maxLines: 2,
@@ -329,14 +336,14 @@ class _NotificationPageState extends State<NotificationPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey[100],
+                                    color: colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     notification['time']!,
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey[600],
+                                      color: colorScheme.onSurfaceVariant,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -350,7 +357,7 @@ class _NotificationPageState extends State<NotificationPage> {
                               notification['description']!,
                               style: TextStyle(
                                 fontSize: 15,
-                                color: Colors.grey[600],
+                                color: colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w500,
                                 height: 1.4,
                               ),
@@ -393,8 +400,8 @@ class _NotificationPageState extends State<NotificationPage> {
                                   Container(
                                     width: 8,
                                     height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF1A73E8),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
@@ -431,14 +438,14 @@ class _NotificationPageState extends State<NotificationPage> {
       case 'warning':
         return const Color(0xFFFF9500);
       case 'error':
-        return const Color(0xFFFF3B30);
+        return Theme.of(context).colorScheme.error;
       case 'success':
         return const Color(0xFF34C759);
       case 'promotion':
         return const Color(0xFFAF52DE);
       case 'info':
       default:
-        return const Color(0xFF1A73E8);
+        return Theme.of(context).colorScheme.primary;
     }
   }
 

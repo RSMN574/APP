@@ -80,13 +80,13 @@ class AppInitializer {
 }
 
 class ProviderSetup {
-  static List<SingleChildWidget> getProviders() {
+  static List<SingleChildWidget> getProviders(AppProvider appProvider) {
     return [
       ChangeNotifierProvider(create: (_) => CityProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
       ChangeNotifierProvider(create: (_) => MarkerProvider()),
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
-      ChangeNotifierProvider(create: (_) => AppProvider()),
+      ChangeNotifierProvider.value(value: appProvider),
       ChangeNotifierProvider(create: (_) => BusProvider()),
     ];
   }
@@ -111,10 +111,11 @@ class AppRoutes {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final appProvider = await AppProvider.load();
   await AppInitializer.initialize();
 
   runApp(MultiProvider(
-    providers: ProviderSetup.getProviders(),
+    providers: ProviderSetup.getProviders(appProvider),
     child: const NavigationBarApp(),
   ));
 }

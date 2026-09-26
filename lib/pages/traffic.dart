@@ -252,16 +252,17 @@ class _TrafficState extends State<Traffic> {
   // -----------------------------
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0.4,
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.text_636,
-          style: const TextStyle(
-            color: Colors.black87,
+          style: TextStyle(
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -272,13 +273,13 @@ class _TrafficState extends State<Traffic> {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF3FB),
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.more_vert_rounded,
                   size: 20,
-                  color: Color(0xFF1A73E8),
+                  color: colorScheme.onPrimaryContainer,
                 ),
               ),
               onPressed: _showInfoMenu, // 改為調用底部彈出菜單
@@ -300,8 +301,10 @@ class _TrafficState extends State<Traffic> {
                   children: [
                     Text("GPS：$gps", style: const TextStyle(fontSize: 16)),
                     Text("精度：約 ${gpsAccuracy.toStringAsFixed(1)} 公尺",
-                        style:
-                            const TextStyle(fontSize: 14, color: Colors.grey)),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        )),
                     Text("行車方向：$direction",
                         style: const TextStyle(fontSize: 16)),
                   ],
@@ -361,7 +364,7 @@ class _TrafficState extends State<Traffic> {
               CupertinoButton.filled(
                 onPressed: loading ? null : _loadMockData,
                 child: loading
-                    ? const CupertinoActivityIndicator(color: Colors.white)
+                    ? CupertinoActivityIndicator(color: colorScheme.onPrimary)
                     : Text(AppLocalizations.of(context)!.text_642),
               ),
             ],
@@ -381,6 +384,8 @@ class _TrafficState extends State<Traffic> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -389,16 +394,16 @@ class _TrafficState extends State<Traffic> {
           onTap(); // 執行對應的操作
         },
         borderRadius: BorderRadius.circular(16),
-        splashColor: color.withOpacity(0.1),
-        highlightColor: color.withOpacity(0.05),
+        splashColor: color.withValues(alpha: 0.1),
+        highlightColor: color.withValues(alpha: 0.05),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: colorScheme.shadow.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -421,7 +426,7 @@ class _TrafficState extends State<Traffic> {
                 child: Icon(
                   icon,
                   size: 24,
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                 ),
               ),
               const SizedBox(width: 16),
@@ -432,10 +437,10 @@ class _TrafficState extends State<Traffic> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -443,7 +448,7 @@ class _TrafficState extends State<Traffic> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -454,13 +459,13 @@ class _TrafficState extends State<Traffic> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: Colors.grey[600],
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -482,7 +487,7 @@ class _TrafficState extends State<Traffic> {
   void _showInfoMenu() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -491,8 +496,8 @@ class _TrafficState extends State<Traffic> {
           maxHeight: MediaQuery.of(context).size.height * 0.8, // 限制最大高度
         ),
         padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
@@ -506,7 +511,7 @@ class _TrafficState extends State<Traffic> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[400],
+                    color: Theme.of(context).colorScheme.outline,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -517,7 +522,7 @@ class _TrafficState extends State<Traffic> {
                 icon: Icons.info_outline_rounded,
                 title: AppLocalizations.of(context)!.text_643,
                 subtitle: AppLocalizations.of(context)!.text_644,
-                color: const Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
                 onTap: _navigateToFreeWayInfo,
               ),
 
@@ -538,11 +543,11 @@ class _TrafficState extends State<Traffic> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -553,7 +558,10 @@ class _TrafficState extends State<Traffic> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 14, color: Colors.black54),
+            style: TextStyle(
+              fontSize: 14,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 12),
           child,

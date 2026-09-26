@@ -20,11 +20,9 @@ class BikeRepository {
     return rows.map(_parseStationRow).toList(growable: false);
   }
 
-  Future<Map<String, dynamic>> fetchAvailability(
-    String city,
-    String stationId,
-  ) {
-    return getBikeAvailability(city, stationId);
+  Future<BikeAvailability> fetchAvailability(String city, String stationId,
+      {Future<void>? abortTrigger}) {
+    return getBikeAvailability(city, stationId, abortTrigger: abortTrigger);
   }
 
   YouBikeStation _parseStationRow(Map<String, dynamic> row) {

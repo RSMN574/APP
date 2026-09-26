@@ -1,6 +1,4 @@
-
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-
 
 import 'package:com.rsmn574.app/pages/hsr/hsr_schedule_page.dart';
 
@@ -142,13 +140,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
       lastDate: DateTime.now().add(const Duration(days: 90)),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primaryHSR,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: textPrimary,
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: primaryHSR,
+                  onPrimary: Theme.of(context).colorScheme.onPrimary,
+                  surface: Theme.of(context).colorScheme.surface,
+                  onSurface: Theme.of(context).colorScheme.onSurface,
+                ),
             dialogTheme: const DialogThemeData(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
@@ -276,18 +274,18 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                             ),
                             suffixIcon: _isInputValid
                                 ? Container(
-                              margin: const EdgeInsets.all(12),
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: primaryHSR.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.check_rounded,
-                                size: 16,
-                                color: primaryHSR,
-                              ),
-                            )
+                                    margin: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: primaryHSR.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: primaryHSR,
+                                    ),
+                                  )
                                 : null,
                           ),
                           style: const TextStyle(
@@ -379,56 +377,66 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                           child: InkWell(
                             onTap: _isInputValid
                                 ? () async {
-                              try {
-                                var trainData = await fetchHSR(
-                                  int.parse(widget.controller.text)
-                                      .toString()
-                                      .padLeft(4, '0'),
-                                  selectedDate,
-                                );
+                                    try {
+                                      var trainData = await fetchHSR(
+                                        int.parse(widget.controller.text)
+                                            .toString()
+                                            .padLeft(4, '0'),
+                                        selectedDate,
+                                      );
 
-                                if (trainData == null) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content:  Text(AppLocalizations.of(context)!.text_151),
-                                        backgroundColor: errorRed,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                    );
+                                      if (trainData == null) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  AppLocalizations.of(context)!
+                                                      .text_151),
+                                              backgroundColor: errorRed,
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        if (context.mounted) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  HSRSchedulePage(
+                                                trainData: trainData,
+                                                type: 'trainNo',
+                                                time: selectedDate,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                AppLocalizations.of(context)!
+                                                    .text_152),
+                                            backgroundColor: errorRed,
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
                                   }
-                                } else {
-                                  if (context.mounted) {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => HSRSchedulePage(
-                                          trainData: trainData,
-                                          type: 'trainNo',
-                                          time: selectedDate,
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(AppLocalizations.of(context)!.text_152),
-                                      backgroundColor: errorRed,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
-                            }
                                 : null,
                             borderRadius: BorderRadius.circular(12),
                             splashColor: Colors.white.withOpacity(0.2),
@@ -443,7 +451,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                     color: Colors.white,
                                   ),
                                   const SizedBox(width: 8),
-                                   Text(
+                                  Text(
                                     AppLocalizations.of(context)!.text_153,
                                     style: const TextStyle(
                                       fontSize: 16,
@@ -501,7 +509,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                             Text(
+                            Text(
                               AppLocalizations.of(context)!.text_155,
                               style: TextStyle(
                                 fontSize: 12,
@@ -536,8 +544,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
-                        children: ['0813', '0618', '0624', '0826', '0636', ]
-                            .map((trainNo) {
+                        children: [
+                          '0813',
+                          '0618',
+                          '0624',
+                          '0826',
+                          '0636',
+                        ].map((trainNo) {
                           return Material(
                             color: Colors.transparent,
                             child: InkWell(
@@ -584,6 +597,7 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     );
   }
 }
+
 class RouteSearchPage extends StatefulWidget {
   final TextEditingController departureController;
   final TextEditingController destinationController;
@@ -597,6 +611,7 @@ class RouteSearchPage extends StatefulWidget {
   @override
   _RouteSearchPageState createState() => _RouteSearchPageState();
 }
+
 class _RouteSearchPageState extends State<RouteSearchPage> {
   // 高鐵主題色 - 保留高鐵橘
   static const Color primaryHSR = Color(0xFFDC5321); // 高鐵標準橘
@@ -624,13 +639,13 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       lastDate: DateTime.now().add(const Duration(days: 90)), // 高鐵可查90天
       builder: (context, child) {
         return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: primaryHSR,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: textPrimary,
-            ),
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: primaryHSR,
+                  onPrimary: Theme.of(context).colorScheme.onPrimary,
+                  surface: Theme.of(context).colorScheme.surface,
+                  onSurface: Theme.of(context).colorScheme.onSurface,
+                ),
             dialogTheme: const DialogThemeData(
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
@@ -654,13 +669,13 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
         builder: (context, child) {
           return Theme(
-            data: ThemeData.light().copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: primaryHSR,
-                onPrimary: Colors.white,
-                surface: Colors.white,
-                onSurface: textPrimary,
-              ),
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: primaryHSR,
+                    onPrimary: Theme.of(context).colorScheme.onPrimary,
+                    surface: Theme.of(context).colorScheme.surface,
+                    onSurface: Theme.of(context).colorScheme.onSurface,
+                  ),
               timePickerTheme: TimePickerThemeData(
                 backgroundColor: Colors.white,
                 hourMinuteTextColor: primaryHSR,
@@ -706,7 +721,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   }
 
   void _swapStations() {
-    if (departureSelectedStation.isEmpty && destinationSelectedStation.isEmpty) {
+    if (departureSelectedStation.isEmpty &&
+        destinationSelectedStation.isEmpty) {
       return;
     }
 
@@ -727,11 +743,12 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       _isDepartureSelected = _isDestinationSelected;
       _isDestinationSelected = tempSelected;
 
-      if (widget.departureController.text == widget.destinationController.text &&
+      if (widget.departureController.text ==
+              widget.destinationController.text &&
           widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:  Text(AppLocalizations.of(context)!.text_157),
+            content: Text(AppLocalizations.of(context)!.text_157),
             backgroundColor: errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -820,13 +837,15 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final selectedStation = await StationDialog.showStationDialog(context);
+                            final selectedStation =
+                                await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 departureSelectedStation = selectedStation;
                                 _isDepartureSelected = true;
                                 widget.departureController.text =
-                                    departureSelectedStation['StationName']['Zh_tw'] ??
+                                    departureSelectedStation['StationName']
+                                            ['Zh_tw'] ??
                                         AppLocalizations.of(context)!.text_160;
                               });
                             }
@@ -870,7 +889,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_63,
@@ -886,7 +906,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDepartureSelected
                                             ? widget.departureController.text
-                                            : AppLocalizations.of(context)!.text_161,
+                                            : AppLocalizations.of(context)!
+                                                .text_161,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDepartureSelected
@@ -957,20 +978,24 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final selectedStation = await StationDialog.showStationDialog(context);
+                            final selectedStation =
+                                await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 destinationSelectedStation = selectedStation;
                                 _isDestinationSelected = true;
                                 widget.destinationController.text =
-                                    destinationSelectedStation['StationName']['Zh_tw'] ??
+                                    destinationSelectedStation['StationName']
+                                            ['Zh_tw'] ??
                                         AppLocalizations.of(context)!.text_160;
                               });
 
-                              if (widget.departureController.text == widget.destinationController.text) {
+                              if (widget.departureController.text ==
+                                  widget.destinationController.text) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_157),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_157),
                                     backgroundColor: errorRed,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1020,7 +1045,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_162,
@@ -1036,7 +1062,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         _isDestinationSelected
                                             ? widget.destinationController.text
-                                            : AppLocalizations.of(context)!.text_163,
+                                            : AppLocalizations.of(context)!
+                                                .text_163,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDestinationSelected
@@ -1123,7 +1150,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_164,
@@ -1139,7 +1167,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                       Text(
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
-                                            : AppLocalizations.of(context)!.text_165,
+                                            : AppLocalizations.of(context)!
+                                                .text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1193,7 +1222,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDepartureSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_161),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_161),
                                     backgroundColor: errorRed,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1207,7 +1237,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               if (!_isDestinationSelected) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content:  Text(AppLocalizations.of(context)!.text_163),
+                                    content: Text(
+                                        AppLocalizations.of(context)!.text_163),
                                     backgroundColor: errorRed,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
@@ -1224,7 +1255,9 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                   builder: (context) => RoutePage(
                                     departure: departureSelectedStation,
                                     destination: destinationSelectedStation,
-                                    date: selectedDate ?? DateTime.now().add(const Duration(minutes: 1)),
+                                    date: selectedDate ??
+                                        DateTime.now()
+                                            .add(const Duration(minutes: 1)),
                                   ),
                                 ),
                               );
@@ -1233,7 +1266,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                             splashColor: Colors.white.withOpacity(0.2),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              child:  Row(
+                              child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
@@ -1287,7 +1320,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                       Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1413,12 +1446,36 @@ class _StationSearchPageState extends State<StationSearchPage> {
   final TextEditingController _controller = TextEditingController();
 
   late final Map<String, List<String>> stations = {
-    AppLocalizations.of(context)!.text_174: [AppLocalizations.of(context)!.text_175, AppLocalizations.of(context)!.text_176, AppLocalizations.of(context)!.text_177],
-    AppLocalizations.of(context)!.text_8: [AppLocalizations.of(context)!.text_178, AppLocalizations.of(context)!.text_179, AppLocalizations.of(context)!.text_180],
-    AppLocalizations.of(context)!.text_9: [AppLocalizations.of(context)!.text_181, AppLocalizations.of(context)!.text_182, AppLocalizations.of(context)!.text_183],
-    AppLocalizations.of(context)!.text_184: [AppLocalizations.of(context)!.text_185, AppLocalizations.of(context)!.text_186, AppLocalizations.of(context)!.text_187],
-    AppLocalizations.of(context)!.text_188: [AppLocalizations.of(context)!.text_189, AppLocalizations.of(context)!.text_190, AppLocalizations.of(context)!.text_191],
-    AppLocalizations.of(context)!.text_11: [AppLocalizations.of(context)!.text_192, AppLocalizations.of(context)!.text_193, AppLocalizations.of(context)!.text_194],
+    AppLocalizations.of(context)!.text_174: [
+      AppLocalizations.of(context)!.text_175,
+      AppLocalizations.of(context)!.text_176,
+      AppLocalizations.of(context)!.text_177
+    ],
+    AppLocalizations.of(context)!.text_8: [
+      AppLocalizations.of(context)!.text_178,
+      AppLocalizations.of(context)!.text_179,
+      AppLocalizations.of(context)!.text_180
+    ],
+    AppLocalizations.of(context)!.text_9: [
+      AppLocalizations.of(context)!.text_181,
+      AppLocalizations.of(context)!.text_182,
+      AppLocalizations.of(context)!.text_183
+    ],
+    AppLocalizations.of(context)!.text_184: [
+      AppLocalizations.of(context)!.text_185,
+      AppLocalizations.of(context)!.text_186,
+      AppLocalizations.of(context)!.text_187
+    ],
+    AppLocalizations.of(context)!.text_188: [
+      AppLocalizations.of(context)!.text_189,
+      AppLocalizations.of(context)!.text_190,
+      AppLocalizations.of(context)!.text_191
+    ],
+    AppLocalizations.of(context)!.text_11: [
+      AppLocalizations.of(context)!.text_192,
+      AppLocalizations.of(context)!.text_193,
+      AppLocalizations.of(context)!.text_194
+    ],
   };
 
   String? selectedCity;
@@ -1469,11 +1526,14 @@ class _StationSearchPageState extends State<StationSearchPage> {
       );
 
       if (canOpen) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication ,);
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:  Text(AppLocalizations.of(context)!.text_195),
+            content: Text(AppLocalizations.of(context)!.text_195),
             backgroundColor: errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -1573,11 +1633,13 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
-                            final selected = await StationDialog.showStationDialog(context);
+                            final selected =
+                                await StationDialog.showStationDialog(context);
                             if (selected != null) {
                               setState(() {
                                 selectedStation = selected;
-                                _controller.text = selected['StationName']['Zh_tw'] ?? '';
+                                _controller.text =
+                                    selected['StationName']['Zh_tw'] ?? '';
                                 _isStationSelected = true;
                               });
                             }
@@ -1621,7 +1683,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_199,
@@ -1637,7 +1700,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                       Text(
                                         _isStationSelected
                                             ? _controller.text
-                                            : AppLocalizations.of(context)!.text_200,
+                                            : AppLocalizations.of(context)!
+                                                .text_200,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isStationSelected
@@ -1701,10 +1765,11 @@ class _StationSearchPageState extends State<StationSearchPage> {
                           child: InkWell(
                             onTap: _isStationSelected
                                 ? () async {
-                              if (selectedStation != null) {
-                                await openURL(selectedStation!["URL"], context);
-                              }
-                            }
+                                    if (selectedStation != null) {
+                                      await openURL(
+                                          selectedStation!["URL"], context);
+                                    }
+                                  }
                                 : null,
                             borderRadius: BorderRadius.circular(12),
                             splashColor: Colors.white.withOpacity(0.2),
@@ -1719,7 +1784,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     color: Colors.white,
                                   ),
                                   const SizedBox(width: 8),
-                                   Text(
+                                  Text(
                                     AppLocalizations.of(context)!.text_201,
                                     style: TextStyle(
                                       fontSize: 16,
@@ -1764,7 +1829,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                       Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1870,6 +1935,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
     );
   }
 }
+
 class RoutePage extends StatefulWidget {
   final Map<String, dynamic> departure;
   final Map<String, dynamic> destination;
@@ -1883,6 +1949,7 @@ class RoutePage extends StatefulWidget {
   @override
   State<RoutePage> createState() => _RoutePageState();
 }
+
 class _RoutePageState extends State<RoutePage> {
   // 高鐵主題色 - 保留高鐵橘
   static const Color primaryHSR = Color(0xFFDC5321); // 高鐵標準橘
@@ -2033,7 +2100,7 @@ class _RoutePageState extends State<RoutePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                     Text(
+                    Text(
                       AppLocalizations.of(context)!.text_205,
                       style: TextStyle(
                         fontSize: 18,
@@ -2082,7 +2149,7 @@ class _RoutePageState extends State<RoutePage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                     Text(
+                    Text(
                       AppLocalizations.of(context)!.text_207,
                       style: TextStyle(
                         fontSize: 20,
@@ -2115,7 +2182,9 @@ class _RoutePageState extends State<RoutePage> {
                 Duration minDiff = const Duration(days: 999);
                 for (int i = 0; i < data.length; i++) {
                   final train = data[i];
-                  final depTimeStr = train["TrainDate"] + ' ' + train["OriginStopTime"]["DepartureTime"];
+                  final depTimeStr = train["TrainDate"] +
+                      ' ' +
+                      train["OriginStopTime"]["DepartureTime"];
                   final depTime = DateTime.tryParse(depTimeStr);
                   if (depTime != null) {
                     final diff = (depTime.difference(widget.date)).abs();
@@ -2139,7 +2208,8 @@ class _RoutePageState extends State<RoutePage> {
                 // 日期時間標籤
                 Container(
                   margin: const EdgeInsets.all(20),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     borderRadius: BorderRadius.circular(16),
@@ -2180,7 +2250,8 @@ class _RoutePageState extends State<RoutePage> {
                   child: ScrollablePositionedList.builder(
                     itemScrollController: _itemScrollController,
                     itemCount: data.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     itemBuilder: (context, index) {
                       final train = data[index];
                       final origin = train["OriginStopTime"];
@@ -2201,16 +2272,17 @@ class _RoutePageState extends State<RoutePage> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(isClosest ? 0.1 : 0.04),
+                              color: Colors.black
+                                  .withOpacity(isClosest ? 0.1 : 0.04),
                               blurRadius: isClosest ? 20 : 12,
                               offset: Offset(0, isClosest ? 6 : 4),
                             ),
                           ],
                           border: isClosest
                               ? Border.all(
-                            color: primaryHSR,
-                            width: 2,
-                          )
+                                  color: primaryHSR,
+                                  width: 2,
+                                )
                               : null,
                         ),
                         child: Material(
@@ -2245,13 +2317,16 @@ class _RoutePageState extends State<RoutePage> {
                                   Row(
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: surfaceColor,
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         child: Text(
-                                          trainDateFormat.format(DateTime.parse(train["TrainDate"])),
+                                          trainDateFormat.format(DateTime.parse(
+                                              train["TrainDate"])),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
@@ -2264,7 +2339,8 @@ class _RoutePageState extends State<RoutePage> {
                                         padding: const EdgeInsets.all(8),
                                         decoration: BoxDecoration(
                                           color: primaryHSR.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -2292,13 +2368,15 @@ class _RoutePageState extends State<RoutePage> {
 
                                   // 時間資訊
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
                                     children: [
                                       // 出發站
                                       Expanded(
                                         flex: 2,
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               startTime,
@@ -2312,13 +2390,18 @@ class _RoutePageState extends State<RoutePage> {
                                             Row(
                                               children: [
                                                 Container(
-                                                  padding: const EdgeInsets.all(4),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
                                                   decoration: BoxDecoration(
-                                                    color: primaryHSR.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color: primaryHSR
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
                                                   ),
                                                   child: const Icon(
-                                                    Icons.departure_board_rounded,
+                                                    Icons
+                                                        .departure_board_rounded,
                                                     size: 14,
                                                     color: primaryHSR,
                                                   ),
@@ -2326,14 +2409,17 @@ class _RoutePageState extends State<RoutePage> {
                                                 const SizedBox(width: 6),
                                                 Expanded(
                                                   child: Text(
-                                                    origin["StationName"]["Zh_tw"],
+                                                    origin["StationName"]
+                                                        ["Zh_tw"],
                                                     style: TextStyle(
                                                       fontSize: 14,
                                                       color: textSecondary,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                               ],
@@ -2348,10 +2434,15 @@ class _RoutePageState extends State<RoutePage> {
                                         child: Column(
                                           children: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 4,
+                                                      horizontal: 12),
                                               decoration: BoxDecoration(
-                                                color: primaryHSR.withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(20),
+                                                color:
+                                                    primaryHSR.withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
                                               ),
                                               child: const Icon(
                                                 Icons.arrow_forward_rounded,
@@ -2367,7 +2458,8 @@ class _RoutePageState extends State<RoutePage> {
                                       Expanded(
                                         flex: 2,
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
                                             Text(
                                               endTime,
@@ -2380,27 +2472,35 @@ class _RoutePageState extends State<RoutePage> {
                                             ),
                                             const SizedBox(height: 4),
                                             Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    destination["StationName"]["Zh_tw"],
+                                                    destination["StationName"]
+                                                        ["Zh_tw"],
                                                     style: TextStyle(
                                                       fontSize: 14,
                                                       color: textSecondary,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                     textAlign: TextAlign.end,
                                                     maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Container(
-                                                  padding: const EdgeInsets.all(4),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
                                                   decoration: BoxDecoration(
-                                                    color: successGreen.withOpacity(0.1),
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color: successGreen
+                                                        .withOpacity(0.1),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
                                                   ),
                                                   child: Icon(
                                                     Icons.flag_rounded,
@@ -2514,7 +2614,8 @@ class _RoutePageState extends State<RoutePage> {
     Duration minDiff = const Duration(days: 999);
     for (int i = 0; i < data.length; i++) {
       final train = data[i];
-      final depTimeStr = train["TrainDate"] + ' ' + train["OriginStopTime"]["DepartureTime"];
+      final depTimeStr =
+          train["TrainDate"] + ' ' + train["OriginStopTime"]["DepartureTime"];
       final depTime = DateTime.tryParse(depTimeStr);
       if (depTime != null) {
         final diff = (depTime.difference(widget.date)).abs();
@@ -2572,21 +2673,24 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   // 獲取座位狀態
-  Future<Map<String, dynamic>> _fetchSeatStatus(Map<String, dynamic> train) async {
+  Future<Map<String, dynamic>> _fetchSeatStatus(
+      Map<String, dynamic> train) async {
     try {
       final origin = train["OriginStopTime"];
       final destination = train["DestinationStopTime"];
       final trainNo = train["DailyTrainInfo"]["TrainNo"];
 
       final d = await mysqlSelect(
-          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${origin["StationName"]["Zh_tw"]}';"
-      );
+          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${origin["StationName"]["Zh_tw"]}';");
       final a = await mysqlSelect(
-          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${destination["StationName"]["Zh_tw"]}';"
-      );
+          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${destination["StationName"]["Zh_tw"]}';");
 
       if (d.isEmpty || a.isEmpty) {
-        return {"AvailableSeats": [{"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}]};
+        return {
+          "AvailableSeats": [
+            {"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}
+          ]
+        };
       }
 
       final data = await fetchAvailableSeatStatus(
@@ -2599,7 +2703,11 @@ class _RoutePageState extends State<RoutePage> {
       return data;
     } catch (e) {
       debugPrint(AppLocalizations.of(context)!.text_212);
-      return {"AvailableSeats": [{"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}]};
+      return {
+        "AvailableSeats": [
+          {"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}
+        ]
+      };
     }
   }
 
@@ -2607,11 +2715,9 @@ class _RoutePageState extends State<RoutePage> {
     List<Future<Widget>> futures = transports.map<Future<Widget>>((i) async {
       try {
         var d = await mysqlSelect(
-            "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["departure"]["place"]["name"]}';"
-        );
+            "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["departure"]["place"]["name"]}';");
         var a = await mysqlSelect(
-            "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["arrival"]["place"]["name"]}';"
-        );
+            "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${i["arrival"]["place"]["name"]}';");
 
         if (d.isEmpty || a.isEmpty) return const SizedBox.shrink();
 
@@ -2665,9 +2771,12 @@ class _RoutePageState extends State<RoutePage> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: data["AvailableSeats"]?[0]?["StandardSeatStatus"] == 'O'
+                      color: data["AvailableSeats"]?[0]
+                                  ?["StandardSeatStatus"] ==
+                              'O'
                           ? successGreen.withOpacity(0.1)
                           : errorRed.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -2679,7 +2788,9 @@ class _RoutePageState extends State<RoutePage> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: data["AvailableSeats"]?[0]?["StandardSeatStatus"] == 'O'
+                        color: data["AvailableSeats"]?[0]
+                                    ?["StandardSeatStatus"] ==
+                                'O'
                             ? successGreen
                             : errorRed,
                       ),
@@ -2713,9 +2824,12 @@ class _RoutePageState extends State<RoutePage> {
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: data["AvailableSeats"]?[0]?["BusinessSeatStatus"] == 'O'
+                      color: data["AvailableSeats"]?[0]
+                                  ?["BusinessSeatStatus"] ==
+                              'O'
                           ? successGreen.withOpacity(0.1)
                           : errorRed.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -2727,7 +2841,9 @@ class _RoutePageState extends State<RoutePage> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: data["AvailableSeats"]?[0]?["BusinessSeatStatus"] == 'O'
+                        color: data["AvailableSeats"]?[0]
+                                    ?["BusinessSeatStatus"] ==
+                                'O'
                             ? successGreen
                             : errorRed,
                       ),

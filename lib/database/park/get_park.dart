@@ -1,13 +1,8 @@
+import '../tdx_api_client.dart';
 import 'dart:convert';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-
-import '../token_manager.dart';
 
 /// 取得台灣所有動態停車場資訊（市區 + 台鐵車站 + 高鐵車站）
 Future<List<dynamic>> fetchParkLiveStatus(String city) async {
-  final token = await TokenManager().getToken();
-
   /// 三個 API url
   final urls = [
     // 市區停車場
@@ -24,10 +19,9 @@ Future<List<dynamic>> fetchParkLiveStatus(String city) async {
 
   for (final url in urls) {
     try {
-      final response = await http.get(
+      final response = await TdxApiClient().getRaw(
         Uri.parse(url),
         headers: {
-          'Authorization': 'Bearer $token',
           'accept': 'application/json',
         },
       );

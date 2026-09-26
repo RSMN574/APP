@@ -1,12 +1,14 @@
 import 'dart:io';
 
+import '../../models/bike.dart';
 import '../tdx_api_client.dart';
 
 // 取得指定城市與站點的公共自行車即時車位資料。
-Future<Map<String, dynamic>> getBikeAvailability(
+Future<BikeAvailability> getBikeAvailability(
   String city,
-  String stationID,
-) async {
+  String stationID, {
+  Future<void>? abortTrigger,
+}) async {
   if (!RegExp(r'^[A-Za-z0-9_]+$').hasMatch(city)) {
     throw ArgumentError.value(city, 'city', 'Invalid city identifier');
   }
@@ -20,11 +22,14 @@ Future<Map<String, dynamic>> getBikeAvailability(
       r'$filter': "StationID eq '$stationID'",
       r'$format': 'JSON',
     },
+    abortTrigger: abortTrigger,
   );
 
   if (data is! List || data.isEmpty || data.first is! Map) {
     throw const HttpException('Bike availability response is empty');
   }
 
-  return Map<String, dynamic>.from(data.first as Map);
+  return BikeAvailability.fromJson(
+    Map<String, dynamic>.from(data.first as Map),
+  );
 }

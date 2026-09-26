@@ -1,9 +1,8 @@
+import '../tdx_api_client.dart';
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../get_data.dart';
-import '../token_manager.dart';
 
 Future<dynamic> fetchHSR(String trainNo, DateTime date) async {
   final DateFormat dateFormat = DateFormat('yyyy-MM-dd');
@@ -14,12 +13,10 @@ Future<dynamic> fetchHSR(String trainNo, DateTime date) async {
 
   try {
     await connMysql();
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));
@@ -53,12 +50,10 @@ Future<List<dynamic>> fetchHSRRoute(departureID, destinationID, time) async {
       "https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/DailyTimetable/OD/$departureID/to/$destinationID/$time?%24format=JSON";
 
   try {
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));
@@ -89,12 +84,10 @@ Future<dynamic> fetchAvailableSeatStatus(
 
   try {
     await connMysql();
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     ).timeout(const Duration(seconds: 20));

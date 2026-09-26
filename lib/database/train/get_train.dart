@@ -1,36 +1,32 @@
+import '../tdx_api_client.dart';
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
 import 'dart:math';
 import 'dart:ui';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
-import '../../const/regular_const.dart';
 
 import '../get_data.dart';
-import '../token_manager.dart'; // 用于网络请求
+
 // 定義快取
 Map<String, List<dynamic>> _trainStationCache = {};
-DateTime _lastCacheUpdate = DateTime.now().subtract(const Duration(minutes: 10));
+DateTime _lastCacheUpdate =
+    DateTime.now().subtract(const Duration(minutes: 10));
 
-Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
-
-
+Future<dynamic> fetchTrain(int trainNo, DateTime date) async {
   final DateFormat dateFormat = DateFormat('yyyy-MM-dd');
-  int _trainNo=trainNo;
-  var _date=dateFormat.format(date) ;
-  var url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/TrainNo/$_trainNo/TrainDate/$_date?%24format=JSON";
+  int _trainNo = trainNo;
+  var _date = dateFormat.format(date);
+  var url =
+      "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/TrainNo/$_trainNo/TrainDate/$_date?%24format=JSON";
 
   try {
-    await  connMysql();
-
-    final token = await TokenManager().getToken();
+    await connMysql();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -41,7 +37,7 @@ Future<dynamic> fetchTrain(int trainNo,DateTime date) async {
     }
 
     // 解析 JSON 数据
-Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
+    Map<String, dynamic> jsonData = await jsonDecode(response.body)[0];
 
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
@@ -65,7 +61,6 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
 //     final response = await http.get(
 //       Uri.parse(url),
 //       headers: {
-//         'Authorization': 'Bearer $token',
 //         'accept': 'application/json',
 //       },
 //     );
@@ -89,27 +84,19 @@ Map<String, dynamic>  jsonData = await jsonDecode(response.body)[0];
 //   return [];
 // }
 
-
-
 Future<List<Map<String, dynamic>>> fetchTrainStationByTrainNo(
-    String trainNo,
-
-    ) async {
+  String trainNo,
+) async {
   // 🔒 只允許今天查即時
-  final token = await TokenManager().getToken();
-
-
-
   final url =
       'https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/TrainLiveBoard/TrainNo/$trainNo'
       '?%24top=30&%24format=JSON';
 
   try {
     print(url);
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -140,6 +127,7 @@ Future<List<Map<String, dynamic>>> fetchTrainStationByTrainNo(
     return [];
   }
 }
+
 Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
   DateTime now = DateTime.now();
   DateTime targetTime = date;
@@ -149,7 +137,8 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
   DateTime endRange = now.add(Duration(minutes: 30));
 
   // 判斷 targetTime 是否在範圍內
-  bool isWithinRange = targetTime.isAfter(startRange) && targetTime.isBefore(endRange);
+  bool isWithinRange =
+      targetTime.isAfter(startRange) && targetTime.isBefore(endRange);
 
   List<Map<String, dynamic>> trainLiveBoard = [];
 
@@ -162,23 +151,21 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
 
   // 檢查快取是否有效
   String cacheKey = "$stationID-${DateFormat('yyyy-MM-dd').format(date)}";
-  if (_trainStationCache.containsKey(cacheKey) && DateTime.now().difference(_lastCacheUpdate).inMinutes < 1) {
+  if (_trainStationCache.containsKey(cacheKey) &&
+      DateTime.now().difference(_lastCacheUpdate).inMinutes < 1) {
     print("使用快取資料");
     return _trainStationCache[cacheKey]!;
   }
 
   // 構建 API URL
-  String url = "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/Station/$stationID/${DateFormat('yyyy-MM-dd').format(date)}?%24format=JSON";
+  String url =
+      "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/Station/$stationID/${DateFormat('yyyy-MM-dd').format(date)}?%24format=JSON";
 
   try {
     await connMysql();
-    final tokenResponse = await http.get(tokenUri);
-    final token = await TokenManager().getToken();
-
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -198,7 +185,7 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
       if (processedTrainNos.contains(trainNo)) continue; // 防止重複合併
 
       Map<String, dynamic>? matchedTrain = trainLiveBoard.firstWhere(
-            (item) => item["TrainNo"].toString() == trainNo,
+        (item) => item["TrainNo"].toString() == trainNo,
         orElse: () => {}, // 回傳空 Map 來避免錯誤
       );
 
@@ -222,26 +209,23 @@ Future<List<dynamic>> fetchTrainStation(String stationID, DateTime date) async {
     return [];
   }
 }
-//取得指定[日期],[起迄站間]之站間時刻表資料
-Future<List<dynamic>> fetchTrainRoute(String departurePosition,String destinationPosition,String time) async {
 
+//取得指定[日期],[起迄站間]之站間時刻表資料
+Future<List<dynamic>> fetchTrainRoute(
+    String departurePosition, String destinationPosition, String time) async {
   // 对参数进行 URL 编码
   String encodedDeparture = Uri.encodeComponent(departurePosition);
   String encodedDestination = Uri.encodeComponent(destinationPosition);
   String encodedTime = Uri.encodeComponent(time);
- // String url="https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/DailyTrainTimetable/OD/Inclusive/$departureID/to/$destinationID/$date?%24&%24format=JSON";
-  String url="https://tdx.transportdata.tw/api/maas/routing?origin=$encodedDeparture&destination=$encodedDestination&gc=0.0&top=10&transit=4&transfer_time=5%2C60&depart=$encodedTime&first_mile_mode=0&last_mile_mode=0";
+  // String url="https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/DailyTrainTimetable/OD/Inclusive/$departureID/to/$destinationID/$date?%24&%24format=JSON";
+  String url =
+      "https://tdx.transportdata.tw/api/maas/routing?origin=$encodedDeparture&destination=$encodedDestination&gc=0.0&top=10&transit=4&transfer_time=5%2C60&depart=$encodedTime&first_mile_mode=0&last_mile_mode=0";
 
   try {
-
-
-    final tokenResponse = await http.get(tokenUri);
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -252,7 +236,7 @@ Future<List<dynamic>> fetchTrainRoute(String departurePosition,String destinatio
     }
 
     // 解析 JSON 数据
-    Map<String, dynamic>  jsonData = await jsonDecode(response.body);
+    Map<String, dynamic> jsonData = await jsonDecode(response.body);
 
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
     // 这里你可以根据你的需求来构建 SQL 语句，例如：
@@ -264,21 +248,18 @@ Future<List<dynamic>> fetchTrainRoute(String departurePosition,String destinatio
   }
   return [];
 }
+
 //取得列車即時準點/延誤時間資料。
 Future<List<dynamic>> fetchLiveTrainDelay(String trainNo) async {
-
-
   String filter = Uri.encodeComponent("TrainNo eq '$trainNo'");
-  String url = "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveTrainDelay?\$filter=$filter&\$format=JSON";
+  String url =
+      "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveTrainDelay?\$filter=$filter&\$format=JSON";
 
   try {
-    final tokenResponse = await http.get(tokenUri);
-    final token = await TokenManager().getToken();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -303,18 +284,14 @@ Future<List<dynamic>> fetchLiveTrainDelay(String trainNo) async {
 }
 
 Future<List<Map<String, dynamic>>> fetchTrainLiveBoard(String stationID) async {
-
-
-  String url="https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/$stationID?%24&%24format=JSON";
+  String url =
+      "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/$stationID?%24&%24format=JSON";
   try {
-    await  connMysql();
-    final tokenResponse = await http.get(tokenUri);
-    final token = await TokenManager().getToken();
+    await connMysql();
     // 发起 GET 请求
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -324,15 +301,10 @@ Future<List<Map<String, dynamic>>> fetchTrainLiveBoard(String stationID) async {
       throw HttpException('HTTP error! status: ${response.statusCode}');
     }
 
-
-
     // 解析 JSON 数据
-    List<dynamic>  jsonData = await jsonDecode(response.body);
+    List<dynamic> jsonData = await jsonDecode(response.body);
     List<Map<String, dynamic>> extractedData = jsonData.map((train) {
-      return {
-        "TrainNo": train["TrainNo"],
-        "DelayTime": train["DelayTime"]
-      };
+      return {"TrainNo": train["TrainNo"], "DelayTime": train["DelayTime"]};
     }).toList();
     print(extractedData);
     // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
@@ -345,18 +317,16 @@ Future<List<Map<String, dynamic>>> fetchTrainLiveBoard(String stationID) async {
   }
   return [];
 }
+
 Future<Set<Polyline>> fetchTrainNetworkLine() async {
   const String url =
       "https://tdx.transportdata.tw/api/basic/V3/Map/Rail/Network/Line/OperatorCode/TRA?format=GEOJSON";
 
   try {
     // 確保 token 有取得
-    final token = await TokenManager().getToken();
-
-    final response = await http.get(
+    final response = await TdxApiClient().getRaw(
       Uri.parse(url),
       headers: {
-        'Authorization': 'Bearer $token',
         'accept': 'application/json',
       },
     );
@@ -389,14 +359,16 @@ Future<Set<Polyline>> fetchTrainNetworkLine() async {
           continue;
         }
 
-        print("Processing LineID: $lineID, Geometry type: ${geometryString.substring(0, min(20, geometryString.length))}...");
+        print(
+            "Processing LineID: $lineID, Geometry type: ${geometryString.substring(0, min(20, geometryString.length))}...");
 
         // 解析WKT格式的Geometry字串
         List<List<LatLng>> lineStrings = parseWKTGeometry(geometryString);
 
         for (var points in lineStrings) {
           if (points.length < 2) {
-            print("Warning: LineID $lineID has insufficient points: ${points.length}");
+            print(
+                "Warning: LineID $lineID has insufficient points: ${points.length}");
             continue;
           }
 
@@ -457,7 +429,8 @@ List<List<LatLng>> parseWKTGeometry(String wkt) {
       print("Unknown WKT format: ${wkt.substring(0, min(50, wkt.length))}");
     }
   } catch (e) {
-    print("Error parsing WKT: $e, WKT: ${wkt.substring(0, min(100, wkt.length))}");
+    print(
+        "Error parsing WKT: $e, WKT: ${wkt.substring(0, min(100, wkt.length))}");
   }
 
   return result;
@@ -520,15 +493,13 @@ List<LatLng> _parseCoordinates(String coordsStr) {
 // 根據LineID回傳不同的顏色
 Color _getLineColor(String lineID) {
   final colors = {
-    'WL': Colors.blue,      // 西部幹線
-    'EL': Colors.green,     // 東部幹線
-    'SH': Colors.orange,    // 沙崙線
-    'PM': Colors.purple,    // 平溪線
-    'JL': Colors.red,       // 集集線
-    'SL': Colors.teal,      // 深澳線
+    'WL': Colors.blue, // 西部幹線
+    'EL': Colors.green, // 東部幹線
+    'SH': Colors.orange, // 沙崙線
+    'PM': Colors.purple, // 平溪線
+    'JL': Colors.red, // 集集線
+    'SL': Colors.teal, // 深澳線
   };
 
   return colors[lineID] ?? Colors.grey;
 }
-
-

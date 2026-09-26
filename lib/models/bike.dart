@@ -43,12 +43,12 @@ class YouBikeStation {
       bikesCapacity: _asInt(json['BikesCapacity']),
       serviceType: _asInt(json['ServiceType']),
       srcUpdateTime: DateTime.tryParse(
-        json['SrcUpdateTime']?.toString() ?? '',
-      ) ??
+            json['SrcUpdateTime']?.toString() ?? '',
+          ) ??
           DateTime.fromMillisecondsSinceEpoch(0),
       updateTime: DateTime.tryParse(
-        json['UpdateTime']?.toString() ?? '',
-      ) ??
+            json['UpdateTime']?.toString() ?? '',
+          ) ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -152,5 +152,43 @@ class YouBikeStationAddress {
       'En': en,
       'Zh_tw': zhTw,
     };
+  }
+}
+
+class BikeAvailability {
+  final String stationID;
+  final int serviceStatus;
+  final int availableRentBikes;
+  final int availableReturnBikes;
+  final int generalBikes;
+  final int electricBikes;
+
+  const BikeAvailability({
+    required this.stationID,
+    required this.serviceStatus,
+    required this.availableRentBikes,
+    required this.availableReturnBikes,
+    required this.generalBikes,
+    required this.electricBikes,
+  });
+
+  factory BikeAvailability.fromJson(Map<String, dynamic> json) {
+    final rentDetails = json['AvailableRentBikesDetail'];
+    final detailMap = rentDetails is Map
+        ? Map<String, dynamic>.from(rentDetails)
+        : const <String, dynamic>{};
+    return BikeAvailability(
+      stationID: json['StationID']?.toString() ?? '',
+      serviceStatus: _asInt(json['ServiceStatus']),
+      availableRentBikes: _asInt(json['AvailableRentBikes']),
+      availableReturnBikes: _asInt(json['AvailableReturnBikes']),
+      generalBikes: _asInt(detailMap['GeneralBikes']),
+      electricBikes: _asInt(detailMap['ElectricBikes']),
+    );
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString().trim() ?? '') ?? 0;
   }
 }

@@ -4,69 +4,105 @@ import '../data/bus_repository.dart';
 import '../../../models/bus.dart';
 
 class BusProvider extends ChangeNotifier {
-  BusProvider({BusRepository? repository})
-      : _repository = repository ?? const BusRepository();
+  BusProvider({
+    BusRepository? repository,
+    Duration cacheTtl = const Duration(minutes: 5),
+  })  : _repository = repository ?? const BusRepository(),
+        _cacheTtl = cacheTtl;
 
   final BusRepository _repository;
-  final Map<String, List<BusRoute>> _routeCache = {};
+  final Duration _cacheTtl;
+  final Map<String, _CachedRoutes> _routeCache = {};
   final Map<String, Future<List<BusRoute>>> _pendingRequests = {};
 
   List<BusRoute> _routes = const [];
   Object? _error;
   String? _city;
+  int _cacheGeneration = 0;
+  bool _disposed = false;
 
   List<BusRoute> get routes => _routes;
   Object? get error => _error;
   String? get city => _city;
-  bool get isLoading => _pendingRequests.containsKey(_city);
+  bool get isLoading => _city != null && _pendingRequests.containsKey(_city);
 
   Future<List<BusRoute>> loadRoutes(
     String city, {
     bool force = false,
   }) {
+    if (_disposed) {
+      return Future.error(StateError('BusProvider has been disposed'));
+    }
+
     _city = city;
     _error = null;
 
     final cachedRoutes = _routeCache[city];
-    if (!force && cachedRoutes != null) {
-      _routes = cachedRoutes;
-      notifyListeners();
+    if (!force &&
+        cachedRoutes != null &&
+        DateTime.now().difference(cachedRoutes.cachedAt) < _cacheTtl) {
+      _routes = cachedRoutes.routes;
+      _notifyListeners();
       return Future.value(_routes);
     }
 
     final pendingRequest = _pendingRequests[city];
     if (pendingRequest != null) return pendingRequest;
 
-    final request = _loadRoutes(city);
+    final generation = _cacheGeneration;
+    late final Future<List<BusRoute>> request;
+    request = _loadRoutes(city, generation).whenComplete(() {
+      if (identical(_pendingRequests[city], request)) {
+        _pendingRequests.remove(city);
+      }
+      _notifyListeners();
+    });
     _pendingRequests[city] = request;
-    notifyListeners();
+    _notifyListeners();
     return request;
   }
 
-  Future<List<BusRoute>> _loadRoutes(String city) async {
+  Future<List<BusRoute>> _loadRoutes(String city, int generation) async {
     try {
       final routes = await _repository.fetchRoutes(city);
-      _routeCache[city] = routes;
-      if (_city == city) {
-        _routes = routes;
+      if (generation == _cacheGeneration) {
+        _routeCache[city] = _CachedRoutes(routes, DateTime.now());
+        if (_city == city && !_disposed) _routes = routes;
       }
       return routes;
     } catch (error) {
-      if (_city == city) {
+      if (generation == _cacheGeneration && _city == city && !_disposed) {
         _error = error;
         _routes = const [];
       }
       rethrow;
-    } finally {
-      _pendingRequests.remove(city);
-      if (_city == city) notifyListeners();
     }
   }
 
   void clearCache() {
+    _cacheGeneration++;
     _routeCache.clear();
+    _pendingRequests.clear();
     _routes = const [];
     _error = null;
-    notifyListeners();
+    _notifyListeners();
   }
+
+  void _notifyListeners() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _pendingRequests.clear();
+    super.dispose();
+  }
+}
+
+class _CachedRoutes {
+  const _CachedRoutes(this.routes, this.cachedAt);
+
+  final List<BusRoute> routes;
+  final DateTime cachedAt;
 }
