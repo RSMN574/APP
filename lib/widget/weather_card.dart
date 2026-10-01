@@ -11,8 +11,15 @@ import '../models/weather_data.dart';
 // --- 主元件 ---
 class WeatherAlertCard extends StatefulWidget {
   final String cityName;
+  @visibleForTesting
+  final Future<ComprehensiveWeatherData> Function(String cityName)?
+  loadWeatherData;
 
-  const WeatherAlertCard({super.key, required this.cityName});
+  const WeatherAlertCard({
+    super.key,
+    required this.cityName,
+    this.loadWeatherData,
+  });
 
   @override
   State<WeatherAlertCard> createState() => _WeatherAlertCardState();
@@ -22,11 +29,27 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
   bool _isExpanded = false;
   late Future<ComprehensiveWeatherData> _weatherDataFuture;
 
+  bool _hasInitializedWeatherData = false;
+
   @override
-  void initState() {
-    super.initState();
-    _weatherDataFuture = fetchAllData();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasInitializedWeatherData) {
+      _hasInitializedWeatherData = true;
+      _weatherDataFuture = _loadWeatherData();
+    }
   }
+
+  @override
+  void didUpdateWidget(covariant WeatherAlertCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.cityName != widget.cityName) {
+      _weatherDataFuture = _loadWeatherData();
+    }
+  }
+
+  Future<ComprehensiveWeatherData> _loadWeatherData() =>
+      widget.loadWeatherData?.call(widget.cityName) ?? fetchAllData();
 
   // ==================== 通知中心主題色 ====================
   static const Color primaryBlue = Color(0xFF1A73E8);
@@ -38,62 +61,76 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
   static const Color warningOrange = Color(0xFFFF9500);
   static const Color errorRed = Color(0xFFFF3B30);
 
-  String _formatCityName(String name) {
+  String _formatCityName(String name, AppLocalizations localizations) {
     String formatted = name
-        .replaceAll(AppLocalizations.of(context)!.text_88,
-            AppLocalizations.of(context)!.text_936)
-        .replaceAll(AppLocalizations.of(context)!.text_85,
-            AppLocalizations.of(context)!.text_937)
-        .replaceAll(AppLocalizations.of(context)!.text_89,
-            AppLocalizations.of(context)!.text_938)
-        .replaceAll(AppLocalizations.of(context)!.text_77,
-            AppLocalizations.of(context)!.text_939);
-    if (!formatted.contains(AppLocalizations.of(context)!.text_940) &&
-        !formatted.contains(AppLocalizations.of(context)!.text_941)) {
-      if (formatted == AppLocalizations.of(context)!.text_936)
-        formatted = AppLocalizations.of(context)!.text_6;
+        .replaceAll(localizations.text_88, localizations.text_936)
+        .replaceAll(localizations.text_85, localizations.text_937)
+        .replaceAll(localizations.text_89, localizations.text_938)
+        .replaceAll(localizations.text_77, localizations.text_939);
+    if (!formatted.contains(localizations.text_940) &&
+        !formatted.contains(localizations.text_941)) {
+      if (formatted == localizations.text_936) {
+        formatted = localizations.text_6;
+      }
     }
     return formatted;
   }
 
-  IconData _getWeatherIcon(String wx) {
-    if (wx.contains(AppLocalizations.of(context)!.text_111))
+  IconData _getWeatherIcon(String wx, AppLocalizations localizations) {
+    if (wx.contains(localizations.text_111)) {
       return Icons.wb_sunny_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_112))
+    }
+    if (wx.contains(localizations.text_112)) {
       return Icons.umbrella_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_113))
+    }
+    if (wx.contains(localizations.text_113)) {
       return Icons.cloud_rounded;
-    if (wx.contains(AppLocalizations.of(context)!.text_942))
+    }
+    if (wx.contains(localizations.text_942)) {
       return Icons.cloud_queue_rounded;
+    }
     return Icons.wb_cloudy_rounded;
   }
 
-  Color _getAlertColor(String title) {
-    if (title.contains(AppLocalizations.of(context)!.text_943) ||
-        title.contains(AppLocalizations.of(context)!.text_944) ||
-        title.contains(AppLocalizations.of(context)!.text_945)) return errorRed;
-    if (title.contains(AppLocalizations.of(context)!.text_946) ||
-        title.contains(AppLocalizations.of(context)!.text_947) ||
-        title.contains(AppLocalizations.of(context)!.text_948))
+  Color _getAlertColor(String title, AppLocalizations localizations) {
+    if (title.contains(localizations.text_943) ||
+        title.contains(localizations.text_944) ||
+        title.contains(localizations.text_945)) {
+      return errorRed;
+    }
+    if (title.contains(localizations.text_946) ||
+        title.contains(localizations.text_947) ||
+        title.contains(localizations.text_948)) {
       return warningOrange;
+    }
     return const Color(0xFFFFCC00);
   }
 
-  IconData _getAlertIcon(String title) {
-    if (title.contains(AppLocalizations.of(context)!.text_943) ||
-        title.contains(AppLocalizations.of(context)!.text_944) ||
-        title.contains(AppLocalizations.of(context)!.text_945))
+  IconData _getAlertIcon(String title, AppLocalizations localizations) {
+    if (title.contains(localizations.text_943) ||
+        title.contains(localizations.text_944) ||
+        title.contains(localizations.text_945)) {
       return Icons.warning_amber_rounded;
-    if (title.contains(AppLocalizations.of(context)!.text_946) ||
-        title.contains(AppLocalizations.of(context)!.text_947) ||
-        title.contains(AppLocalizations.of(context)!.text_948))
+    }
+    if (title.contains(localizations.text_946) ||
+        title.contains(localizations.text_947) ||
+        title.contains(localizations.text_948)) {
       return Icons.umbrella_rounded;
+    }
     return Icons.info_outline_rounded;
   }
 
   Future<ComprehensiveWeatherData> fetchAllData() async {
+    final localizations = AppLocalizations.of(context)!;
     const String apiKey = AppConfig.weatherApiKey;
-    final formattedCity = _formatCityName(widget.cityName);
+    if (apiKey.isEmpty) {
+      return ComprehensiveWeatherData(
+        alerts: [],
+        errorMessage: '天氣服務尚未設定 API 金鑰（WEATHER_API_KEY）。',
+      );
+    }
+
+    final formattedCity = _formatCityName(widget.cityName, localizations);
 
     final weatherUrl =
         'https://opendata.cwa.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=$apiKey&locationName=$formattedCity';
@@ -104,17 +141,17 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
 
     try {
       final responses = await Future.wait([
-        http.get(Uri.parse(weatherUrl)).timeout(const Duration(seconds: 15)),
-        http.get(Uri.parse(warningUrl)).timeout(const Duration(seconds: 15)),
-        http.get(Uri.parse(earthquakeUrl)).timeout(const Duration(seconds: 15)),
+        _getResponse(weatherUrl, '天氣'),
+        _getResponse(warningUrl, '天氣警特報'),
+        _getResponse(earthquakeUrl, '地震資訊'),
       ]);
 
       WeatherInfo? weatherInfo;
       List<AlertInfo> alerts = [];
 
       // A. 解析一般天氣
-      if (responses[0].statusCode == 200) {
-        final data = json.decode(responses[0].body);
+      if (responses[0]?.statusCode == 200) {
+        final data = json.decode(responses[0]!.body);
         final loc = data['records']?['location'] ?? [];
         if (loc.isNotEmpty) {
           final ele = loc[0]['weatherElement'];
@@ -125,37 +162,43 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
             comfort: ele[3]['time'][0]['parameter']['parameterName'],
             maxT: ele[4]['time'][0]['parameter']['parameterName'],
             icon: _getWeatherIcon(
-                ele[0]['time'][0]['parameter']['parameterName']),
+              ele[0]['time'][0]['parameter']['parameterName'],
+              localizations,
+            ),
           );
         }
       }
 
       // B. 解析警特報
-      if (responses[1].statusCode == 200) {
-        final data = json.decode(responses[1].body);
+      if (responses[1]?.statusCode == 200) {
+        final data = json.decode(responses[1]!.body);
         final records = data['records']?['record'] as List<dynamic>? ?? [];
 
         for (var r in records) {
           String content = r['contents']?['content']?['contentText'] ?? "";
           if (content.contains(formattedCity) ||
               r['datasetInfo']?['datasetDescription'] ==
-                  AppLocalizations.of(context)!.text_949) {
+                  localizations.text_949) {
             alerts.add(AlertInfo(
               title: r['datasetInfo']?['datasetDescription'] ??
-                  AppLocalizations.of(context)!.text_950,
+                  localizations.text_950,
               description: content,
-              color:
-                  _getAlertColor(r['datasetInfo']?['datasetDescription'] ?? ""),
-              icon:
-                  _getAlertIcon(r['datasetInfo']?['datasetDescription'] ?? ""),
+              color: _getAlertColor(
+                r['datasetInfo']?['datasetDescription'] ?? "",
+                localizations,
+              ),
+              icon: _getAlertIcon(
+                r['datasetInfo']?['datasetDescription'] ?? "",
+                localizations,
+              ),
             ));
           }
         }
       }
 
       // C. 解析地震
-      if (responses[2].statusCode == 200) {
-        final data = json.decode(responses[2].body);
+      if (responses[2]?.statusCode == 200) {
+        final data = json.decode(responses[2]!.body);
         final eqList = data['records']?['Earthquake'] as List<dynamic>? ?? [];
 
         final DateTime now = DateTime.now();
@@ -175,15 +218,15 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                 if (diffDays < 7) {
                   final reportContent = eq['ReportContent'] ?? "";
                   final location = eqInfo['Epicenter']?['Location'] ??
-                      AppLocalizations.of(context)!.text_321;
+                      localizations.text_321;
                   final magnitude = eqInfo['EarthquakeMagnitude']
-                          ?['MagnitudeValue'] ??
-                      AppLocalizations.of(context)!.text_321;
+                  ?['MagnitudeValue'] ??
+                      localizations.text_321;
 
                   alerts.add(AlertInfo(
                     title: "顯著有感地震報告 (規模 $magnitude)",
                     description:
-                        "發生時間: $originTimeStr\n位置: $location\n\n$reportContent",
+                    "發生時間: $originTimeStr\n位置: $location\n\n$reportContent",
                     color: errorRed,
                     icon: Icons.sensors_rounded,
                   ));
@@ -191,17 +234,39 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                   eqCount++;
                 }
               } catch (e) {
-                debugPrint(AppLocalizations.of(context)!.text_951);
+                debugPrint(localizations.text_951);
               }
             }
           }
         }
       }
 
-      return ComprehensiveWeatherData(weather: weatherInfo, alerts: alerts);
+      return ComprehensiveWeatherData(
+        weather: weatherInfo,
+        alerts: alerts,
+        errorMessage:
+        weatherInfo == null && alerts.isEmpty ? '目前無法取得天氣資訊，請稍後重試。' : null,
+      );
     } catch (e) {
       debugPrint('API Error Detail: $e');
-      return ComprehensiveWeatherData(alerts: []);
+      return ComprehensiveWeatherData(
+        alerts: [],
+        errorMessage: '目前無法取得天氣資訊，請稍後重試。',
+      );
+    }
+  }
+
+  Future<http.Response?> _getResponse(String url, String source) async {
+    try {
+      final response =
+      await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        debugPrint('$source API returned HTTP ${response.statusCode}');
+      }
+      return response;
+    } catch (error) {
+      debugPrint('$source API request failed: $error');
+      return null;
     }
   }
 
@@ -352,12 +417,20 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
           );
         }
 
-        if (!snapshot.hasData ||
-            (snapshot.data!.weather == null && snapshot.data!.alerts.isEmpty)) {
-          return const SizedBox.shrink();
+        if (!snapshot.hasData) {
+          return _buildUnavailableCard(
+            context,
+            '目前無法取得天氣資訊，請稍後重試。',
+          );
         }
 
         final data = snapshot.data!;
+        if (data.weather == null && data.alerts.isEmpty) {
+          return _buildUnavailableCard(
+            context,
+            data.errorMessage ?? '目前無法取得天氣資訊，請稍後重試。',
+          );
+        }
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -372,6 +445,36 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildUnavailableCard(BuildContext context, String message) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_outlined, color: colors.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _weatherDataFuture = _loadWeatherData();
+                });
+              },
+              child: const Text('重試'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -621,39 +724,39 @@ class _WeatherAlertCardState extends State<WeatherAlertCard> {
                   curve: Curves.easeInOut,
                   child: _isExpanded
                       ? Column(
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Divider(
-                                height: 1,
-                                color: surfaceColor,
-                              ),
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildDetailItem(
-                                  Icons.thermostat_rounded,
-                                  AppLocalizations.of(context)!.text_954,
-                                  "${weather.minT}°C",
-                                  primaryBlue,
-                                ),
-                                _buildDetailItem(
-                                  Icons.sunny_snowing,
-                                  AppLocalizations.of(context)!.text_955,
-                                  "${weather.maxT}°C",
-                                  warningOrange,
-                                ),
-                                _buildDetailItem(
-                                  Icons.accessibility_new_rounded,
-                                  AppLocalizations.of(context)!.text_956,
-                                  weather.comfort,
-                                  successGreen,
-                                ),
-                              ],
-                            ),
-                          ],
-                        )
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Divider(
+                          height: 1,
+                          color: surfaceColor,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildDetailItem(
+                            Icons.thermostat_rounded,
+                            AppLocalizations.of(context)!.text_954,
+                            "${weather.minT}°C",
+                            primaryBlue,
+                          ),
+                          _buildDetailItem(
+                            Icons.sunny_snowing,
+                            AppLocalizations.of(context)!.text_955,
+                            "${weather.maxT}°C",
+                            warningOrange,
+                          ),
+                          _buildDetailItem(
+                            Icons.accessibility_new_rounded,
+                            AppLocalizations.of(context)!.text_956,
+                            weather.comfort,
+                            successGreen,
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
                       : const SizedBox.shrink(),
                 ),
               ],

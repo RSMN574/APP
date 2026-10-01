@@ -1,11 +1,15 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 
 class ComprehensiveWeatherData {
   final WeatherInfo? weather;
   final List<AlertInfo> alerts;
-  ComprehensiveWeatherData({this.weather, required this.alerts});
+  final String? errorMessage;
+
+  ComprehensiveWeatherData({
+    this.weather,
+    required this.alerts,
+    this.errorMessage,
+  });
 }
 
 class WeatherInfo {
