@@ -2890,4 +2890,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get text_960 => '接駁車';
+
+  @override
+  String get text_961 => '設定儲存失敗，請稍後再試。';
+
+  @override
+  String get text_962 => '重新載入';
+
+  @override
+  String get text_963 => '聯絡';
+
+  @override
+  String get text_964 => '導航';
+
+  @override
+  String get text_965 => '分享';
+
+  @override
+  String get text_966 => '無法載入停車資訊，請稍後再試。';
 }

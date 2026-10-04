@@ -52,6 +52,16 @@ Map<String, dynamic> trainData={};
 String? _currentStationId;
 int _liveDelayMinutes = 0;
 
+String _localizedRailName(dynamic names, BuildContext context) {
+  if (names is! Map) return names?.toString() ?? '';
+
+  final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+  final preferred = names[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
+  if (preferred.isNotEmpty) return preferred;
+
+  return names[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
+}
+
 class TrainSchedulePage extends StatefulWidget {
 
   final String type;
@@ -662,6 +672,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
     final trainNo = trainData['DailyTrainInfo']['TrainNo'];
     final cleanTrainNo = int.parse(trainNo.replaceAll(RegExp(r'[^0-9]'), ''));
     final isE500 = E500.contains(cleanTrainNo);
+    final note = _localizedRailName(
+      trainData['DailyTrainInfo']['Note'],
+      context,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -708,7 +722,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        trainData['DailyTrainInfo']['TrainTypeName']['Zh_tw'],
+                        _localizedRailName(
+                          trainData['DailyTrainInfo']['TrainTypeName'],
+                          context,
+                        ),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -795,7 +812,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          _localizedRailName(
+                            trainData['DailyTrainInfo']['StartingStationName'],
+                            context,
+                          ),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -848,7 +868,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          _localizedRailName(
+                            trainData['DailyTrainInfo']['EndingStationName'],
+                            context,
+                          ),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -866,8 +889,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
             const SizedBox(height: 16),
 
             // 備註
-            if (trainData['DailyTrainInfo']['Note']['Zh_tw'] != null ||
-                isCrossDayVar)
+            if (note.isNotEmpty || isCrossDayVar)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -891,7 +913,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        '${trainData['DailyTrainInfo']['Note']['Zh_tw']}${isCrossDayVar ? AppLocalizations.of(context)!.text_664 : ''}',
+                        '$note${isCrossDayVar ? AppLocalizations.of(context)!.text_664 : ''}',
                         style: TextStyle(
                           fontSize: 14,
                           color: isCrossDayVar ? warningOrange : textPrimary,
@@ -1208,7 +1230,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      stop['StationName']['Zh_tw'],
+                      _localizedRailName(stop['StationName'], context),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: current ? FontWeight.w700 : FontWeight.w600,

@@ -17,6 +17,33 @@ const Color textPrimary = Color(0xFF2D3748);
 const Color textSecondary = Color(0xFF718096);
 const Color surfaceColor = Color(0xFFF3F5F7);
 
+String _localizedRailName(dynamic names, {required bool isEnglish}) {
+  if (names is! Map) return names?.toString() ?? '';
+
+  final preferred = names[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
+  if (preferred.isNotEmpty) return preferred;
+
+  return names[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
+}
+
+String _localizedRailField(
+  dynamic record, {
+  required String englishKey,
+  required String chineseKey,
+  required bool isEnglish,
+  String fallback = '',
+}) {
+  if (record is! Map) return '';
+
+  final preferred =
+      record[isEnglish ? englishKey : chineseKey]?.toString() ?? '';
+  if (preferred.isNotEmpty) return preferred;
+
+  final alternate =
+      record[isEnglish ? chineseKey : englishKey]?.toString() ?? '';
+  return alternate.isNotEmpty ? alternate : fallback;
+}
+
 class Train extends StatefulWidget {
   const Train({super.key});
 
@@ -932,11 +959,16 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 departureSelectedStation = selectedStation;
                                 _isDepartureSelected = true;
                                 widget.departureController.text =
-                                    departureSelectedStation['StationName']
-                                            ['Zh_tw'] ??
-                                        departureSelectedStation[
-                                            'StationName'] ??
-                                        AppLocalizations.of(context)!.text_160;
+                                    _localizedRailName(
+                                  departureSelectedStation['StationName'],
+                                  isEnglish: Localizations.localeOf(context)
+                                          .languageCode ==
+                                      'en',
+                                );
+                                if (widget.departureController.text.isEmpty) {
+                                  widget.departureController.text =
+                                      AppLocalizations.of(context)!.text_160;
+                                }
                               });
                             }
                           },
@@ -1079,11 +1111,16 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 destinationSelectedStation = selectedStation;
                                 _isDestinationSelected = true;
                                 widget.destinationController.text =
-                                    destinationSelectedStation['StationName']
-                                            ['Zh_tw'] ??
-                                        destinationSelectedStation[
-                                            'StationName'] ??
-                                        AppLocalizations.of(context)!.text_160;
+                                    _localizedRailName(
+                                  destinationSelectedStation['StationName'],
+                                  isEnglish: Localizations.localeOf(context)
+                                          .languageCode ==
+                                      'en',
+                                );
+                                if (widget.destinationController.text.isEmpty) {
+                                  widget.destinationController.text =
+                                      AppLocalizations.of(context)!.text_160;
+                                }
                               });
 
                               // 檢查是否與出發地相同
@@ -1690,9 +1727,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
-                                _controller.text =
-                                    selectedStation?['StationName']['Zh_tw'] ??
-                                        '';
+                                _controller.text = _localizedRailName(
+                                  selectedStation?['StationName'],
+                                  isEnglish: Localizations.localeOf(context)
+                                          .languageCode ==
+                                      'en',
+                                );
                               });
                             }
                           },
@@ -1933,8 +1973,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => StationPage(
-                                    stationName: selectedStation?['StationName']
-                                        ['Zh_tw'],
+                                    stationName: _localizedRailName(
+                                      selectedStation?['StationName'],
+                                      isEnglish: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'en',
+                                    ),
                                     stationID: selectedStation?["StationID"],
                                     datetime: selectedDate ?? DateTime.now(),
                                   ),
@@ -2152,7 +2196,9 @@ class _StationPageState extends State<StationPage>
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          "${widget.stationName} 車站",
+          Localizations.localeOf(context).languageCode == 'en'
+              ? '${widget.stationName} Station'
+              : '${widget.stationName} 車站',
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -2396,8 +2442,16 @@ class _StationPageState extends State<StationPage>
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    data[0]['StationNameZh_tw'] ??
-                                        AppLocalizations.of(context)!.text_160,
+                                    _localizedRailField(
+                                      data[0],
+                                      englishKey: 'StationNameEn',
+                                      chineseKey: 'StationNameZh_tw',
+                                      isEnglish: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'en',
+                                      fallback: AppLocalizations.of(context)!
+                                          .text_160,
+                                    ),
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w700,
@@ -2444,8 +2498,14 @@ class _StationPageState extends State<StationPage>
                 ...data.map((station) {
                   List<Map<String, String>> facilityMaps = [];
                   for (int i = 0; i < 5; i++) {
-                    String? mapName =
-                        station['FacilityMapURLs${i}MapNameZh_tw'] as String?;
+                    final isEnglish =
+                        Localizations.localeOf(context).languageCode == 'en';
+                    String? mapName = _localizedRailField(
+                      station,
+                      englishKey: 'FacilityMapURLs${i}MapNameEn',
+                      chineseKey: 'FacilityMapURLs${i}MapNameZh_tw',
+                      isEnglish: isEnglish,
+                    );
                     String? mapURL =
                         station['FacilityMapURLs${i}MapURL'] as String?;
                     if (mapURL != null) {
@@ -2817,15 +2877,29 @@ class _StationPageState extends State<StationPage>
                       var train = trainData[index];
                       String trainNo = (train['TrainNo']) ??
                           AppLocalizations.of(context)!.text_321;
+                      final trainTypeName = _localizedRailName(
+                        train['TrainTypeName'],
+                        isEnglish:
+                            Localizations.localeOf(context).languageCode ==
+                                'en',
+                      );
                       String trainType =
-                          convertTrainType(train['TrainTypeName']['Zh_tw']);
+                          Localizations.localeOf(context).languageCode == 'en'
+                              ? trainTypeName
+                              : convertTrainType(trainTypeName);
                       String departureTime = _formatTime(
                           train['DepartureTime'] ??
                               AppLocalizations.of(context)!.text_321);
                       int? delayTime = train['DelayTime'];
-                      String endingStation = train['EndingStationName']
-                              ['Zh_tw'] ??
-                          AppLocalizations.of(context)!.text_321;
+                      String endingStation = _localizedRailName(
+                        train['EndingStationName'],
+                        isEnglish:
+                            Localizations.localeOf(context).languageCode ==
+                                'en',
+                      );
+                      if (endingStation.isEmpty) {
+                        endingStation = AppLocalizations.of(context)!.text_321;
+                      }
 
                       // 判斷是否為未讀/重要狀態（延誤的列車）
                       bool isDelayed = delayTime != null && delayTime > 0;
@@ -3375,7 +3449,7 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   Future<Map<String, dynamic>> queryTrainList() async {
     final weekday = widget.date.weekday % 7;
-    final url = 'https://hidden.rsmn574.com:3920/api/train'
+    final url = 'http://hidden.rsmn574.com:3920/api/train'
         '?from=${widget.departure["StationID"]}'
         '&to=${widget.destination["StationID"]}'
         '&day=$weekday';
@@ -4040,6 +4114,7 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   @override
   Widget build(BuildContext context) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     return Scaffold(
       backgroundColor: backgroundLight,
       appBar: AppBar(
@@ -4051,7 +4126,10 @@ class _RoutePageState extends State<RoutePage> {
             Icon(Icons.train_rounded, size: 20, color: primaryBlue),
             const SizedBox(width: 8),
             Text(
-              '${widget.departure["StationName"]["Zh_tw"]}',
+              _localizedRailName(
+                widget.departure['StationName'],
+                isEnglish: isEnglish,
+              ),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -4064,7 +4142,10 @@ class _RoutePageState extends State<RoutePage> {
                   size: 16, color: primaryBlue),
             ),
             Text(
-              '${widget.destination["StationName"]["Zh_tw"]}',
+              _localizedRailName(
+                widget.destination['StationName'],
+                isEnglish: isEnglish,
+              ),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

@@ -489,6 +489,78 @@ class Plane extends StatefulWidget {
 
 class _PlaneState extends State<Plane> {
   final TextEditingController _flightNumberController = TextEditingController();
+  bool get _isEnglish => Localizations.localeOf(context).languageCode == 'en';
+
+  static const Map<String, String> _airportNamesEn = {
+    'TPE': 'Taoyuan International Airport',
+    'TSA': 'Taipei Songshan Airport',
+    'RMQ': 'Taichung International Airport',
+    'KHH': 'Kaohsiung International Airport',
+    'TNN': 'Tainan Airport',
+    'HUN': 'Hualien Airport',
+    'TTT': 'Taitung Airport',
+    'CYI': 'Chiayi Airport',
+    'KNH': 'Kinmen Airport',
+    'MZG': 'Penghu Magong Airport',
+    'MFK': 'Beigan Airport',
+    'LZN': 'Nangan Airport',
+    'KYD': 'Lanyu Airport',
+    'GNI': 'Ludao Airport',
+  };
+
+  static const Map<String, String> _airportTextEn = {
+    '機場捷運': 'Airport MRT',
+    '直達台北車站，約35分鐘': 'Direct service to Taipei Main Station, about 35 minutes',
+    '客運巴士': 'Intercity bus',
+    '多條路線通往全台各地': 'Multiple routes connect to destinations across Taiwan',
+    '計程車': 'Taxi',
+    '24小時排班服務': '24-hour taxi service',
+    '租車服務': 'Car rental',
+    '各大租車公司進駐': 'Major car rental companies available',
+    '捷運文湖線': 'Wenhu Line',
+    '松山機場站，直達市區': 'Songshan Airport Station, with direct city access',
+    '公車': 'Bus',
+    '多線公車可達': 'Multiple bus routes available',
+    '排班服務': 'Taxi service available',
+    '機場外有站點': 'Stops are located outside the airport',
+    '多線公車可達市區': 'Multiple bus routes connect to the city',
+    '機場內提供': 'Available inside the airport',
+    '高雄捷運紅線': 'Kaohsiung MRT Red Line',
+    '直達機場站（R4）': 'Direct access to Airport Station (R4)',
+    '客運/計程車': 'Bus / Taxi',
+    '多線可達市區': 'Multiple routes connect to the city',
+    '航站提供': 'Available at the terminal',
+    '可達台南市區': 'Service to Tainan City',
+    '機場外可搭乘': 'Available outside the airport',
+    '可達花蓮市': 'Service to Hualien City',
+    '可達台東市': 'Service to Taitung City',
+    '機場外服務': 'Service available outside the airport',
+    '可達嘉義市區 / 火車站': 'Service to Chiayi City and the train station',
+    '鄉內路線可達': 'Local routes are available',
+    '連接澎湖本島各地': 'Connects destinations across Penghu Island',
+    '機場外可搭': 'Available outside the airport',
+    '免稅商店': 'Duty-free shops',
+    '貴賓室': 'Lounges',
+    '餐飲服務': 'Dining',
+    '免費WiFi': 'Free Wi-Fi',
+    '貨幣兌換': 'Currency exchange',
+    '行李寄存': 'Luggage storage',
+    '祈禱室': 'Prayer room',
+    '育嬰室': 'Nursery',
+    '便利商店': 'Convenience store',
+    '觀景台': 'Observation deck',
+    '哺乳室': 'Nursing room',
+    '機場警察': 'Airport police',
+    '醫療中心': 'Medical center',
+    '遺失物協尋': 'Lost and found',
+    '機場服務台': 'Airport information desk',
+    '醫療協助': 'Medical assistance',
+    '警察局': 'Police station',
+    '服務中心': 'Service center',
+    '醫療站': 'Medical station',
+    '警察隊': 'Airport police',
+  };
+
   late final List<String> tabs = [AppLocalizations.of(context)!.text_747, AppLocalizations.of(context)!.text_748, AppLocalizations.of(context)!.text_749, AppLocalizations.of(context)!.text_750];
   final ValueNotifier<String> _searchQuery = ValueNotifier('');
   int _current = 0;
@@ -520,6 +592,12 @@ class _PlaneState extends State<Plane> {
 
   String selectedAirport = "TPE";
 
+  String _localizedAirportName(AirportData airport) =>
+      _isEnglish ? _airportNamesEn[airport.iataCode] ?? airport.name : airport.name;
+
+  String _localizedAirportText(String value) =>
+      _isEnglish ? _airportTextEn[value] ?? value : value;
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -530,7 +608,7 @@ class _PlaneState extends State<Plane> {
           backgroundColor: Colors.white,
           elevation: 0,
           title: Text(
-            '${airportList.firstWhere((a) => a['code'] == selectedAirport)['name']}航班資訊',
+            '${_isEnglish ? _airportNamesEn[selectedAirport] ?? airportList.firstWhere((a) => a['code'] == selectedAirport)['name'] : airportList.firstWhere((a) => a['code'] == selectedAirport)['name']} ${AppLocalizations.of(context)!.text_762}',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -582,7 +660,7 @@ class _PlaneState extends State<Plane> {
                               fontWeight: FontWeight.w600,
                             ),
                             items: airportList.map((airport) {
-                              final isSelected = selectedAirport == airport;
+                              final isSelected = selectedAirport == airport['code'];
                               return DropdownMenuItem<String>(
                                   value: airport['code'],
                                   child: AnimatedContainer(
@@ -750,17 +828,17 @@ class _PlaneState extends State<Plane> {
       controller: pageController,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
-        switch (tabs[index]) {
-          case "機場資訊":
+        switch (index) {
+          case 0:
             return _buildAirportInfoTab();
-          case "入境航班":
+          case 1:
             return _buildArrivalTab();
-          case "出境航班":
+          case 2:
             return _buildDepartureTab();
-          case "航班查詢":
+          case 3:
             return _buildSearchTab();
         }
-        return null;
+        return const SizedBox.shrink();
       },
     );
   }
@@ -777,6 +855,7 @@ class _PlaneState extends State<Plane> {
 
   Widget _buildAirportInfoTab() {
     final airport = airports[selectedAirport] ?? airports['TPE']!;
+    final airportName = _localizedAirportName(airport);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -786,14 +865,18 @@ class _PlaneState extends State<Plane> {
           // 1. 機場概況卡片
           _buildInfoCard(
             icon: Icons.info_outline_rounded,
-            title: '${airport.name}概況',
-            content: '''
-• IATA代碼：${airport.iataCode}
-• 總面積：${airport.area.toStringAsFixed(0)}公頃
-• 航廈數：${airport.terminals}座
-• 年旅客量：約${airport.annualPassengers}萬人次
-• 24小時服務電話：${airport.phone}
-          ''',
+            title: _isEnglish ? '$airportName Overview' : '$airportName概況',
+            content: _isEnglish
+                ? '• IATA code: ${airport.iataCode}\n'
+                    '• Total area: ${airport.area.toStringAsFixed(0)} hectares\n'
+                    '• Terminals: ${airport.terminals}\n'
+                    '• Annual passengers: about ${airport.annualPassengers * 10000}\n'
+                    '• 24-hour service phone: ${airport.phone}'
+                : '• IATA代碼：${airport.iataCode}\n'
+                    '• 總面積：${airport.area.toStringAsFixed(0)}公頃\n'
+                    '• 航廈數：${airport.terminals}座\n'
+                    '• 年旅客量：約${airport.annualPassengers}萬人次\n'
+                    '• 24小時服務電話：${airport.phone}',
             color: airport.primaryColor,
           ),
 
@@ -979,8 +1062,8 @@ class _PlaneState extends State<Plane> {
                 ...airport.transport.map((transport) => Column(
                       children: [
                         _buildTransportItem(
-                          transport.title,
-                          transport.subtitle,
+                          _localizedAirportText(transport.title),
+                          _localizedAirportText(transport.subtitle),
                           transport.icon,
                           airport.primaryColor,
                         ),
@@ -1138,7 +1221,9 @@ class _PlaneState extends State<Plane> {
               runSpacing: 12,
               children: airport.services
                   .map((service) => _buildServiceChip(
-                      service.label, service.icon, airport.primaryColor))
+                      _localizedAirportText(service.label),
+                      service.icon,
+                      airport.primaryColor))
                   .toList(),
             ),
           ),
@@ -1252,7 +1337,10 @@ class _PlaneState extends State<Plane> {
                 ...airport.emergencyContacts.entries.map((entry) => Column(
                       children: [
                         _buildEmergencyItem(
-                          entry.key,
+                          _isEnglish
+                              ? _airportTextEn[entry.key] ??
+                                  entry.key.replaceAll('機場', 'Airport ')
+                              : entry.key,
                           entry.value,
                           Icons.phone_rounded,
                           airport.primaryColor,
@@ -1273,7 +1361,9 @@ class _PlaneState extends State<Plane> {
                     ),
                   ),
                   child: Text(
-                    '緊急情況請撥打：119\n機場服務台：${airport.phone}',
+                    _isEnglish
+                        ? 'For emergencies, call 119\nAirport information desk: ${airport.phone}'
+                        : '緊急情況請撥打：119\n機場服務台：${airport.phone}',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -1375,7 +1465,13 @@ class _PlaneState extends State<Plane> {
       return const Center(child: CircularProgressIndicator());
     }
     if (snapshot.hasError) {
-      return Center(child: Text('資料載入失敗: ${snapshot.error}'));
+      return Center(
+        child: Text(
+          _isEnglish
+              ? 'Unable to load flight information. Please try again later.'
+              : '資料載入失敗，請稍後再試。',
+        ),
+      );
     }
     final flights = snapshot.data ?? [];
     return FlightDashboard(flights: flights, type: type);
@@ -1555,7 +1651,9 @@ class _PlaneState extends State<Plane> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('已自動格式化: $formattedFlightNumber'),
+                content: Text(_isEnglish
+                    ? 'Formatted automatically: $formattedFlightNumber'
+                    : '已自動格式化: $formattedFlightNumber'),
                 backgroundColor: const Color(0xFF1A73E8),
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
@@ -1642,7 +1740,9 @@ class _PlaneState extends State<Plane> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '範例：CI123, BR196, JL809',
+              _isEnglish
+                  ? 'Examples: CI123, BR196, JL809'
+                  : '範例：CI123, BR196, JL809',
               style: TextStyle(
                 fontSize: 12,
                 color: const Color(0xFF1A73E8),
@@ -1898,7 +1998,9 @@ class _FlightDashboardState extends State<FlightDashboard> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              '第 ${_currentPage + 1} 頁 / 共 $totalPages 頁',
+              Localizations.localeOf(context).languageCode == 'en'
+                  ? 'Page ${_currentPage + 1} of $totalPages'
+                  : '第 ${_currentPage + 1} 頁 / 共 $totalPages 頁',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,

@@ -170,7 +170,9 @@ class BusState extends State<Bus> {
     }
     _initializeFavorites();
     updatedCorrespondingID();
-    _getData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_getData());
+    });
     updateCurrent();
   }
 

@@ -1528,7 +1528,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_497 => 'Parking Information';
 
   @override
-  String get text_498 => 'No parking lot found.';
+  String get text_498 => 'No parking lots found.';
 
   @override
   String get text_499 => 'Please try different search criteria.';
@@ -1543,19 +1543,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_502 => 'Unknown name';
 
   @override
-  String get text_503 => 'Adequate';
+  String get text_503 => 'Plenty';
 
   @override
-  String get text_504 => 'Ordinary';
+  String get text_504 => 'Moderate';
 
   @override
-  String get text_505 => 'Nervous';
+  String get text_505 => 'Limited';
 
   @override
   String get text_506 => 'No parking space information available.';
 
   @override
-  String get text_507 => 'Costs';
+  String get text_507 => 'Fees';
 
   @override
   String get text_508 => 'No information available.';
@@ -1636,10 +1636,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_533 => 'Geographical location';
 
   @override
-  String get text_534 => 'Make a phone call.';
+  String get text_534 => 'Call';
 
   @override
-  String get text_535 => 'Start navigation.';
+  String get text_535 => 'Navigate';
 
   @override
   String get text_536 => 'Plane';
@@ -2934,4 +2934,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get text_960 => 'shuttleBus';
+
+  @override
+  String get text_961 => 'Could not save this setting. Please try again.';
+
+  @override
+  String get text_962 => 'Retry';
+
+  @override
+  String get text_963 => 'Contact';
+
+  @override
+  String get text_964 => 'Navigate';
+
+  @override
+  String get text_965 => 'Share';
+
+  @override
+  String get text_966 =>
+      'Unable to load parking information. Please try again.';
 }

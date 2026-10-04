@@ -228,30 +228,34 @@ class _TaiwanPassState extends State<TaiwanPass>
   final double _activeIconSize = 24;
   final double _inactiveIconSize = 22;
   final PageController _pageController = PageController(); // 控制 PageView
-  late final List<String> regions = [
-    AppLocalizations.of(context)!.text_74,
-    AppLocalizations.of(context)!.text_76,
-    AppLocalizations.of(context)!.text_78,
-    AppLocalizations.of(context)!.text_80,
-    AppLocalizations.of(context)!.text_82,
-    AppLocalizations.of(context)!.text_84,
-    AppLocalizations.of(context)!.text_7,
-    AppLocalizations.of(context)!.text_8,
-    AppLocalizations.of(context)!.text_9,
-    AppLocalizations.of(context)!.text_6,
-    AppLocalizations.of(context)!.text_10,
-    AppLocalizations.of(context)!.text_11,
-    AppLocalizations.of(context)!.text_12,
-    AppLocalizations.of(context)!.text_92,
-    AppLocalizations.of(context)!.text_13,
-    AppLocalizations.of(context)!.text_94,
-    AppLocalizations.of(context)!.text_96,
-    AppLocalizations.of(context)!.text_98,
-    AppLocalizations.of(context)!.text_100,
-    AppLocalizations.of(context)!.text_101,
-    AppLocalizations.of(context)!.text_102,
-    AppLocalizations.of(context)!.text_104,
-  ];
+  List<CityItem> get regions {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      CityItem(name: l10n.text_74, id: '宜蘭縣'),
+      CityItem(name: l10n.text_76, id: '花蓮縣'),
+      CityItem(name: l10n.text_78, id: '臺東縣'),
+      CityItem(name: l10n.text_80, id: '澎湖縣'),
+      CityItem(name: l10n.text_82, id: '金門縣'),
+      CityItem(name: l10n.text_84, id: '連江縣'),
+      CityItem(name: l10n.text_7, id: '臺北市'),
+      CityItem(name: l10n.text_8, id: '新北市'),
+      CityItem(name: l10n.text_9, id: '桃園市'),
+      CityItem(name: l10n.text_6, id: '臺中市'),
+      CityItem(name: l10n.text_10, id: '臺南市'),
+      CityItem(name: l10n.text_11, id: '高雄市'),
+      CityItem(name: l10n.text_12, id: '基隆市'),
+      CityItem(name: l10n.text_92, id: '新竹縣'),
+      CityItem(name: l10n.text_13, id: '新竹市'),
+      CityItem(name: l10n.text_94, id: '苗栗縣'),
+      CityItem(name: l10n.text_96, id: '彰化縣'),
+      CityItem(name: l10n.text_98, id: '南投縣'),
+      CityItem(name: l10n.text_100, id: '雲林縣'),
+      CityItem(name: l10n.text_101, id: '嘉義縣'),
+      CityItem(name: l10n.text_102, id: '嘉義市'),
+      CityItem(name: l10n.text_104, id: '屏東縣'),
+    ];
+  }
+
   Future<String?> fetchAndUpdateLocation(BuildContext context) async {
     // 1. 取得定位
     final pos = await LocationService.getCurrentPosition();
@@ -331,6 +335,11 @@ class _TaiwanPassState extends State<TaiwanPass>
   Widget build(BuildContext context) {
     final cityProvider =
         Provider.of<CityProvider>(context); // 获取 CityProvider 实例
+    final regionItems = regions;
+    final selectedCity =
+        regionItems.any((region) => region.id == cityProvider.city)
+            ? cityProvider.city
+            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -366,7 +375,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: cityProvider.city,
+                    value: selectedCity,
                     hint: Row(
                       children: [
                         const Icon(Icons.location_on_rounded,
@@ -399,7 +408,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                       }
                     },
                     selectedItemBuilder: (BuildContext context) {
-                      return regions.map<Widget>((String region) {
+                      return regionItems.map<Widget>((CityItem region) {
                         return Container(
                           alignment: Alignment.centerLeft,
                           child: Row(
@@ -408,7 +417,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                                   size: 16, color: Color(0xFF1A73E8)),
                               const SizedBox(width: 6),
                               Text(
-                                region,
+                                region.name,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -420,11 +429,11 @@ class _TaiwanPassState extends State<TaiwanPass>
                         );
                       }).toList();
                     },
-                    items:
-                        regions.map<DropdownMenuItem<String>>((String region) {
-                      final isSelected = cityProvider.city == region;
+                    items: regionItems
+                        .map<DropdownMenuItem<String>>((CityItem region) {
+                      final isSelected = cityProvider.city == region.id;
                       return DropdownMenuItem<String>(
-                        value: region,
+                        value: region.id,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           padding: const EdgeInsets.symmetric(
@@ -450,7 +459,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  region,
+                                  region.name,
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: isSelected

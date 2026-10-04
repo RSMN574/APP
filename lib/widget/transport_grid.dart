@@ -128,7 +128,7 @@ class _TransportGridState extends State<TransportGrid> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -150,14 +150,20 @@ class _TransportGridState extends State<TransportGrid> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 13,
-              color: textColor,
-              fontWeight: FontWeight.w600, // 稍微加粗提高可讀性
-              letterSpacing: 0.2,
+          const SizedBox(height: 4),
+          Flexible(
+            fit: FlexFit.loose,
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: textColor,
+                fontWeight: FontWeight.w600, // 稍微加粗提高可讀性
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],

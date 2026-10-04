@@ -285,45 +285,47 @@ class _HomeState extends State<_HomeContent>
   Widget _buildBikeContent(BuildContext context) {
     final bike = context.watch<BikeProvider>();
     final colors = Theme.of(context).colorScheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(24)), // LMG: 圓角
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
-      color: colors.surface,
       child: bike.selectedStation == null
           ? bike.isLoadingStations
-              ? _buildLoadingState(context)
-              : bike.stationError != null
-                  ? _buildStationLoadError()
-                  : BikeDefaultContent(
-                      stations: bike.stations,
-                      onStationSelected: _updateSelectedStation,
-                    )
+          ? _buildLoadingState(context)
+          : bike.stationError != null
+          ? _buildStationLoadError()
+          : BikeDefaultContent(
+        stations: bike.stations,
+        onStationSelected: _updateSelectedStation,
+      )
           : FutureBuilder<BikeAvailability?>(
-              future: bike.availabilityFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingState(context);
-                }
+        future: bike.availabilityFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildLoadingState(context);
+          }
 
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return _buildAvailabilityError(
-                    snapshot.hasError
-                        ? AppLocalizations.of(context)!.text_131
-                        : AppLocalizations.of(context)!.text_132,
-                    snapshot.hasError
-                        ? Icons.error_outline
-                        : Icons.info_outline,
-                  );
-                }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _buildAvailabilityError(
+              snapshot.hasError
+                  ? AppLocalizations.of(context)!.text_131
+                  : AppLocalizations.of(context)!.text_132,
+              snapshot.hasError
+                  ? Icons.error_outline
+                  : Icons.info_outline,
+            );
+          }
 
-                final stationName = bike.selectedStation!.stationName.zhTw;
-                final data = snapshot.data!;
+          final stationName = bike.selectedStation!.stationName.zhTw;
+          final data = snapshot.data!;
 
-                return _buildContentSection(context, stationName, data);
-              },
-            ),
+          return _buildContentSection(context, stationName, data);
+        },
+      ),
     );
   }
 

@@ -38,6 +38,16 @@ class Mark {
   }
 }
 int globalHighlightedIndex=0;
+
+String _localizedBusText(dynamic value, {required bool isEnglish}) {
+  if (value is! Map) return value?.toString() ?? '';
+
+  final preferred = value[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
+  if (preferred.isNotEmpty) return preferred;
+
+  return value[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
+}
+
 class BusTime extends StatefulWidget {
   final routeName;
   final departureStopName;
@@ -190,7 +200,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
             stop['StopPosition']['PositionLon'],
           ),
           infoWindow: InfoWindow(
-            title: stop['stopName'] ?? 'Unknown',
+            title: stop['displayStopName'] ?? stop['stopName'] ?? 'Unknown',
             snippet: stop['StopID'] ?? 'Unknown',
           ),
         );
@@ -208,7 +218,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
             stop['StopPosition']['PositionLon'],
           ),
           infoWindow: InfoWindow(
-            title: stop['stopName'] ?? 'Unknown',
+            title: stop['displayStopName'] ?? stop['stopName'] ?? 'Unknown',
             snippet: stop['StopID'] ?? 'Unknown',
           ),
         );
@@ -381,9 +391,17 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
     String hasPlateNum="";
     if (tabIndex < data.length) {
       List<dynamic> stopData = json.decode(data[tabIndex]["Stops"]);
+      final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
       for (var stop in stopData) {
-        String stopName = stop["StopName"]["Zh_tw"];
+        final stopName = _localizedBusText(
+          stop["StopName"],
+          isEnglish: false,
+        );
+        final displayStopName = _localizedBusText(
+          stop["StopName"],
+          isEnglish: isEnglish,
+        );
         String stopUID = stop["StopUID"];
 
         Map<String, dynamic> nextBusTime = await getTimeList(stopUID, busTimeData); // 如果没有 NextBusTime，显示“尚無此車”
@@ -401,6 +419,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
             hasPlateNum=nextBusTime["PlateNumb"]?? "";
             stopNamesWithTime.add({
               "stopName": stopName,
+              "displayStopName": displayStopName,
               "nextBusTime": nextBusTime["time"],
               'color': nextBusTime["color"],
               "PlateNumb": nextBusTime["PlateNumb"],
@@ -412,6 +431,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
           }else{
             stopNamesWithTime.add({
               "stopName": stopName,
+              "displayStopName": displayStopName,
               "nextBusTime": nextBusTime["time"],
               'color': nextBusTime["color"],
               "PlateNumb": '',
@@ -426,6 +446,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
 
           stopNamesWithTime.add({
             "stopName": stopName,
+            "displayStopName": displayStopName,
             "nextBusTime": nextBusTime["time"],
             'color': nextBusTime["color"],
             "PlateNumb": '',
@@ -1339,7 +1360,7 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                 title: Row(
                   children: [
                     Text(
-                      stop["stopName"]!,
+                      stop["displayStopName"] ?? stop["stopName"]!,
                       style: TextStyle(
                         fontFamily: 'MiSans',
                         fontSize: stop["isHighlighted"] == true ? 18 : 17,
@@ -1433,7 +1454,9 @@ class _BusTimeState extends State<BusTime>with SingleTickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // 標題區域
-                  _buildDialogHeader(stopName),
+                  _buildDialogHeader(
+                    stop["displayStopName"] ?? stopName.toString(),
+                  ),
                   const SizedBox(height: 24),
 
                   // 選項列表
@@ -1907,11 +1930,13 @@ class _BusDetailPageState extends State<BusDetailPage> {
   void search(String query) {
     if (allBuses == null) return;
 
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     setState(() {
       filteredBuses = allBuses!
-          .where((bus) => bus['StopName']['Zh_tw']
-          .toLowerCase()
-          .contains(query.toLowerCase()))
+          .where((bus) => _localizedBusText(
+                bus['StopName'],
+                isEnglish: isEnglish,
+              ).toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -2004,7 +2029,12 @@ class _BusDetailPageState extends State<BusDetailPage> {
                         ),
                         const SizedBox(height: 8.0),
                         Text(
-                          '路線: ${bus['RouteName']['Zh_tw']}',
+                          '路線: ${_localizedBusText(
+                            bus['RouteName'],
+                            isEnglish:
+                                Localizations.localeOf(context).languageCode ==
+                                    'en',
+                          )}',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black54,
@@ -2012,7 +2042,12 @@ class _BusDetailPageState extends State<BusDetailPage> {
                         ),
                         const SizedBox(height: 4.0),
                         Text(
-                          '站點: ${bus['StopName']['Zh_tw']}',
+                          '站點: ${_localizedBusText(
+                            bus['StopName'],
+                            isEnglish:
+                                Localizations.localeOf(context).languageCode ==
+                                    'en',
+                          )}',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.black54,

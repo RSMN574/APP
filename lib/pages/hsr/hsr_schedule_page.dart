@@ -5,6 +5,16 @@ import '../../database/sql/schedule.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widget/train/route_palnner.dart';
 
+String _localizedHsrName(dynamic names, BuildContext context) {
+  if (names is! Map) return names?.toString() ?? '';
+
+  final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+  final preferred = names[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
+  if (preferred.isNotEmpty) return preferred;
+
+  return names[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
+}
+
 class HSRSchedulePage extends StatelessWidget {
   // 高鐵主題色 - 保留高鐵橘
   static const Color primaryHSR = Color(0xFFDC5321); // 高鐵標準橘
@@ -417,7 +427,10 @@ class HSRSchedulePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          trainData['DailyTrainInfo']['StartingStationName']['Zh_tw'],
+                          _localizedHsrName(
+                            trainData['DailyTrainInfo']['StartingStationName'],
+                            context,
+                          ),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -470,7 +483,10 @@ class HSRSchedulePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          trainData['DailyTrainInfo']['EndingStationName']['Zh_tw'],
+                          _localizedHsrName(
+                            trainData['DailyTrainInfo']['EndingStationName'],
+                            context,
+                          ),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -486,7 +502,10 @@ class HSRSchedulePage extends StatelessWidget {
             ),
 
             // 備註
-            if (trainData['DailyTrainInfo']['Note']?['Zh_tw'] != null)
+            if (_localizedHsrName(
+              trainData['DailyTrainInfo']['Note'],
+              context,
+            ).isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: 16),
                 padding: const EdgeInsets.all(12),
@@ -504,7 +523,10 @@ class HSRSchedulePage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        trainData['DailyTrainInfo']['Note']['Zh_tw'],
+                        _localizedHsrName(
+                          trainData['DailyTrainInfo']['Note'],
+                          context,
+                        ),
                         style: TextStyle(
                           fontSize: 14,
                           color: textPrimary,
@@ -619,7 +641,9 @@ class HSRSchedulePage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      stop['StationName']['Zh_tw'] ?? AppLocalizations.of(context)!.text_160,
+                      _localizedHsrName(stop['StationName'], context).isNotEmpty
+                          ? _localizedHsrName(stop['StationName'], context)
+                          : AppLocalizations.of(context)!.text_160,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

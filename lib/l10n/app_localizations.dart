@@ -5857,6 +5857,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'接駁車'**
   String get text_960;
+
+  /// No description provided for @text_961.
+  ///
+  /// In zh, this message translates to:
+  /// **'設定儲存失敗，請稍後再試。'**
+  String get text_961;
+
+  /// No description provided for @text_962.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新載入'**
+  String get text_962;
+
+  /// No description provided for @text_963.
+  ///
+  /// In zh, this message translates to:
+  /// **'聯絡'**
+  String get text_963;
+
+  /// No description provided for @text_964.
+  ///
+  /// In zh, this message translates to:
+  /// **'導航'**
+  String get text_964;
+
+  /// No description provided for @text_965.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享'**
+  String get text_965;
+
+  /// No description provided for @text_966.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法載入停車資訊，請稍後再試。'**
+  String get text_966;
 }
 
 class _AppLocalizationsDelegate

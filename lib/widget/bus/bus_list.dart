@@ -165,12 +165,17 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
   }
 
   Widget _buildRouteInfo(dynamic route) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final routeName = isEnglish && route.routeEn.isNotEmpty
+        ? route.routeEn
+        : route.routeZh;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 路線名稱
         Text(
-          (route.routeZh),
+          routeName,
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -189,17 +194,27 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
   }
 
   Widget _buildRouteDetails(dynamic route) {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final departureName = isEnglish && route.departureStopNameEn.isNotEmpty
+        ? route.departureStopNameEn
+        : route.departureStopNameZh;
+    final destinationName =
+        isEnglish && route.destinationStopNameEn.isNotEmpty
+            ? route.destinationStopNameEn
+            : route.destinationStopNameZh;
+    final localizations = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildDetailRow(
           icon: Icons.place_outlined,
-          text: '起點: ${route.departureStopNameZh}',
+          text: '${localizations.text_55}: $departureName',
         ),
         const SizedBox(height: 2),
         _buildDetailRow(
           icon: Icons.flag_outlined,
-          text: '終點: ${route.destinationStopNameZh}',
+          text: '${localizations.text_57}: $destinationName',
         ),
       ],
     );
@@ -248,14 +263,22 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin{
   }
 
   Future<void> _navigateToRouteDetails(dynamic route) async {
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final departureStopName = isEnglish && route.departureStopNameEn.isNotEmpty
+        ? route.departureStopNameEn
+        : route.departureStopNameZh;
+    final destinationStopName =
+        isEnglish && route.destinationStopNameEn.isNotEmpty
+            ? route.destinationStopNameEn
+            : route.destinationStopNameZh;
 
     Navigator.push(
       context,
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => BusTime(
           routeName: route.routeZh,
-          departureStopName: route.departureStopNameZh,
-          destinationStopName: route.destinationStopNameZh,
+          departureStopName: departureStopName,
+          destinationStopName: destinationStopName,
           operators: route.operatorName,
           routeMapImageUrl: route.routeMapUrl,
           city: route.routeCity ?? 'InterCity',
