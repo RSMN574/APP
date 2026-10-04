@@ -55,7 +55,8 @@ class ErrorPage extends StatelessWidget {
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15), backgroundColor: Colors.black, // 按鈕顏色
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                backgroundColor: Colors.black, // 按鈕顏色
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8), // 圓角按鈕
                 ),

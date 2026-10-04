@@ -77,19 +77,31 @@ class FavoriteService {
         if (oldVersion < 4) {
           // 添加新欄位
           try {
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN routeNameEn TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN departureStopNameEn TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN destinationStopNameEn TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN cityCode TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN hasSubRoutes INTEGER DEFAULT 0');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN operatorName TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN firstBusTime TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN lastBusTime TEXT');
-            await db.execute('ALTER TABLE FavoritesRoute ADD COLUMN created_at INTEGER DEFAULT (strftime("%s", "now"))');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN routeNameEn TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN departureStopNameEn TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN destinationStopNameEn TEXT');
+            await db
+                .execute('ALTER TABLE FavoritesRoute ADD COLUMN cityCode TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN hasSubRoutes INTEGER DEFAULT 0');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN operatorName TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN firstBusTime TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN lastBusTime TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesRoute ADD COLUMN created_at INTEGER DEFAULT (strftime("%s", "now"))');
 
-            await db.execute('ALTER TABLE FavoritesStop ADD COLUMN routeID TEXT');
-            await db.execute('ALTER TABLE FavoritesStop ADD COLUMN routeName TEXT');
-            await db.execute('ALTER TABLE FavoritesStop ADD COLUMN created_at INTEGER DEFAULT (strftime("%s", "now"))');
+            await db
+                .execute('ALTER TABLE FavoritesStop ADD COLUMN routeID TEXT');
+            await db
+                .execute('ALTER TABLE FavoritesStop ADD COLUMN routeName TEXT');
+            await db.execute(
+                'ALTER TABLE FavoritesStop ADD COLUMN created_at INTEGER DEFAULT (strftime("%s", "now"))');
           } catch (e) {
             print('升級數據庫時出錯: $e');
           }
@@ -334,7 +346,8 @@ class FavoriteService {
   // ============ 通用方法 ============
 
   /// 獲取所有收藏（路線和站牌）
-  Future<Map<String, List<Map<String, dynamic>>>> getAllFavorites({String? city}) async {
+  Future<Map<String, List<Map<String, dynamic>>>> getAllFavorites(
+      {String? city}) async {
     final routes = await getFavoriteRoutes(city: city);
     final stops = await getFavoriteStops(city: city);
 
@@ -355,11 +368,11 @@ class FavoriteService {
   Future<int> getFavoriteCount() async {
     final db = await database;
     final routeCount = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM FavoritesRoute')
-    ) ?? 0;
+            await db.rawQuery('SELECT COUNT(*) FROM FavoritesRoute')) ??
+        0;
     final stopCount = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM FavoritesStop')
-    ) ?? 0;
+            await db.rawQuery('SELECT COUNT(*) FROM FavoritesStop')) ??
+        0;
     return routeCount + stopCount;
   }
 

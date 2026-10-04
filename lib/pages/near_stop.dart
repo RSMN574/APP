@@ -20,7 +20,6 @@ import '../database/get_data.dart';
 import '../database/bus/get_station_info.dart';
 import '../l10n/app_localizations.dart';
 
-
 import '../models/mrt_station.dart';
 import '../models/station.dart';
 import '../models/bus.dart';
@@ -41,7 +40,8 @@ final ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
 final ValueNotifier<String> _stopName = ValueNotifier<String>('');
 final ValueNotifier<String> _tabSelect = ValueNotifier<String>('bus');
 final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
-final ValueNotifier<SortType> _sortNotifier = ValueNotifier<SortType>(SortType.timeAsc);
+final ValueNotifier<SortType> _sortNotifier =
+    ValueNotifier<SortType>(SortType.timeAsc);
 
 final GlobalKey<_NearbyStationsPageState> mapKey = GlobalKey();
 
@@ -55,7 +55,8 @@ class NearbyStationsPage extends StatefulWidget {
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
   GoogleMapController? _mapController;
   Future<List<Station>>? _futureNearStations;
-  final DraggableScrollableController _scrollController = DraggableScrollableController();
+  final DraggableScrollableController _scrollController =
+      DraggableScrollableController();
   MarkerProvider? _markerProvider;
 
   GoogleMapController? get mapController => _mapController;
@@ -65,10 +66,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   Future<void> _updateFutureNearStations() async {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final locationProvider =
+        Provider.of<LocationProvider>(context, listen: false);
     setState(() {
       _futureNearStations = getNearStation(
-        Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
+        Uri.encodeComponent(
+            "${locationProvider.latitude},${locationProvider.longitude}"),
       );
     });
   }
@@ -81,9 +84,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   void _busInit() async {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final locationProvider =
+        Provider.of<LocationProvider>(context, listen: false);
     _futureNearStations = getNearStation(
-      Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
+      Uri.encodeComponent(
+          "${locationProvider.latitude},${locationProvider.longitude}"),
     );
     final stations = await _futureNearStations;
     if (mounted) {
@@ -91,7 +96,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     }
   }
 
-  List<Map<String, dynamic>> _convertStations(String type, List<dynamic> stations) {
+  List<Map<String, dynamic>> _convertStations(
+      String type, List<dynamic> stations) {
     if (type == "metro") {
       return stations.map((station) {
         return {
@@ -118,7 +124,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   void _handleTabSelectChange() async {
-    final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final locationProvider =
+        Provider.of<LocationProvider>(context, listen: false);
     if (_tabSelect.value == "bus") {
       await _updateFutureNearStations();
       final stations = await _futureNearStations;
@@ -127,7 +134,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       }
     } else if (_tabSelect.value == "metro") {
       final stations = await getNearMRTStation(
-        Uri.encodeComponent("${locationProvider.latitude},${locationProvider.longitude}"),
+        Uri.encodeComponent(
+            "${locationProvider.latitude},${locationProvider.longitude}"),
       );
       if (mounted) {
         _loadMarkers(
@@ -223,10 +231,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   bool _isSameStationGroup(List<String>? oldList, List<String>? newList) {
-    if ((oldList == null || oldList.isEmpty) && (newList == null || newList.isEmpty)) {
+    if ((oldList == null || oldList.isEmpty) &&
+        (newList == null || newList.isEmpty)) {
       return false;
     }
-    if (oldList == null || oldList.isEmpty || newList == null || newList.isEmpty) {
+    if (oldList == null ||
+        oldList.isEmpty ||
+        newList == null ||
+        newList.isEmpty) {
       return false;
     }
     if (oldList.length != newList.length) return false;
@@ -256,7 +268,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       final positionLat = station["positionLat"];
       final positionLon = station["positionLon"];
 
-      if (stationID == null || positionLat == null || positionLon == null) continue;
+      if (stationID == null || positionLat == null || positionLon == null)
+        continue;
 
       final marker = Marker(
         markerId: MarkerId(stationID),
@@ -300,7 +313,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
     const bottomNavBarHeight = kBottomNavigationBarHeight;
-    final mapHeight = screenHeight - (screenHeight * 0.2) - appBarHeight - bottomNavBarHeight;
+    final mapHeight =
+        screenHeight - (screenHeight * 0.2) - appBarHeight - bottomNavBarHeight;
 
     return PopScope(
       canPop: _indexNotifier.value == 0,
@@ -334,7 +348,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               initialChildSize: 0.43,
               minChildSize: 0.3,
               maxChildSize: 0.96,
-              builder: (BuildContext context, ScrollController scrollController) {
+              builder:
+                  (BuildContext context, ScrollController scrollController) {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -343,10 +358,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                       left: MediaQuery.of(context).size.width / 2 - 20,
                       child: GestureDetector(
                         onPanUpdate: (details) {
-                          double delta = details.primaryDelta! / MediaQuery.of(context).size.height;
-                          final currentSize =
-                          _scrollController.isAttached ? _scrollController.size : 0.43;
-                          double newSize = (currentSize - delta).clamp(0.1, 0.96);
+                          double delta = details.primaryDelta! /
+                              MediaQuery.of(context).size.height;
+                          final currentSize = _scrollController.isAttached
+                              ? _scrollController.size
+                              : 0.43;
+                          double newSize =
+                              (currentSize - delta).clamp(0.1, 0.96);
                           _scrollController.animateTo(
                             newSize,
                             duration: const Duration(milliseconds: 50),
@@ -367,7 +385,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                       height: 800,
                       decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(16)),
                       ),
                       child: ValueListenableBuilder<int>(
                         valueListenable: _indexNotifier,
@@ -393,7 +412,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                   return PageView.builder(
                                     itemCount: 4,
                                     controller: controller,
-                                    physics: const NeverScrollableScrollPhysics(),
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
                                     itemBuilder: (context, pageIndex) {
                                       switch (pageIndex) {
                                         case 0:
@@ -403,11 +423,16 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                             child: FutureBuilder<List<Station>>(
                                               future: _futureNearStations,
                                               builder: (context, snapshot) {
-                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                if (snapshot.connectionState ==
+                                                    ConnectionState.waiting) {
                                                   return Center(
                                                     child: Padding(
-                                                      padding: const EdgeInsets.only(top: 40),
-                                                      child: LoadingAnimationWidget.stretchedDots(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              top: 40),
+                                                      child:
+                                                          LoadingAnimationWidget
+                                                              .stretchedDots(
                                                         color: Colors.black,
                                                         size: 40,
                                                       ),
@@ -418,36 +443,67 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                 if (snapshot.hasError) {
                                                   return Center(
                                                     child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
-                                                        const SizedBox(height: 40),
+                                                        const SizedBox(
+                                                            height: 40),
                                                         Text(
-                                                          AppLocalizations.of(context)!.text_419,
-                                                          style: const TextStyle(
-                                                            color: Colors.black54,
+                                                          AppLocalizations.of(
+                                                                  context)!
+                                                              .text_419,
+                                                          style:
+                                                              const TextStyle(
+                                                            color:
+                                                                Colors.black54,
                                                             fontSize: 16,
-                                                            fontWeight: FontWeight.w500,
+                                                            fontWeight:
+                                                                FontWeight.w500,
                                                           ),
                                                         ),
-                                                        const SizedBox(height: 16),
+                                                        const SizedBox(
+                                                            height: 16),
                                                         ElevatedButton.icon(
                                                           onPressed: () {
                                                             _updateFutureNearStations();
                                                           },
-                                                          icon: const Icon(Icons.refresh, color: Colors.black),
+                                                          icon: const Icon(
+                                                              Icons.refresh,
+                                                              color:
+                                                                  Colors.black),
                                                           label: Text(
-                                                            AppLocalizations.of(context)!.text_420,
-                                                            style: const TextStyle(color: Colors.black, fontSize: 14),
+                                                            AppLocalizations.of(
+                                                                    context)!
+                                                                .text_420,
+                                                            style: const TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 14),
                                                           ),
-                                                          style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.white,
-                                                            foregroundColor: Colors.black,
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                Colors.white,
+                                                            foregroundColor:
+                                                                Colors.black,
                                                             elevation: 3,
-                                                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                                            shape: RoundedRectangleBorder(
-                                                              borderRadius: BorderRadius.circular(12),
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    horizontal:
+                                                                        20,
+                                                                    vertical:
+                                                                        12),
+                                                            shape:
+                                                                RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12),
                                                             ),
-                                                            shadowColor: Colors.grey[300],
+                                                            shadowColor: Colors
+                                                                .grey[300],
                                                           ),
                                                         ),
                                                       ],
@@ -455,39 +511,71 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   );
                                                 }
 
-                                                if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
-                                                  final Map<String, List<Map<String, dynamic>>> groupedStations = {};
-                                                  for (var station in snapshot.data!) {
-                                                    String stationName = station.stationNameZh;
-                                                    if (!groupedStations.containsKey(stationName)) {
-                                                      groupedStations[stationName] = [];
+                                                if (snapshot.hasData &&
+                                                    snapshot.data != null &&
+                                                    snapshot.data!.isNotEmpty) {
+                                                  final Map<
+                                                          String,
+                                                          List<
+                                                              Map<String,
+                                                                  dynamic>>>
+                                                      groupedStations = {};
+                                                  for (var station
+                                                      in snapshot.data!) {
+                                                    String stationName =
+                                                        station.stationNameZh;
+                                                    if (!groupedStations
+                                                        .containsKey(
+                                                            stationName)) {
+                                                      groupedStations[
+                                                          stationName] = [];
                                                     }
-                                                    groupedStations[stationName]!.add(station.toJson());
+                                                    groupedStations[
+                                                            stationName]!
+                                                        .add(station.toJson());
                                                   }
 
-                                                  final List<Map<String, dynamic>> result = groupedStations.entries.map((entry) {
+                                                  final List<
+                                                          Map<String, dynamic>>
+                                                      result = groupedStations
+                                                          .entries
+                                                          .map((entry) {
                                                     return {
                                                       "StationGroup": {
-                                                        "StationGroupName": {"Zh_tw": entry.key},
+                                                        "StationGroupName": {
+                                                          "Zh_tw": entry.key
+                                                        },
                                                         "Stations": entry.value
                                                       }
                                                     };
                                                   }).toList();
 
                                                   return Padding(
-                                                    padding: const EdgeInsets.all(16.0),
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            16.0),
                                                     child: Column(
-                                                      children: result.map((station) => _stationCard(station: station)).toList(),
+                                                      children: result
+                                                          .map((station) =>
+                                                              _stationCard(
+                                                                  station:
+                                                                      station))
+                                                          .toList(),
                                                     ),
                                                   );
                                                 }
 
                                                 return Container(
-                                                  margin: const EdgeInsets.only(top: 20),
+                                                  margin: const EdgeInsets.only(
+                                                      top: 20),
                                                   child: Center(
                                                     child: Text(
-                                                      AppLocalizations.of(context)!.text_419,
-                                                      style: const TextStyle(color: Colors.grey, fontSize: 16),
+                                                      AppLocalizations.of(
+                                                              context)!
+                                                          .text_419,
+                                                      style: const TextStyle(
+                                                          color: Colors.grey,
+                                                          fontSize: 16),
                                                     ),
                                                   ),
                                                 );
@@ -498,16 +586,20 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                           _tabSelect.value = "metro";
                                           return SingleChildScrollView(
                                             controller: scrollController,
-                                            child: FutureBuilder<List<MRTStation>>(
+                                            child:
+                                                FutureBuilder<List<MRTStation>>(
                                               future: getNearMRTStation(
                                                 Uri.encodeComponent(
                                                   "${locationProvider.latitude},${locationProvider.longitude}",
                                                 ),
                                               ),
                                               builder: (context, snapshot) {
-                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                if (snapshot.connectionState ==
+                                                    ConnectionState.waiting) {
                                                   return Center(
-                                                    child: LoadingAnimationWidget.stretchedDots(
+                                                    child:
+                                                        LoadingAnimationWidget
+                                                            .stretchedDots(
                                                       color: Colors.black,
                                                       size: 40,
                                                     ),
@@ -517,25 +609,41 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                 if (snapshot.hasError) {
                                                   return Center(
                                                     child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
                                                         Text(
-                                                          AppLocalizations.of(context)!.text_419,
-                                                          style: const TextStyle(
-                                                            color: Colors.black54,
+                                                          AppLocalizations.of(
+                                                                  context)!
+                                                              .text_419,
+                                                          style:
+                                                              const TextStyle(
+                                                            color:
+                                                                Colors.black54,
                                                             fontSize: 16,
-                                                            fontWeight: FontWeight.w500,
+                                                            fontWeight:
+                                                                FontWeight.w500,
                                                           ),
                                                         ),
-                                                        const SizedBox(height: 16),
+                                                        const SizedBox(
+                                                            height: 16),
                                                         ElevatedButton.icon(
                                                           onPressed: () {
                                                             setState(() {});
                                                           },
-                                                          icon: const Icon(Icons.refresh, color: Colors.black),
+                                                          icon: const Icon(
+                                                              Icons.refresh,
+                                                              color:
+                                                                  Colors.black),
                                                           label: Text(
-                                                            AppLocalizations.of(context)!.text_420,
-                                                            style: const TextStyle(color: Colors.black, fontSize: 14),
+                                                            AppLocalizations.of(
+                                                                    context)!
+                                                                .text_420,
+                                                            style: const TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 14),
                                                           ),
                                                         ),
                                                       ],
@@ -543,23 +651,35 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   );
                                                 }
 
-                                                final stations = snapshot.data ?? [];
+                                                final stations =
+                                                    snapshot.data ?? [];
                                                 if (stations.isEmpty) {
                                                   return Container(
-                                                    margin: const EdgeInsets.only(top: 20),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            top: 20),
                                                     child: Center(
                                                       child: Text(
-                                                        AppLocalizations.of(context)!.text_419,
-                                                        style: const TextStyle(color: Colors.grey, fontSize: 16),
+                                                        AppLocalizations.of(
+                                                                context)!
+                                                            .text_419,
+                                                        style: const TextStyle(
+                                                            color: Colors.grey,
+                                                            fontSize: 16),
                                                       ),
                                                     ),
                                                   );
                                                 }
 
                                                 return Padding(
-                                                  padding: const EdgeInsets.all(16),
+                                                  padding:
+                                                      const EdgeInsets.all(16),
                                                   child: Column(
-                                                    children: stations.map((s) => _mrtStationCard(station: s)).toList(),
+                                                    children: stations
+                                                        .map((s) =>
+                                                            _mrtStationCard(
+                                                                station: s))
+                                                        .toList(),
                                                   ),
                                                 );
                                               },
@@ -575,9 +695,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                 locationProvider.longitude,
                                               ),
                                               builder: (context, snapshot) {
-                                                if (snapshot.connectionState == ConnectionState.waiting) {
+                                                if (snapshot.connectionState ==
+                                                    ConnectionState.waiting) {
                                                   return Center(
-                                                    child: LoadingAnimationWidget.stretchedDots(
+                                                    child:
+                                                        LoadingAnimationWidget
+                                                            .stretchedDots(
                                                       color: Colors.black,
                                                       size: 40,
                                                     ),
@@ -585,25 +708,41 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                 } else if (snapshot.hasError) {
                                                   return Center(
                                                     child: Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
                                                       children: [
                                                         Text(
-                                                          AppLocalizations.of(context)!.text_419,
-                                                          style: const TextStyle(
-                                                            color: Colors.black54,
+                                                          AppLocalizations.of(
+                                                                  context)!
+                                                              .text_419,
+                                                          style:
+                                                              const TextStyle(
+                                                            color:
+                                                                Colors.black54,
                                                             fontSize: 16,
-                                                            fontWeight: FontWeight.w500,
+                                                            fontWeight:
+                                                                FontWeight.w500,
                                                           ),
                                                         ),
-                                                        const SizedBox(height: 16),
+                                                        const SizedBox(
+                                                            height: 16),
                                                         ElevatedButton.icon(
                                                           onPressed: () {
                                                             setState(() {});
                                                           },
-                                                          icon: const Icon(Icons.refresh, color: Colors.black),
+                                                          icon: const Icon(
+                                                              Icons.refresh,
+                                                              color:
+                                                                  Colors.black),
                                                           label: Text(
-                                                            AppLocalizations.of(context)!.text_420,
-                                                            style: const TextStyle(color: Colors.black, fontSize: 14),
+                                                            AppLocalizations.of(
+                                                                    context)!
+                                                                .text_420,
+                                                            style: const TextStyle(
+                                                                color: Colors
+                                                                    .black,
+                                                                fontSize: 14),
                                                           ),
                                                         ),
                                                       ],
@@ -611,17 +750,27 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   );
                                                 } else if (snapshot.hasData) {
                                                   return Padding(
-                                                    padding: const EdgeInsets.all(16.0),
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            16.0),
                                                     child: Column(
                                                       children: List.generate(
                                                         snapshot.data!.length,
-                                                            (idx) {
-                                                          final station = snapshot.data![idx];
-                                                          final nameMap = json.decode(station["StationName"]);
+                                                        (idx) {
+                                                          final station =
+                                                              snapshot
+                                                                  .data![idx];
+                                                          final nameMap = json
+                                                              .decode(station[
+                                                                  "StationName"]);
                                                           return GestureDetector(
                                                             onTap: () {
-                                                              DateTime today = DateTime.now();
-                                                              DateTime todayDate = DateTime(
+                                                              DateTime today =
+                                                                  DateTime
+                                                                      .now();
+                                                              DateTime
+                                                                  todayDate =
+                                                                  DateTime(
                                                                 today.year,
                                                                 today.month,
                                                                 today.day,
@@ -630,49 +779,85 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                               Navigator.push(
                                                                 context,
                                                                 MaterialPageRoute(
-                                                                  builder: (context) => StationPage(
-                                                                    stationName: nameMap["Zh_tw"],
-                                                                    stationID: station["StationID"],
-                                                                    datetime: todayDate,
+                                                                  builder:
+                                                                      (context) =>
+                                                                          StationPage(
+                                                                    stationName:
+                                                                        nameMap[
+                                                                            "Zh_tw"],
+                                                                    stationID:
+                                                                        station[
+                                                                            "StationID"],
+                                                                    datetime:
+                                                                        todayDate,
                                                                   ),
                                                                 ),
                                                               );
                                                             },
                                                             child: Container(
-                                                              margin: const EdgeInsets.symmetric(
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
                                                                 vertical: 8,
                                                                 horizontal: 12,
                                                               ),
-                                                              padding: const EdgeInsets.symmetric(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
                                                                 vertical: 12,
                                                                 horizontal: 16,
                                                               ),
-                                                              decoration: BoxDecoration(
-                                                                color: Colors.white,
-                                                                borderRadius: BorderRadius.circular(12),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .white,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
                                                                 boxShadow: [
                                                                   BoxShadow(
-                                                                    color: Colors.black.withOpacity(0.05),
-                                                                    blurRadius: 8,
-                                                                    offset: const Offset(0, 4),
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withOpacity(
+                                                                            0.05),
+                                                                    blurRadius:
+                                                                        8,
+                                                                    offset:
+                                                                        const Offset(
+                                                                            0,
+                                                                            4),
                                                                   ),
                                                                 ],
                                                               ),
                                                               child: Column(
-                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                crossAxisAlignment:
+                                                                    CrossAxisAlignment
+                                                                        .start,
                                                                 children: [
                                                                   Text(
-                                                                    nameMap["Zh_tw"],
-                                                                    style: const TextStyle(
-                                                                      fontSize: 16,
-                                                                      fontWeight: FontWeight.w400,
-                                                                      color: Colors.black,
+                                                                    nameMap[
+                                                                        "Zh_tw"],
+                                                                    style:
+                                                                        const TextStyle(
+                                                                      fontSize:
+                                                                          16,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w400,
+                                                                      color: Colors
+                                                                          .black,
                                                                     ),
                                                                   ),
-                                                                  const SizedBox(height: 8),
+                                                                  const SizedBox(
+                                                                      height:
+                                                                          8),
                                                                   Divider(
-                                                                    color: Colors.grey[300],
-                                                                    thickness: 0.5,
+                                                                    color: Colors
+                                                                            .grey[
+                                                                        300],
+                                                                    thickness:
+                                                                        0.5,
                                                                   ),
                                                                 ],
                                                               ),
@@ -684,11 +869,17 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                   );
                                                 } else {
                                                   return Container(
-                                                    margin: const EdgeInsets.only(top: 20),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                            top: 20),
                                                     child: Center(
                                                       child: Text(
-                                                        AppLocalizations.of(context)!.text_419,
-                                                        style: const TextStyle(color: Colors.grey, fontSize: 16),
+                                                        AppLocalizations.of(
+                                                                context)!
+                                                            .text_419,
+                                                        style: const TextStyle(
+                                                            color: Colors.grey,
+                                                            fontSize: 16),
                                                       ),
                                                     ),
                                                   );
@@ -699,18 +890,23 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                         case 3:
                                           _tabSelect.value = "HSR";
                                           return Center(
-                                            child: Text(AppLocalizations.of(context)!.text_421),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .text_421),
                                           );
                                         default:
                                           return Center(
-                                            child: Text(AppLocalizations.of(context)!.text_422),
+                                            child: Text(
+                                                AppLocalizations.of(context)!
+                                                    .text_422),
                                           );
                                       }
                                     },
                                   );
                                 },
                               ),
-                              _buildDraggableScrollableSheetPageTwo(scrollController),
+                              _buildDraggableScrollableSheetPageTwo(
+                                  scrollController),
                             ],
                           );
                         },
@@ -769,10 +965,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   Widget _stationCard({required Map<String, dynamic> station}) {
-    final List<String> stationIDs = (station["StationGroup"]["Stations"] as List<dynamic>?)
-        ?.map((s) => s["stationID"].toString())
-        .toList() ??
-        [];
+    final List<String> stationIDs =
+        (station["StationGroup"]["Stations"] as List<dynamic>?)
+                ?.map((s) => s["stationID"].toString())
+                .toList() ??
+            [];
 
     final firstStation = station["StationGroup"]["Stations"][0];
 
@@ -780,7 +977,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       _mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
           CameraPosition(
-            target: LatLng(firstStation["positionLat"], firstStation["positionLon"]),
+            target: LatLng(
+                firstStation["positionLat"], firstStation["positionLon"]),
             zoom: 19.0,
           ),
         ),
@@ -983,7 +1181,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     );
   }
 
-  Widget _buildDraggableScrollableSheetPageTwo(ScrollController scrollController) {
+  Widget _buildDraggableScrollableSheetPageTwo(
+      ScrollController scrollController) {
     if (_tabSelect.value == "bus") {
       return Container(
         decoration: BoxDecoration(
@@ -1037,7 +1236,8 @@ class BusStopList extends StatefulWidget {
 
 class _BusStopListState extends State<BusStopList>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
-  final StreamController<List<Map<String, dynamic>>> _streamController = StreamController.broadcast();
+  final StreamController<List<Map<String, dynamic>>> _streamController =
+      StreamController.broadcast();
   late final TabController _tabController;
 
   @override
@@ -1082,9 +1282,9 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<List<Map<String, dynamic>>> _processData(
-      String stationID,
-      List<Map<String, dynamic>> stopEstimatedTime,
-      ) async {
+    String stationID,
+    List<Map<String, dynamic>> stopEstimatedTime,
+  ) async {
     try {
       final routeMap = <String, Map<String, dynamic>>{};
 
@@ -1108,7 +1308,8 @@ class _BusStopListState extends State<BusStopList>
 
         final existing = routeMap[routeKey];
         if (existing == null ||
-            (currentTime != -1 && currentTime < _parseTimeToMinutes(existing["time"]))) {
+            (currentTime != -1 &&
+                currentTime < _parseTimeToMinutes(existing["time"]))) {
           routeMap[routeKey] = item;
         }
       }
@@ -1153,7 +1354,8 @@ class _BusStopListState extends State<BusStopList>
               routeName = routeNameField["Zh_tw"] as String?;
             } else if (routeNameField is String) {
               try {
-                final parsed = json.decode(routeNameField) as Map<String, dynamic>;
+                final parsed =
+                    json.decode(routeNameField) as Map<String, dynamic>;
                 routeName = parsed["Zh_tw"] as String?;
               } catch (_) {
                 routeName = routeNameField;
@@ -1217,8 +1419,10 @@ class _BusStopListState extends State<BusStopList>
               routeInfo["DestinationStopName"]?.toString();
         }
 
-        resultItem["DepartureStopName"] = departureName ?? localizations.text_325;
-        resultItem["DestinationStopName"] = destinationName ?? localizations.text_326;
+        resultItem["DepartureStopName"] =
+            departureName ?? localizations.text_325;
+        resultItem["DestinationStopName"] =
+            destinationName ?? localizations.text_326;
 
         final isDirection1 = direction == 1;
         resultItem["from"] = isDirection1
@@ -1262,7 +1466,8 @@ class _BusStopListState extends State<BusStopList>
             }
 
             if (!snapshot.hasData || snapshot.data == null) {
-              return Center(child: Text(AppLocalizations.of(context)!.text_430));
+              return Center(
+                  child: Text(AppLocalizations.of(context)!.text_430));
             }
 
             if (_stationIDs.value.isEmpty) {
@@ -1276,7 +1481,8 @@ class _BusStopListState extends State<BusStopList>
                   child: Container(
                     height: 120,
                     decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(16)),
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
@@ -1321,7 +1527,8 @@ class _BusStopListState extends State<BusStopList>
                                 color: const Color(0xFFEEF3FB),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.refresh_rounded, size: 20),
+                              child:
+                                  const Icon(Icons.refresh_rounded, size: 20),
                             ),
                             onPressed: () {
                               setState(() {});
@@ -1337,7 +1544,8 @@ class _BusStopListState extends State<BusStopList>
                                 color: const Color(0xFFEEF3FB),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.more_vert_rounded, size: 20),
+                              child:
+                                  const Icon(Icons.more_vert_rounded, size: 20),
                             ),
                             color: Colors.white,
                             shape: RoundedRectangleBorder(
@@ -1347,7 +1555,8 @@ class _BusStopListState extends State<BusStopList>
                                 width: 1,
                               ),
                             ),
-                            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
                               _buildPopupMenuItem(
                                 icon: Icons.info_outline_rounded,
                                 title: AppLocalizations.of(context)!.text_333,
@@ -1394,7 +1603,8 @@ class _BusStopListState extends State<BusStopList>
                                     context: context,
                                     type: QuickAlertType.error,
                                     title: 'Oops...',
-                                    text: AppLocalizations.of(context)!.text_336,
+                                    text:
+                                        AppLocalizations.of(context)!.text_336,
                                   );
                                 }
                               } else if (action == 'sort') {
@@ -1413,14 +1623,15 @@ class _BusStopListState extends State<BusStopList>
                     controller: _tabController,
                     children: List.generate(
                       _stationIDs.value.length,
-                          (index) {
+                      (index) {
                         return FutureBuilder<Widget>(
                           future: _buildTabContent(
                             _stationIDs.value[index],
                             snapshot.data!,
                           ),
                           builder: (context, contentSnapshot) {
-                            if (contentSnapshot.connectionState == ConnectionState.waiting) {
+                            if (contentSnapshot.connectionState ==
+                                ConnectionState.waiting) {
                               return Center(
                                 child: LoadingAnimationWidget.stretchedDots(
                                   color: Colors.black,
@@ -1436,7 +1647,8 @@ class _BusStopListState extends State<BusStopList>
                             }
 
                             return contentSnapshot.data ??
-                                const Center(child: Text("No content available"));
+                                const Center(
+                                    child: Text("No content available"));
                           },
                         );
                       },
@@ -1451,7 +1663,8 @@ class _BusStopListState extends State<BusStopList>
     );
   }
 
-  PreferredSize _buildTabBar(List<Map<String, dynamic>> station, TabController tabController) {
+  PreferredSize _buildTabBar(
+      List<Map<String, dynamic>> station, TabController tabController) {
     return PreferredSize(
       preferredSize: const Size.fromHeight(80),
       child: Container(
@@ -1482,7 +1695,9 @@ class _BusStopListState extends State<BusStopList>
                               : Colors.grey[50],
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[200]!,
+                            color: isSelected
+                                ? const Color(0xFF1A73E8)
+                                : Colors.grey[200]!,
                             width: 1.2,
                           ),
                         ),
@@ -1495,15 +1710,21 @@ class _BusStopListState extends State<BusStopList>
                                 Icon(
                                   Icons.directions_bus,
                                   size: 14,
-                                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[500],
+                                  color: isSelected
+                                      ? const Color(0xFF1A73E8)
+                                      : Colors.grey[500],
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   "站牌 $label",
                                   style: TextStyle(
                                     fontSize: 12,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                    color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[700],
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF1A73E8)
+                                        : Colors.grey[700],
                                   ),
                                 ),
                               ],
@@ -1515,7 +1736,9 @@ class _BusStopListState extends State<BusStopList>
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 10,
-                                fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.w500
+                                    : FontWeight.normal,
                                 color: isSelected
                                     ? const Color(0xFF1A73E8).withOpacity(0.8)
                                     : Colors.grey[500],
@@ -1536,10 +1759,11 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<Widget> _buildTabContent(
-      String stationID,
-      List<Map<String, dynamic>> stopEstimatedTime,
-      ) async {
-    List<Map<String, dynamic>> finalList = await _processData(stationID, stopEstimatedTime);
+    String stationID,
+    List<Map<String, dynamic>> stopEstimatedTime,
+  ) async {
+    List<Map<String, dynamic>> finalList =
+        await _processData(stationID, stopEstimatedTime);
 
     return ValueListenableBuilder<SortType>(
       valueListenable: _sortNotifier,
@@ -1549,13 +1773,13 @@ class _BusStopListState extends State<BusStopList>
         switch (sortType) {
           case SortType.nameAsc:
             sortedList.sort(
-                  (a, b) => getChineseName(a['RouteName']["Zh_tw"])
+              (a, b) => getChineseName(a['RouteName']["Zh_tw"])
                   .compareTo(getChineseName(b['RouteName']["Zh_tw"])),
             );
             break;
           case SortType.nameDesc:
             sortedList.sort(
-                  (a, b) => getChineseName(b['RouteName']["Zh_tw"])
+              (a, b) => getChineseName(b['RouteName']["Zh_tw"])
                   .compareTo(getChineseName(a['RouteName']["Zh_tw"])),
             );
             break;
@@ -1578,7 +1802,8 @@ class _BusStopListState extends State<BusStopList>
     if (b["time"] == localizations.text_316) return 1;
     if (a["time"] == localizations.text_317) return 1;
     if (b["time"] == localizations.text_317) return -1;
-    return _parseTimeToMinutes(a['time']).compareTo(_parseTimeToMinutes(b['time']));
+    return _parseTimeToMinutes(a['time'])
+        .compareTo(_parseTimeToMinutes(b['time']));
   }
 
   int _timeDescComparator(Map<String, dynamic> a, Map<String, dynamic> b) {
@@ -1587,7 +1812,8 @@ class _BusStopListState extends State<BusStopList>
     if (b["time"] == localizations.text_316) return -1;
     if (a["time"] == localizations.text_317) return -1;
     if (b["time"] == localizations.text_317) return 1;
-    return _parseTimeToMinutes(b['time']).compareTo(_parseTimeToMinutes(a['time']));
+    return _parseTimeToMinutes(b['time'])
+        .compareTo(_parseTimeToMinutes(a['time']));
   }
 
   Widget _buildTabContentUI(List<Map<String, dynamic>> finalList) {
@@ -1604,12 +1830,12 @@ class _BusStopListState extends State<BusStopList>
           final color = stop["color"] == '0'
               ? const Color.fromRGBO(235, 15, 41, 0.85)
               : (stop["color"] == '2'
-              ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == localizations.text_317
-              ? const Color.fromRGBO(69, 69, 69, 0.1)
-              : (stop["color"] == "min"
-              ? const Color.fromRGBO(13, 168, 255, 0.1)
-              : const Color.fromRGBO(68, 68, 68, 0.1))));
+                  ? const Color.fromRGBO(225, 85, 104, 0.1)
+                  : (stop["color"] == localizations.text_317
+                      ? const Color.fromRGBO(69, 69, 69, 0.1)
+                      : (stop["color"] == "min"
+                          ? const Color.fromRGBO(13, 168, 255, 0.1)
+                          : const Color.fromRGBO(68, 68, 68, 0.1))));
 
           return SizeFadeTransition(
             animation: animation,
@@ -1645,7 +1871,8 @@ class _BusStopListState extends State<BusStopList>
                       );
                     },
                     leading: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(15),
@@ -1657,12 +1884,14 @@ class _BusStopListState extends State<BusStopList>
                           color: stop["color"] == '0'
                               ? Colors.white
                               : (stop["color"] == '2'
-                              ? const Color.fromRGBO(255, 85, 104, 1)
-                              : (stop["color"] == localizations.text_317
-                              ? const Color.fromRGBO(149, 149, 149, 1.0)
-                              : (stop["color"] == "min"
-                              ? const Color.fromRGBO(13, 168, 255, 1)
-                              : const Color.fromRGBO(68, 68, 68, 1)))),
+                                  ? const Color.fromRGBO(255, 85, 104, 1)
+                                  : (stop["color"] == localizations.text_317
+                                      ? const Color.fromRGBO(149, 149, 149, 1.0)
+                                      : (stop["color"] == "min"
+                                          ? const Color.fromRGBO(
+                                              13, 168, 255, 1)
+                                          : const Color.fromRGBO(
+                                              68, 68, 68, 1)))),
                         ),
                       ),
                     ),
@@ -1671,8 +1900,9 @@ class _BusStopListState extends State<BusStopList>
                         Text(
                           stop["RouteName"]?["Zh_tw"] ?? localizations.text_322,
                           style: TextStyle(
-                            fontFamily:
-                            stop["color"] == "0" ? 'MiSans-Semibold' : 'MiSans-normal',
+                            fontFamily: stop["color"] == "0"
+                                ? 'MiSans-Semibold'
+                                : 'MiSans-normal',
                             fontSize: 17,
                             color: stop["color"] == localizations.text_317
                                 ? const Color.fromRGBO(136, 136, 136, 1)
@@ -1690,7 +1920,8 @@ class _BusStopListState extends State<BusStopList>
                         ),
                       ],
                     ),
-                    trailing: plateNumb != null ? bubble(plateNum: plateNumb) : null,
+                    trailing:
+                        plateNumb != null ? bubble(plateNum: plateNumb) : null,
                   ),
                 ),
                 const Divider(
@@ -1723,7 +1954,8 @@ class _BusStopListState extends State<BusStopList>
         int minute = int.tryParse(parts[1]) ?? 0;
 
         DateTime now = DateTime.now();
-        DateTime parsedTime = DateTime(now.year, now.month, now.day, hour, minute);
+        DateTime parsedTime =
+            DateTime(now.year, now.month, now.day, hour, minute);
 
         if (parsedTime.isBefore(now)) {
           parsedTime = parsedTime.add(const Duration(days: 1));
@@ -1737,7 +1969,8 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
-    List<dynamic> info = await StopInfoCache().getStopInfo(widget.stop, "Taichung");
+    List<dynamic> info =
+        await StopInfoCache().getStopInfo(widget.stop, "Taichung");
     List<Map<String, dynamic>> tempData = [];
 
     for (var _ in info) {
@@ -1754,7 +1987,8 @@ class _BusStopListState extends State<BusStopList>
     return tempData;
   }
 
-  Future<Map<String, dynamic>> getTimeList(Map<String, dynamic> stopData) async {
+  Future<Map<String, dynamic>> getTimeList(
+      Map<String, dynamic> stopData) async {
     final localizations = AppLocalizations.of(context)!;
 
     if (stopData["EstimateTime"] != null) {
@@ -1789,7 +2023,7 @@ class _BusStopListState extends State<BusStopList>
       }
     } else if (stopData["NextBusTime"] != null) {
       Duration difference =
-      DateTime.parse(stopData["NextBusTime"]).difference(DateTime.now());
+          DateTime.parse(stopData["NextBusTime"]).difference(DateTime.now());
       if (difference.inHours == 0) {
         return {
           "time": difference.inMinutes.remainder(60) <= 0
@@ -1797,15 +2031,19 @@ class _BusStopListState extends State<BusStopList>
               : "${difference.inMinutes.remainder(60)} 分鐘",
           "isRed": '',
           "PlateNumb": "",
-          "color": difference.inMinutes.remainder(60) <= 0 ? localizations.text_317 : "min",
+          "color": difference.inMinutes.remainder(60) <= 0
+              ? localizations.text_317
+              : "min",
         };
       } else {
         DateTime nextBusTime = DateTime.now().add(
-          Duration(hours: difference.inHours, minutes: difference.inMinutes.remainder(60)),
+          Duration(
+              hours: difference.inHours,
+              minutes: difference.inMinutes.remainder(60)),
         );
         return {
           'time':
-          "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
+              "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
           "isRed": '',
           "PlateNumb": "",
           "color": localizations.text_317
@@ -1827,7 +2065,8 @@ class _BusStopListState extends State<BusStopList>
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -1896,7 +2135,8 @@ class _BusStopListState extends State<BusStopList>
     );
   }
 
-  Widget _buildSortOption(String title, SortType type, IconData icon, Color color) {
+  Widget _buildSortOption(
+      String title, SortType type, IconData icon, Color color) {
     final isSelected = _sortNotifier.value == type;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

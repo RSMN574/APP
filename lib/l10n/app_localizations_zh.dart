@@ -2908,4 +2908,184 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get text_966 => '無法載入停車資訊，請稍後再試。';
+
+  @override
+  String get taxiPageTitle => 'Uber 計程車';
+
+  @override
+  String get taxiEstimatePending =>
+      '車資預估尚未開放；需先完成 Uber API 核准及安全的後端串接。你仍可前往 Uber App 填入行程。';
+
+  @override
+  String get taxiUseCurrentLocation => '使用目前位置作為上車地點';
+
+  @override
+  String get taxiPickupLocationReady => '已取得目前位置';
+
+  @override
+  String get taxiDestinationLabel => '目的地';
+
+  @override
+  String get taxiDestinationHint => '輸入地址或地標';
+
+  @override
+  String get taxiOpenUber => '在 Uber 中查看行程';
+
+  @override
+  String get taxiUberClientIdInfo =>
+      '需在建置時設定 Uber Developer Client ID：--dart-define=UBER_CLIENT_ID=你的ClientID。Client ID 不是密鑰；請勿將 Access Token 或 Client Secret 放入 App。';
+
+  @override
+  String get taxiLocationServicesDisabled => '請先開啟裝置定位服務。';
+
+  @override
+  String get taxiLocationPermissionDenied => '需要定位權限才能設定上車地點。';
+
+  @override
+  String get taxiLocationPermissionDeniedForever => '定位權限已永久拒絕，請至系統設定開啟。';
+
+  @override
+  String get taxiLocationUnavailable => '無法取得目前位置，請確認定位服務與權限後重試。';
+
+  @override
+  String get taxiDestinationRequired => '請輸入目的地。';
+
+  @override
+  String get taxiDestinationNotFound => '找不到目的地，請確認地址或地標。';
+
+  @override
+  String get taxiClientIdNotConfigured =>
+      '尚未設定 Uber Developer Client ID，暫時無法開啟行程連結。';
+
+  @override
+  String get taxiOpenUberFailed => '無法開啟 Uber 連結，請稍後再試。';
+
+  @override
+  String get authLoginTitle => '登入台灣通';
+
+  @override
+  String get authLoginDescription => '登入以同步你的帳戶資料；你也可以繼續以訪客身分使用 App。';
+
+  @override
+  String get authRegisterTitle => '建立帳戶';
+
+  @override
+  String get authRegisterDescription => '使用 Email 建立台灣通帳戶。';
+
+  @override
+  String get authForgotPassword => '忘記密碼？';
+
+  @override
+  String get authForgotPasswordTitle => '重設密碼';
+
+  @override
+  String get authForgotPasswordDescription => '輸入帳戶 Email，我們會寄送重設密碼連結。';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => '密碼';
+
+  @override
+  String get authConfirmPassword => '確認密碼';
+
+  @override
+  String get authLogin => '登入';
+
+  @override
+  String get authRegister => '註冊';
+
+  @override
+  String get authShowPassword => '顯示密碼';
+
+  @override
+  String get authHidePassword => '隱藏密碼';
+
+  @override
+  String get authLoading => '處理中…';
+
+  @override
+  String get authNoAccount => '還沒有帳戶？';
+
+  @override
+  String get authGoToRegister => '立即註冊';
+
+  @override
+  String get authHaveAccount => '已經有帳戶？';
+
+  @override
+  String get authBackToLogin => '返回登入';
+
+  @override
+  String get authValidationEmail => '請輸入有效的 Email 地址。';
+
+  @override
+  String get authValidationPasswordRequired => '請輸入密碼。';
+
+  @override
+  String get authValidationPasswordLength => '密碼至少需要 6 個字元。';
+
+  @override
+  String get authValidationPasswordMismatch => '兩次輸入的密碼不一致。';
+
+  @override
+  String get authSendResetEmail => '寄送重設連結';
+
+  @override
+  String get authResetEmailSent => '如果此 Email 已註冊，重設密碼信件將會寄出。請檢查收件匣。';
+
+  @override
+  String get authErrorInvalidEmail => 'Email 格式不正確。';
+
+  @override
+  String get authErrorUserDisabled => '此帳戶已停用，請聯絡支援人員。';
+
+  @override
+  String get authErrorInvalidCredentials => 'Email 或密碼不正確。';
+
+  @override
+  String get authErrorEmailInUse => '此 Email 已註冊，請改為登入。';
+
+  @override
+  String get authErrorWeakPassword => '密碼強度不足，請使用至少 6 個字元。';
+
+  @override
+  String get authErrorNotEnabled => '目前尚未啟用此登入方式，請稍後再試。';
+
+  @override
+  String get authErrorTooManyRequests => '嘗試次數過多，請稍後再試。';
+
+  @override
+  String get authErrorNetwork => '網路連線失敗，請檢查連線後重試。';
+
+  @override
+  String get authErrorUnavailable => '登入服務目前無法使用，請稍後再試。';
+
+  @override
+  String get authErrorUnknown => '無法完成要求，請稍後再試。';
+
+  @override
+  String get authErrorSignOut => '登出失敗，請稍後再試。';
+
+  @override
+  String get authAccountSection => '帳戶';
+
+  @override
+  String get authGuestAccount => '訪客模式';
+
+  @override
+  String get authGuestDescription => '目前未登入，仍可使用台灣通的交通功能。';
+
+  @override
+  String get authLoginOrRegister => '登入或建立帳戶';
+
+  @override
+  String get authSignOut => '登出';
+
+  @override
+  String get authEmailVerified => 'Email 已驗證';
+
+  @override
+  String get authEmailNotVerified => 'Email 尚未驗證';
 }

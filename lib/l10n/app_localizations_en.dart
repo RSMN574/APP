@@ -2953,4 +2953,204 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get text_966 =>
       'Unable to load parking information. Please try again.';
+
+  @override
+  String get taxiPageTitle => 'Uber rides';
+
+  @override
+  String get taxiEstimatePending =>
+      'Fare estimates are not available yet. Uber API approval and a secure backend integration are required. You can still continue to Uber to review your trip.';
+
+  @override
+  String get taxiUseCurrentLocation => 'Use current location as pickup';
+
+  @override
+  String get taxiPickupLocationReady => 'Current location is ready';
+
+  @override
+  String get taxiDestinationLabel => 'Destination';
+
+  @override
+  String get taxiDestinationHint => 'Enter an address or place';
+
+  @override
+  String get taxiOpenUber => 'Continue in Uber';
+
+  @override
+  String get taxiUberClientIdInfo =>
+      'Set your Uber Developer Client ID at build time with --dart-define=UBER_CLIENT_ID=your-client-id. A Client ID is not a secret; never put an Access Token or Client Secret in the app.';
+
+  @override
+  String get taxiLocationServicesDisabled => 'Turn on location services first.';
+
+  @override
+  String get taxiLocationPermissionDenied =>
+      'Location permission is required to set the pickup location.';
+
+  @override
+  String get taxiLocationPermissionDeniedForever =>
+      'Location permission was permanently denied. Enable it in system settings.';
+
+  @override
+  String get taxiLocationUnavailable =>
+      'Could not get your current location. Check location services and permission, then try again.';
+
+  @override
+  String get taxiDestinationRequired => 'Enter a destination.';
+
+  @override
+  String get taxiDestinationNotFound =>
+      'The destination could not be found. Check the address or place name.';
+
+  @override
+  String get taxiClientIdNotConfigured =>
+      'Uber Developer Client ID is not configured, so the ride link cannot be opened yet.';
+
+  @override
+  String get taxiOpenUberFailed =>
+      'Could not open the Uber link. Please try again.';
+
+  @override
+  String get authLoginTitle => 'Sign in to Taiwan Pass';
+
+  @override
+  String get authLoginDescription =>
+      'Sign in to sync your account. You can also keep using the app as a guest.';
+
+  @override
+  String get authRegisterTitle => 'Create account';
+
+  @override
+  String get authRegisterDescription =>
+      'Create a Taiwan Pass account with your email.';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authForgotPasswordTitle => 'Reset password';
+
+  @override
+  String get authForgotPasswordDescription =>
+      'Enter your account email and we will send you a password reset link.';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authConfirmPassword => 'Confirm password';
+
+  @override
+  String get authLogin => 'Sign in';
+
+  @override
+  String get authRegister => 'Register';
+
+  @override
+  String get authShowPassword => 'Show password';
+
+  @override
+  String get authHidePassword => 'Hide password';
+
+  @override
+  String get authLoading => 'Please wait…';
+
+  @override
+  String get authNoAccount => 'Don\'t have an account?';
+
+  @override
+  String get authGoToRegister => 'Create one';
+
+  @override
+  String get authHaveAccount => 'Already have an account?';
+
+  @override
+  String get authBackToLogin => 'Back to sign in';
+
+  @override
+  String get authValidationEmail => 'Enter a valid email address.';
+
+  @override
+  String get authValidationPasswordRequired => 'Enter your password.';
+
+  @override
+  String get authValidationPasswordLength =>
+      'Password must be at least 6 characters.';
+
+  @override
+  String get authValidationPasswordMismatch => 'The passwords do not match.';
+
+  @override
+  String get authSendResetEmail => 'Send reset link';
+
+  @override
+  String get authResetEmailSent =>
+      'If an account exists for this email, a password reset message has been sent. Check your inbox.';
+
+  @override
+  String get authErrorInvalidEmail => 'The email address is invalid.';
+
+  @override
+  String get authErrorUserDisabled =>
+      'This account has been disabled. Contact support.';
+
+  @override
+  String get authErrorInvalidCredentials =>
+      'The email or password is incorrect.';
+
+  @override
+  String get authErrorEmailInUse =>
+      'This email is already registered. Try signing in.';
+
+  @override
+  String get authErrorWeakPassword =>
+      'The password is too weak. Use at least 6 characters.';
+
+  @override
+  String get authErrorNotEnabled =>
+      'This sign-in method is not enabled yet. Please try again later.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Too many attempts. Please try again later.';
+
+  @override
+  String get authErrorNetwork =>
+      'Network connection failed. Check your connection and try again.';
+
+  @override
+  String get authErrorUnavailable =>
+      'The sign-in service is currently unavailable. Please try again later.';
+
+  @override
+  String get authErrorUnknown =>
+      'The request could not be completed. Please try again later.';
+
+  @override
+  String get authErrorSignOut => 'Could not sign out. Please try again later.';
+
+  @override
+  String get authAccountSection => 'Account';
+
+  @override
+  String get authGuestAccount => 'Guest mode';
+
+  @override
+  String get authGuestDescription =>
+      'You are signed out. Taiwan Pass transit features remain available.';
+
+  @override
+  String get authLoginOrRegister => 'Sign in or create an account';
+
+  @override
+  String get authSignOut => 'Sign out';
+
+  @override
+  String get authEmailVerified => 'Email verified';
+
+  @override
+  String get authEmailNotVerified => 'Email not verified';
 }

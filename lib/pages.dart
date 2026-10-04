@@ -11,7 +11,7 @@ import 'firebase/fcm.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/city.dart';
 import 'pages/mileage/mileage_page.dart';
-import 'pages/other/settings.dart';
+import 'features/settings/pages/settings_page.dart';
 
 class InfoPages extends StatelessWidget {
   @override

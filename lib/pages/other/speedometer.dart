@@ -32,7 +32,8 @@ class _SpeedometerPageState extends State<Speedometer> {
   final ValueNotifier<SpeedUnit> _selectedUnit = ValueNotifier(SpeedUnit.kmh);
   final ValueNotifier<int> _decimalPlaces = ValueNotifier(1);
   final ValueNotifier<double> _customSpeedLimit = ValueNotifier(50.0);
-  final ValueNotifier<ColorTheme> _selectedTheme = ValueNotifier(ColorTheme.racingRed);
+  final ValueNotifier<ColorTheme> _selectedTheme =
+      ValueNotifier(ColorTheme.racingRed);
   final ValueNotifier<bool> _showDigitalSpeed = ValueNotifier(true);
   final ValueNotifier<bool> _showAnalogNeedle = ValueNotifier(true);
   final ValueNotifier<bool> _enableHUD = ValueNotifier(false);
@@ -109,9 +110,11 @@ class _SpeedometerPageState extends State<Speedometer> {
   // 保存歷史記錄
   void _saveTripHistory() async {
     final prefs = await SharedPreferences.getInstance();
-    final history = _tripHistory.take(10).map((record) =>
-    '${record.speed}|${record.timestamp.toIso8601String()}|${record.location}'
-    ).toList();
+    final history = _tripHistory
+        .take(10)
+        .map((record) =>
+            '${record.speed}|${record.timestamp.toIso8601String()}|${record.location}')
+        .toList();
     await prefs.setStringList('tripHistory', history);
   }
 
@@ -242,7 +245,8 @@ class _SpeedometerPageState extends State<Speedometer> {
     final record = SpeedRecord(
       speed: speed,
       timestamp: DateTime.now(),
-      location: '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
+      location:
+          '${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
     );
     _tripHistory.insert(0, record);
     if (_tripHistory.length > 100) _tripHistory.removeLast();
@@ -381,13 +385,15 @@ class _SpeedometerPageState extends State<Speedometer> {
                   SizedBox(height: 20),
 
                   // 主儀表盤
-                  ValueListenableBuilder5<double, bool, double, SpeedUnit, ColorTheme>(
+                  ValueListenableBuilder5<double, bool, double, SpeedUnit,
+                      ColorTheme>(
                     first: _currentSpeed,
                     second: _isOverSpeed,
                     third: _speedAnimation,
                     fourth: _selectedUnit,
                     fifth: _selectedTheme,
-                    builder: (context, speed, overSpeed, animatedSpeed, unit, theme, _) {
+                    builder: (context, speed, overSpeed, animatedSpeed, unit,
+                        theme, _) {
                       return Container(
                         width: 350,
                         height: 350,
@@ -438,10 +444,15 @@ class _SpeedometerPageState extends State<Speedometer> {
                                           fontSize: 56,
                                           fontWeight: FontWeight.w900,
                                           fontFamily: 'Digital',
-                                          color: overSpeed ? _getThemeColor(theme) : Colors.white,
+                                          color: overSpeed
+                                              ? _getThemeColor(theme)
+                                              : Colors.white,
                                           shadows: [
                                             Shadow(
-                                              color: overSpeed ? _getThemeColor(theme).withOpacity(0.8) : Colors.black,
+                                              color: overSpeed
+                                                  ? _getThemeColor(theme)
+                                                      .withOpacity(0.8)
+                                                  : Colors.black,
                                               blurRadius: 30,
                                             ),
                                           ],
@@ -471,7 +482,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                                 color: _getThemeColor(theme),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: _getThemeColor(theme).withOpacity(0.8),
+                                    color:
+                                        _getThemeColor(theme).withOpacity(0.8),
                                     blurRadius: 20,
                                     spreadRadius: 5,
                                   ),
@@ -493,7 +505,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.7),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1),
+                      border: Border.all(
+                          color: Colors.grey.withOpacity(0.3), width: 1),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.5),
@@ -556,12 +569,14 @@ class _SpeedometerPageState extends State<Speedometer> {
                                   final duration = now.difference(startTime);
                                   return _DataCard(
                                     icon: Icons.timer,
-                                    title: AppLocalizations.of(context)!.text_475,
-                                    value: ValueNotifier(duration.inMinutes / 60.0), // 小時
+                                    title:
+                                        AppLocalizations.of(context)!.text_475,
+                                    value: ValueNotifier(
+                                        duration.inMinutes / 60.0), // 小時
                                     unit: ValueNotifier(SpeedUnit.kmh), // 不使用
                                     decimalPlaces: ValueNotifier(1),
                                     customFormatter: (value) =>
-                                    '${duration.inHours}h ${duration.inMinutes.remainder(60)}m',
+                                        '${duration.inHours}h ${duration.inMinutes.remainder(60)}m',
                                     theme: _selectedTheme,
                                   );
                                 },
@@ -581,7 +596,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                                 value: _altitude,
                                 unit: ValueNotifier(SpeedUnit.kmh),
                                 decimalPlaces: ValueNotifier(0),
-                                customFormatter: (double value) => '${value.toStringAsFixed(0)} m', // 明確指定 double
+                                customFormatter: (double value) =>
+                                    '${value.toStringAsFixed(0)} m', // 明確指定 double
                                 theme: _selectedTheme,
                               ),
                             ),
@@ -593,7 +609,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                                 value: _accuracy,
                                 unit: ValueNotifier(SpeedUnit.kmh),
                                 decimalPlaces: ValueNotifier(1),
-                                customFormatter: (double value) => '±${value.toStringAsFixed(1)} m', // 明確指定 double
+                                customFormatter: (double value) =>
+                                    '±${value.toStringAsFixed(1)} m', // 明確指定 double
                                 theme: _selectedTheme,
                               ),
                             ),
@@ -638,19 +655,24 @@ class _SpeedometerPageState extends State<Speedometer> {
                           color: Colors.green,
                           onPressed: () {
                             if (_lastPosition != null) {
-                              _recordSpeed(_currentSpeed.value, Position(
-                                latitude: _lastPosition!.latitude,
-                                longitude: _lastPosition!.longitude,
-                                timestamp: DateTime.now(),
-                                accuracy: 0,
-                                altitude: 0,
-                                heading: 0,
-                                speed: 0,
-                                speedAccuracy: 0, altitudeAccuracy: 0, headingAccuracy: 0,
-                              ));
+                              _recordSpeed(
+                                  _currentSpeed.value,
+                                  Position(
+                                    latitude: _lastPosition!.latitude,
+                                    longitude: _lastPosition!.longitude,
+                                    timestamp: DateTime.now(),
+                                    accuracy: 0,
+                                    altitude: 0,
+                                    heading: 0,
+                                    speed: 0,
+                                    speedAccuracy: 0,
+                                    altitudeAccuracy: 0,
+                                    headingAccuracy: 0,
+                                  ));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context)!.text_481),
+                                  content: Text(
+                                      AppLocalizations.of(context)!.text_481),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -729,7 +751,8 @@ class _SpeedometerPageState extends State<Speedometer> {
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: Text(AppLocalizations.of(context)!.text_482, style: TextStyle(color: Colors.white)),
+            title: Text(AppLocalizations.of(context)!.text_482,
+                style: TextStyle(color: Colors.white)),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -855,7 +878,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text(AppLocalizations.of(context)!.text_487, style: TextStyle(color: Colors.white)),
+                            Text(AppLocalizations.of(context)!.text_487,
+                                style: TextStyle(color: Colors.white)),
                           ],
                         ),
                         Row(
@@ -869,7 +893,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text(AppLocalizations.of(context)!.text_488, style: TextStyle(color: Colors.white)),
+                            Text(AppLocalizations.of(context)!.text_488,
+                                style: TextStyle(color: Colors.white)),
                           ],
                         ),
                         Row(
@@ -883,7 +908,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text('HUD警告', style: TextStyle(color: Colors.white)),
+                            Text('HUD警告',
+                                style: TextStyle(color: Colors.white)),
                           ],
                         ),
                       ],
@@ -892,7 +918,8 @@ class _SpeedometerPageState extends State<Speedometer> {
 
                   // 校準因子
                   _SettingsItem(
-                    title: '校準因子: ${_calibrationFactor.value.toStringAsFixed(3)}',
+                    title:
+                        '校準因子: ${_calibrationFactor.value.toStringAsFixed(3)}',
                     child: Slider(
                       value: _calibrationFactor.value,
                       min: 0.8,
@@ -915,7 +942,8 @@ class _SpeedometerPageState extends State<Speedometer> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(AppLocalizations.of(context)!.text_44, style: TextStyle(color: Colors.white)),
+                child: Text(AppLocalizations.of(context)!.text_44,
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           );
@@ -933,7 +961,8 @@ class _SpeedometerPageState extends State<Speedometer> {
           children: [
             Icon(Icons.history, color: Colors.white),
             SizedBox(width: 10),
-            Text(AppLocalizations.of(context)!.text_489, style: TextStyle(color: Colors.white)),
+            Text(AppLocalizations.of(context)!.text_489,
+                style: TextStyle(color: Colors.white)),
           ],
         ),
         content: Container(
@@ -941,72 +970,73 @@ class _SpeedometerPageState extends State<Speedometer> {
           height: 300,
           child: _tripHistory.isEmpty
               ? Center(
-            child: Text(
-              AppLocalizations.of(context)!.text_490,
-              style: TextStyle(color: Colors.white70),
-            ),
-          )
+                  child: Text(
+                    AppLocalizations.of(context)!.text_490,
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                )
               : ListView.builder(
-            itemCount: _tripHistory.length,
-            itemBuilder: (context, index) {
-              final record = _tripHistory[index];
-              return Container(
-                margin: EdgeInsets.only(bottom: 8),
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
+                  itemCount: _tripHistory.length,
+                  itemBuilder: (context, index) {
+                    final record = _tripHistory[index];
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 8),
+                      padding: EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _getThemeColor(_selectedTheme.value),
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
                       ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            '${record.speed.toStringAsFixed(_decimalPlaces.value)} ${_getUnitString(_selectedUnit.value)}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _getThemeColor(_selectedTheme.value),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            record.timestamp.toString().substring(0, 16),
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                          Text(
-                            record.location,
-                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          SizedBox(width: 15),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${record.speed.toStringAsFixed(_decimalPlaces.value)} ${_getUnitString(_selectedUnit.value)}',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  record.timestamp.toString().substring(0, 16),
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                                Text(
+                                  record.location,
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 12),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
         actions: [
           TextButton(
@@ -1016,11 +1046,13 @@ class _SpeedometerPageState extends State<Speedometer> {
               _saveTripHistory();
               Navigator.pop(context);
             },
-            child: Text(AppLocalizations.of(context)!.text_491, style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.text_491,
+                style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.text_44, style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.text_44,
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1032,7 +1064,8 @@ class _SpeedometerPageState extends State<Speedometer> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text(AppLocalizations.of(context)!.text_492, style: TextStyle(color: Colors.white)),
+        title: Text(AppLocalizations.of(context)!.text_492,
+            style: TextStyle(color: Colors.white)),
         content: Text(
           AppLocalizations.of(context)!.text_493,
           style: TextStyle(color: Colors.white70),
@@ -1040,7 +1073,8 @@ class _SpeedometerPageState extends State<Speedometer> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.text_36,
+                style: TextStyle(color: Colors.white)),
           ),
           TextButton(
             onPressed: () {
@@ -1053,7 +1087,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                 ),
               );
             },
-            child: Text(AppLocalizations.of(context)!.text_478, style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.text_478,
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1068,7 +1103,8 @@ class _SpeedometerPageState extends State<Speedometer> {
         builder: (context, setState) {
           return AlertDialog(
             backgroundColor: Colors.grey[900],
-            title: Text(AppLocalizations.of(context)!.text_495, style: TextStyle(color: Colors.white)),
+            title: Text(AppLocalizations.of(context)!.text_495,
+                style: TextStyle(color: Colors.white)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1084,7 +1120,8 @@ class _SpeedometerPageState extends State<Speedometer> {
                     labelStyle: TextStyle(color: Colors.white70),
                     border: OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: _getThemeColor(_selectedTheme.value)),
+                      borderSide: BorderSide(
+                          color: _getThemeColor(_selectedTheme.value)),
                     ),
                   ),
                   keyboardType: TextInputType.number,
@@ -1102,7 +1139,8 @@ class _SpeedometerPageState extends State<Speedometer> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(AppLocalizations.of(context)!.text_36, style: TextStyle(color: Colors.white)),
+                child: Text(AppLocalizations.of(context)!.text_36,
+                    style: TextStyle(color: Colors.white)),
               ),
               TextButton(
                 onPressed: () {
@@ -1111,7 +1149,9 @@ class _SpeedometerPageState extends State<Speedometer> {
                     Navigator.pop(context);
                   }
                 },
-                child: Text(AppLocalizations.of(context)!.text_479, style: TextStyle(color: _getThemeColor(_selectedTheme.value))),
+                child: Text(AppLocalizations.of(context)!.text_479,
+                    style:
+                        TextStyle(color: _getThemeColor(_selectedTheme.value))),
               ),
             ],
           );
@@ -1187,7 +1227,8 @@ class _DataCard extends StatelessWidget {
         if (customFormatter != null) {
           displayValue = customFormatter!(val);
         } else if (isDist) {
-          displayValue = '${val.toStringAsFixed(places)} ${_getDistanceUnit(unit)}';
+          displayValue =
+              '${val.toStringAsFixed(places)} ${_getDistanceUnit(unit)}';
         } else {
           displayValue = '${val.toStringAsFixed(places)}';
         }
@@ -1198,7 +1239,9 @@ class _DataCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.5),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isHighlighted ? color.withOpacity(0.5) : Colors.grey.withOpacity(0.3),
+              color: isHighlighted
+                  ? color.withOpacity(0.5)
+                  : Colors.grey.withOpacity(0.3),
               width: isHighlighted ? 2 : 1,
             ),
           ),
@@ -1436,8 +1479,8 @@ class _RacingSpeedometerPainter extends CustomPainter {
     canvas.drawCircle(center, radius - 20, innerRingPaint);
 
     // 4. 速度刻度 (240度範圍)
-    final double startAngle = -pi * 5/6; // 225度
-    final double sweepAngle = pi * 4/3;   // 240度
+    final double startAngle = -pi * 5 / 6; // 225度
+    final double sweepAngle = pi * 4 / 3; // 240度
     final double maxDisplaySpeed = _getMaxSpeedForUnit(unit);
     final Rect arcRect = Rect.fromCircle(center: center, radius: radius - 40);
 
@@ -1462,7 +1505,8 @@ class _RacingSpeedometerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 24
       ..strokeCap = StrokeCap.round;
-    canvas.drawArc(arcRect, startAngle, sweepAngle * progress, false, gradientArcPaint);
+    canvas.drawArc(
+        arcRect, startAngle, sweepAngle * progress, false, gradientArcPaint);
 
     // 6. 刻度線和數字
     final scalePaint = Paint()
@@ -1525,7 +1569,8 @@ class _RacingSpeedometerPainter extends CustomPainter {
 
     // 7. 最高速度標記
     if (maxSpeed > 0) {
-      double maxSpeedAngle = startAngle + (sweepAngle * maxSpeed / maxDisplaySpeed);
+      double maxSpeedAngle =
+          startAngle + (sweepAngle * maxSpeed / maxDisplaySpeed);
       final maxSpeedPaint = Paint()
         ..color = Colors.amber
         ..style = PaintingStyle.stroke
@@ -1553,7 +1598,8 @@ class _RacingSpeedometerPainter extends CustomPainter {
       final needlePaint = Paint()
         ..shader = LinearGradient(
           colors: [color, color.withOpacity(0.8)],
-        ).createShader(Rect.fromPoints(center, Offset(center.dx + 100, center.dy)))
+        ).createShader(
+            Rect.fromPoints(center, Offset(center.dx + 100, center.dy)))
         ..style = PaintingStyle.fill;
 
       // 精密指針設計
@@ -1721,7 +1767,8 @@ class ValueListenableBuilder5<A, B, C, D, E> extends StatelessWidget {
                     return ValueListenableBuilder<E>(
                       valueListenable: fifth,
                       builder: (context, valE, _____) {
-                        return builder(context, valA, valB, valC, valD, valE, null);
+                        return builder(
+                            context, valA, valB, valC, valD, valE, null);
                       },
                     );
                   },

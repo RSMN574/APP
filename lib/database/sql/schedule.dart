@@ -19,17 +19,17 @@ class ScheduleModel {
   final Map<String, dynamic>? other;
 
   ScheduleModel({
-     this.id,
+    this.id,
     required this.type,
     required this.route,
-     this.startingStopName,
+    this.startingStopName,
     this.userStartingStopName,
-     this.finalStopName,
+    this.finalStopName,
     this.userDestinationStopName,
     this.city,
     this.routeID,
     this.category,
-     this.time,
+    this.time,
     this.seatNumber,
     this.other,
   });
@@ -94,6 +94,7 @@ class ScheduleService {
     );
     return _db!;
   }
+
   // 初始化数据库的方法，通常用于应用启动时
   Future<void> initDatabase() async {
     await database; // 强制调用数据库初始化
@@ -194,8 +195,6 @@ class ScheduleService {
       if (m.userStartingStopName != null) {
         args.add(m.userStartingStopName!);
       }
-
-
     }
     if (m.userDestinationStopName != null) {
       whereClauses.add('UserDestinationStopName = ?');
@@ -309,12 +308,12 @@ class ScheduleService {
     );
   }
 
-
   /// 判斷是否有任何排程
   Future<bool> hasSchedule({String? type, String? route}) async {
     final list = await getSchedules(type: type, route: route);
     return list.isNotEmpty;
   }
+
   /// 🔴 清除資料表全部資料
   Future<void> clearDatabase() async {
     final db = await database;

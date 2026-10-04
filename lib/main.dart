@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:com.rsmn574.app/pages/ev_station.dart';
+import 'package:com.rsmn574.app/features/ev_charging/pages/ev_station_page.dart';
 import 'package:com.rsmn574.app/pages/other/speedometer.dart';
-import 'package:com.rsmn574.app/pages/parking.dart';
-import 'package:com.rsmn574.app/pages/traffic.dart';
+import 'package:com.rsmn574.app/features/parking/pages/parking_page.dart';
+import 'package:com.rsmn574.app/features/traffic/pages/traffic_page.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
@@ -17,12 +17,23 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:provider/single_child_widget.dart';
 
-import 'bike.dart';
 import 'const/regular_class.dart';
 import 'const/regular_const.dart';
-import 'pages/hsr/hsr.dart';
-import 'intercity_bus.dart';
-import 'commute.dart';
+import 'features/airport/pages/airport_page.dart';
+import 'features/auth/data/repositories/firebase_auth_repository.dart';
+import 'features/auth/data/repositories/unavailable_auth_repository.dart';
+import 'features/auth/pages/login_page.dart';
+import 'features/auth/state/auth_provider.dart';
+import 'features/bus/pages/bus_page.dart';
+import 'features/bus/pages/intercity_bus_page.dart';
+import 'features/metro/pages/metro_page.dart';
+import 'features/notification/pages/notification_page.dart';
+import 'features/railway/pages/commute_page.dart';
+import 'features/railway/pages/hsr_page.dart';
+import 'features/railway/pages/train_page.dart';
+import 'features/taxi/pages/taxi_page.dart';
+import 'features/taxi/state/taxi_provider.dart';
+import 'features/youbike/pages/bike_page.dart';
 import 'database/sql/schedule.dart';
 import 'database/sql/sqlite.dart';
 import 'database/get_data.dart';
@@ -34,18 +45,16 @@ import 'widget/geolocator.dart';
 import 'pages.dart';
 import 'home.dart';
 import 'pages/near_stop.dart';
-import 'pages/notification.dart';
-import 'plane.dart';
-import 'metro.dart';
-import 'pages/train/train.dart';
-import 'pages/bus/bus.dart';
 import 'features/bus/state/bus_provider.dart';
 import 'package:logging/logging.dart';
+import 'features/metro/state/metro_provider.dart';
 
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('zh'));
 
 class AppInitializer {
+  static bool firebaseInitialized = false;
+
   static Future<void> initialize() async {
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
@@ -60,6 +69,7 @@ class AppInitializer {
     try {
       await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform);
+      firebaseInitialized = true;
       await requestPermission();
       await initializeNotifications();
       setupForegroundMessageHandler();
@@ -80,7 +90,10 @@ class AppInitializer {
 }
 
 class ProviderSetup {
-  static List<SingleChildWidget> getProviders(AppProvider appProvider) {
+  static List<SingleChildWidget> getProviders(
+    AppProvider appProvider, {
+    required bool firebaseInitialized,
+  }) {
     return [
       ChangeNotifierProvider(create: (_) => CityProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
@@ -88,6 +101,14 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
       ChangeNotifierProvider.value(value: appProvider),
       ChangeNotifierProvider(create: (_) => BusProvider()),
+      ChangeNotifierProvider<AuthProvider>(
+        lazy: false,
+        create: (_) => AuthProvider(
+          repository: firebaseInitialized
+              ? FirebaseAuthRepository()
+              : const UnavailableAuthRepository(),
+        ),
+      ),
     ];
   }
 }
@@ -107,6 +128,8 @@ class AppRoutes {
   static const String parking = "parking";
   static const String traffic = "traffic";
   static const String speedometer = "speedometer";
+  static const String taxi = "taxi";
+  static const String authLogin = "/auth/login";
 }
 
 void main() async {
@@ -115,7 +138,10 @@ void main() async {
   await AppInitializer.initialize();
 
   runApp(MultiProvider(
-    providers: ProviderSetup.getProviders(appProvider),
+    providers: ProviderSetup.getProviders(
+      appProvider,
+      firebaseInitialized: AppInitializer.firebaseInitialized,
+    ),
     child: const NavigationBarApp(),
   ));
 }
@@ -186,7 +212,10 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           routes: {
             AppRoutes.plane: (BuildContext context) => (Plane()),
             AppRoutes.train: (BuildContext context) => (Train()),
-            AppRoutes.metro: (BuildContext context) => (Metro()),
+            AppRoutes.metro: (BuildContext context) => ChangeNotifierProvider(
+                  create: (_) => MetroProvider(),
+                  child: const Metro(),
+                ),
             AppRoutes.bus: (BuildContext context) => (const Bus()),
             AppRoutes.notification: (BuildContext context) =>
                 (NotificationPage()),
@@ -199,6 +228,11 @@ class _NavigationBarAppState extends State<NavigationBarApp>
             AppRoutes.parking: (BuildContext context) => (Parking()),
             AppRoutes.traffic: (BuildContext context) => (Traffic()),
             AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
+            AppRoutes.taxi: (BuildContext context) => ChangeNotifierProvider(
+                  create: (_) => TaxiProvider(),
+                  child: const TaxiPage(),
+                ),
+            AppRoutes.authLogin: (BuildContext context) => const LoginPage(),
           },
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,

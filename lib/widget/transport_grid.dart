@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_svg/svg.dart';
-import 'package:com.rsmn574.app/pages/bus/bus.dart';
+import 'package:com.rsmn574.app/features/bus/pages/bus_page.dart';
 // 保持原有的 import
 import '../const/regular_class.dart';
 import '../l10n/app_localizations.dart';
 import '../test.dart';
-import 'package:provider/provider.dart' ;
+import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
+
 class TransportGrid extends StatefulWidget {
   final Function(String) onClick;
   const TransportGrid({super.key, required this.onClick});
@@ -21,16 +22,56 @@ class _TransportGridState extends State<TransportGrid> {
   int _currentPage = 0;
 
   late final List<Map<String, String>> transportOptions = [
-    {'icon': 'assets/icons/airplane-outline.svg', 'text': AppLocalizations.of(context)!.text_589, 'route': 'plane'},
-    {'icon': 'assets/icons/tram.svg', 'text': AppLocalizations.of(context)!.text_585, 'route': 'train'},
-    {'icon': 'assets/icons/bus-outline.svg', 'text': AppLocalizations.of(context)!.text_588, 'route': 'bus'},
-    {'icon': 'assets/icons/subway-outline.svg', 'text': AppLocalizations.of(context)!.text_587, 'route': 'metro'},
-    {'icon': 'assets/icons/train-outline.svg', 'text': AppLocalizations.of(context)!.text_586, 'route': 'HSR'},
-    {'icon': 'assets/icons/bicycle-outline.svg', 'text': 'Ubike', 'route': 'bike'},
-    {'icon': 'assets/icons/car.svg', 'text': AppLocalizations.of(context)!.text_691, 'route': 'taxi'},
-    {'icon': 'assets/icons/bus-outline.svg', 'text': AppLocalizations.of(context)!.text_590, 'route': 'IntercityBus'},
-    {'icon': 'assets/icons/parking.svg', 'text': AppLocalizations.of(context)!.text_497, 'route': 'parking'},
-    {'icon': 'assets/icons/ev-station.svg', 'text': AppLocalizations.of(context)!.text_523, 'route': 'EVStation'},
+    {
+      'icon': 'assets/icons/airplane-outline.svg',
+      'text': AppLocalizations.of(context)!.text_589,
+      'route': 'plane'
+    },
+    {
+      'icon': 'assets/icons/tram.svg',
+      'text': AppLocalizations.of(context)!.text_585,
+      'route': 'train'
+    },
+    {
+      'icon': 'assets/icons/bus-outline.svg',
+      'text': AppLocalizations.of(context)!.text_588,
+      'route': 'bus'
+    },
+    {
+      'icon': 'assets/icons/subway-outline.svg',
+      'text': AppLocalizations.of(context)!.text_587,
+      'route': 'metro'
+    },
+    {
+      'icon': 'assets/icons/train-outline.svg',
+      'text': AppLocalizations.of(context)!.text_586,
+      'route': 'HSR'
+    },
+    {
+      'icon': 'assets/icons/bicycle-outline.svg',
+      'text': 'Ubike',
+      'route': 'bike'
+    },
+    {
+      'icon': 'assets/icons/car.svg',
+      'text': AppLocalizations.of(context)!.text_691,
+      'route': 'taxi'
+    },
+    {
+      'icon': 'assets/icons/bus-outline.svg',
+      'text': AppLocalizations.of(context)!.text_590,
+      'route': 'IntercityBus'
+    },
+    {
+      'icon': 'assets/icons/parking.svg',
+      'text': AppLocalizations.of(context)!.text_497,
+      'route': 'parking'
+    },
+    {
+      'icon': 'assets/icons/ev-station.svg',
+      'text': AppLocalizations.of(context)!.text_523,
+      'route': 'EVStation'
+    },
     // {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
     // {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
     // {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
@@ -50,7 +91,6 @@ class _TransportGridState extends State<TransportGrid> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -69,7 +109,8 @@ class _TransportGridState extends State<TransportGrid> {
               height: 220, // 稍微壓縮高度使視覺更緊湊
               child: PageView.builder(
                 controller: _pageController,
-                onPageChanged: (int page) => setState(() => _currentPage = page),
+                onPageChanged: (int page) =>
+                    setState(() => _currentPage = page),
                 itemCount: totalPages,
                 itemBuilder: (context, pageIndex) {
                   final start = pageIndex * itemsPerPage;
@@ -110,13 +151,17 @@ class _TransportGridState extends State<TransportGrid> {
     );
   }
 
-  Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
+  Widget _buildTransportCard(BuildContext context, String icon, String text,
+      String route, double iconSize) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 動態定義顏色
     final Color primaryColor = Theme.of(context).colorScheme.primary;
-    final Color iconColor = isDark ? Theme.of(context).colorScheme.primaryContainer : Colors.blue.shade800;
-    final Color textColor = isDark ? Colors.white.withOpacity(0.9) : Colors.blueGrey.shade800;
+    final Color iconColor = isDark
+        ? Theme.of(context).colorScheme.primaryContainer
+        : Colors.blue.shade800;
+    final Color textColor =
+        isDark ? Colors.white.withOpacity(0.9) : Colors.blueGrey.shade800;
 
     return InkWell(
       onTap: () => _onTransportTap(context, route, text),
@@ -134,8 +179,14 @@ class _TransportGridState extends State<TransportGrid> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: isDark
-                    ? [primaryColor.withOpacity(0.15), primaryColor.withOpacity(0.02)]
-                    : [Colors.blue.withOpacity(0.08), Colors.blue.withOpacity(0.03)],
+                    ? [
+                        primaryColor.withOpacity(0.15),
+                        primaryColor.withOpacity(0.02)
+                      ]
+                    : [
+                        Colors.blue.withOpacity(0.08),
+                        Colors.blue.withOpacity(0.03)
+                      ],
               ),
               shape: BoxShape.circle,
             ),
@@ -146,8 +197,7 @@ class _TransportGridState extends State<TransportGrid> {
               // 深色模式下圖示用 primary 或較亮的藍，避免看不見
               colorFilter: ColorFilter.mode(
                   isDark ? primaryColor : Colors.blue.shade700,
-                  BlendMode.srcIn
-              ),
+                  BlendMode.srcIn),
             ),
           ),
           const SizedBox(height: 4),
@@ -170,12 +220,13 @@ class _TransportGridState extends State<TransportGrid> {
       ),
     );
   }
+
   Widget _buildPageIndicator(int totalPages) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         totalPages,
-            (index) => AnimatedContainer(
+        (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: _currentPage == index ? 18 : 6,
           height: 6,
@@ -195,7 +246,8 @@ class _TransportGridState extends State<TransportGrid> {
   void _onTransportTap(BuildContext context, String route, String text) {
     debugPrint("$text 頁面跳轉");
     if (route == "bus") {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const Bus()));
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Bus()));
     } else if (route == "bike") {
       widget.onClick("bike");
     } else {

@@ -159,10 +159,10 @@ class _MileagePageState extends State<MileagePage> {
   }
 
   Future<double> _calculateMileage(
-      String origin,
-      String destination,
-      RailOperator operator,
-      ) async {
+    String origin,
+    String destination,
+    RailOperator operator,
+  ) async {
     final stationTable = operator == RailOperator.hsr
         ? 'HSR.HSR_Station'
         : 'Train.Train_Station';
@@ -176,15 +176,26 @@ class _MileagePageState extends State<MileagePage> {
     // 優先使用營業里程計算
     if (operator == RailOperator.hsr) {
       final hsrMileage = {
-        '南港': 0.0, '台北': 9.2, '板橋': 16.3, '桃園': 42.3, '新竹': 72.2,
-        '苗栗': 102.8, '台中': 165.7, '彰化': 193.9, '雲林': 218.5,
-        '嘉義': 251.6, '台南': 311.1, '左營': 339.3
+        '南港': 0.0,
+        '台北': 9.2,
+        '板橋': 16.3,
+        '桃園': 42.3,
+        '新竹': 72.2,
+        '苗栗': 102.8,
+        '台中': 165.7,
+        '彰化': 193.9,
+        '雲林': 218.5,
+        '嘉義': 251.6,
+        '台南': 311.1,
+        '左營': 339.3
       };
 
       String? oName, dName;
       hsrMileage.forEach((name, _) {
-        if (originStation['StationName'].toString().contains(name)) oName = name;
-        if (destinationStation['StationName'].toString().contains(name)) dName = name;
+        if (originStation['StationName'].toString().contains(name))
+          oName = name;
+        if (destinationStation['StationName'].toString().contains(name))
+          dName = name;
       });
 
       if (oName != null && dName != null) {
@@ -203,7 +214,7 @@ class _MileagePageState extends State<MileagePage> {
     // 回退方案：使用球面距離計算（直線距離）
     final originPosition = _readPosition(originStation['StationPosition']);
     final destinationPosition =
-    _readPosition(destinationStation['StationPosition']);
+        _readPosition(destinationStation['StationPosition']);
     return _distanceInKm(
       originPosition.latitude,
       originPosition.longitude,
@@ -212,17 +223,19 @@ class _MileagePageState extends State<MileagePage> {
     );
   }
 
-  Future<double?> _getTraBusinessMileage(String originId, String destinationId) async {
+  Future<double?> _getTraBusinessMileage(
+      String originId, String destinationId) async {
     try {
       // 從資料庫獲取營業里程數據 (staMil)
       final rows = await mysqlSelect(
-          "SELECT fkSta, staMil FROM Train.Train_Mileage WHERE fkSta IN ('$originId', '$destinationId')"
-      );
+          "SELECT fkSta, staMil FROM Train.Train_Mileage WHERE fkSta IN ('$originId', '$destinationId')");
       if (rows != null && rows.length >= 2) {
         double? oMil, dMil;
         for (var row in rows) {
-          if (row['fkSta'] == originId) oMil = double.tryParse(row['staMil'].toString());
-          if (row['fkSta'] == destinationId) dMil = double.tryParse(row['staMil'].toString());
+          if (row['fkSta'] == originId)
+            oMil = double.tryParse(row['staMil'].toString());
+          if (row['fkSta'] == destinationId)
+            dMil = double.tryParse(row['staMil'].toString());
         }
         if (oMil != null && dMil != null) return (dMil - oMil).abs();
       }
@@ -230,14 +243,15 @@ class _MileagePageState extends State<MileagePage> {
     return null;
   }
 
-  Future<Map<String, dynamic>?> _findStation(String table, String keyword) async {
+  Future<Map<String, dynamic>?> _findStation(
+      String table, String keyword) async {
     final escaped = keyword.replaceAll("'", "''");
     final rows = await mysqlSelect(
       "SELECT StationID, StationName, StationPosition FROM $table "
-          "WHERE StationID = '$escaped' "
-          "OR JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$escaped%' "
-          "OR JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$escaped%' "
-          "LIMIT 1;",
+      "WHERE StationID = '$escaped' "
+      "OR JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$escaped%' "
+      "OR JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$escaped%' "
+      "LIMIT 1;",
     );
     if (rows == null || rows.isEmpty) return null;
     return Map<String, dynamic>.from(rows.first);
@@ -302,18 +316,18 @@ class _MileagePageState extends State<MileagePage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-        onRefresh: _loadRecords,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildSummary(),
-            const SizedBox(height: 16),
-            _buildInputPanel(),
-            const SizedBox(height: 16),
-            _buildRecordList(),
-          ],
-        ),
-      ),
+              onRefresh: _loadRecords,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildSummary(),
+                  const SizedBox(height: 16),
+                  _buildInputPanel(),
+                  const SizedBox(height: 16),
+                  _buildRecordList(),
+                ],
+              ),
+            ),
     );
   }
 
@@ -488,10 +502,10 @@ class _MileagePageState extends State<MileagePage> {
                   onPressed: _isSaving ? null : _addRecord,
                   icon: _isSaving
                       ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Icon(Icons.add_rounded),
                   label: const Text('新增紀錄'),
                 ),
@@ -720,7 +734,7 @@ class MileageRecord {
     return MileageRecord(
       id: json['id'],
       operator: RailOperator.values.firstWhere(
-            (item) => item.name == json['operator'],
+        (item) => item.name == json['operator'],
         orElse: () => RailOperator.tra,
       ),
       origin: json['origin'],
