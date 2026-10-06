@@ -3088,4 +3088,140 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authEmailNotVerified => 'Email 尚未驗證';
+
+  @override
+  String nearStopLoadError(String error) {
+    return '??: $error';
+  }
+
+  @override
+  String nearStopSaved(String stop) {
+    return '$stop?????';
+  }
+
+  @override
+  String nearStopAlreadySaved(String stop) {
+    return '$stop??????????????';
+  }
+
+  @override
+  String nearStopLabel(String label) {
+    return '?? $label';
+  }
+
+  @override
+  String nearStopMinutes(String minutes) {
+    return '$minutes ??';
+  }
+
+  @override
+  String get nearStopSortAsc => '?? 1?10';
+
+  @override
+  String get nearStopSortDesc => '?? 10?1';
+
+  @override
+  String nearStopTo(String destination) {
+    return '往 $destination';
+  }
+
+  @override
+  String get authErrorRecentLogin => '為了安全，請輸入密碼確認身分後再試。';
+
+  @override
+  String get authErrorStorage => '雲端資料處理失敗，請稍後再試。';
+
+  @override
+  String get profileTitle => '個人帳號';
+
+  @override
+  String get profileViewProfile => '檢視個人資料';
+
+  @override
+  String get profileDisplayName => '暱稱';
+
+  @override
+  String get profileDisplayNameHint => '請輸入暱稱';
+
+  @override
+  String get profileChangeAvatar => '更換頭像';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profileCreatedAt => '帳號建立時間';
+
+  @override
+  String get profileLastSignIn => '最後登入時間';
+
+  @override
+  String get profileLoginMethod => '登入方式';
+
+  @override
+  String get profileProviderPassword => 'Email / 密碼';
+
+  @override
+  String get profileProviderGoogle => 'Google';
+
+  @override
+  String get profileProviderApple => 'Apple';
+
+  @override
+  String get profileProviderOther => '其他';
+
+  @override
+  String get profileSave => '儲存';
+
+  @override
+  String get profileSaved => '個人資料已更新';
+
+  @override
+  String get profileUnknown => '未知';
+
+  @override
+  String get profileSyncSection => '跨裝置同步';
+
+  @override
+  String get profileSyncNow => '立即同步行程';
+
+  @override
+  String get profileSyncing => '同步中…';
+
+  @override
+  String get profileSyncFailed => '同步失敗，請檢查網路後再試。';
+
+  @override
+  String get profileSyncNever => '尚未同步';
+
+  @override
+  String profileLastSynced(String time) {
+    return '上次同步：$time';
+  }
+
+  @override
+  String profileSyncResult(String up, String down) {
+    return '上傳 $up 筆、下載 $down 筆';
+  }
+
+  @override
+  String get profileDeleteAccount => '刪除帳號';
+
+  @override
+  String get profileDeleteTitle => '確定要刪除帳號？';
+
+  @override
+  String get profileDeleteBody => '帳號、頭像與雲端同步的行程將被永久刪除，無法復原。本機資料不受影響。';
+
+  @override
+  String get profileDeletePassword => '請輸入密碼以確認';
+
+  @override
+  String get profileDeleteConfirm => '永久刪除';
+
+  @override
+  String get profileCancel => '取消';
+
+  @override
+  String get profileDeleted => '帳號已刪除';
 }

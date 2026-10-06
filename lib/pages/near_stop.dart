@@ -38,12 +38,23 @@ final ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
 final ValueNotifier<String> _selectStationGroupID = ValueNotifier<String>('');
 final ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
 final ValueNotifier<String> _stopName = ValueNotifier<String>('');
+String _stopNameEn = '';
 final ValueNotifier<String> _tabSelect = ValueNotifier<String>('bus');
 final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
 final ValueNotifier<SortType> _sortNotifier =
     ValueNotifier<SortType>(SortType.timeAsc);
 
 final GlobalKey<_NearbyStationsPageState> mapKey = GlobalKey();
+
+String _localizedName(BuildContext context, dynamic names,
+    {String fallback = ''}) {
+  if (names is! Map) return fallback;
+  final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+  final preferred = names[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
+  if (preferred.trim().isNotEmpty) return preferred;
+  final other = names[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
+  return other.trim().isNotEmpty ? other : fallback;
+}
 
 class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
@@ -81,6 +92,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     super.initState();
     _busInit();
     _tabSelect.addListener(_handleTabSelectChange);
+    _selectStationID.addListener(_updateMarkerStyle);
   }
 
   void _busInit() async {
@@ -103,6 +115,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         return {
           "stationID": station["StationID"].toString(),
           "stationNameZh": (station["StationName"])["Zh_tw"] ?? "Unknown",
+          "stationNameEn": (station["StationName"])["En"] ?? "",
           "positionLat": (station["StationPosition"])["PositionLat"],
           "positionLon": (station["StationPosition"])["PositionLon"],
         };
@@ -114,6 +127,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         return {
           "stationID": station["StationID"].toString(),
           "stationNameZh": nameMap["Zh_tw"] ?? "Unknown",
+          "stationNameEn": nameMap["En"] ?? "",
           "positionLat": posMap["PositionLat"],
           "positionLon": posMap["PositionLon"],
         };
@@ -162,10 +176,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   @override
   void dispose() {
     _tabSelect.removeListener(_handleTabSelectChange);
+    _selectStationID.removeListener(_updateMarkerStyle);
     _scrollController.dispose();
     _markerProvider?.setMarkers({});
     super.dispose();
   }
+
+  int _markerTapSeq = 0;
 
   Future<void> _loadBusMarkers(List<Station>? stations) async {
     if (stations == null || stations.isEmpty) {
@@ -180,16 +197,21 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         markerId: MarkerId(station.stationID),
         position: LatLng(station.positionLat, station.positionLon),
         infoWindow: InfoWindow(
-          title: station.stationNameZh,
+          title: _localizedName(context, {
+            "Zh_tw": station.stationNameZh,
+            "En": station.stationNameEn,
+          }),
           snippet: station.stationID,
         ),
         onTap: () async {
           final stopName = station.stationNameZh;
           final stopID = station.stationID;
           final stationGroupID = station.stationGroupID;
+          final tapSeq = ++_markerTapSeq;
 
           try {
             final data = await BusStopCache().getBusStopInfo(stopName);
+            if (tapSeq != _markerTapSeq) return;
             final stationIDs = data
                 .map((item) => item['StationID']?.toString())
                 .whereType<String>()
@@ -204,12 +226,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               _selectStationID.value = stopID;
             } else {
               _stopName.value = stopName;
-              _selectStationID.value = stopID;
+              _stopNameEn = station.stationNameEn;
               _selectStationGroupID.value = stationGroupID;
               _stationIDs.value = stationIDs;
+              _selectStationID.value = stopID;
             }
 
-            _updateMarkerStyle();
             _indexNotifier.value = 1;
 
             _mapController?.animateCamera(
@@ -228,6 +250,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       markers.add(marker);
     }
     _markers.value = markers;
+    _updateMarkerStyle();
   }
 
   bool _isSameStationGroup(List<String>? oldList, List<String>? newList) {
@@ -264,7 +287,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       if (station is! Map<String, dynamic>) continue;
 
       final stationID = station["stationID"]?.toString();
-      final stationNameZh = station["stationNameZh"] ?? "Unknown";
+      final stationName = _localizedName(context, {
+        "Zh_tw": station["stationNameZh"] ?? "Unknown",
+        "En": station["stationNameEn"],
+      });
       final positionLat = station["positionLat"];
       final positionLon = station["positionLon"];
 
@@ -275,7 +301,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
         markerId: MarkerId(stationID),
         position: LatLng(positionLat, positionLon),
         infoWindow: InfoWindow(
-          title: stationNameZh,
+          title: stationName,
           snippet: stationID,
         ),
       );
@@ -375,7 +401,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.5),
                             borderRadius: BorderRadius.circular(2.5),
                           ),
                         ),
@@ -383,8 +412,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     ),
                     Container(
                       height: 800,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(16)),
                       ),
@@ -433,7 +462,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                       child:
                                                           LoadingAnimationWidget
                                                               .stretchedDots(
-                                                        color: Colors.black,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurface,
                                                         size: 40,
                                                       ),
                                                     ),
@@ -453,10 +484,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           AppLocalizations.of(
                                                                   context)!
                                                               .text_419,
-                                                          style:
-                                                              const TextStyle(
-                                                            color:
-                                                                Colors.black54,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
                                                             fontSize: 16,
                                                             fontWeight:
                                                                 FontWeight.w500,
@@ -468,10 +500,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           onPressed: () {
                                                             _updateFutureNearStations();
                                                           },
-                                                          icon: const Icon(
+                                                          icon: Icon(
                                                               Icons.refresh,
-                                                              color:
-                                                                  Colors.black),
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSurface),
                                                           label: Text(
                                                             AppLocalizations.of(
                                                                     context)!
@@ -484,9 +518,15 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           style: ElevatedButton
                                                               .styleFrom(
                                                             backgroundColor:
-                                                                Colors.white,
+                                                                Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .surface,
                                                             foregroundColor:
-                                                                Colors.black,
+                                                                Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .onSurface,
                                                             elevation: 3,
                                                             padding:
                                                                 const EdgeInsets
@@ -520,10 +560,15 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                               Map<String,
                                                                   dynamic>>>
                                                       groupedStations = {};
+                                                  final Map<String, String>
+                                                      stationNamesEn = {};
                                                   for (var station
                                                       in snapshot.data!) {
                                                     String stationName =
                                                         station.stationNameZh;
+                                                    stationNamesEn[
+                                                            stationName] ??=
+                                                        station.stationNameEn;
                                                     if (!groupedStations
                                                         .containsKey(
                                                             stationName)) {
@@ -543,7 +588,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     return {
                                                       "StationGroup": {
                                                         "StationGroupName": {
-                                                          "Zh_tw": entry.key
+                                                          "Zh_tw": entry.key,
+                                                          "En": stationNamesEn[
+                                                              entry.key]
                                                         },
                                                         "Stations": entry.value
                                                       }
@@ -573,8 +620,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                       AppLocalizations.of(
                                                               context)!
                                                           .text_419,
-                                                      style: const TextStyle(
-                                                          color: Colors.grey,
+                                                      style: TextStyle(
+                                                          color: Theme.of(
+                                                                  context)
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
                                                           fontSize: 16),
                                                     ),
                                                   ),
@@ -600,7 +650,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     child:
                                                         LoadingAnimationWidget
                                                             .stretchedDots(
-                                                      color: Colors.black,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
                                                       size: 40,
                                                     ),
                                                   );
@@ -617,10 +669,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           AppLocalizations.of(
                                                                   context)!
                                                               .text_419,
-                                                          style:
-                                                              const TextStyle(
-                                                            color:
-                                                                Colors.black54,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
                                                             fontSize: 16,
                                                             fontWeight:
                                                                 FontWeight.w500,
@@ -632,10 +685,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           onPressed: () {
                                                             setState(() {});
                                                           },
-                                                          icon: const Icon(
+                                                          icon: Icon(
                                                               Icons.refresh,
-                                                              color:
-                                                                  Colors.black),
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSurface),
                                                           label: Text(
                                                             AppLocalizations.of(
                                                                     context)!
@@ -663,8 +718,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                         AppLocalizations.of(
                                                                 context)!
                                                             .text_419,
-                                                        style: const TextStyle(
-                                                            color: Colors.grey,
+                                                        style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
                                                             fontSize: 16),
                                                       ),
                                                     ),
@@ -701,7 +759,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     child:
                                                         LoadingAnimationWidget
                                                             .stretchedDots(
-                                                      color: Colors.black,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
                                                       size: 40,
                                                     ),
                                                   );
@@ -716,10 +776,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           AppLocalizations.of(
                                                                   context)!
                                                               .text_419,
-                                                          style:
-                                                              const TextStyle(
-                                                            color:
-                                                                Colors.black54,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
                                                             fontSize: 16,
                                                             fontWeight:
                                                                 FontWeight.w500,
@@ -731,10 +792,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           onPressed: () {
                                                             setState(() {});
                                                           },
-                                                          icon: const Icon(
+                                                          icon: Icon(
                                                               Icons.refresh,
-                                                              color:
-                                                                  Colors.black),
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSurface),
                                                           label: Text(
                                                             AppLocalizations.of(
                                                                     context)!
@@ -785,6 +848,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                                     stationName:
                                                                         nameMap[
                                                                             "Zh_tw"],
+                                                                    stationNameEn:
+                                                                        nameMap["En"]?.toString() ??
+                                                                            '',
                                                                     stationID:
                                                                         station[
                                                                             "StationID"],
@@ -836,8 +902,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                                         .start,
                                                                 children: [
                                                                   Text(
-                                                                    nameMap[
-                                                                        "Zh_tw"],
+                                                                    _localizedName(
+                                                                        context,
+                                                                        nameMap),
                                                                     style:
                                                                         const TextStyle(
                                                                       fontSize:
@@ -877,8 +944,11 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                         AppLocalizations.of(
                                                                 context)!
                                                             .text_419,
-                                                        style: const TextStyle(
-                                                            color: Colors.grey,
+                                                        style: TextStyle(
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
                                                             fontSize: 16),
                                                       ),
                                                     ),
@@ -929,13 +999,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   },
                   borderRadius: BorderRadius.circular(50),
                   splashColor: const Color(0xFF1A73E8).withOpacity(0.2),
-                  highlightColor: const Color(0xFFEEF3FB),
+                  highlightColor:
+                      Theme.of(context).colorScheme.primaryContainer,
                   child: Container(
                     width: 56,
                     height: 56,
                     padding: const EdgeInsets.all(14.0),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(50),
                       boxShadow: [
                         BoxShadow(
@@ -945,7 +1016,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                         ),
                       ],
                       border: Border.all(
-                        color: const Color(0xFFEEF3FB),
+                        color: Theme.of(context).colorScheme.primaryContainer,
                         width: 1,
                       ),
                     ),
@@ -985,7 +1056,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
       );
 
       _stopName.value = station["StationGroup"]["StationGroupName"]["Zh_tw"];
+      _stopNameEn =
+          station["StationGroup"]["StationGroupName"]["En"]?.toString() ?? '';
       _stationIDs.value = stationIDs;
+      _selectStationID.value = stationIDs.isEmpty ? '' : stationIDs.first;
       _indexNotifier.value = 1;
     }
 
@@ -1006,12 +1080,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             onTap: onCardTap,
             borderRadius: BorderRadius.circular(16),
             splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-            highlightColor: const Color(0xFFEEF3FB).withOpacity(0.5),
+            highlightColor:
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -1046,11 +1121,12 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          station["StationGroup"]["StationGroupName"]["Zh_tw"],
-                          style: const TextStyle(
+                          _localizedName(context,
+                              station["StationGroup"]["StationGroupName"]),
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1061,13 +1137,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -1096,17 +1173,18 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             ),
           );
           _stopName.value = station.stationName.zhTw;
+          _stopNameEn = station.stationName.en ?? '';
           _stationIDs.value = [station.stationID];
           _indexNotifier.value = 1;
         },
         borderRadius: BorderRadius.circular(16),
         splashColor: const Color(0xFF34C759).withOpacity(0.1),
-        highlightColor: const Color(0xFFEAF7EF),
+        highlightColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -1137,11 +1215,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      station.stationName.zhTw,
-                      style: const TextStyle(
+                      _localizedName(context, {
+                        "Zh_tw": station.stationName.zhTw,
+                        "En": station.stationName.en,
+                      }),
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1152,7 +1233,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                         station.stationName.en,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
@@ -1165,13 +1246,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: Colors.grey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1186,7 +1267,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     if (_tabSelect.value == "bus") {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: PrimaryScrollController(
@@ -1200,7 +1281,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     } else if (_tabSelect.value == "metro") {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: PrimaryScrollController(
@@ -1213,7 +1294,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     } else {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: PrimaryScrollController(
@@ -1244,8 +1325,7 @@ class _BusStopListState extends State<BusStopList>
   void initState() {
     super.initState();
 
-    final sortedIDs = List<String>.from(_stationIDs.value)..sort();
-    int initialIndex = sortedIDs.indexOf(_selectStationID.value);
+    int initialIndex = _stationIDs.value.indexOf(_selectStationID.value);
     if (initialIndex == -1) initialIndex = 0;
 
     _tabController = TabController(
@@ -1255,16 +1335,37 @@ class _BusStopListState extends State<BusStopList>
     );
 
     _selectStationID.addListener(_onSelectStationChanged);
+    _tabController.addListener(_onTabChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _stationIDs.value.isEmpty) return;
+      final ids = _stationIDs.value;
+      if (!ids.contains(_selectStationID.value)) {
+        _selectStationID.value = ids[_tabController.index];
+      }
+    });
+  }
+
+  void _onTabChanged() {
+    final ids = _stationIDs.value;
+    final index = _tabController.index;
+    if (!mounted ||
+        ids.length != _tabController.length ||
+        index >= ids.length) {
+      return;
+    }
+    if (_selectStationID.value != ids[index]) {
+      _selectStationID.value = ids[index];
+    }
   }
 
   void _onSelectStationChanged() {
     if (!mounted || _stationIDs.value.isEmpty) return;
 
-    final currentStop = _selectStationID.value;
-    final sortedIDs = List<String>.from(_stationIDs.value)..sort();
-    final index = sortedIDs.indexOf(currentStop);
-    if (index != -1 && index < _tabController.length) {
-      _NearbyStationsPageState._updateMarkerStyle();
+    final index = _stationIDs.value.indexOf(_selectStationID.value);
+    if (index != -1 &&
+        index < _tabController.length &&
+        index != _tabController.index) {
       _tabController.animateTo(index);
     }
   }
@@ -1272,6 +1373,7 @@ class _BusStopListState extends State<BusStopList>
   @override
   void dispose() {
     _selectStationID.removeListener(_onSelectStationChanged);
+    _tabController.removeListener(_onTabChanged);
     _streamController.close();
     _tabController.dispose();
     super.dispose();
@@ -1411,12 +1513,16 @@ class _BusStopListState extends State<BusStopList>
 
         String? departureName;
         String? destinationName;
+        String? departureNameEn;
+        String? destinationNameEn;
 
         if (hasValidInfo) {
           departureName = routeInfo["DepartureStopNameZh"]?.toString() ??
               routeInfo["DepartureStopName"]?.toString();
           destinationName = routeInfo["DestinationStopNameZh"]?.toString() ??
               routeInfo["DestinationStopName"]?.toString();
+          departureNameEn = routeInfo["DepartureStopNameEn"]?.toString();
+          destinationNameEn = routeInfo["DestinationStopNameEn"]?.toString();
         }
 
         resultItem["DepartureStopName"] =
@@ -1431,6 +1537,9 @@ class _BusStopListState extends State<BusStopList>
         resultItem["to"] = isDirection1
             ? (departureName ?? localizations.text_429)
             : (destinationName ?? localizations.text_428);
+        final toEn = isDirection1 ? departureNameEn : destinationNameEn;
+        resultItem["toEn"] =
+            (toEn != null && toEn.trim().isNotEmpty) ? toEn : null;
 
         processedData.add(resultItem);
       }
@@ -1455,14 +1564,16 @@ class _BusStopListState extends State<BusStopList>
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(
                 child: LoadingAnimationWidget.stretchedDots(
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.onSurface,
                   size: 40,
                 ),
               );
             }
 
             if (snapshot.hasError) {
-              return Center(child: Text('錯誤: ${snapshot.error}'));
+              return Center(
+                  child: Text(AppLocalizations.of(context)!
+                      .nearStopLoadError('${snapshot.error}')));
             }
 
             if (!snapshot.hasData || snapshot.data == null) {
@@ -1483,10 +1594,13 @@ class _BusStopListState extends State<BusStopList>
                     decoration: BoxDecoration(
                       borderRadius:
                           const BorderRadius.vertical(top: Radius.circular(16)),
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outline
+                              .withOpacity(0.2),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -1497,15 +1611,17 @@ class _BusStopListState extends State<BusStopList>
                       backgroundColor: Colors.transparent,
                       elevation: 0,
                       title: Text(
-                        _stopName.value,
-                        style: const TextStyle(
-                          color: Colors.black,
+                        _localizedName(context,
+                            {'Zh_tw': _stopName.value, 'En': _stopNameEn}),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
                         ),
                       ),
                       leading: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.black),
+                        icon: Icon(Icons.close,
+                            color: Theme.of(context).colorScheme.onSurface),
                         onPressed: () {
                           if (_indexNotifier.value > 0) {
                             _indexNotifier.value--;
@@ -1524,7 +1640,9 @@ class _BusStopListState extends State<BusStopList>
                             icon: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEEF3FB),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child:
@@ -1541,17 +1659,21 @@ class _BusStopListState extends State<BusStopList>
                             icon: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEEF3FB),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child:
                                   const Icon(Icons.more_vert_rounded, size: 20),
                             ),
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.surface,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                               side: BorderSide(
-                                color: Colors.grey[200]!,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant,
                                 width: 1,
                               ),
                             ),
@@ -1590,13 +1712,15 @@ class _BusStopListState extends State<BusStopList>
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.success,
-                                    text: '${widget.stop}已儲存項目',
+                                    text: AppLocalizations.of(context)!
+                                        .nearStopSaved(widget.stop),
                                   );
                                 } else if (output == -1) {
                                   QuickAlert.show(
                                     context: context,
                                     type: QuickAlertType.warning,
-                                    text: '${widget.stop}已存在於列表中，不會重複添加',
+                                    text: AppLocalizations.of(context)!
+                                        .nearStopAlreadySaved(widget.stop),
                                   );
                                 } else if (output == 200) {
                                   QuickAlert.show(
@@ -1634,7 +1758,8 @@ class _BusStopListState extends State<BusStopList>
                                 ConnectionState.waiting) {
                               return Center(
                                 child: LoadingAnimationWidget.stretchedDots(
-                                  color: Colors.black,
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
                                   size: 40,
                                 ),
                               );
@@ -1669,7 +1794,7 @@ class _BusStopListState extends State<BusStopList>
       preferredSize: const Size.fromHeight(80),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: const BoxDecoration(color: Colors.white),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: AnimatedBuilder(
           animation: tabController,
           builder: (context, child) {
@@ -1692,12 +1817,14 @@ class _BusStopListState extends State<BusStopList>
                         decoration: BoxDecoration(
                           color: isSelected
                               ? const Color(0xFF1A73E8).withOpacity(0.08)
-                              : Colors.grey[50],
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isSelected
                                 ? const Color(0xFF1A73E8)
-                                : Colors.grey[200]!,
+                                : Theme.of(context).colorScheme.outlineVariant,
                             width: 1.2,
                           ),
                         ),
@@ -1712,11 +1839,14 @@ class _BusStopListState extends State<BusStopList>
                                   size: 14,
                                   color: isSelected
                                       ? const Color(0xFF1A73E8)
-                                      : Colors.grey[500],
+                                      : Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  "站牌 $label",
+                                  AppLocalizations.of(context)!
+                                      .nearStopLabel(label),
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: isSelected
@@ -1724,7 +1854,9 @@ class _BusStopListState extends State<BusStopList>
                                         : FontWeight.w500,
                                     color: isSelected
                                         ? const Color(0xFF1A73E8)
-                                        : Colors.grey[700],
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -1741,7 +1873,9 @@ class _BusStopListState extends State<BusStopList>
                                     : FontWeight.normal,
                                 color: isSelected
                                     ? const Color(0xFF1A73E8).withOpacity(0.8)
-                                    : Colors.grey[500],
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1832,10 +1966,13 @@ class _BusStopListState extends State<BusStopList>
               : (stop["color"] == '2'
                   ? const Color.fromRGBO(225, 85, 104, 0.1)
                   : (stop["color"] == localizations.text_317
-                      ? const Color.fromRGBO(69, 69, 69, 0.1)
+                      ? Theme.of(context).colorScheme.onSurface.withOpacity(0.1)
                       : (stop["color"] == "min"
                           ? const Color.fromRGBO(13, 168, 255, 0.1)
-                          : const Color.fromRGBO(68, 68, 68, 0.1))));
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.1))));
 
           return SizeFadeTransition(
             animation: animation,
@@ -1886,36 +2023,44 @@ class _BusStopListState extends State<BusStopList>
                               : (stop["color"] == '2'
                                   ? const Color.fromRGBO(255, 85, 104, 1)
                                   : (stop["color"] == localizations.text_317
-                                      ? const Color.fromRGBO(149, 149, 149, 1.0)
+                                      ? Theme.of(context).colorScheme.outline
                                       : (stop["color"] == "min"
                                           ? const Color.fromRGBO(
                                               13, 168, 255, 1)
-                                          : const Color.fromRGBO(
-                                              68, 68, 68, 1)))),
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .onSurface))),
                         ),
                       ),
                     ),
                     title: Row(
                       children: [
                         Text(
-                          stop["RouteName"]?["Zh_tw"] ?? localizations.text_322,
+                          _localizedName(context, stop["RouteName"],
+                              fallback: localizations.text_322),
                           style: TextStyle(
                             fontFamily: stop["color"] == "0"
                                 ? 'MiSans-Semibold'
                                 : 'MiSans-normal',
                             fontSize: 17,
                             color: stop["color"] == localizations.text_317
-                                ? const Color.fromRGBO(136, 136, 136, 1)
-                                : Colors.black,
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "往 ${stop["to"] ?? localizations.text_323}",
-                          style: const TextStyle(
+                          localizations.nearStopTo(
+                              Localizations.localeOf(context).languageCode ==
+                                          'en' &&
+                                      stop["toEn"] != null
+                                  ? stop["toEn"]
+                                  : (stop["to"] ?? localizations.text_323)),
+                          style: TextStyle(
                             fontFamily: 'MiSans-normal',
                             fontSize: 14,
-                            color: Color.fromRGBO(136, 136, 136, 1),
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1924,8 +2069,8 @@ class _BusStopListState extends State<BusStopList>
                         plateNumb != null ? bubble(plateNum: plateNumb) : null,
                   ),
                 ),
-                const Divider(
-                  color: Color.fromRGBO(231, 231, 231, 1),
+                Divider(
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   height: 9,
                   thickness: 1,
                   indent: 20,
@@ -2016,7 +2161,9 @@ class _BusStopListState extends State<BusStopList>
 
         return {
           "color": result < 3 ? "2" : "min",
-          "time": result < 1 ? localizations.text_316 : "$result 分鐘",
+          "time": result < 1
+              ? localizations.text_316
+              : localizations.nearStopMinutes(result.toString()),
           "isRed": result < 3 ? "2" : "",
           "PlateNumb": result < 20 ? plateNumb.toString() : ""
         };
@@ -2028,7 +2175,8 @@ class _BusStopListState extends State<BusStopList>
         return {
           "time": difference.inMinutes.remainder(60) <= 0
               ? localizations.text_317
-              : "${difference.inMinutes.remainder(60)} 分鐘",
+              : localizations.nearStopMinutes(
+                  difference.inMinutes.remainder(60).toString()),
           "isRed": '',
           "PlateNumb": "",
           "color": difference.inMinutes.remainder(60) <= 0
@@ -2064,13 +2212,13 @@ class _BusStopListState extends State<BusStopList>
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -2104,13 +2252,13 @@ class _BusStopListState extends State<BusStopList>
                 ),
                 const SizedBox(height: 20),
                 _buildSortOption(
-                  '站序 1→10',
+                  AppLocalizations.of(context)!.nearStopSortAsc,
                   SortType.nameAsc,
                   Icons.numbers_rounded,
                   const Color(0xFF1A73E8),
                 ),
                 _buildSortOption(
-                  '站序 10→1',
+                  AppLocalizations.of(context)!.nearStopSortDesc,
                   SortType.nameDesc,
                   Icons.numbers_rounded,
                   const Color(0xFF1A73E8),
@@ -2157,7 +2305,9 @@ class _BusStopListState extends State<BusStopList>
               borderRadius: BorderRadius.circular(12),
               border: isSelected
                   ? Border.all(color: color.withOpacity(0.3), width: 1.5)
-                  : Border.all(color: Colors.grey[200]!, width: 1),
+                  : Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1),
             ),
             child: Row(
               children: [
@@ -2180,7 +2330,9 @@ class _BusStopListState extends State<BusStopList>
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? color : Colors.black87,
+                      color: isSelected
+                          ? color
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -2191,10 +2343,10 @@ class _BusStopListState extends State<BusStopList>
                       color: color,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check_rounded,
                       size: 14,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                     ),
                   ),
               ],
@@ -2226,10 +2378,10 @@ class _BusStopListState extends State<BusStopList>
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.black87,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
         ],
@@ -2258,7 +2410,7 @@ class _MRTStationListState extends State<MRTStationList> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       // child: SingleChildScrollView(

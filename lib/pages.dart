@@ -2,6 +2,7 @@ import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
@@ -11,11 +12,20 @@ import 'firebase/fcm.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/city.dart';
 import 'pages/mileage/mileage_page.dart';
+import 'features/auth/state/auth_provider.dart';
 import 'features/settings/pages/settings_page.dart';
 
 class InfoPages extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.currentUser;
+    final l10n = AppLocalizations.of(context)!;
+    final displayName = user == null
+        ? l10n.authGuestAccount
+        : (user.displayName?.trim().isNotEmpty ?? false)
+            ? user.displayName!
+            : (user.email ?? l10n.profileUnknown);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -40,48 +50,72 @@ class InfoPages extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    // 用戶頭像
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 30,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // 用戶資訊
+                    // 用戶頭像 + 資訊（點擊進入個人資料／登入）
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Nick',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A73E8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => Navigator.of(context).pushNamed(
+                          user == null ? '/auth/login' : '/auth/profile',
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 60,
+                              height: 60,
+                              clipBehavior: Clip.antiAlias,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A73E8),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: user?.photoURL == null
+                                  ? const Icon(
+                                      Icons.person_rounded,
+                                      size: 30,
+                                      color: Colors.white,
+                                    )
+                                  : Image.network(
+                                      user!.photoURL!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.person_rounded,
+                                        size: 30,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppLocalizations.of(context)!.text_676,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    user == null
+                                        ? l10n.authLoginOrRegister
+                                        : (user.email ?? l10n.text_676),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     // 設定按鈕

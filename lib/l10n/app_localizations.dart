@@ -6247,6 +6247,246 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'Email 尚未驗證'**
   String get authEmailNotVerified;
+
+  /// No description provided for @nearStopLoadError.
+  ///
+  /// In zh, this message translates to:
+  /// **'??: {error}'**
+  String nearStopLoadError(String error);
+
+  /// No description provided for @nearStopSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{stop}?????'**
+  String nearStopSaved(String stop);
+
+  /// No description provided for @nearStopAlreadySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{stop}??????????????'**
+  String nearStopAlreadySaved(String stop);
+
+  /// No description provided for @nearStopLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'?? {label}'**
+  String nearStopLabel(String label);
+
+  /// No description provided for @nearStopMinutes.
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} ??'**
+  String nearStopMinutes(String minutes);
+
+  /// No description provided for @nearStopSortAsc.
+  ///
+  /// In zh, this message translates to:
+  /// **'?? 1?10'**
+  String get nearStopSortAsc;
+
+  /// No description provided for @nearStopSortDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'?? 10?1'**
+  String get nearStopSortDesc;
+
+  /// No description provided for @nearStopTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'往 {destination}'**
+  String nearStopTo(String destination);
+
+  /// No description provided for @authErrorRecentLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'為了安全，請輸入密碼確認身分後再試。'**
+  String get authErrorRecentLogin;
+
+  /// No description provided for @authErrorStorage.
+  ///
+  /// In zh, this message translates to:
+  /// **'雲端資料處理失敗，請稍後再試。'**
+  String get authErrorStorage;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'個人帳號'**
+  String get profileTitle;
+
+  /// No description provided for @profileViewProfile.
+  ///
+  /// In zh, this message translates to:
+  /// **'檢視個人資料'**
+  String get profileViewProfile;
+
+  /// No description provided for @profileDisplayName.
+  ///
+  /// In zh, this message translates to:
+  /// **'暱稱'**
+  String get profileDisplayName;
+
+  /// No description provided for @profileDisplayNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入暱稱'**
+  String get profileDisplayNameHint;
+
+  /// No description provided for @profileChangeAvatar.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換頭像'**
+  String get profileChangeAvatar;
+
+  /// No description provided for @profileEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email'**
+  String get profileEmail;
+
+  /// No description provided for @profileCreatedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號建立時間'**
+  String get profileCreatedAt;
+
+  /// No description provided for @profileLastSignIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'最後登入時間'**
+  String get profileLastSignIn;
+
+  /// No description provided for @profileLoginMethod.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入方式'**
+  String get profileLoginMethod;
+
+  /// No description provided for @profileProviderPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email / 密碼'**
+  String get profileProviderPassword;
+
+  /// No description provided for @profileProviderGoogle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google'**
+  String get profileProviderGoogle;
+
+  /// No description provided for @profileProviderApple.
+  ///
+  /// In zh, this message translates to:
+  /// **'Apple'**
+  String get profileProviderApple;
+
+  /// No description provided for @profileProviderOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get profileProviderOther;
+
+  /// No description provided for @profileSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存'**
+  String get profileSave;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'個人資料已更新'**
+  String get profileSaved;
+
+  /// No description provided for @profileUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get profileUnknown;
+
+  /// No description provided for @profileSyncSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'跨裝置同步'**
+  String get profileSyncSection;
+
+  /// No description provided for @profileSyncNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即同步行程'**
+  String get profileSyncNow;
+
+  /// No description provided for @profileSyncing.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中…'**
+  String get profileSyncing;
+
+  /// No description provided for @profileSyncFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步失敗，請檢查網路後再試。'**
+  String get profileSyncFailed;
+
+  /// No description provided for @profileSyncNever.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未同步'**
+  String get profileSyncNever;
+
+  /// No description provided for @profileLastSynced.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次同步：{time}'**
+  String profileLastSynced(String time);
+
+  /// No description provided for @profileSyncResult.
+  ///
+  /// In zh, this message translates to:
+  /// **'上傳 {up} 筆、下載 {down} 筆'**
+  String profileSyncResult(String up, String down);
+
+  /// No description provided for @profileDeleteAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除帳號'**
+  String get profileDeleteAccount;
+
+  /// No description provided for @profileDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'確定要刪除帳號？'**
+  String get profileDeleteTitle;
+
+  /// No description provided for @profileDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號、頭像與雲端同步的行程將被永久刪除，無法復原。本機資料不受影響。'**
+  String get profileDeleteBody;
+
+  /// No description provided for @profileDeletePassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入密碼以確認'**
+  String get profileDeletePassword;
+
+  /// No description provided for @profileDeleteConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'永久刪除'**
+  String get profileDeleteConfirm;
+
+  /// No description provided for @profileCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get profileCancel;
+
+  /// No description provided for @profileDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號已刪除'**
+  String get profileDeleted;
 }
 
 class _AppLocalizationsDelegate

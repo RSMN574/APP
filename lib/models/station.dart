@@ -1,8 +1,8 @@
-
 class Station {
   final String stationUID;
   final String stationID;
   final String stationNameZh;
+  final String stationNameEn;
   final double positionLon;
   final double positionLat;
   final String geoHash;
@@ -17,6 +17,7 @@ class Station {
     required this.stationUID,
     required this.stationID,
     required this.stationNameZh,
+    this.stationNameEn = '',
     required this.positionLon,
     required this.positionLat,
     required this.geoHash,
@@ -32,14 +33,17 @@ class Station {
     return Station(
       stationUID: json['StationUID'] ?? '', // 如果为空，使用默认空字符串
       stationID: json['StationID'] ?? '', // 如果为空，使用默认空字符串
+      stationNameEn: json['StationName']?['En'] ?? '',
       stationNameZh: json['StationName']?['Zh_tw'] ?? '', // 如果为空，使用默认空字符串
-      positionLon: json['StationPosition']?['PositionLon']?.toDouble() ?? 0.0, // 处理 null
-      positionLat: json['StationPosition']?['PositionLat']?.toDouble() ?? 0.0, // 处理 null
+      positionLon:
+          json['StationPosition']?['PositionLon']?.toDouble() ?? 0.0, // 处理 null
+      positionLat:
+          json['StationPosition']?['PositionLat']?.toDouble() ?? 0.0, // 处理 null
       geoHash: json['StationPosition']?['GeoHash'] ?? '', // 处理 null
       stationGroupID: json['StationGroupID'] ?? '', // 如果为空，使用默认空字符串
       stops: (json['Stops'] as List<dynamic>?)
-          ?.map((stop) => Stop.fromJson(stop))
-          .toList() ??
+              ?.map((stop) => Stop.fromJson(stop))
+              .toList() ??
           [], // 处理 null，默认空列表
       locationCityCode: json['LocationCityCode'] ?? '', // 如果为空，使用默认空字符串
       bearing: json['Bearing'] ?? '', // 如果为空，使用默认空字符串
@@ -53,20 +57,20 @@ class Station {
   String toString() {
     return 'Station(stationNameZh: $stationNameZh, stationID: $stationID,stationUID: $stationUID)';
   }
+
   Map<String, dynamic> toJson() {
     return {
       "stationUID": stationUID,
       "stationID": stationID,
       "stationNameZh": stationNameZh,
+      "stationNameEn": stationNameEn,
       "positionLon": positionLon,
       "positionLat": positionLat,
-      "stops":stops
-
+      "stops": stops
     };
   }
-
-
 }
+
 class Stop {
   final String stopUID;
   final String stopID;
@@ -101,13 +105,11 @@ class Stop {
       "StopName": stopNameZh,
       "RouteUID": routeUID,
       "RouteID": routeID,
-
     };
   }
+
   @override
   String toString() {
     return '路線名稱: $routeNameZh, 路線 ID: $routeID, 站名: $stopNameZh, 站點 ID: $stopID';
   }
 }
-
-

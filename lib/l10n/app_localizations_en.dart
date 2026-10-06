@@ -3153,4 +3153,144 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authEmailNotVerified => 'Email not verified';
+
+  @override
+  String nearStopLoadError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String nearStopSaved(String stop) {
+    return '$stop saved';
+  }
+
+  @override
+  String nearStopAlreadySaved(String stop) {
+    return '$stop is already in the list and was not added again';
+  }
+
+  @override
+  String nearStopLabel(String label) {
+    return 'Stop $label';
+  }
+
+  @override
+  String nearStopMinutes(String minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get nearStopSortAsc => 'Stop order 1?10';
+
+  @override
+  String get nearStopSortDesc => 'Stop order 10?1';
+
+  @override
+  String nearStopTo(String destination) {
+    return 'To $destination';
+  }
+
+  @override
+  String get authErrorRecentLogin =>
+      'For security, please enter your password to confirm and try again.';
+
+  @override
+  String get authErrorStorage =>
+      'Cloud data operation failed. Please try again later.';
+
+  @override
+  String get profileTitle => 'My account';
+
+  @override
+  String get profileViewProfile => 'View profile';
+
+  @override
+  String get profileDisplayName => 'Display name';
+
+  @override
+  String get profileDisplayNameHint => 'Enter a display name';
+
+  @override
+  String get profileChangeAvatar => 'Change photo';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profileCreatedAt => 'Account created';
+
+  @override
+  String get profileLastSignIn => 'Last sign-in';
+
+  @override
+  String get profileLoginMethod => 'Sign-in method';
+
+  @override
+  String get profileProviderPassword => 'Email / password';
+
+  @override
+  String get profileProviderGoogle => 'Google';
+
+  @override
+  String get profileProviderApple => 'Apple';
+
+  @override
+  String get profileProviderOther => 'Other';
+
+  @override
+  String get profileSave => 'Save';
+
+  @override
+  String get profileSaved => 'Profile updated';
+
+  @override
+  String get profileUnknown => 'Unknown';
+
+  @override
+  String get profileSyncSection => 'Cross-device sync';
+
+  @override
+  String get profileSyncNow => 'Sync itineraries now';
+
+  @override
+  String get profileSyncing => 'Syncing…';
+
+  @override
+  String get profileSyncFailed =>
+      'Sync failed. Check your connection and try again.';
+
+  @override
+  String get profileSyncNever => 'Not synced yet';
+
+  @override
+  String profileLastSynced(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String profileSyncResult(String up, String down) {
+    return 'Uploaded $up, downloaded $down';
+  }
+
+  @override
+  String get profileDeleteAccount => 'Delete account';
+
+  @override
+  String get profileDeleteTitle => 'Delete your account?';
+
+  @override
+  String get profileDeleteBody =>
+      'Your account, photo and cloud-synced itineraries will be permanently deleted. This cannot be undone. Data on this device is kept.';
+
+  @override
+  String get profileDeletePassword => 'Enter your password to confirm';
+
+  @override
+  String get profileDeleteConfirm => 'Delete permanently';
+
+  @override
+  String get profileCancel => 'Cancel';
+
+  @override
+  String get profileDeleted => 'Account deleted';
 }

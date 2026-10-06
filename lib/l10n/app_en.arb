@@ -1024,5 +1024,104 @@
   "authLoginOrRegister": "Sign in or create an account",
   "authSignOut": "Sign out",
   "authEmailVerified": "Email verified",
-  "authEmailNotVerified": "Email not verified"
+  "authEmailNotVerified": "Email not verified",
+  "nearStopLoadError": "Error: {error}",
+  "@nearStopLoadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "nearStopSaved": "{stop} saved",
+  "@nearStopSaved": {
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "nearStopAlreadySaved": "{stop} is already in the list and was not added again",
+  "@nearStopAlreadySaved": {
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "nearStopLabel": "Stop {label}",
+  "@nearStopLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "nearStopMinutes": "{minutes} min",
+  "@nearStopMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
+  "nearStopSortAsc": "Stop order 1?10",
+  "nearStopSortDesc": "Stop order 10?1",
+  "nearStopTo": "To {destination}",
+  "@nearStopTo": {
+    "placeholders": {
+      "destination": {
+        "type": "String"
+      }
+    }
+  },
+  "authErrorRecentLogin": "For security, please enter your password to confirm and try again.",
+  "authErrorStorage": "Cloud data operation failed. Please try again later.",
+  "profileTitle": "My account",
+  "profileViewProfile": "View profile",
+  "profileDisplayName": "Display name",
+  "profileDisplayNameHint": "Enter a display name",
+  "profileChangeAvatar": "Change photo",
+  "profileEmail": "Email",
+  "profileCreatedAt": "Account created",
+  "profileLastSignIn": "Last sign-in",
+  "profileLoginMethod": "Sign-in method",
+  "profileProviderPassword": "Email / password",
+  "profileProviderGoogle": "Google",
+  "profileProviderApple": "Apple",
+  "profileProviderOther": "Other",
+  "profileSave": "Save",
+  "profileSaved": "Profile updated",
+  "profileUnknown": "Unknown",
+  "profileSyncSection": "Cross-device sync",
+  "profileSyncNow": "Sync itineraries now",
+  "profileSyncing": "Syncing…",
+  "profileSyncFailed": "Sync failed. Check your connection and try again.",
+  "profileSyncNever": "Not synced yet",
+  "profileLastSynced": "Last synced: {time}",
+  "@profileLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSyncResult": "Uploaded {up}, downloaded {down}",
+  "@profileSyncResult": {
+    "placeholders": {
+      "up": {
+        "type": "String"
+      },
+      "down": {
+        "type": "String"
+      }
+    }
+  },
+  "profileDeleteAccount": "Delete account",
+  "profileDeleteTitle": "Delete your account?",
+  "profileDeleteBody": "Your account, photo and cloud-synced itineraries will be permanently deleted. This cannot be undone. Data on this device is kept.",
+  "profileDeletePassword": "Enter your password to confirm",
+  "profileDeleteConfirm": "Delete permanently",
+  "profileCancel": "Cancel",
+  "profileDeleted": "Account deleted"
 }

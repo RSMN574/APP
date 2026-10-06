@@ -1,3 +1,11 @@
+import 'package:com.rsmn574.app/features/airport/state/airport_provider.dart';
+import 'package:com.rsmn574.app/features/parking/state/parking_provider.dart';
+import 'package:com.rsmn574.app/features/traffic/state/traffic_provider.dart';
+import 'package:com.rsmn574.app/features/ev_charging/state/ev_station_provider.dart';
+import 'package:com.rsmn574.app/features/weather/state/weather_provider.dart';
+import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
+import 'package:com.rsmn574.app/features/notification/state/notification_provider.dart';
+import 'package:com.rsmn574.app/features/settings/state/settings_provider.dart';
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/features/ev_charging/pages/ev_station_page.dart';
@@ -23,6 +31,8 @@ import 'features/airport/pages/airport_page.dart';
 import 'features/auth/data/repositories/firebase_auth_repository.dart';
 import 'features/auth/data/repositories/unavailable_auth_repository.dart';
 import 'features/auth/pages/login_page.dart';
+import 'features/auth/pages/profile_page.dart';
+import 'features/sync/state/cloud_sync_provider.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'features/bus/pages/bus_page.dart';
 import 'features/bus/pages/intercity_bus_page.dart';
@@ -101,6 +111,14 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
       ChangeNotifierProvider.value(value: appProvider),
       ChangeNotifierProvider(create: (_) => BusProvider()),
+      ChangeNotifierProvider(create: (_) => AirportProvider()),
+      ChangeNotifierProvider(create: (_) => ParkingProvider()),
+      ChangeNotifierProvider(create: (_) => TrafficProvider()),
+      ChangeNotifierProvider(create: (_) => EvStationProvider()),
+      ChangeNotifierProvider(create: (_) => WeatherProvider()),
+      ChangeNotifierProvider(create: (_) => RailwayProvider()),
+      ChangeNotifierProvider(create: (_) => NotificationProvider()),
+      ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ChangeNotifierProvider<AuthProvider>(
         lazy: false,
         create: (_) => AuthProvider(
@@ -108,6 +126,10 @@ class ProviderSetup {
               ? FirebaseAuthRepository()
               : const UnavailableAuthRepository(),
         ),
+      ),
+      ChangeNotifierProxyProvider<AuthProvider, CloudSyncProvider>(
+        create: (_) => CloudSyncProvider(),
+        update: (_, auth, sync) => (sync ?? CloudSyncProvider())..attach(auth),
       ),
     ];
   }
@@ -130,6 +152,7 @@ class AppRoutes {
   static const String speedometer = "speedometer";
   static const String taxi = "taxi";
   static const String authLogin = "/auth/login";
+  static const String authProfile = "/auth/profile";
 }
 
 void main() async {
@@ -233,6 +256,8 @@ class _NavigationBarAppState extends State<NavigationBarApp>
                   child: const TaxiPage(),
                 ),
             AppRoutes.authLogin: (BuildContext context) => const LoginPage(),
+            AppRoutes.authProfile: (BuildContext context) =>
+                const ProfilePage(),
           },
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,
