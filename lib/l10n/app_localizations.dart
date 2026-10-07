@@ -6269,7 +6269,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearStopLabel.
   ///
   /// In zh, this message translates to:
-  /// **'?? {label}'**
+  /// **' {label}'**
   String nearStopLabel(String label);
 
   /// No description provided for @nearStopMinutes.

@@ -3106,7 +3106,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String nearStopLabel(String label) {
-    return '?? $label';
+    return ' $label';
   }
 
   @override

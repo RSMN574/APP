@@ -99,7 +99,7 @@ class BusRoute {
     return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 
-  String get routeCity => city;
+  String get routeCity => city.isEmpty || city == 'all' ? 'InterCity' : city;
   String get routeZh => _asString(routeName['Zh_tw']);
   String get departureStopZh => departureStopNameZh;
   String get destinationStopZh => destinationStopNameZh;

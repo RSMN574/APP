@@ -1956,7 +1956,8 @@ class _BusStopListState extends State<BusStopList>
       child: ImplicitlyAnimatedList<Map<String, dynamic>>(
         key: ValueKey(_sortNotifier.value),
         items: finalList,
-        areItemsTheSame: (a, b) => a["RouteID"] == b["RouteID"],
+        areItemsTheSame: (a, b) =>
+            a["RouteID"] == b["RouteID"] && a["Direction"] == b["Direction"],
         itemBuilder: (context, animation, stop, index) {
           final plateNumb = stop["PlateNumb"];
           final localizations = AppLocalizations.of(context)!;
@@ -1984,6 +1985,10 @@ class _BusStopListState extends State<BusStopList>
                   height: 53.0,
                   child: ListTile(
                     onTap: () async {
+                      // 在 await 之前取值，避免列表重建後讀到別的班次
+                      final int? tappedDirection = stop["Direction"] is int
+                          ? stop["Direction"] as int
+                          : int.tryParse("${stop["Direction"]}");
                       final rawData = await getBusRouteWithId(
                         city: "Taichung",
                         routeId: stop["RouteID"],
@@ -2003,6 +2008,9 @@ class _BusStopListState extends State<BusStopList>
                             routeID: route.routeId,
                             hasSubRoutes: route.hasSubRoute,
                             data: route,
+                            mark: tappedDirection == null
+                                ? null
+                                : Mark(direction: tappedDirection),
                           ),
                         ),
                       );

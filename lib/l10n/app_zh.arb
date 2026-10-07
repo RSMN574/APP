@@ -1049,7 +1049,7 @@
       }
     }
   },
-  "nearStopLabel": "?? {label}",
+  "nearStopLabel": " {label}",
   "@nearStopLabel": {
     "placeholders": {
       "label": {
