@@ -12,7 +12,8 @@ PopupMenuItem<String> SelectView({
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: <Widget>[
         Icon(icon, color: iconColor),
-        Text(text),
+        Flexible(
+            child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis)),
       ],
     ),
   );

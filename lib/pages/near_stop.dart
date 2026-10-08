@@ -18,19 +18,22 @@ import '../database/sql/favorite_feature.dart';
 import '../database/bus/get_bus_time.dart';
 import '../database/get_data.dart';
 import '../database/bus/get_station_info.dart';
+import '../features/bus/pages/bus_stop_info_page.dart';
+import '../features/bus/pages/bus_time_page.dart';
+import '../features/railway/pages/train_page.dart';
 import '../l10n/app_localizations.dart';
 
 import '../models/mrt_station.dart';
-import '../models/station.dart';
-import '../models/bus.dart';
-import 'train/train.dart';
+import '../features/bus/model/bus_station_model.dart';
+import '../features/bus/model/bus_route_model.dart';
+
 import '../utils/convert.dart';
 import '../widget/bus/bubble.dart';
 import '../widget/error.dart';
 import '../widget/map.dart';
 import '../widget/tab.dart';
-import 'bus/bus_stop_info.dart';
-import 'bus/bus_time.dart';
+
+
 
 // Top-level / State shared Notifiers
 final ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
@@ -1383,10 +1386,7 @@ class _BusStopListState extends State<BusStopList>
     return await fetchBusStopInfo();
   }
 
-  Future<List<Map<String, dynamic>>> _processData(
-    String stationID,
-    List<Map<String, dynamic>> stopEstimatedTime,
-  ) async {
+  Future<List<Map<String, dynamic>>> _processData(String stationID, List<Map<String, dynamic>> stopEstimatedTime,) async {
     try {
       final routeMap = <String, Map<String, dynamic>>{};
 
@@ -1844,7 +1844,8 @@ class _BusStopListState extends State<BusStopList>
                                           .onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
+                                Flexible(
+                                    child: Text(
                                   AppLocalizations.of(context)!
                                       .nearStopLabel(label),
                                   style: TextStyle(
@@ -1858,7 +1859,9 @@ class _BusStopListState extends State<BusStopList>
                                             .colorScheme
                                             .onSurfaceVariant,
                                   ),
-                                ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )),
                               ],
                             ),
                             const SizedBox(height: 1),
@@ -2248,14 +2251,17 @@ class _BusStopListState extends State<BusStopList>
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
+                    Flexible(
+                        child: Text(
                       AppLocalizations.of(context)!.text_318,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1A73E8),
                       ),
-                    ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -2384,14 +2390,17 @@ class _BusStopListState extends State<BusStopList>
             child: Icon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
-          Text(
+          Flexible(
+              child: Text(
             title,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onSurface,
             ),
-          ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          )),
         ],
       ),
     );

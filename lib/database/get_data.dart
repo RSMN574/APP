@@ -3,17 +3,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../models/bus.dart';
+import '../features/bus/model/bus_route_model.dart';
 import 'package:mysql1/mysql1.dart';
 
 import '../utils/convert.dart';
 import '../config/app_config.dart';
+import 'mysql_connection_manager.dart';
 import 'tdx_api_client.dart';
 
-Timer? _idleTimer;
-const int idleTimeout = 30; // 30秒無操作超時
 var result;
-MySQLConnection? conn;
+MySQLConnection? get conn => MySqlConnectionManager.instance.connection;
 
 int? sum = 0;
 List jsonData = [];
@@ -144,27 +143,9 @@ class ConnectionPool {
 }
 
 Future<void> connMysql() async {
-  // 如果連接已存在，則避免重複連接
-  if (conn != null && await checkConnection()) {
-    return;
-  }
-
   try {
-    // 確保連接池已初始化
     await initConnectionPool();
-
-    // 建立連接
-    conn = await MySQLConnection.createConnection(
-      host: AppConfig.databaseHost,
-      port: 3306,
-      userName: AppConfig.databaseUser,
-      password: AppConfig.databasePassword,
-      databaseName: AppConfig.databaseName,
-    );
-    await conn!.connect();
-
-    // 重置閒置計時器
-    _startIdleTimer();
+    await MySqlConnectionManager.instance.connect();
   } catch (e) {
     print("Connection error: $e");
     Fluttertoast.showToast(
@@ -176,35 +157,20 @@ Future<void> connMysql() async {
       textColor: Colors.white,
       fontSize: 16.0,
     );
-
-    // 連接失敗後等待短暫時間再重試
-    await Future.delayed(const Duration(seconds: 2));
-    if (conn == null) {
-      await connMysql(); // 重試連接
-    }
+    rethrow;
   }
 }
 
-Future<bool> checkConnection() async {
-  try {
-    // 執行一個輕量級查詢來驗證連線
-    await conn?.execute('SELECT 1');
-    return true; // 連線正常
-  } catch (e) {
-    print("Database connection check failed: $e");
-    return false; // 連線失敗
-  }
+Future<bool> checkConnection() {
+  return MySqlConnectionManager.instance.checkConnection();
 }
 
-// 改進的 mysqlSelect 函數
 Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
   List<Map<String, dynamic>> jsonArray = [];
 
   try {
-    // 使用改進的查詢執行函數
     var result = await executeQueryWithRetry(query);
 
-    // 處理查詢結果
     for (final row in result.rows) {
       jsonArray.add(row.assoc());
     }
@@ -222,30 +188,8 @@ Future<List<Map<String, dynamic>>> mysqlSelect(String query) async {
   return jsonArray;
 }
 
-/// 關閉連接
-Future<void> disconnect() async {
-  _idleTimer?.cancel(); // 取消計時器
-
-  if (conn != null) {
-    try {
-      await conn!.close();
-    } catch (e) {
-      print('Error closing connection: $e');
-    } finally {
-      conn = null;
-    }
-  }
-}
-
-// 啟動閒置計時器
-void _startIdleTimer() {
-  // 如果已有計時器，則取消
-  _idleTimer?.cancel();
-
-  // 設置計時器，每30秒沒有操作時斷開連接
-  _idleTimer = Timer(Duration(seconds: idleTimeout), () {
-    disconnect();
-  });
+Future<void> disconnect() {
+  return MySqlConnectionManager.instance.disconnect();
 }
 
 Future<Map<String, dynamic>> getBusRouteWithId({
@@ -377,86 +321,13 @@ Future<List<Map<String, dynamic>>> getBusStop(
 Future<IResultSet> executeQueryWithRetry(
   String query, {
   List<dynamic>? params,
-  int maxRetries = 3,
-}) async {
-  int attempts = 0;
-  Duration delay = const Duration(milliseconds: 500);
-
-  // 轉換 SQL：將 ? 替換為 :arg0, :arg1, ...
-  // ✅ 修正：確保 index 變數宣告在函式內部，每次呼叫都精準從 0 開始
-  String convertToNamedParams(String sql, List<dynamic>? p) {
-    if (p == null || p.isEmpty) return sql;
-    int index = 0;
-    return sql.replaceAllMapped(RegExp(r'\?'), (match) => ':arg${index++}');
-  }
-
-  // 轉換參數列表為 Map
-  Map<String, dynamic>? convertToMap(List<dynamic>? p) {
-    if (p == null || p.isEmpty) return null;
-    final map = <String, dynamic>{};
-    for (int i = 0; i < p.length; i++) {
-      map['arg$i'] = p[i];
-    }
-    return map;
-  }
-
-  // 🚀 效能優化：SQL 轉換與 Map 建立在迴圈外「只做一次」即可，重試時不需重複運算
-  final convertedSql = convertToNamedParams(query, params);
-  final Map<String, dynamic>? namedParams = convertToMap(params);
-  final hasParams = namedParams != null && namedParams.isNotEmpty;
-
-  while (attempts < maxRetries) {
-    try {
-      // 檢查連線狀態，如果失效則重連
-      if (conn == null || !(await checkConnection())) {
-        debugPrint("Connection invalid, reconnecting before query...");
-        await disconnect();
-        await connMysql();
-      }
-
-      // 使用 execute 並傳入對應參數
-      final result = hasParams
-          ? await conn!.execute(convertedSql, namedParams)
-          : await conn!.execute(convertedSql);
-
-      _startIdleTimer();
-      return result;
-    } catch (e) {
-      attempts++;
-      debugPrint("Query error (attempt $attempts/$maxRetries): $e");
-
-      final errorMsg = e.toString().toLowerCase();
-      final isConnectionError = errorMsg.contains('connection closed') ||
-          errorMsg.contains('lost connection') ||
-          errorMsg.contains('dead') ||
-          errorMsg.contains('socket') ||
-          errorMsg.contains('timeout') ||
-          errorMsg
-              .contains('not in connectionestablished'); // ✅ 把上幾題你遇到的錯誤也納入斷線判定
-
-      // 如果是連線類型的錯誤，嘗試在下次重試前修復連線
-      if (isConnectionError) {
-        try {
-          await disconnect();
-          await connMysql();
-        } catch (reconnectErr) {
-          debugPrint("Reconnection failed during retry: $reconnectErr");
-        }
-      }
-
-      if (attempts >= maxRetries) {
-        throw Exception(
-            "Failed to execute query after $maxRetries attempts. Last error: $e");
-      }
-
-      // 指數退避延遲
-      await Future.delayed(delay);
-      delay =
-          Duration(milliseconds: (delay.inMilliseconds * 2).clamp(500, 5000));
-    }
-  }
-
-  throw Exception("Unexpected error in executeQueryWithRetry");
+  int maxRetries = 2,
+}) {
+  return MySqlConnectionManager.instance.execute(
+    query,
+    params: params,
+    maxRetries: maxRetries,
+  );
 }
 
 Future<List<Map<String, dynamic>>> getBusStopOfRoute({
@@ -507,9 +378,6 @@ Future<List<Map<String, dynamic>>> getBusStopOfRoute({
       routeName.add(rowData);
     }
 
-    // 重置閒置計時器
-    _startIdleTimer();
-
     return routeName;
   } catch (e) {
     print("getBusStopOfRoute error: $e");
@@ -543,9 +411,6 @@ Future<List<Map<String, dynamic>>> GetBusStopInfo({
   for (var i in data) {
     stopInfo.add(i);
   }
-
-  // 重置閒置計時器
-  _startIdleTimer();
 
   return stopInfo;
 }
@@ -591,9 +456,6 @@ Future<List<Map<String, dynamic>>> fetchTrainStationFacility(
       ...stationData,
     ];
 
-    // 重置闲置计时器
-    _startIdleTimer();
-
     return combinedData;
   } catch (e, stackTrace) {
     // 捕获并记录错误
@@ -614,8 +476,6 @@ Future<List> getNearTrainStation(double latitude, double longitude,
         "SELECT StationName,StationID,StationPosition,LocationCity,LocationTown FROM Train.Train_Station;";
     List<Map<String, dynamic>> nearStation =
         await mysqlSelect(queryNearStation);
-
-    _startIdleTimer();
 
     List<Map<String, dynamic>> findNearestStations(
       List<Map<String, dynamic>> stations,

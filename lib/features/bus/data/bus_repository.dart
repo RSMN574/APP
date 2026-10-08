@@ -1,5 +1,5 @@
 import '../../../database/get_data.dart';
-import '../../../models/bus.dart';
+import '../model/bus_route_model.dart';
 
 /// Provides bus data to the feature state layer.
 ///

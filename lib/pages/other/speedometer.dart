@@ -394,9 +394,13 @@ class _SpeedometerPageState extends State<Speedometer> {
                     fifth: _selectedTheme,
                     builder: (context, speed, overSpeed, animatedSpeed, unit,
                         theme, _) {
+                      final dashSize =
+                          MediaQuery.sizeOf(context).width - 32 < 350
+                              ? MediaQuery.sizeOf(context).width - 32
+                              : 350.0;
                       return Container(
-                        width: 350,
-                        height: 350,
+                        width: dashSize,
+                        height: dashSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           boxShadow: [
@@ -416,7 +420,7 @@ class _SpeedometerPageState extends State<Speedometer> {
                           alignment: Alignment.center,
                           children: [
                             CustomPaint(
-                              size: Size(350, 350),
+                              size: Size(dashSize, dashSize),
                               painter: _RacingSpeedometerPainter(
                                 speed: animatedSpeed,
                                 overSpeed: overSpeed,
@@ -851,10 +855,13 @@ class _SpeedometerPageState extends State<Speedometer> {
                                   shape: BoxShape.circle,
                                 ),
                               ),
-                              Text(
+                              Flexible(
+                                  child: Text(
                                 theme.toString().split('.').last,
                                 style: TextStyle(color: Colors.white),
-                              ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              )),
                             ],
                           ),
                         );
@@ -878,8 +885,12 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text(AppLocalizations.of(context)!.text_487,
-                                style: TextStyle(color: Colors.white)),
+                            Flexible(
+                                child: Text(
+                                    AppLocalizations.of(context)!.text_487,
+                                    style: TextStyle(color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis)),
                           ],
                         ),
                         Row(
@@ -893,8 +904,12 @@ class _SpeedometerPageState extends State<Speedometer> {
                               activeColor: _getThemeColor(_selectedTheme.value),
                             ),
                             SizedBox(width: 10),
-                            Text(AppLocalizations.of(context)!.text_488,
-                                style: TextStyle(color: Colors.white)),
+                            Flexible(
+                                child: Text(
+                                    AppLocalizations.of(context)!.text_488,
+                                    style: TextStyle(color: Colors.white),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis)),
                           ],
                         ),
                         Row(
@@ -961,13 +976,16 @@ class _SpeedometerPageState extends State<Speedometer> {
           children: [
             Icon(Icons.history, color: Colors.white),
             SizedBox(width: 10),
-            Text(AppLocalizations.of(context)!.text_489,
-                style: TextStyle(color: Colors.white)),
+            Flexible(
+                child: Text(AppLocalizations.of(context)!.text_489,
+                    style: TextStyle(color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis)),
           ],
         ),
         content: Container(
           width: double.maxFinite,
-          height: 300,
+          height: (MediaQuery.sizeOf(context).height * 0.4).clamp(120.0, 300.0),
           child: _tripHistory.isEmpty
               ? Center(
                   child: Text(
@@ -1252,14 +1270,17 @@ class _DataCard extends StatelessWidget {
                 children: [
                   Icon(icon, color: color, size: 20),
                   SizedBox(width: 8),
-                  Text(
+                  Flexible(
+                      child: Text(
                     title,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
                       letterSpacing: 1.2,
                     ),
-                  ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )),
                 ],
               ),
               SizedBox(height: 8),

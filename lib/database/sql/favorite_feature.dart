@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
-import '../../models/bus.dart';
+import '../../features/bus/model/bus_route_model.dart';
 
 class FavoriteService {
   static final FavoriteService _instance = FavoriteService._internal();

@@ -560,14 +560,17 @@ class _HomeState extends State<_HomeContent>
                   child: Icon(icon, color: color, size: 16),
                 ),
                 const SizedBox(width: 8),
-                Text(
+                Flexible(
+                    child: Text(
                   title,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
                   ),
-                ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )),
               ],
             ),
             const SizedBox(height: 12),
