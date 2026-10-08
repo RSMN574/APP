@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class TabWidget extends StatefulWidget {
   const TabWidget({
     super.key,
@@ -94,39 +93,40 @@ class _TabWidgetState extends State<TabWidget> {
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-              colors: [
-                const Color(0xFF1A73E8),
-                const Color(0xFF1A73E8).withOpacity(0.9),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            )
+                    colors: [
+                      const Color(0xFF1A73E8),
+                      const Color(0xFF1A73E8).withOpacity(0.9),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
                 : LinearGradient(
-              colors: [
-                Colors.white,
-                Colors.grey[50]!,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+                    colors: [
+                      Colors.white,
+                      Colors.grey[50]!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: isSelected
                 ? [
-              BoxShadow(
-                color: const Color(0xFF1A73E8).withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ]
+                    BoxShadow(
+                      color: const Color(0xFF1A73E8).withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
                 : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
             border: isSelected
-                ? Border.all(color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
+                ? Border.all(
+                    color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
                 : Border.all(color: Colors.grey[200]!, width: 1),
           ),
           child: Column(
@@ -136,7 +136,9 @@ class _TabWidgetState extends State<TabWidget> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white.withOpacity(0.2) : const Color(0xFFEEF3FB),
+                  color: isSelected
+                      ? Colors.white.withOpacity(0.2)
+                      : const Color(0xFFEEF3FB),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

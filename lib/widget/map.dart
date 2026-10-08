@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
-import '../Const/regularClass.dart';
+import '../const/regular_class.dart';
 import '../l10n/app_localizations.dart';
 
 class map extends StatefulWidget {
@@ -17,11 +17,11 @@ class map extends StatefulWidget {
   final Function(CameraPosition)? onCameraMove;
   final Function()? onCameraIdle;
   final bool myLocationEnabled;
-  final bool buildingsEnabled;      // 新增：控制 3D 建築
-  final bool zoomControlsEnabled;   // 新增：控制縮放按鈕
-  final bool compassEnabled;        // 新增：控制指南針
-  final bool trafficEnabled;        // 新增：控制交通流量
-  final bool indoorViewEnabled;     // 新增：控制室內地圖
+  final bool buildingsEnabled; // 新增：控制 3D 建築
+  final bool zoomControlsEnabled; // 新增：控制縮放按鈕
+  final bool compassEnabled; // 新增：控制指南針
+  final bool trafficEnabled; // 新增：控制交通流量
+  final bool indoorViewEnabled; // 新增：控制室內地圖
 
   const map({
     Key? key,
@@ -31,7 +31,7 @@ class map extends StatefulWidget {
     this.initialCameraPosition,
     this.onMapCreated,
     this.myLocationEnabled = true,
-    this.buildingsEnabled = false,    // 預設關閉，減少渲染負擔
+    this.buildingsEnabled = false, // 預設關閉，減少渲染負擔
     this.zoomControlsEnabled = false,
     this.compassEnabled = false,
     this.trafficEnabled = false,
@@ -44,9 +44,7 @@ class map extends StatefulWidget {
   State<map> createState() => _MapWidgetState();
 }
 
-class _MapWidgetState extends State<map>
-    with AutomaticKeepAliveClientMixin {
-
+class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -205,19 +203,19 @@ class _MapWidgetState extends State<map>
     super.build(context);
 
     // 獲取 markers 和 polylines（使用 select 避免不必要的重建）
-    final markers = widget.markers ??
-        (context.watch<MarkerProvider>().markers);
+    final markers = widget.markers ?? (context.watch<MarkerProvider>().markers);
 
-    final polylines = widget.polylines ??
-        (context.watch<PolylineProvider>().polylines);
+    final polylines =
+        widget.polylines ?? (context.watch<PolylineProvider>().polylines);
 
     return RepaintBoundary(
       child: GoogleMap(
         // 基本配置
-        initialCameraPosition: widget.initialCameraPosition ?? _initialCameraPosition,
+        initialCameraPosition:
+            widget.initialCameraPosition ?? _initialCameraPosition,
 
         // 效能優化配置
-        buildingsEnabled: widget.buildingsEnabled,     // 關閉 3D 建築
+        buildingsEnabled: widget.buildingsEnabled, // 關閉 3D 建築
         zoomControlsEnabled: widget.zoomControlsEnabled,
         compassEnabled: widget.compassEnabled,
         trafficEnabled: widget.trafficEnabled,
@@ -234,7 +232,7 @@ class _MapWidgetState extends State<map>
         // 手勢識別
         gestureRecognizers: {
           Factory<OneSequenceGestureRecognizer>(
-                () => EagerGestureRecognizer(),
+            () => EagerGestureRecognizer(),
           ),
         },
 

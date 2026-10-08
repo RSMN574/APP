@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
-import '../database/token_manager.dart';
+import '../database/tdx_api_client.dart';
 
 class LocationService {
   /// 獲取目前經緯度（優先讀取快取，設定 8 秒逾時）
@@ -39,20 +38,13 @@ class LocationService {
     required double longitude,
   }) async {
     try {
-      final token = await TokenManager().getToken();
-      if (token == null) return null;
-
       final url = Uri.parse(
         "https://tdx.transportdata.tw/api/advanced/V3/Map/GeoLocating/District/LocationX/$longitude/LocationY/$latitude?\$format=JSON",
       );
 
-      final response = await http.get(
-        url,
-        headers: {
-          "accept": "application/json",
-          "authorization": "Bearer $token",
-        },
-      ).timeout(const Duration(seconds: 5));
+      final response = await TdxApiClient().getRaw(url).timeout(
+            const Duration(seconds: 5),
+          );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

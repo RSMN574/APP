@@ -1528,7 +1528,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_497 => 'Parking Information';
 
   @override
-  String get text_498 => 'No parking lot found.';
+  String get text_498 => 'No parking lots found.';
 
   @override
   String get text_499 => 'Please try different search criteria.';
@@ -1543,19 +1543,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_502 => 'Unknown name';
 
   @override
-  String get text_503 => 'Adequate';
+  String get text_503 => 'Plenty';
 
   @override
-  String get text_504 => 'Ordinary';
+  String get text_504 => 'Moderate';
 
   @override
-  String get text_505 => 'Nervous';
+  String get text_505 => 'Limited';
 
   @override
   String get text_506 => 'No parking space information available.';
 
   @override
-  String get text_507 => 'Costs';
+  String get text_507 => 'Fees';
 
   @override
   String get text_508 => 'No information available.';
@@ -1636,10 +1636,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_533 => 'Geographical location';
 
   @override
-  String get text_534 => 'Make a phone call.';
+  String get text_534 => 'Call';
 
   @override
-  String get text_535 => 'Start navigation.';
+  String get text_535 => 'Navigate';
 
   @override
   String get text_536 => 'Plane';
@@ -2934,4 +2934,363 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get text_960 => 'shuttleBus';
+
+  @override
+  String get text_961 => 'Could not save this setting. Please try again.';
+
+  @override
+  String get text_962 => 'Retry';
+
+  @override
+  String get text_963 => 'Contact';
+
+  @override
+  String get text_964 => 'Navigate';
+
+  @override
+  String get text_965 => 'Share';
+
+  @override
+  String get text_966 =>
+      'Unable to load parking information. Please try again.';
+
+  @override
+  String get taxiPageTitle => 'Uber rides';
+
+  @override
+  String get taxiEstimatePending =>
+      'Fare estimates are not available yet. Uber API approval and a secure backend integration are required. You can still continue to Uber to review your trip.';
+
+  @override
+  String get taxiUseCurrentLocation => 'Use current location as pickup';
+
+  @override
+  String get taxiPickupLocationReady => 'Current location is ready';
+
+  @override
+  String get taxiDestinationLabel => 'Destination';
+
+  @override
+  String get taxiDestinationHint => 'Enter an address or place';
+
+  @override
+  String get taxiOpenUber => 'Continue in Uber';
+
+  @override
+  String get taxiUberClientIdInfo =>
+      'Set your Uber Developer Client ID at build time with --dart-define=UBER_CLIENT_ID=your-client-id. A Client ID is not a secret; never put an Access Token or Client Secret in the app.';
+
+  @override
+  String get taxiLocationServicesDisabled => 'Turn on location services first.';
+
+  @override
+  String get taxiLocationPermissionDenied =>
+      'Location permission is required to set the pickup location.';
+
+  @override
+  String get taxiLocationPermissionDeniedForever =>
+      'Location permission was permanently denied. Enable it in system settings.';
+
+  @override
+  String get taxiLocationUnavailable =>
+      'Could not get your current location. Check location services and permission, then try again.';
+
+  @override
+  String get taxiDestinationRequired => 'Enter a destination.';
+
+  @override
+  String get taxiDestinationNotFound =>
+      'The destination could not be found. Check the address or place name.';
+
+  @override
+  String get taxiClientIdNotConfigured =>
+      'Uber Developer Client ID is not configured, so the ride link cannot be opened yet.';
+
+  @override
+  String get taxiOpenUberFailed =>
+      'Could not open the Uber link. Please try again.';
+
+  @override
+  String get authLoginTitle => 'Sign in to Taiwan Pass';
+
+  @override
+  String get authLoginDescription =>
+      'Sign in to sync your account. You can also keep using the app as a guest.';
+
+  @override
+  String get authRegisterTitle => 'Create account';
+
+  @override
+  String get authRegisterDescription =>
+      'Create a Taiwan Pass account with your email.';
+
+  @override
+  String get authForgotPassword => 'Forgot password?';
+
+  @override
+  String get authForgotPasswordTitle => 'Reset password';
+
+  @override
+  String get authForgotPasswordDescription =>
+      'Enter your account email and we will send you a password reset link.';
+
+  @override
+  String get authEmail => 'Email';
+
+  @override
+  String get authPassword => 'Password';
+
+  @override
+  String get authConfirmPassword => 'Confirm password';
+
+  @override
+  String get authLogin => 'Sign in';
+
+  @override
+  String get authRegister => 'Register';
+
+  @override
+  String get authShowPassword => 'Show password';
+
+  @override
+  String get authHidePassword => 'Hide password';
+
+  @override
+  String get authLoading => 'Please wait…';
+
+  @override
+  String get authNoAccount => 'Don\'t have an account?';
+
+  @override
+  String get authGoToRegister => 'Create one';
+
+  @override
+  String get authHaveAccount => 'Already have an account?';
+
+  @override
+  String get authBackToLogin => 'Back to sign in';
+
+  @override
+  String get authValidationEmail => 'Enter a valid email address.';
+
+  @override
+  String get authValidationPasswordRequired => 'Enter your password.';
+
+  @override
+  String get authValidationPasswordLength =>
+      'Password must be at least 6 characters.';
+
+  @override
+  String get authValidationPasswordMismatch => 'The passwords do not match.';
+
+  @override
+  String get authSendResetEmail => 'Send reset link';
+
+  @override
+  String get authResetEmailSent =>
+      'If an account exists for this email, a password reset message has been sent. Check your inbox.';
+
+  @override
+  String get authErrorInvalidEmail => 'The email address is invalid.';
+
+  @override
+  String get authErrorUserDisabled =>
+      'This account has been disabled. Contact support.';
+
+  @override
+  String get authErrorInvalidCredentials =>
+      'The email or password is incorrect.';
+
+  @override
+  String get authErrorEmailInUse =>
+      'This email is already registered. Try signing in.';
+
+  @override
+  String get authErrorWeakPassword =>
+      'The password is too weak. Use at least 6 characters.';
+
+  @override
+  String get authErrorNotEnabled =>
+      'This sign-in method is not enabled yet. Please try again later.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Too many attempts. Please try again later.';
+
+  @override
+  String get authErrorNetwork =>
+      'Network connection failed. Check your connection and try again.';
+
+  @override
+  String get authErrorUnavailable =>
+      'The sign-in service is currently unavailable. Please try again later.';
+
+  @override
+  String get authErrorUnknown =>
+      'The request could not be completed. Please try again later.';
+
+  @override
+  String get authErrorSignOut => 'Could not sign out. Please try again later.';
+
+  @override
+  String get authAccountSection => 'Account';
+
+  @override
+  String get authGuestAccount => 'Guest mode';
+
+  @override
+  String get authGuestDescription =>
+      'You are signed out. Taiwan Pass transit features remain available.';
+
+  @override
+  String get authLoginOrRegister => 'Sign in or create an account';
+
+  @override
+  String get authSignOut => 'Sign out';
+
+  @override
+  String get authEmailVerified => 'Email verified';
+
+  @override
+  String get authEmailNotVerified => 'Email not verified';
+
+  @override
+  String nearStopLoadError(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String nearStopSaved(String stop) {
+    return '$stop saved';
+  }
+
+  @override
+  String nearStopAlreadySaved(String stop) {
+    return '$stop is already in the list and was not added again';
+  }
+
+  @override
+  String nearStopLabel(String label) {
+    return 'Stop $label';
+  }
+
+  @override
+  String nearStopMinutes(String minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get nearStopSortAsc => 'Stop order 1?10';
+
+  @override
+  String get nearStopSortDesc => 'Stop order 10?1';
+
+  @override
+  String nearStopTo(String destination) {
+    return 'To $destination';
+  }
+
+  @override
+  String get authErrorRecentLogin =>
+      'For security, please enter your password to confirm and try again.';
+
+  @override
+  String get authErrorStorage =>
+      'Cloud data operation failed. Please try again later.';
+
+  @override
+  String get profileTitle => 'My account';
+
+  @override
+  String get profileViewProfile => 'View profile';
+
+  @override
+  String get profileDisplayName => 'Display name';
+
+  @override
+  String get profileDisplayNameHint => 'Enter a display name';
+
+  @override
+  String get profileChangeAvatar => 'Change photo';
+
+  @override
+  String get profileEmail => 'Email';
+
+  @override
+  String get profileCreatedAt => 'Account created';
+
+  @override
+  String get profileLastSignIn => 'Last sign-in';
+
+  @override
+  String get profileLoginMethod => 'Sign-in method';
+
+  @override
+  String get profileProviderPassword => 'Email / password';
+
+  @override
+  String get profileProviderGoogle => 'Google';
+
+  @override
+  String get profileProviderApple => 'Apple';
+
+  @override
+  String get profileProviderOther => 'Other';
+
+  @override
+  String get profileSave => 'Save';
+
+  @override
+  String get profileSaved => 'Profile updated';
+
+  @override
+  String get profileUnknown => 'Unknown';
+
+  @override
+  String get profileSyncSection => 'Cross-device sync';
+
+  @override
+  String get profileSyncNow => 'Sync itineraries now';
+
+  @override
+  String get profileSyncing => 'Syncing…';
+
+  @override
+  String get profileSyncFailed =>
+      'Sync failed. Check your connection and try again.';
+
+  @override
+  String get profileSyncNever => 'Not synced yet';
+
+  @override
+  String profileLastSynced(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String profileSyncResult(String up, String down) {
+    return 'Uploaded $up, downloaded $down';
+  }
+
+  @override
+  String get profileDeleteAccount => 'Delete account';
+
+  @override
+  String get profileDeleteTitle => 'Delete your account?';
+
+  @override
+  String get profileDeleteBody =>
+      'Your account, photo and cloud-synced itineraries will be permanently deleted. This cannot be undone. Data on this device is kept.';
+
+  @override
+  String get profileDeletePassword => 'Enter your password to confirm';
+
+  @override
+  String get profileDeleteConfirm => 'Delete permanently';
+
+  @override
+  String get profileCancel => 'Cancel';
+
+  @override
+  String get profileDeleted => 'Account deleted';
 }

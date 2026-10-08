@@ -3,7 +3,7 @@
 // import 'package:loading_animation_widget/loading_animation_widget.dart';
 // import 'package:provider/provider.dart';
 // import 'package:geolocator/geolocator.dart'; // 导入定位包
-// import '../Const/regularClass.dart'; // 确保导入正确的 Provider
+// import '../const/regular_class.dart'; // 确保导入正确的 Provider
 //
 // class MapWidget extends StatefulWidget {
 //   @override

@@ -1,4 +1,4 @@
-import 'package:com.rsmn574.app/widget/WeatherCard.dart';
+import 'package:com.rsmn574.app/features/weather/widgets/weather_card.dart';
 import 'package:com.rsmn574.app/widget/img_swiper.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:flutter/material.dart';
@@ -8,13 +8,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
-import 'Const/regularClass.dart';
-import 'Const/regularConst.dart';
+import 'const/regular_class.dart';
+import 'const/regular_const.dart';
 import 'models/bike.dart';
-import 'state/bike_provider.dart';
+import 'features/youbike/state/bike_provider.dart';
+import 'features/youbike/widgets/bike_default_content.dart';
 
 import 'l10n/app_localizations.dart';
-import 'widget/transportGrid.dart';
+import 'widget/transport_grid.dart';
 
 const ClusterManager _bikeCluster = ClusterManager(
   clusterManagerId: ClusterManagerId("bike"),
@@ -184,6 +185,10 @@ class _HomeState extends State<_HomeContent>
   }
 
   Future<void> _handleClick(String type) async {
+    if (type == 'taxi') {
+      await Navigator.of(context).pushNamed(type);
+      return;
+    }
     if (type != 'bike') return;
     if (_bottomSheetController != null) return;
 
@@ -230,7 +235,8 @@ class _HomeState extends State<_HomeContent>
               height: 800,
               decoration: BoxDecoration(
                 color: AppThemes.getSurface(context),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)), // LMG: 增加圓角
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24)), // LMG: 增加圓角
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.1),
@@ -283,44 +289,48 @@ class _HomeState extends State<_HomeContent>
 
   Widget _buildBikeContent(BuildContext context) {
     final bike = context.watch<BikeProvider>();
+    final colors = Theme.of(context).colorScheme;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)), // LMG: 圓角
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       child: bike.selectedStation == null
           ? bike.isLoadingStations
-          ? _buildLoadingState(context)
-          : bike.stationError != null
-          ? _buildStationLoadError()
-          : BikeDefaultContent(
-        stations: bike.stations,
-        onStationSelected: _updateSelectedStation,
-      )
-          : FutureBuilder<Map<String, dynamic>?>(
-        future: bike.availabilityFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingState(context);
-          }
+              ? _buildLoadingState(context)
+              : bike.stationError != null
+                  ? _buildStationLoadError()
+                  : BikeDefaultContent(
+                      stations: bike.stations,
+                      onStationSelected: _updateSelectedStation,
+                    )
+          : FutureBuilder<BikeAvailability?>(
+              future: bike.availabilityFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return _buildLoadingState(context);
+                }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _buildAvailabilityError(
-              snapshot.hasError
-                  ? AppLocalizations.of(context)!.text_131
-                  : AppLocalizations.of(context)!.text_132,
-              snapshot.hasError
-                  ? Icons.error_outline
-                  : Icons.info_outline,
-            );
-          }
+                if (snapshot.hasError || !snapshot.hasData) {
+                  return _buildAvailabilityError(
+                    snapshot.hasError
+                        ? AppLocalizations.of(context)!.text_131
+                        : AppLocalizations.of(context)!.text_132,
+                    snapshot.hasError
+                        ? Icons.error_outline
+                        : Icons.info_outline,
+                  );
+                }
 
-          final stationName = bike.selectedStation!.stationName.zhTw;
-          final data = snapshot.data!;
+                final stationName = bike.selectedStation!.stationName.zhTw;
+                final data = snapshot.data!;
 
-          return _buildContentSection(context, stationName, data);
-        },
-      ),
+                return _buildContentSection(context, stationName, data);
+              },
+            ),
     );
   }
 
@@ -366,18 +376,19 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildLoadingState(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           LoadingAnimationWidget.stretchedDots(
-            color: const Color(0xFF1A73E8), // LMG: 使用主題色
+            color: colors.primary,
             size: 40,
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_133,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
           ),
         ],
       ),
@@ -385,10 +396,8 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildContentSection(
-      BuildContext context, String stationName, Map<String, dynamic> data) {
-    final rentDetails = data["AvailableRentBikesDetail"] ??
-        {"GeneralBikes": 0, "ElectricBikes": 0};
-
+      BuildContext context, String stationName, BikeAvailability data) {
+    final colors = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -408,12 +417,12 @@ class _HomeState extends State<_HomeContent>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A73E8).withValues(alpha: 0.1),
+                    color: colors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.pin_drop,
-                    color: Color(0xFF1A73E8),
+                    color: colors.onPrimaryContainer,
                     size: 18,
                   ),
                 ),
@@ -423,7 +432,7 @@ class _HomeState extends State<_HomeContent>
                     stationName,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: Colors.grey[850],
+                      color: colors.onSurface,
                       fontSize: 16,
                     ),
                   ),
@@ -434,7 +443,7 @@ class _HomeState extends State<_HomeContent>
                   icon: Icon(
                     Icons.close_rounded,
                     size: 22,
-                    color: Colors.grey[500],
+                    color: colors.onSurfaceVariant,
                   ),
                   onPressed: () {
                     _updateSelectedStation(null);
@@ -448,10 +457,10 @@ class _HomeState extends State<_HomeContent>
           // 主要數據卡片
           _buildCompactDataGrid(
             context,
-            rentBikes: data["AvailableRentBikes"]?.toString() ?? '0',
-            returnSpots: data["AvailableReturnBikes"]?.toString() ?? '0',
-            generalBikes: rentDetails["GeneralBikes"]?.toString() ?? '0',
-            electricBikes: rentDetails["ElectricBikes"]?.toString() ?? '0',
+            rentBikes: data.availableRentBikes.toString(),
+            returnSpots: data.availableReturnBikes.toString(),
+            generalBikes: data.generalBikes.toString(),
+            electricBikes: data.electricBikes.toString(),
           ),
         ],
       ),
@@ -459,12 +468,12 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildCompactDataGrid(
-      BuildContext context, {
-        required String rentBikes,
-        required String returnSpots,
-        required String generalBikes,
-        required String electricBikes,
-      }) {
+    BuildContext context, {
+    required String rentBikes,
+    required String returnSpots,
+    required String generalBikes,
+    required String electricBikes,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -522,13 +531,13 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildMetricTile(
-      BuildContext context, {
-        required IconData icon,
-        required Color color,
-        required String title,
-        required String value,
-        double widthFactor = 1.0,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+    double widthFactor = 1.0,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -551,14 +560,17 @@ class _HomeState extends State<_HomeContent>
                   child: Icon(icon, color: color, size: 16),
                 ),
                 const SizedBox(width: 8),
-                Text(
+                Flexible(
+                    child: Text(
                   title,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700],
                   ),
-                ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )),
               ],
             ),
             const SizedBox(height: 12),
@@ -601,12 +613,12 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildTypeChip(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required String value,
-        required Color color,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -651,437 +663,6 @@ class _HomeState extends State<_HomeContent>
           ],
         ),
       ),
-    );
-  }
-}
-
-class BikeDefaultContent extends StatefulWidget {
-  const BikeDefaultContent({
-    super.key,
-    required this.stations,
-    required this.onStationSelected,
-  });
-
-  final List<YouBikeStation> stations;
-  final ValueChanged<YouBikeStation> onStationSelected;
-
-  @override
-  State<BikeDefaultContent> createState() => _BikeState();
-}
-
-class _BikeState extends State<BikeDefaultContent> {
-  final TextEditingController _searchController = TextEditingController();
-  final List<String> _searchHistory = [];
-  static const int _maxHistoryCount = 5;
-
-  void _clearSearch() {
-    setState(() {
-      _searchController.clear();
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  List<YouBikeStation> fuzzySearchStations(String keyword) {
-    if (keyword.isEmpty) return [];
-    final keywordLower = keyword.toLowerCase();
-
-    return widget.stations.where((station) {
-      final stationName = station.stationName.zhTw.toLowerCase();
-      return stationName.contains(keywordLower) ||
-          stationName.startsWith(keywordLower) ||
-          stationName.endsWith(keywordLower);
-    }).toList();
-  }
-
-  void _addToSearchHistory(String query) {
-    if (query.isEmpty) return;
-    setState(() {
-      _searchHistory.removeWhere((item) => item == query);
-      _searchHistory.insert(0, query);
-      if (_searchHistory.length > _maxHistoryCount) {
-        _searchHistory.removeLast();
-      }
-    });
-  }
-
-  void _removeFromHistory(String query) {
-    setState(() {
-      _searchHistory.remove(query);
-    });
-  }
-
-  Widget _buildDefaultContent(IconData icon, String text) {
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.only(top: 30, bottom: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEEF3FB),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 32,
-                    color: const Color(0xFF1A73E8),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A73E8),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-          if (_searchHistory.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF3FB),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.history_rounded,
-                      size: 16,
-                      color: Color(0xFF1A73E8),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    AppLocalizations.of(context)!.text_142,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (_searchHistory.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children:
-                _searchHistory.map((query) => _buildHistoryChip(query)).toList(),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryChip(String query) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          _searchController.text = query;
-          setState(() {});
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: Colors.grey.withValues(alpha: 0.1),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                query,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _removeFromHistory(query),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    size: 12,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 300,
-      color: const Color(0xFFF8FAFD),
-      child: Column(
-        children: [
-          SizedBox(
-            height: 80,
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (searchText) {
-                      setState(() {});
-                    },
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context)!.text_143,
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 8),
-                        child: Icon(
-                          Icons.search_rounded,
-                          color: Colors.grey[600],
-                          size: 22,
-                        ),
-                      ),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _clearSearch,
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            margin: const EdgeInsets.all(5),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.clear_rounded,
-                              size: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      )
-                          : null,
-                      contentPadding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 16,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.transparent,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _searchController.text.isEmpty
-                ? _buildDefaultContent(Icons.location_off_outlined, '請選擇站點')
-                : _buildSearchResults(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchResults() {
-    final List<YouBikeStation> results = fuzzySearchStations(_searchController.text);
-
-    if (results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEF3FB),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.search_off_rounded,
-                size: 32,
-                color: Color(0xFF1A73E8),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '找不到符合「${_searchController.text}」的站點',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: results.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final station = results[index];
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: () {
-              _addToSearchHistory(_searchController.text);
-              widget.onStationSelected(station);
-            },
-            splashColor: const Color(0xFF1A73E8).withValues(alpha: 0.1),
-            highlightColor: const Color(0xFFEEF3FB),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF34C759),
-                          Color(0xFF28A745),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.electric_bike_rounded,
-                      size: 24,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          station.stationName.zhTw,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          station.stationAddress.zhTw,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                            height: 1.4,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 16,
-                    color: Colors.grey[400],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

@@ -5857,6 +5857,636 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'接駁車'**
   String get text_960;
+
+  /// No description provided for @text_961.
+  ///
+  /// In zh, this message translates to:
+  /// **'設定儲存失敗，請稍後再試。'**
+  String get text_961;
+
+  /// No description provided for @text_962.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新載入'**
+  String get text_962;
+
+  /// No description provided for @text_963.
+  ///
+  /// In zh, this message translates to:
+  /// **'聯絡'**
+  String get text_963;
+
+  /// No description provided for @text_964.
+  ///
+  /// In zh, this message translates to:
+  /// **'導航'**
+  String get text_964;
+
+  /// No description provided for @text_965.
+  ///
+  /// In zh, this message translates to:
+  /// **'分享'**
+  String get text_965;
+
+  /// No description provided for @text_966.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法載入停車資訊，請稍後再試。'**
+  String get text_966;
+
+  /// No description provided for @taxiPageTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Uber 計程車'**
+  String get taxiPageTitle;
+
+  /// No description provided for @taxiEstimatePending.
+  ///
+  /// In zh, this message translates to:
+  /// **'車資預估尚未開放；需先完成 Uber API 核准及安全的後端串接。你仍可前往 Uber App 填入行程。'**
+  String get taxiEstimatePending;
+
+  /// No description provided for @taxiUseCurrentLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用目前位置作為上車地點'**
+  String get taxiUseCurrentLocation;
+
+  /// No description provided for @taxiPickupLocationReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取得目前位置'**
+  String get taxiPickupLocationReady;
+
+  /// No description provided for @taxiDestinationLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'目的地'**
+  String get taxiDestinationLabel;
+
+  /// No description provided for @taxiDestinationHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'輸入地址或地標'**
+  String get taxiDestinationHint;
+
+  /// No description provided for @taxiOpenUber.
+  ///
+  /// In zh, this message translates to:
+  /// **'在 Uber 中查看行程'**
+  String get taxiOpenUber;
+
+  /// No description provided for @taxiUberClientIdInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'需在建置時設定 Uber Developer Client ID：--dart-define=UBER_CLIENT_ID=你的ClientID。Client ID 不是密鑰；請勿將 Access Token 或 Client Secret 放入 App。'**
+  String get taxiUberClientIdInfo;
+
+  /// No description provided for @taxiLocationServicesDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'請先開啟裝置定位服務。'**
+  String get taxiLocationServicesDisabled;
+
+  /// No description provided for @taxiLocationPermissionDenied.
+  ///
+  /// In zh, this message translates to:
+  /// **'需要定位權限才能設定上車地點。'**
+  String get taxiLocationPermissionDenied;
+
+  /// No description provided for @taxiLocationPermissionDeniedForever.
+  ///
+  /// In zh, this message translates to:
+  /// **'定位權限已永久拒絕，請至系統設定開啟。'**
+  String get taxiLocationPermissionDeniedForever;
+
+  /// No description provided for @taxiLocationUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法取得目前位置，請確認定位服務與權限後重試。'**
+  String get taxiLocationUnavailable;
+
+  /// No description provided for @taxiDestinationRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入目的地。'**
+  String get taxiDestinationRequired;
+
+  /// No description provided for @taxiDestinationNotFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'找不到目的地，請確認地址或地標。'**
+  String get taxiDestinationNotFound;
+
+  /// No description provided for @taxiClientIdNotConfigured.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未設定 Uber Developer Client ID，暫時無法開啟行程連結。'**
+  String get taxiClientIdNotConfigured;
+
+  /// No description provided for @taxiOpenUberFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法開啟 Uber 連結，請稍後再試。'**
+  String get taxiOpenUberFailed;
+
+  /// No description provided for @authLoginTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入台灣通'**
+  String get authLoginTitle;
+
+  /// No description provided for @authLoginDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入以同步你的帳戶資料；你也可以繼續以訪客身分使用 App。'**
+  String get authLoginDescription;
+
+  /// No description provided for @authRegisterTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'建立帳戶'**
+  String get authRegisterTitle;
+
+  /// No description provided for @authRegisterDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用 Email 建立台灣通帳戶。'**
+  String get authRegisterDescription;
+
+  /// No description provided for @authForgotPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'忘記密碼？'**
+  String get authForgotPassword;
+
+  /// No description provided for @authForgotPasswordTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'重設密碼'**
+  String get authForgotPasswordTitle;
+
+  /// No description provided for @authForgotPasswordDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'輸入帳戶 Email，我們會寄送重設密碼連結。'**
+  String get authForgotPasswordDescription;
+
+  /// No description provided for @authEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email'**
+  String get authEmail;
+
+  /// No description provided for @authPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'密碼'**
+  String get authPassword;
+
+  /// No description provided for @authConfirmPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'確認密碼'**
+  String get authConfirmPassword;
+
+  /// No description provided for @authLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入'**
+  String get authLogin;
+
+  /// No description provided for @authRegister.
+  ///
+  /// In zh, this message translates to:
+  /// **'註冊'**
+  String get authRegister;
+
+  /// No description provided for @authShowPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'顯示密碼'**
+  String get authShowPassword;
+
+  /// No description provided for @authHidePassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'隱藏密碼'**
+  String get authHidePassword;
+
+  /// No description provided for @authLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'處理中…'**
+  String get authLoading;
+
+  /// No description provided for @authNoAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'還沒有帳戶？'**
+  String get authNoAccount;
+
+  /// No description provided for @authGoToRegister.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即註冊'**
+  String get authGoToRegister;
+
+  /// No description provided for @authHaveAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已經有帳戶？'**
+  String get authHaveAccount;
+
+  /// No description provided for @authBackToLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'返回登入'**
+  String get authBackToLogin;
+
+  /// No description provided for @authValidationEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入有效的 Email 地址。'**
+  String get authValidationEmail;
+
+  /// No description provided for @authValidationPasswordRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入密碼。'**
+  String get authValidationPasswordRequired;
+
+  /// No description provided for @authValidationPasswordLength.
+  ///
+  /// In zh, this message translates to:
+  /// **'密碼至少需要 6 個字元。'**
+  String get authValidationPasswordLength;
+
+  /// No description provided for @authValidationPasswordMismatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'兩次輸入的密碼不一致。'**
+  String get authValidationPasswordMismatch;
+
+  /// No description provided for @authSendResetEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'寄送重設連結'**
+  String get authSendResetEmail;
+
+  /// No description provided for @authResetEmailSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'如果此 Email 已註冊，重設密碼信件將會寄出。請檢查收件匣。'**
+  String get authResetEmailSent;
+
+  /// No description provided for @authErrorInvalidEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email 格式不正確。'**
+  String get authErrorInvalidEmail;
+
+  /// No description provided for @authErrorUserDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'此帳戶已停用，請聯絡支援人員。'**
+  String get authErrorUserDisabled;
+
+  /// No description provided for @authErrorInvalidCredentials.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email 或密碼不正確。'**
+  String get authErrorInvalidCredentials;
+
+  /// No description provided for @authErrorEmailInUse.
+  ///
+  /// In zh, this message translates to:
+  /// **'此 Email 已註冊，請改為登入。'**
+  String get authErrorEmailInUse;
+
+  /// No description provided for @authErrorWeakPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'密碼強度不足，請使用至少 6 個字元。'**
+  String get authErrorWeakPassword;
+
+  /// No description provided for @authErrorNotEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前尚未啟用此登入方式，請稍後再試。'**
+  String get authErrorNotEnabled;
+
+  /// No description provided for @authErrorTooManyRequests.
+  ///
+  /// In zh, this message translates to:
+  /// **'嘗試次數過多，請稍後再試。'**
+  String get authErrorTooManyRequests;
+
+  /// No description provided for @authErrorNetwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'網路連線失敗，請檢查連線後重試。'**
+  String get authErrorNetwork;
+
+  /// No description provided for @authErrorUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入服務目前無法使用，請稍後再試。'**
+  String get authErrorUnavailable;
+
+  /// No description provided for @authErrorUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法完成要求，請稍後再試。'**
+  String get authErrorUnknown;
+
+  /// No description provided for @authErrorSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'登出失敗，請稍後再試。'**
+  String get authErrorSignOut;
+
+  /// No description provided for @authAccountSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳戶'**
+  String get authAccountSection;
+
+  /// No description provided for @authGuestAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'訪客模式'**
+  String get authGuestAccount;
+
+  /// No description provided for @authGuestDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前未登入，仍可使用台灣通的交通功能。'**
+  String get authGuestDescription;
+
+  /// No description provided for @authLoginOrRegister.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入或建立帳戶'**
+  String get authLoginOrRegister;
+
+  /// No description provided for @authSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'登出'**
+  String get authSignOut;
+
+  /// No description provided for @authEmailVerified.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email 已驗證'**
+  String get authEmailVerified;
+
+  /// No description provided for @authEmailNotVerified.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email 尚未驗證'**
+  String get authEmailNotVerified;
+
+  /// No description provided for @nearStopLoadError.
+  ///
+  /// In zh, this message translates to:
+  /// **'??: {error}'**
+  String nearStopLoadError(String error);
+
+  /// No description provided for @nearStopSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{stop}?????'**
+  String nearStopSaved(String stop);
+
+  /// No description provided for @nearStopAlreadySaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'{stop}??????????????'**
+  String nearStopAlreadySaved(String stop);
+
+  /// No description provided for @nearStopLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **' {label}'**
+  String nearStopLabel(String label);
+
+  /// No description provided for @nearStopMinutes.
+  ///
+  /// In zh, this message translates to:
+  /// **'{minutes} ??'**
+  String nearStopMinutes(String minutes);
+
+  /// No description provided for @nearStopSortAsc.
+  ///
+  /// In zh, this message translates to:
+  /// **'?? 1?10'**
+  String get nearStopSortAsc;
+
+  /// No description provided for @nearStopSortDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'?? 10?1'**
+  String get nearStopSortDesc;
+
+  /// No description provided for @nearStopTo.
+  ///
+  /// In zh, this message translates to:
+  /// **'往 {destination}'**
+  String nearStopTo(String destination);
+
+  /// No description provided for @authErrorRecentLogin.
+  ///
+  /// In zh, this message translates to:
+  /// **'為了安全，請輸入密碼確認身分後再試。'**
+  String get authErrorRecentLogin;
+
+  /// No description provided for @authErrorStorage.
+  ///
+  /// In zh, this message translates to:
+  /// **'雲端資料處理失敗，請稍後再試。'**
+  String get authErrorStorage;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'個人帳號'**
+  String get profileTitle;
+
+  /// No description provided for @profileViewProfile.
+  ///
+  /// In zh, this message translates to:
+  /// **'檢視個人資料'**
+  String get profileViewProfile;
+
+  /// No description provided for @profileDisplayName.
+  ///
+  /// In zh, this message translates to:
+  /// **'暱稱'**
+  String get profileDisplayName;
+
+  /// No description provided for @profileDisplayNameHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入暱稱'**
+  String get profileDisplayNameHint;
+
+  /// No description provided for @profileChangeAvatar.
+  ///
+  /// In zh, this message translates to:
+  /// **'更換頭像'**
+  String get profileChangeAvatar;
+
+  /// No description provided for @profileEmail.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email'**
+  String get profileEmail;
+
+  /// No description provided for @profileCreatedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號建立時間'**
+  String get profileCreatedAt;
+
+  /// No description provided for @profileLastSignIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'最後登入時間'**
+  String get profileLastSignIn;
+
+  /// No description provided for @profileLoginMethod.
+  ///
+  /// In zh, this message translates to:
+  /// **'登入方式'**
+  String get profileLoginMethod;
+
+  /// No description provided for @profileProviderPassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'Email / 密碼'**
+  String get profileProviderPassword;
+
+  /// No description provided for @profileProviderGoogle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google'**
+  String get profileProviderGoogle;
+
+  /// No description provided for @profileProviderApple.
+  ///
+  /// In zh, this message translates to:
+  /// **'Apple'**
+  String get profileProviderApple;
+
+  /// No description provided for @profileProviderOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get profileProviderOther;
+
+  /// No description provided for @profileSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'儲存'**
+  String get profileSave;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'個人資料已更新'**
+  String get profileSaved;
+
+  /// No description provided for @profileUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get profileUnknown;
+
+  /// No description provided for @profileSyncSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'跨裝置同步'**
+  String get profileSyncSection;
+
+  /// No description provided for @profileSyncNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'立即同步行程'**
+  String get profileSyncNow;
+
+  /// No description provided for @profileSyncing.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步中…'**
+  String get profileSyncing;
+
+  /// No description provided for @profileSyncFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步失敗，請檢查網路後再試。'**
+  String get profileSyncFailed;
+
+  /// No description provided for @profileSyncNever.
+  ///
+  /// In zh, this message translates to:
+  /// **'尚未同步'**
+  String get profileSyncNever;
+
+  /// No description provided for @profileLastSynced.
+  ///
+  /// In zh, this message translates to:
+  /// **'上次同步：{time}'**
+  String profileLastSynced(String time);
+
+  /// No description provided for @profileSyncResult.
+  ///
+  /// In zh, this message translates to:
+  /// **'上傳 {up} 筆、下載 {down} 筆'**
+  String profileSyncResult(String up, String down);
+
+  /// No description provided for @profileDeleteAccount.
+  ///
+  /// In zh, this message translates to:
+  /// **'刪除帳號'**
+  String get profileDeleteAccount;
+
+  /// No description provided for @profileDeleteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'確定要刪除帳號？'**
+  String get profileDeleteTitle;
+
+  /// No description provided for @profileDeleteBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號、頭像與雲端同步的行程將被永久刪除，無法復原。本機資料不受影響。'**
+  String get profileDeleteBody;
+
+  /// No description provided for @profileDeletePassword.
+  ///
+  /// In zh, this message translates to:
+  /// **'請輸入密碼以確認'**
+  String get profileDeletePassword;
+
+  /// No description provided for @profileDeleteConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'永久刪除'**
+  String get profileDeleteConfirm;
+
+  /// No description provided for @profileCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get profileCancel;
+
+  /// No description provided for @profileDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號已刪除'**
+  String get profileDeleted;
 }
 
 class _AppLocalizationsDelegate

@@ -9,16 +9,20 @@ String cityNameConverter(String inputCity) {
     // 英文 → 中文
     "Taipei": "臺北市",
     "New Taipei": "新北市",
+    "NewTaipei": "新北市",
+    "Taoyuan": "桃園市",
     "Taichung": "臺中市",
     "Tainan": "臺南市",
     "Kaohsiung": "高雄市",
     "Keelung": "基隆市",
+    "Hsinchu": "新竹市",
     "Hsinchu City": "新竹市",
     "Hsinchu County": "新竹縣",
     "Miaoli": "苗栗縣",
     "Changhua": "彰化縣",
     "Nantou": "南投縣",
     "Yunlin": "雲林縣",
+    "Chiayi": "嘉義市",
     "Chiayi City": "嘉義市",
     "Chiayi County": "嘉義縣",
     "Pingtung": "屏東縣",
@@ -31,6 +35,7 @@ String cityNameConverter(String inputCity) {
     // 中文 → 英文
     "臺北市": "Taipei",
     "新北市": "New Taipei",
+    "桃園市": "Taoyuan",
     "臺中市": "Taichung",
     "臺南市": "Tainan",
     "高雄市": "Kaohsiung",
@@ -156,31 +161,81 @@ List<LatLng> decodePolyline(String encoded) {
   return points;
 }
 
-String convertCityCode(String city) {
-  const cityCodes = {
-    'taipei': 'TPE',
-    'newtaipei': 'NWT',
-    'taoyuan': 'TAO',
-    'taichung': 'TXG',
-    'tainan': 'TNN',
-    'kaohsiung': 'KHH',
-    'keelung': 'KEE',
-    'hsinchu': 'HSZ',
-    'hsinchucity': 'HSZ',
-    'miaoli': 'MIA',
-    'changhua': 'CHA',
-    'nantou': 'NAN',
-    'yunlin': 'YUN',
-    'chiayi': 'CYI',
-    'chiayicity': 'CYI',
-    'pingtung': 'PIF',
-    'yilan': 'ILA',
-    'hualien': 'HUA',
-    'taitung': 'TTT',
-    'penghu': 'PEN',
-    'kinmen': 'KIN',
-    'lienchiang': 'LIE',
-  };
+/// TDX / AuthorityID 城市代碼（City id → code）。
+const Map<String, String> kCityAuthorityCodes = {
+  'taipei': 'TPE',
+  'newtaipei': 'NWT',
+  'taoyuan': 'TAO',
+  'taichung': 'TXG',
+  'tainan': 'TNN',
+  'kaohsiung': 'KHH',
+  'keelung': 'KEE',
+  'hsinchu': 'HSZ',
+  'hsinchucity': 'HSZ',
+  'miaoli': 'MIA',
+  'changhua': 'CHA',
+  'nantou': 'NAN',
+  'yunlin': 'YUN',
+  'chiayi': 'CYI',
+  'chiayicity': 'CYI',
+  'pingtung': 'PIF',
+  'yilan': 'ILA',
+  'hualien': 'HUA',
+  'taitung': 'TTT',
+  'penghu': 'PEN',
+  'kinmen': 'KIN',
+  'lienchiang': 'LIE',
+};
 
-  return cityCodes[city.trim().toLowerCase()] ?? city.toUpperCase();
+/// AuthorityID / CityCode → 專案使用的英文 City id。
+const Map<String, String> kCityCodeToEnglishId = {
+  'TPE': 'Taipei',
+  'NWT': 'NewTaipei',
+  'TAO': 'Taoyuan',
+  'TXG': 'Taichung',
+  'TNN': 'Tainan',
+  'KHH': 'Kaohsiung',
+  'KEE': 'Keelung',
+  'HSZ': 'Hsinchu',
+  'MIA': 'Miaoli',
+  'CHA': 'Changhua',
+  'NAN': 'Nantou',
+  'YUN': 'Yunlin',
+  'CYI': 'Chiayi',
+  'PIF': 'Pingtung',
+  'ILA': 'Yilan',
+  'HUA': 'Hualien',
+  'TTT': 'Taitung',
+  'PEN': 'Penghu',
+  'KIN': 'Kinmen',
+  'LIE': 'Lienchiang',
+};
+
+String convertCityCode(String city) {
+  final trimmed = city.trim();
+  if (trimmed.isEmpty) return trimmed;
+  final upper = trimmed.toUpperCase();
+  if (kCityCodeToEnglishId.containsKey(upper)) return upper;
+  return kCityAuthorityCodes[trimmed.toLowerCase()] ?? upper;
+}
+
+/// 依目前城市（City id 或 AuthorityID）顯示名稱。
+String localizedCityName(String city, {required bool isEnglish}) {
+  final trimmed = city.trim();
+  if (trimmed.isEmpty) return trimmed;
+  if (trimmed == 'all') return isEnglish ? 'All' : '全部';
+  if (trimmed == 'InterCity') return isEnglish ? 'InterCity' : '公路客運';
+
+  final code = convertCityCode(trimmed);
+  final englishId = kCityCodeToEnglishId[code] ?? trimmed;
+  if (isEnglish) return englishId;
+
+  final spaced = englishId.replaceAllMapped(
+    RegExp(r'([a-z])([A-Z])'),
+    (match) => '${match[1]} ${match[2]}',
+  );
+  final zh = cityNameConverter(englishId);
+  if (zh != 'Unknown city') return zh;
+  final zhSpaced = cityNameConverter(spaced);
+  return zhSpaced == 'Unknown city' ? englishId : zhSpaced;
 }

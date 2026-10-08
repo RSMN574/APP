@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
-import 'database/getData.dart';
+import 'database/get_data.dart';
 import 'l10n/app_localizations.dart';
 ValueNotifier<List<dynamic>> facilitiesNotifier = ValueNotifier([]);
 class Pair<T1, T2> {

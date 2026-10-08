@@ -10,9 +10,8 @@ class ImgSwiper extends StatefulWidget {
 }
 
 class _ImgSwiperState extends State<ImgSwiper> {
-
   void _launchURL() async {
-    final url = Uri.parse('https://www.tpass.tw');  // 创建 Uri 对象
+    final url = Uri.parse('https://www.tpass.tw'); // 创建 Uri 对象
 
     // 强制使用 Web 浏览器打开链接
     if (await canLaunchUrl(url)) {
@@ -21,9 +20,8 @@ class _ImgSwiperState extends State<ImgSwiper> {
         mode: LaunchMode.externalApplication, // 强制使用外部应用（浏览器）
       );
     } else {
-      print('无法打开 $url');  // 调试信息，确保获取到具体错误信息
+      print('无法打开 $url'); // 调试信息，确保获取到具体错误信息
     }
-
   }
 
   @override
@@ -39,7 +37,7 @@ class _ImgSwiperState extends State<ImgSwiper> {
       child: Swiper(
         itemBuilder: (context, index) {
           return GestureDetector(
-            onTap: _launchURL,  // 点击图片跳转
+            onTap: _launchURL, // 点击图片跳转
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15), // 圆角边框
@@ -63,7 +61,7 @@ class _ImgSwiperState extends State<ImgSwiper> {
         },
         itemCount: imageUrls.length,
         viewportFraction: 0.8,
-        scale: 0.9,// 使用实际图片数量
+        scale: 0.9, // 使用实际图片数量
         autoplay: true, // 自动播放
         pagination: const SwiperPagination(
           alignment: Alignment.bottomCenter,

@@ -1,8 +1,7 @@
+import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../firebase/placeAPI.dart';
-import '../Const/regularClass.dart';
+import '../firebase/place_api.dart';
 import '../l10n/app_localizations.dart';
 
 class SearchPage extends StatefulWidget {
@@ -15,13 +14,26 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _routeController = TextEditingController();
   List<dynamic> _placePredictions = [];
+  Completer<void>? _searchAbort;
+  Object? _searchError;
+  int _searchRequestId = 0;
+  bool _isSearching = false;
+
+  @override
+  void dispose() {
+    _cancelSearch();
+    _routeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0, // 去掉 AppBar 的阴影
-        backgroundColor: Colors.blue, // 设置背景颜色
+        backgroundColor: colorScheme.surface,
         title: GestureDetector(
           onVerticalDragUpdate: (details) {
             if (details.delta.dy > 10) {
@@ -31,11 +43,11 @@ class _SearchPageState extends State<SearchPage> {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white, // 使用白色背景
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8.0),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: colorScheme.shadow.withValues(alpha: 0.12),
                   blurRadius: 5.0,
                   offset: const Offset(0, 2),
                 ),
@@ -46,16 +58,20 @@ class _SearchPageState extends State<SearchPage> {
               decoration: InputDecoration(
                 hintText: AppLocalizations.of(context)!.text_620,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 20.0),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.search, color: Colors.blue), // 搜索图标
+                  icon: Icon(Icons.search, color: colorScheme.primary),
                   onPressed: _loadPredictions, // 按钮点击事件
                 ),
               ),
               onChanged: (value) {
                 // 在输入内容时清空建议列表
+                _cancelSearch();
                 setState(() {
                   _placePredictions.clear();
+                  _searchError = null;
+                  _isSearching = false;
                 });
               },
               onSubmitted: (value) {
@@ -70,6 +86,15 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           children: [
             const SizedBox(height: 16.0), // 搜索框和建议列表之间的间距
+            if (_isSearching) const LinearProgressIndicator(),
+            if (_searchError != null)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  '搜尋地點失敗：$_searchError',
+                  style: TextStyle(color: colorScheme.error),
+                ),
+              ),
             // 显示建议列表
             if (_placePredictions.isNotEmpty)
               Expanded(
@@ -78,27 +103,41 @@ class _SearchPageState extends State<SearchPage> {
                   borderRadius: BorderRadius.circular(8.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: ListView.builder(
                       shrinkWrap: true,
                       itemCount: _placePredictions.length,
                       itemBuilder: (context, index) {
-                        final mainText = _placePredictions[index]['structured_formatting']['main_text'];
-                        final secondaryText = _placePredictions[index]['structured_formatting']['secondary_text'];
+                        final prediction = _placePredictions[index];
+                        final formatting = prediction is Map
+                            ? prediction['structured_formatting']
+                            : null;
+                        final mainText = formatting is Map
+                            ? formatting['main_text']?.toString() ?? ''
+                            : '';
+                        final secondaryText = formatting is Map
+                            ? formatting['secondary_text']?.toString() ?? ''
+                            : '';
 
                         return ListTile(
-                          leading: const Icon(Icons.location_on, color: Colors.blue),
-                          title: Text(mainText, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(secondaryText, style: const TextStyle(color: Colors.grey)),
+                          leading: Icon(Icons.location_on,
+                              color: colorScheme.primary),
+                          title: Text(mainText,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(
+                            secondaryText,
+                            style:
+                                TextStyle(color: colorScheme.onSurfaceVariant),
+                          ),
                           onTap: () async {
-                            // 获取当前位置
-                            final locationProvider = Provider.of<LocationProvider>(context, listen: false);
-                            String origin = '${locationProvider.latitude},${locationProvider.longitude}';
-                            Navigator.pushNamed(context, 'home' ,arguments:_placePredictions[index]);
-                            // 弹出对话框
-
+                            Navigator.pushNamed(
+                              context,
+                              'home',
+                              arguments: prediction,
+                            );
                           },
                         );
                       },
@@ -112,17 +151,50 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  Future<void> _loadPredictions() async {
+    _cancelSearch();
+    final requestId = ++_searchRequestId;
+    final abort = Completer<void>();
+    _searchAbort = abort;
+    setState(() {
+      _searchError = null;
+      _isSearching = true;
+      _placePredictions = [];
+    });
 
-
-  void _loadPredictions() async {
-    PlacesService placesService = PlacesService();
     try {
-      List<dynamic> predictions = await placesService.getPlaceAutocomplete(_routeController.text,context);
+      final predictions = await PlacesService().getPlaceAutocomplete(
+        _routeController.text,
+        context,
+        abortTrigger: abort.future,
+      );
+      if (!mounted || requestId != _searchRequestId) return;
       setState(() {
         _placePredictions = predictions;
       });
-    } catch (e) {
-      print('Error: $e');
+    } on PlaceRequestCancelledException {
+      // A newer query or page disposal superseded this request.
+    } catch (error) {
+      if (!mounted || requestId != _searchRequestId) return;
+      setState(() {
+        _searchError = error;
+      });
+    } finally {
+      if (mounted && requestId == _searchRequestId) {
+        _searchAbort = null;
+        setState(() {
+          _isSearching = false;
+        });
+      }
     }
+  }
+
+  void _cancelSearch() {
+    final activeRequest = _searchAbort;
+    if (activeRequest != null && !activeRequest.isCompleted) {
+      activeRequest.complete();
+    }
+    _searchAbort = null;
+    _searchRequestId++;
   }
 }

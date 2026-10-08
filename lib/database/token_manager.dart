@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../config/app_config.dart';
 
 class TokenManager {
   static final TokenManager _instance = TokenManager._internal();
@@ -11,10 +15,10 @@ class TokenManager {
 
   String? _token;
   DateTime? _expireTime;
+  Future<String?>? _refreshFuture;
+  Timer? _autoRefreshTimer;
 
   /// 🔹 伺服器 URL & API Key
-  static const _apiUrl = "http://hidden.rsmn574.com:3920/tokens";
-  static const _apiKey = "PgRQhSulFPbmnccET+l8ykLC1s2k8IAvpAb3NFFwIXA=";
 
   /// 🔹 取得目前 Token（自動檢查是否過期）
   Future<String?> getToken() async {
@@ -43,19 +47,38 @@ class TokenManager {
 
   /// 🔄 手動刷新 Token（例如過期或 1 小時自動更新）
   Future<String?> refreshToken() async {
+    final activeRefresh = _refreshFuture;
+    if (activeRefresh != null) return activeRefresh;
+
+    final refresh = _refreshToken();
+    _refreshFuture = refresh;
     try {
+      return await refresh;
+    } finally {
+      if (identical(_refreshFuture, refresh)) {
+        _refreshFuture = null;
+      }
+    }
+  }
+
+  Future<String?> _refreshToken() async {
+    try {
+      AppConfig.requireTokenServiceConfig();
       final now = DateTime.now().toUtc().toIso8601String();
       final response = await http.post(
-        Uri.parse(_apiUrl),
+        Uri.parse(AppConfig.tokenServiceUrl),
         headers: {
-          "Authorization": "Bearer $_apiKey",
+          "Authorization": "Bearer ${AppConfig.tokenServiceApiKey}",
           "X-Timestamp": now,
         },
-      );
+      ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final token = data['token'] ?? '';
+        final token = data['token']?.toString() ?? '';
+        if (token.isEmpty) {
+          throw const FormatException('Token response did not contain a token');
+        }
 
         // 假設有效期為 1 小時
         final expireTime = DateTime.now().add(const Duration(hours: 1));
@@ -65,24 +88,30 @@ class TokenManager {
         _expireTime = expireTime;
 
         await _storage.write(key: "server_token", value: token);
-        await _storage.write(key: "token_expire", value: expireTime.toIso8601String());
+        await _storage.write(
+            key: "token_expire", value: expireTime.toIso8601String());
 
-        print("✅ Token 更新成功");
         return token;
       } else {
-        print("❌ 更新 Token 失敗: ${response.statusCode}");
+        throw HttpException(
+          'Token service rejected the request: ${response.statusCode}',
+        );
       }
-    } catch (e) {
-      print("⚠️ 無法更新 Token: $e");
+    } catch (_) {
+      rethrow;
     }
-    return null;
   }
 
   /// ⏰ 啟動自動刷新（例如每 55 分鐘）
   void startAutoRefresh() {
-    Future.delayed(const Duration(minutes: 55), () async {
-      await refreshToken();
-      startAutoRefresh(); // 再次排程
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = Timer.periodic(const Duration(minutes: 55), (_) {
+      unawaited(refreshToken());
     });
+  }
+
+  void stopAutoRefresh() {
+    _autoRefreshTimer?.cancel();
+    _autoRefreshTimer = null;
   }
 }

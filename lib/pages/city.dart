@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+
 class City {
   final String name;
   final String englishName;
@@ -15,6 +15,7 @@ class City {
     this.isCheckedIn = false,
   });
 }
+
 class TaiwanCitiesPage extends StatefulWidget {
   const TaiwanCitiesPage({super.key});
 
@@ -25,12 +26,30 @@ class TaiwanCitiesPage extends StatefulWidget {
 class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
   // 模擬全台灣城市數據
   late final List<City> _cities = [
-    City(name: AppLocalizations.of(context)!.text_174, englishName: 'Taipei', image: 'assets/cities/taipei.jpg'),
-    City(name: AppLocalizations.of(context)!.text_8, englishName: 'New Taipei', image: 'assets/cities/new_taipei.jpg'),
-    City(name: AppLocalizations.of(context)!.text_184, englishName: 'Taichung', image: 'assets/cities/taichung.jpg'),
-    City(name: AppLocalizations.of(context)!.text_188, englishName: 'Tainan', image: 'assets/cities/tainan.jpg'),
-    City(name: AppLocalizations.of(context)!.text_11, englishName: 'Kaohsiung', image: 'assets/cities/kaohsiung.jpg'),
-    City(name: AppLocalizations.of(context)!.text_12, englishName: 'Keelung', image: 'assets/cities/keelung.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_174,
+        englishName: 'Taipei',
+        image: 'assets/cities/taipei.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_8,
+        englishName: 'New Taipei',
+        image: 'assets/cities/new_taipei.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_184,
+        englishName: 'Taichung',
+        image: 'assets/cities/taichung.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_188,
+        englishName: 'Tainan',
+        image: 'assets/cities/tainan.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_11,
+        englishName: 'Kaohsiung',
+        image: 'assets/cities/kaohsiung.jpg'),
+    City(
+        name: AppLocalizations.of(context)!.text_12,
+        englishName: 'Keelung',
+        image: 'assets/cities/keelung.jpg'),
     // ... 依此類推
   ];
 
@@ -53,12 +72,12 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF2F2F7),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title:  Text(AppLocalizations.of(context)!.text_368),
+        title: Text(AppLocalizations.of(context)!.text_368),
         actions: [
           IconButton(
             icon: const Icon(Icons.map_rounded),
@@ -69,10 +88,10 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,       // 一列兩個城市
-          mainAxisSpacing: 16,     // 上下間距
-          crossAxisSpacing: 16,    // 左右間距
-          childAspectRatio: 0.85,  // 卡片長寬比
+          crossAxisCount: 2, // 一列兩個城市
+          mainAxisSpacing: 16, // 上下間距
+          crossAxisSpacing: 16, // 左右間距
+          childAspectRatio: 0.85, // 卡片長寬比
         ),
         itemCount: _cities.length,
         itemBuilder: (context, index) {
@@ -83,16 +102,16 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
   }
 
   Widget _buildCityCard(City city, int index) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          if (!isDark)
+          if (colorScheme.brightness == Brightness.light)
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: colorScheme.shadow.withValues(alpha: 0.08),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -109,12 +128,12 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
                 Expanded(
                   child: Container(
                     width: double.infinity,
-                    color: isDark ? Colors.blueGrey.withOpacity(0.1) : Colors.blue.withOpacity(0.05),
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.5),
                     child: Center(
                       child: Icon(
                         Icons.location_city_rounded,
                         size: 40,
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                        color: colorScheme.primary.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -135,7 +154,7 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
                         city.englishName,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.grey : Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -156,14 +175,16 @@ class _TaiwanCitiesPageState extends State<TaiwanCitiesPage> {
                   decoration: BoxDecoration(
                     color: city.isCheckedIn
                         ? Theme.of(context).colorScheme.primary
-                        : Colors.black.withOpacity(0.3),
+                        : colorScheme.scrim.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                     // backdropFilter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                   ),
                   child: Icon(
-                    city.isCheckedIn ? Icons.beenhere_rounded : Icons.add_location_alt_rounded,
+                    city.isCheckedIn
+                        ? Icons.beenhere_rounded
+                        : Icons.add_location_alt_rounded,
                     size: 20,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                   ),
                 ),
               ),
