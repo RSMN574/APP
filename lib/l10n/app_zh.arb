@@ -1057,7 +1057,7 @@
       }
     }
   },
-  "nearStopMinutes": "{minutes} ??",
+  "nearStopMinutes": "{minutes} 分鐘",
   "@nearStopMinutes": {
     "placeholders": {
       "minutes": {

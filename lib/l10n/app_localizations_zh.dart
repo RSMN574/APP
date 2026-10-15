@@ -3111,7 +3111,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String nearStopMinutes(String minutes) {
-    return '$minutes ??';
+    return '$minutes 分鐘';
   }
 
   @override

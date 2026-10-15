@@ -6275,7 +6275,7 @@ abstract class AppLocalizations {
   /// No description provided for @nearStopMinutes.
   ///
   /// In zh, this message translates to:
-  /// **'{minutes} ??'**
+  /// **'{minutes} 分鐘'**
   String nearStopMinutes(String minutes);
 
   /// No description provided for @nearStopSortAsc.
