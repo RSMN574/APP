@@ -15,9 +15,11 @@ import '../const/regular_class.dart';
 import '../const/regular_const.dart';
 import '../database/mrt/get_mrt_info.dart';
 import '../database/sql/favorite_feature.dart';
-import '../database/bus/get_bus_time.dart';
+
 import '../database/get_data.dart';
-import '../database/bus/get_station_info.dart';
+
+import '../features/bus/data/get_bus_time.dart';
+import '../features/bus/data/get_station_info.dart';
 import '../features/bus/pages/bus_stop_info_page.dart';
 import '../features/bus/pages/bus_time_page.dart';
 import '../features/railway/pages/train_page.dart';
@@ -878,8 +880,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                               ),
                                                               decoration:
                                                                   BoxDecoration(
-                                                                color: Colors
-                                                                    .white,
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .surface,
                                                                 borderRadius:
                                                                     BorderRadius
                                                                         .circular(
