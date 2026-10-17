@@ -3224,4 +3224,160 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileDeleted => '帳號已刪除';
+
+  @override
+  String get airport_name_TPE => '桃園國際機場';
+
+  @override
+  String get airport_name_TSA => '台北松山機場';
+
+  @override
+  String get airport_name_RMQ => '台中清泉崗機場';
+
+  @override
+  String get airport_name_KHH => '高雄國際機場';
+
+  @override
+  String get airport_name_TNN => '台南機場';
+
+  @override
+  String get airport_name_HUN => '花蓮機場';
+
+  @override
+  String get airport_name_TTT => '台東機場';
+
+  @override
+  String get airport_name_CYI => '嘉義機場';
+
+  @override
+  String get airport_name_KNH => '金門機場';
+
+  @override
+  String get airport_name_MZG => '澎湖馬公機場';
+
+  @override
+  String get airport_name_MFK => '北竿機場';
+
+  @override
+  String get airport_name_LZN => '南竿機場';
+
+  @override
+  String get airport_name_KYD => '蘭嶼機場';
+
+  @override
+  String get airport_name_GNI => '綠島機場';
+
+  @override
+  String get airport_transport_airport_mrt => '機場捷運';
+
+  @override
+  String get airport_transport_direct_taipei => '直達台北車站，約35分鐘';
+
+  @override
+  String get airport_transport_intercity_bus => '客運巴士';
+
+  @override
+  String get airport_transport_multiple_routes => '多條路線通往全台各地';
+
+  @override
+  String get airport_transport_taxi => '計程車';
+
+  @override
+  String get airport_transport_taxi_24h => '24小時排班服務';
+
+  @override
+  String get airport_transport_car_rental => '租車服務';
+
+  @override
+  String get airport_transport_major_rental => '各大租車公司進駐';
+
+  @override
+  String get airport_service_duty_free => '免稅商店';
+
+  @override
+  String get airport_service_lounge => '貴賓室';
+
+  @override
+  String get airport_service_dining => '餐飲服務';
+
+  @override
+  String get airport_service_wifi => '免費WiFi';
+
+  @override
+  String get airport_service_currency_exchange => '貨幣兌換';
+
+  @override
+  String get airport_service_luggage_storage => '行李寄存';
+
+  @override
+  String get airport_service_prayer_room => '祈禱室';
+
+  @override
+  String get airport_service_nursery => '育嬰室';
+
+  @override
+  String get airport_service_convenience_store => '便利商店';
+
+  @override
+  String get airport_service_observation_deck => '觀景台';
+
+  @override
+  String get airport_service_nursing_room => '哺乳室';
+
+  @override
+  String get airport_emergency_airport_police => '機場警察';
+
+  @override
+  String get airport_emergency_medical_center => '醫療中心';
+
+  @override
+  String get airport_emergency_lost_and_found => '遺失物協尋';
+
+  @override
+  String get airport_emergency_info_desk => '機場服務台';
+
+  @override
+  String get airport_emergency_medical_assistance => '醫療協助';
+
+  @override
+  String get airport_emergency_police_station => '警察局';
+
+  @override
+  String get airport_emergency_service_center => '服務中心';
+
+  @override
+  String get airport_emergency_medical_station => '醫療站';
+
+  @override
+  String get airport_for_emergencies_call => '緊急情況請撥打：119';
+
+  @override
+  String airport_info_desk(String phone) {
+    return '機場服務台：$phone';
+  }
+
+  @override
+  String airport_overview_title(String name) {
+    return '$name概況';
+  }
+
+  @override
+  String airport_overview_content(String iataCode, String area, int terminals,
+      String passengers, String phone) {
+    return '• IATA代碼：$iataCode\n• 總面積：$area公頃\n• 航廈數：$terminals座\n• 年旅客量：約$passengers人次\n• 24小時服務電話：$phone';
+  }
+
+  @override
+  String airport_emergency_info(String phone) {
+    return '緊急情況請撥打：119\n機場服務台：$phone';
+  }
+
+  @override
+  String get airport_load_failed => '載入機場資料失敗';
+
+  @override
+  String get airport_retry => '重試';
+
+  @override
+  String get airport_no_data => '無機場資料';
 }

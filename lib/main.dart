@@ -111,7 +111,7 @@ class ProviderSetup {
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
       ChangeNotifierProvider.value(value: appProvider),
       ChangeNotifierProvider(create: (_) => BusProvider()),
-      ChangeNotifierProvider(create: (_) => AirportProvider()),
+      ChangeNotifierProvider(create: (_) => AirportProvider()..loadAirports()),
       ChangeNotifierProvider(create: (_) => ParkingProvider()),
       ChangeNotifierProvider(create: (_) => TrafficProvider()),
       ChangeNotifierProvider(create: (_) => EvStationProvider()),

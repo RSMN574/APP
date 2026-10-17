@@ -69,11 +69,7 @@ final List<MenuItemData> menuItems = [
     title: 'text_2',
     icon: Icons.favorite,
   ),
-  MenuItemData(
-    id: 'routeplan',
-    title: 'text_3',
-    icon: Icons.route,
-  ),
+
   MenuItemData(
     id: 'shuttleBus',
     title: 'text_4',

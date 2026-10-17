@@ -21,7 +21,7 @@ import 'package:com.rsmn574.app/features/bus/widgets/bubble.dart';
 import 'package:com.rsmn574.app/widget/error.dart';
 
 import '../../../widget/AppLoading.dart';
-import '../model/bus_station_model2.dart';
+import '../model/bus_station_model.dart';
 
 ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
 final ValueNotifier<int> _currentTabIndex = ValueNotifier<int>(0);

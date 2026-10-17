@@ -78,34 +78,59 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    const lightPrimary = Color(0xFF1A73E8);
+    const darkPrimary = Color(0xFF64B5F6);
+
+    final primaryColor = isDark ? darkPrimary : lightPrimary;
+    final backgroundColor = isDark
+        ? const Color(0xFF121212)
+        : const Color(0xFFF8FAFD);
+    final surfaceColor = isDark
+        ? const Color(0xFF1C1C1E)
+        : Colors.white;
+    final borderColor = isDark
+        ? const Color(0xFF343438)
+        : const Color(0xFFE5ECF6);
+    final textPrimary = theme.colorScheme.onSurface;
+    final textSecondary = isDark
+        ? const Color(0xFFB0B7C3)
+        : const Color(0xFF64748B);
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        elevation: 0, // 改為無陰影
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: surfaceColor,
+        foregroundColor: primaryColor,
+        iconTheme: IconThemeData(color: primaryColor),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+                color: primaryColor.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.directions_bus, // 使用公車圖示
-                color: Color(0xFF1A73E8),
+              child: Icon(
+                Icons.directions_bus,
+                color: primaryColor,
                 size: 20,
               ),
             ),
             const SizedBox(width: 10),
             Text(
               AppLocalizations.of(context)!.text_826,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A73E8), // 改為藍色
+                color: primaryColor,
               ),
             ),
           ],
@@ -118,22 +143,45 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
             Tab(text: AppLocalizations.of(context)!.text_146),
             Tab(text: AppLocalizations.of(context)!.text_147),
           ],
-          labelColor: const Color(0xFF1A73E8), // 改為精緻藍
-          unselectedLabelColor: Colors.grey.shade600,
-          indicatorColor: const Color(0xFF1A73E8),
+          labelColor: primaryColor,
+          unselectedLabelColor: textSecondary,
+          indicatorColor: primaryColor,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorWeight: 3,
+          dividerColor: borderColor,
+          overlayColor: WidgetStatePropertyAll(
+            primaryColor.withOpacity(0.06),
+          ),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF1A73E8)),
-            iconColor: const Color(0xFF1A73E8),
-            itemBuilder: (BuildContext context) => <PopupMenuItem<String>>[
+            icon: Icon(
+              Icons.more_vert_rounded,
+              color: primaryColor,
+            ),
+            iconColor: primaryColor,
+            color: surfaceColor,
+            surfaceTintColor: Colors.transparent,
+            elevation: isDark ? 4 : 3,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: borderColor),
+            ),
+            itemBuilder: (BuildContext context) => [
               PopupMenuItem<String>(
                 value: 'line',
                 child: Row(
                   children: [
-                    const Icon(Icons.train, color: Color(0xFF1A73E8), size: 20),
+                    Icon(
+                      Icons.train,
+                      color: primaryColor,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
-                    Text(AppLocalizations.of(context)!.text_827),
+                    Text(
+                      AppLocalizations.of(context)!.text_827,
+                      style: TextStyle(color: textPrimary),
+                    ),
                   ],
                 ),
               ),
@@ -145,125 +193,169 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                     context,
                     MaterialPageRoute(
                       builder: (context) => Scaffold(
+                        backgroundColor: backgroundColor,
                         appBar: AppBar(
-                          elevation: 0, // 內頁也改成無陰影
-                          backgroundColor: Theme.of(context).colorScheme.surface,
+                          elevation: 0,
+                          scrolledUnderElevation: 0,
+                          backgroundColor: surfaceColor,
+                          foregroundColor: primaryColor,
+                          iconTheme: IconThemeData(
+                            color: primaryColor,
+                          ),
                           title: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: primaryColor.withOpacity(0.10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.train,
-                                  color: Color(0xFF1A73E8),
+                                  color: primaryColor,
                                   size: 20,
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Text(
                                 AppLocalizations.of(context)!.text_827,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1A73E8),
+                                  color: primaryColor,
                                 ),
                               ),
                             ],
                           ),
                           centerTitle: true,
-                          iconTheme:
-                              const IconThemeData(color: Color(0xFF1A73E8)),
                         ),
                         body: FutureBuilder(
-                          future:
-                              mysqlSelect("SELECT * FROM Train.Train_Line;"),
-                          builder:
-                              (BuildContext context, AsyncSnapshot snapshot) {
+                          future: mysqlSelect(
+                            "SELECT * FROM Train.Train_Line;",
+                          ),
+                          builder: (
+                              BuildContext context,
+                              AsyncSnapshot snapshot,
+                              ) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return Center(
                                 child: CircularProgressIndicator(
-                                  color: const Color(0xFF1A73E8),
+                                  color: primaryColor,
                                 ),
                               );
-                            } else if (snapshot.hasError) {
+                            }
+
+                            if (snapshot.hasError) {
                               return Center(
-                                child: Text(
-                                  "加載失敗: ${snapshot.error}",
-                                  style: const TextStyle(
-                                      color: Colors.red, fontSize: 16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    "載入失敗: ${snapshot.error}",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? const Color(0xFFFF8A80)
+                                          : const Color(0xFFD32F2F),
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ),
                               );
-                            } else if (!snapshot.hasData ||
+                            }
+
+                            if (!snapshot.hasData ||
                                 (snapshot.data as List).isEmpty) {
                               return Center(
                                 child: Text(
                                   AppLocalizations.of(context)!.text_828,
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                  style: TextStyle(
+                                    color: textSecondary,
                                     fontSize: 16,
                                   ),
                                 ),
                               );
-                            } else {
-                              var lineData = snapshot.data as List;
-                              return Container(
-                                color: Colors.white,
-                                child: ListView.builder(
-                                  itemCount: lineData.length,
-                                  itemBuilder: (context, index) {
-                                    var line = lineData[index];
-                                    var lineNameZh = line['LineNameZh'] ??
-                                        AppLocalizations.of(context)!.text_321;
-                                    var lineNameEn =
-                                        line['LineNameEn'] ?? 'Unknown';
-                                    var sectionNameZh =
-                                        line['LineSectionNameZh'] ??
-                                            AppLocalizations.of(context)!
-                                                .text_829;
+                            }
 
-                                    return Container(
-                                      margin: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                        horizontal: 16,
+                            final lineData = snapshot.data as List;
+
+                            return Container(
+                              color: backgroundColor,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                itemCount: lineData.length,
+                                itemBuilder: (context, index) {
+                                  final line = lineData[index];
+
+                                  final lineNameZh =
+                                      line['LineNameZh'] ??
+                                          AppLocalizations.of(context)!
+                                              .text_321;
+
+                                  final lineNameEn =
+                                      line['LineNameEn'] ?? 'Unknown';
+
+                                  final sectionNameZh =
+                                      line['LineSectionNameZh'] ??
+                                          AppLocalizations.of(context)!
+                                              .text_829;
+
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                      horizontal: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: surfaceColor,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: borderColor,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.05),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 4),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(
+                                            isDark ? 0.10 : 0.035,
                                           ),
-                                        ],
-                                      ),
-                                      child: ListTile(
-                                        title: Text(
-                                          lineNameZh,
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: textPrimary,
-                                          ),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
                                         ),
-                                        subtitle: Text(
-                                          "$lineNameEn\n區間: $sectionNameZh",
+                                      ],
+                                    ),
+                                    child: ListTile(
+                                      contentPadding:
+                                      const EdgeInsets.symmetric(
+                                        horizontal: 18,
+                                        vertical: 6,
+                                      ),
+                                      title: Text(
+                                        lineNameZh.toString(),
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: textPrimary,
+                                        ),
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4,
+                                        ),
+                                        child: Text(
+                                          "$lineNameEn\n區間：$sectionNameZh",
                                           style: TextStyle(
                                             fontSize: 14,
+                                            height: 1.5,
                                             color: textSecondary,
                                           ),
                                         ),
-                                        isThreeLine: true,
                                       ),
-                                    );
-                                  },
-                                ),
-                              );
-                            }
+                                      isThreeLine: true,
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
                           },
                         ),
                       ),
@@ -278,17 +370,21 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
-          // TrainMainPage(),
-          TripNumberSearchPage(controller: _trainNoController),
+          TripNumberSearchPage(
+            controller: _trainNoController,
+          ),
           RouteSearchPage(
             departureController: _departureController,
             destinationController: _destinationController,
           ),
-          StationSearchPage(controller: _stationController),
+          StationSearchPage(
+            controller: _stationController,
+          ),
         ],
       ),
     );
   }
+
 }
 
 class TrainMainPage extends StatefulWidget {
@@ -744,93 +840,149 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   bool _isDepartureSelected = false;
   bool _isDestinationSelected = false;
 
+
+
   Future<void> _selectDateTime(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
+    final now = DateTime.now();
+    final currentTheme = Theme.of(context);
+    final isDark = currentTheme.brightness == Brightness.dark;
+
+    const primaryColor = Color(0xFF1A73E8);
+
+    final surfaceColor = currentTheme.colorScheme.surface;
+    final textColor = currentTheme.colorScheme.onSurface;
+
+    final dialogShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    );
+
+    // 日期與時間選擇器共用主題
+    final pickerTheme = currentTheme.copyWith(
+      colorScheme: currentTheme.colorScheme.copyWith(
+        primary: primaryColor,
+        onPrimary: Colors.white,
+        surface: surfaceColor,
+        onSurface: textColor,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceColor,
+        shape: dialogShape,
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: surfaceColor,
+        hourMinuteTextColor: primaryColor,
+        hourMinuteColor: primaryColor.withOpacity(
+          isDark ? 0.20 : 0.07,
+        ),
+        hourMinuteShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: primaryColor.withOpacity(
+              isDark ? 0.50 : 0.25,
+            ),
+          ),
+        ),
+        dayPeriodTextColor: textColor,
+        dayPeriodColor: primaryColor.withOpacity(
+          isDark ? 0.25 : 0.10,
+        ),
+        dayPeriodShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        dialBackgroundColor: isDark
+            ? const Color(0xFF2C2C2E)
+            : const Color(0xFFF1F5FC),
+        dialTextColor: textColor,
+        dialHandColor: primaryColor,
+        entryModeIconColor: primaryColor,
+        helpTextStyle: currentTheme.textTheme.labelSmall,
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+      ),
+    );
+
+    // 選擇日期
+    final pickedDate = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: selectedDate != null &&
+          !selectedDate!.isBefore(
+            DateTime(now.year, now.month, now.day),
+          )
+          ? selectedDate!
+          : now,
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Color(0xFF1A73E8),
-                  onPrimary: Theme.of(context).colorScheme.onPrimary,
-                  surface: Theme.of(context).colorScheme.surface,
-                  onSurface: Color(0xFF1A73E8),
-                ),
-            dialogTheme: DialogThemeData(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-              ),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF1A73E8),
-              ),
-            ),
-          ),
+          data: pickerTheme,
           child: child!,
         );
       },
     );
 
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: Theme.of(context).colorScheme.copyWith(
-                    primary: Color(0xFF1A73E8),
-                    onPrimary: Theme.of(context).colorScheme.onPrimary,
-                    surface: Theme.of(context).colorScheme.surface,
-                    onSurface: Color(0xFF1A73E8),
-                  ),
-              timePickerTheme: TimePickerThemeData(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                hourMinuteTextColor: const Color(0xFF1A73E8),
-                dayPeriodTextColor: const Color(0xFF1A73E8),
-                dayPeriodColor: const Color(0xFF1A73E8).withOpacity(0.1),
-                dayPeriodShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: const Color(0xFF1A73E8).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                hourMinuteColor: const Color(0xFF1A73E8).withOpacity(0.05),
-                hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                dialBackgroundColor: const Color(0xFFF8FAFD),
-                dialTextColor: const Color(0xFF1A73E8),
+    if (pickedDate == null || !context.mounted) return;
 
-              ),
-            ),
-            child: child!,
-          );
-        },
+    // 日期改變時，若原本選擇的時間已過，改用目前時間
+    final isToday = pickedDate.year == now.year &&
+        pickedDate.month == now.month &&
+        pickedDate.day == now.day;
+
+    final previousDateTime = selectedDate ?? now;
+    final previousTime = TimeOfDay.fromDateTime(
+      previousDateTime,
+    );
+
+    final initialTime = isToday &&
+        (previousTime.hour < now.hour ||
+            (previousTime.hour == now.hour &&
+                previousTime.minute < now.minute))
+        ? TimeOfDay.fromDateTime(now)
+        : previousTime;
+
+    // 選擇時間
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: pickerTheme,
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final result = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // 防止選擇今天的過去時間
+    if (result.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('不能選擇過去的時間，請重新選擇。'),
+        ),
       );
-
-      if (pickedTime != null) {
-        setState(() {
-          selectedDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
-      }
+      return;
     }
+
+    setState(() {
+      selectedDate = result;
+    });
   }
 
   void _swapStations() {
@@ -1555,93 +1707,148 @@ class _StationSearchPageState extends State<StationSearchPage> {
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
 
+
   Future<void> _selectDateTime(BuildContext context) async {
-    final DateTime? pickedDate = await showDatePicker(
+    final now = DateTime.now();
+    final currentTheme = Theme.of(context);
+    final isDark = currentTheme.brightness == Brightness.dark;
+
+    const primaryColor = Color(0xFF1A73E8);
+
+    final surfaceColor = currentTheme.colorScheme.surface;
+    final textColor = currentTheme.colorScheme.onSurface;
+
+    final dialogShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+    );
+
+    // 日期與時間選擇器共用主題
+    final pickerTheme = currentTheme.copyWith(
+      colorScheme: currentTheme.colorScheme.copyWith(
+        primary: primaryColor,
+        onPrimary: Colors.white,
+        surface: surfaceColor,
+        onSurface: textColor,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: surfaceColor,
+        shape: dialogShape,
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: surfaceColor,
+        hourMinuteTextColor: primaryColor,
+        hourMinuteColor: primaryColor.withOpacity(
+          isDark ? 0.20 : 0.07,
+        ),
+        hourMinuteShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: primaryColor.withOpacity(
+              isDark ? 0.50 : 0.25,
+            ),
+          ),
+        ),
+        dayPeriodTextColor: textColor,
+        dayPeriodColor: primaryColor.withOpacity(
+          isDark ? 0.25 : 0.10,
+        ),
+        dayPeriodShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        dialBackgroundColor: isDark
+            ? const Color(0xFF2C2C2E)
+            : const Color(0xFFF1F5FC),
+        dialTextColor: textColor,
+        dialHandColor: primaryColor,
+        entryModeIconColor: primaryColor,
+        helpTextStyle: currentTheme.textTheme.labelSmall,
+        cancelButtonStyle: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+        confirmButtonStyle: TextButton.styleFrom(
+          foregroundColor: primaryColor,
+        ),
+      ),
+    );
+
+    // 選擇日期
+    final pickedDate = await showDatePicker(
       context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: selectedDate != null &&
+          !selectedDate!.isBefore(
+            DateTime(now.year, now.month, now.day),
+          )
+          ? selectedDate!
+          : now,
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Color(0xFF1A73E8),
-                  onPrimary: Theme.of(context).colorScheme.onPrimary,
-                  surface: Theme.of(context).colorScheme.surface,
-                  onSurface: Color(0xFF1A73E8),
-                ),
-            dialogTheme: DialogThemeData(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(20)),
-              ),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF1A73E8),
-              ),
-            ),
-          ),
+          data: pickerTheme,
           child: child!,
         );
       },
     );
 
-    if (pickedDate != null) {
-      final TimeOfDay? pickedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.fromDateTime(selectedDate ?? DateTime.now()),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: Theme.of(context).colorScheme.copyWith(
-                    primary: Color(0xFF1A73E8),
-                    onPrimary: Theme.of(context).colorScheme.onPrimary,
-                    surface: Theme.of(context).colorScheme.surface,
-                    onSurface: Color(0xFF1A73E8),
-                  ),
-              timePickerTheme: TimePickerThemeData(
-                backgroundColor: Colors.white,
-                hourMinuteTextColor: const Color(0xFF1A73E8),
-                dayPeriodTextColor: const Color(0xFF1A73E8),
-                dayPeriodColor: const Color(0xFF1A73E8).withOpacity(0.1),
-                dayPeriodShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: const Color(0xFF1A73E8).withOpacity(0.3),
-                    width: 1,
-                  ),
-                ),
-                hourMinuteColor: const Color(0xFF1A73E8).withOpacity(0.05),
-                hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-                dialBackgroundColor: const Color(0xFFF8FAFD),
-                dialTextColor: const Color(0xFF1A73E8),
-                entryModeIconColor: const Color(0xFF1A73E8),
-              ),
-            ),
-            child: child!,
-          );
-        },
-      );
+    if (pickedDate == null || !context.mounted) return;
 
-      if (pickedTime != null) {
-        setState(() {
-          selectedDate = DateTime(
-            pickedDate.year,
-            pickedDate.month,
-            pickedDate.day,
-            pickedTime.hour,
-            pickedTime.minute,
-          );
-        });
-      }
+    // 日期改變時，若原本選擇的時間已過，改用目前時間
+    final isToday = pickedDate.year == now.year &&
+        pickedDate.month == now.month &&
+        pickedDate.day == now.day;
+
+    final previousDateTime = selectedDate ?? now;
+    final previousTime = TimeOfDay.fromDateTime(
+      previousDateTime,
+    );
+
+    final initialTime = isToday &&
+        (previousTime.hour < now.hour ||
+            (previousTime.hour == now.hour &&
+                previousTime.minute < now.minute))
+        ? TimeOfDay.fromDateTime(now)
+        : previousTime;
+
+    // 選擇時間
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: pickerTheme,
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null || !context.mounted) return;
+
+    final result = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // 防止選擇今天的過去時間
+    if (result.isBefore(DateTime.now())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('不能選擇過去的時間，請重新選擇。'),
+        ),
+      );
+      return;
     }
+
+    setState(() {
+      selectedDate = result;
+    });
   }
 
   @override

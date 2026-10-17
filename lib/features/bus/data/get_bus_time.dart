@@ -3,10 +3,11 @@ import 'dart:io'; // 用于文件读写
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
-import 'package:com.rsmn574.app/features/bus/model/bus_station_model.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
+
+import '../model/bus_station_model.dart';
 
 /// TDX 路徑片段：跨縣市為 InterCity，其餘為 City/<city>。
 String _busScope(String city) =>
@@ -68,7 +69,7 @@ Future<Map<String, dynamic>> getDirections(String origin, String destination,
   return jsonData;
 }
 
-Future<List<Station>> getNearStation(String location) async {
+Future<List<BusStationInfo>> getNearStation(String location) async {
   final String url =
       'https://tdx.transportdata.tw/api/advanced/v2/Bus/Station/NearBy?%24&%24spatialFilter=nearby%28$location%2C%20400%29&%24format=JSON';
   final response = await TdxApiClient().getRaw(
@@ -84,9 +85,9 @@ Future<List<Station>> getNearStation(String location) async {
 
   final List rawData = json.decode(response.body);
 
-  late final List<Station> stations;
+  late final List<BusStationInfo> stations;
   try {
-    stations = rawData.map((e) => Station.fromJson(e)).toList();
+    stations = rawData.map((e) => BusStationInfo.fromMap(e)).toList();
   } catch (e) {
     print('JSON 解析錯誤: $e');
     stations = [];

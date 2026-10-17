@@ -1123,5 +1123,79 @@
   "profileDeletePassword": "請輸入密碼以確認",
   "profileDeleteConfirm": "永久刪除",
   "profileCancel": "取消",
-  "profileDeleted": "帳號已刪除"
+  "profileDeleted": "帳號已刪除",
+
+  "airport_name_TPE": "桃園國際機場",
+  "airport_name_TSA": "台北松山機場",
+  "airport_name_RMQ": "台中清泉崗機場",
+  "airport_name_KHH": "高雄國際機場",
+  "airport_name_TNN": "台南機場",
+  "airport_name_HUN": "花蓮機場",
+  "airport_name_TTT": "台東機場",
+  "airport_name_CYI": "嘉義機場",
+  "airport_name_KNH": "金門機場",
+  "airport_name_MZG": "澎湖馬公機場",
+  "airport_name_MFK": "北竿機場",
+  "airport_name_LZN": "南竿機場",
+  "airport_name_KYD": "蘭嶼機場",
+  "airport_name_GNI": "綠島機場",
+
+  "airport_transport_airport_mrt": "機場捷運",
+  "airport_transport_direct_taipei": "直達台北車站，約35分鐘",
+  "airport_transport_intercity_bus": "客運巴士",
+  "airport_transport_multiple_routes": "多條路線通往全台各地",
+  "airport_transport_taxi": "計程車",
+  "airport_transport_taxi_24h": "24小時排班服務",
+  "airport_transport_car_rental": "租車服務",
+  "airport_transport_major_rental": "各大租車公司進駐",
+
+  "airport_service_duty_free": "免稅商店",
+  "airport_service_lounge": "貴賓室",
+  "airport_service_dining": "餐飲服務",
+  "airport_service_wifi": "免費WiFi",
+  "airport_service_currency_exchange": "貨幣兌換",
+  "airport_service_luggage_storage": "行李寄存",
+  "airport_service_prayer_room": "祈禱室",
+  "airport_service_nursery": "育嬰室",
+  "airport_service_convenience_store": "便利商店",
+  "airport_service_observation_deck": "觀景台",
+  "airport_service_nursing_room": "哺乳室",
+
+  "airport_emergency_airport_police": "機場警察",
+  "airport_emergency_medical_center": "醫療中心",
+  "airport_emergency_lost_and_found": "遺失物協尋",
+  "airport_emergency_info_desk": "機場服務台",
+  "airport_emergency_medical_assistance": "醫療協助",
+  "airport_emergency_police_station": "警察局",
+  "airport_emergency_service_center": "服務中心",
+  "airport_emergency_medical_station": "醫療站",
+
+  "@airport_overview_title": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }, "@airport_overview_content": {
+    "placeholders": {
+      "iataCode": { "type": "String" },
+      "area": { "type": "String" },
+      "terminals": { "type": "int" },
+      "passengers": { "type": "String" },
+      "phone": { "type": "String" }
+    }
+  },
+  "airport_for_emergencies_call": "緊急情況請撥打：119",
+  "@airport_emergency_info": {
+  "placeholders": { "phone": { "type": "String" } }
+},
+  "airport_info_desk": "機場服務台：{phone}",
+  "@airport_info_desk": {
+    "placeholders": { "phone": { "type": "String" } }
+  },  "airport_overview_title": "{name}概況",
+  "airport_overview_content": "• IATA代碼：{iataCode}\n• 總面積：{area}公頃\n• 航廈數：{terminals}座\n• 年旅客量：約{passengers}人次\n• 24小時服務電話：{phone}",
+  "airport_emergency_info": "緊急情況請撥打：119\n機場服務台：{phone}",
+  "airport_load_failed": "載入機場資料失敗",
+  "airport_retry": "重試",
+  "airport_no_data": "無機場資料"
 }

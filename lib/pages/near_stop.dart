@@ -20,6 +20,7 @@ import '../database/get_data.dart';
 
 import '../features/bus/data/get_bus_time.dart';
 import '../features/bus/data/get_station_info.dart';
+import '../features/bus/model/bus_station_model.dart';
 import '../features/bus/pages/bus_stop_info_page.dart';
 import '../features/bus/pages/bus_time_page.dart';
 import '../features/railway/pages/train_page.dart';
@@ -70,7 +71,7 @@ class NearbyStationsPage extends StatefulWidget {
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
   GoogleMapController? _mapController;
-  Future<List<Station>>? _futureNearStations;
+  Future<List<BusStationInfo>>? _futureNearStations;
   final DraggableScrollableController _scrollController =
       DraggableScrollableController();
   MarkerProvider? _markerProvider;
@@ -189,7 +190,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
   int _markerTapSeq = 0;
 
-  Future<void> _loadBusMarkers(List<Station>? stations) async {
+  Future<void> _loadBusMarkers(List<BusStationInfo>? stations) async {
     if (stations == null || stations.isEmpty) {
       debugPrint('Stations data is empty.');
       return;
@@ -231,7 +232,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
               _selectStationID.value = stopID;
             } else {
               _stopName.value = stopName;
-              _stopNameEn = station.stationNameEn;
+              _stopNameEn = station.stationNameZh;
               _selectStationGroupID.value = stationGroupID;
               _stationIDs.value = stationIDs;
               _selectStationID.value = stopID;
@@ -454,7 +455,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                           _tabSelect.value = "bus";
                                           return SingleChildScrollView(
                                             controller: scrollController,
-                                            child: FutureBuilder<List<Station>>(
+                                            child: FutureBuilder<List<BusStationInfo>>(
                                               future: _futureNearStations,
                                               builder: (context, snapshot) {
                                                 if (snapshot.connectionState ==
@@ -571,9 +572,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                       in snapshot.data!) {
                                                     String stationName =
                                                         station.stationNameZh;
-                                                    stationNamesEn[
-                                                            stationName] ??=
-                                                        station.stationNameEn;
+
                                                     if (!groupedStations
                                                         .containsKey(
                                                             stationName)) {

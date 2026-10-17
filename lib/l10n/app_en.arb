@@ -1123,5 +1123,84 @@
   "profileDeletePassword": "Enter your password to confirm",
   "profileDeleteConfirm": "Delete permanently",
   "profileCancel": "Cancel",
-  "profileDeleted": "Account deleted"
+  "profileDeleted": "Account deleted",
+
+
+  "airport_name_TPE": "Taoyuan International Airport",
+  "airport_name_TSA": "Taipei Songshan Airport",
+  "airport_name_RMQ": "Taichung International Airport",
+  "airport_name_KHH": "Kaohsiung International Airport",
+  "airport_name_TNN": "Tainan Airport",
+  "airport_name_HUN": "Hualien Airport",
+  "airport_name_TTT": "Taitung Airport",
+  "airport_name_CYI": "Chiayi Airport",
+  "airport_name_KNH": "Kinmen Airport",
+  "airport_name_MZG": "Penghu Magong Airport",
+  "airport_name_MFK": "Beigan Airport",
+  "airport_name_LZN": "Nangan Airport",
+  "airport_name_KYD": "Lanyu Airport",
+  "airport_name_GNI": "Ludao Airport",
+
+  "airport_transport_airport_mrt": "Airport MRT",
+  "airport_transport_direct_taipei": "Direct service to Taipei Main Station, about 35 minutes",
+  "airport_transport_intercity_bus": "Intercity bus",
+  "airport_transport_multiple_routes": "Multiple routes connect to destinations across Taiwan",
+  "airport_transport_taxi": "Taxi",
+  "airport_transport_taxi_24h": "24-hour taxi service",
+  "airport_transport_car_rental": "Car rental",
+  "airport_transport_major_rental": "Major car rental companies available",
+
+  "airport_service_duty_free": "Duty-free shops",
+  "airport_service_lounge": "Lounges",
+  "airport_service_dining": "Dining",
+  "airport_service_wifi": "Free Wi-Fi",
+  "airport_service_currency_exchange": "Currency exchange",
+  "airport_service_luggage_storage": "Luggage storage",
+  "airport_service_prayer_room": "Prayer room",
+  "airport_service_nursery": "Nursery",
+  "airport_service_convenience_store": "Convenience store",
+  "airport_service_observation_deck": "Observation deck",
+  "airport_service_nursing_room": "Nursing room",
+
+  "airport_emergency_airport_police": "Airport police",
+  "airport_emergency_medical_center": "Medical center",
+  "airport_emergency_lost_and_found": "Lost and found",
+  "airport_emergency_info_desk": "Airport information desk",
+  "airport_emergency_medical_assistance": "Medical assistance",
+  "airport_emergency_police_station": "Police station",
+  "airport_emergency_service_center": "Service center",
+  "airport_emergency_medical_station": "Medical station",
+
+  "airport_for_emergencies_call": "For emergencies, call 119",
+  "airport_info_desk": "Airport information desk: {phone}",
+  "@airport_info_desk": {
+    "placeholders": { "phone": { "type": "String" } }
+  },
+
+  "airport_overview_title": "{name} Overview",
+  "@airport_overview_title": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "airport_overview_content": "• IATA code: {iataCode}\n• Total area: {area} hectares\n• Terminals: {terminals}\n• Annual passengers: about {passengers}\n• 24-hour service phone: {phone}",
+  "@airport_overview_content": {
+    "placeholders": {
+      "iataCode": { "type": "String" },
+      "area": { "type": "String" },
+      "terminals": { "type": "int" },
+      "passengers": { "type": "String" },
+      "phone": { "type": "String" }
+    }
+  },
+  "airport_emergency_info": "For emergencies, call 119\nAirport information desk: {phone}",
+  "@airport_emergency_info": {
+    "placeholders": { "phone": { "type": "String" } }
+  },
+  "airport_load_failed": "Failed to load airport data",
+  "airport_retry": "Retry",
+  "airport_no_data": "No airport data"
+
 }

@@ -3293,4 +3293,163 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDeleted => 'Account deleted';
+
+  @override
+  String get airport_name_TPE => 'Taoyuan International Airport';
+
+  @override
+  String get airport_name_TSA => 'Taipei Songshan Airport';
+
+  @override
+  String get airport_name_RMQ => 'Taichung International Airport';
+
+  @override
+  String get airport_name_KHH => 'Kaohsiung International Airport';
+
+  @override
+  String get airport_name_TNN => 'Tainan Airport';
+
+  @override
+  String get airport_name_HUN => 'Hualien Airport';
+
+  @override
+  String get airport_name_TTT => 'Taitung Airport';
+
+  @override
+  String get airport_name_CYI => 'Chiayi Airport';
+
+  @override
+  String get airport_name_KNH => 'Kinmen Airport';
+
+  @override
+  String get airport_name_MZG => 'Penghu Magong Airport';
+
+  @override
+  String get airport_name_MFK => 'Beigan Airport';
+
+  @override
+  String get airport_name_LZN => 'Nangan Airport';
+
+  @override
+  String get airport_name_KYD => 'Lanyu Airport';
+
+  @override
+  String get airport_name_GNI => 'Ludao Airport';
+
+  @override
+  String get airport_transport_airport_mrt => 'Airport MRT';
+
+  @override
+  String get airport_transport_direct_taipei =>
+      'Direct service to Taipei Main Station, about 35 minutes';
+
+  @override
+  String get airport_transport_intercity_bus => 'Intercity bus';
+
+  @override
+  String get airport_transport_multiple_routes =>
+      'Multiple routes connect to destinations across Taiwan';
+
+  @override
+  String get airport_transport_taxi => 'Taxi';
+
+  @override
+  String get airport_transport_taxi_24h => '24-hour taxi service';
+
+  @override
+  String get airport_transport_car_rental => 'Car rental';
+
+  @override
+  String get airport_transport_major_rental =>
+      'Major car rental companies available';
+
+  @override
+  String get airport_service_duty_free => 'Duty-free shops';
+
+  @override
+  String get airport_service_lounge => 'Lounges';
+
+  @override
+  String get airport_service_dining => 'Dining';
+
+  @override
+  String get airport_service_wifi => 'Free Wi-Fi';
+
+  @override
+  String get airport_service_currency_exchange => 'Currency exchange';
+
+  @override
+  String get airport_service_luggage_storage => 'Luggage storage';
+
+  @override
+  String get airport_service_prayer_room => 'Prayer room';
+
+  @override
+  String get airport_service_nursery => 'Nursery';
+
+  @override
+  String get airport_service_convenience_store => 'Convenience store';
+
+  @override
+  String get airport_service_observation_deck => 'Observation deck';
+
+  @override
+  String get airport_service_nursing_room => 'Nursing room';
+
+  @override
+  String get airport_emergency_airport_police => 'Airport police';
+
+  @override
+  String get airport_emergency_medical_center => 'Medical center';
+
+  @override
+  String get airport_emergency_lost_and_found => 'Lost and found';
+
+  @override
+  String get airport_emergency_info_desk => 'Airport information desk';
+
+  @override
+  String get airport_emergency_medical_assistance => 'Medical assistance';
+
+  @override
+  String get airport_emergency_police_station => 'Police station';
+
+  @override
+  String get airport_emergency_service_center => 'Service center';
+
+  @override
+  String get airport_emergency_medical_station => 'Medical station';
+
+  @override
+  String get airport_for_emergencies_call => 'For emergencies, call 119';
+
+  @override
+  String airport_info_desk(String phone) {
+    return 'Airport information desk: $phone';
+  }
+
+  @override
+  String airport_overview_title(String name) {
+    return '$name Overview';
+  }
+
+  @override
+  String airport_overview_content(String iataCode, String area, int terminals,
+      String passengers, String phone) {
+    return '• IATA code: $iataCode\n• Total area: $area hectares\n• Terminals: $terminals\n• Annual passengers: about $passengers\n• 24-hour service phone: $phone';
+  }
+
+  @override
+  String airport_emergency_info(String phone) {
+    return 'For emergencies, call 119\nAirport information desk: $phone';
+  }
+
+  @override
+  String get airport_load_failed => 'Failed to load airport data';
+
+  @override
+  String get airport_retry => 'Retry';
+
+  @override
+  String get airport_no_data => 'No airport data';
 }

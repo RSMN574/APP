@@ -81,62 +81,84 @@ class _TransportGridState extends State<TransportGrid> {
   @override
   Widget build(BuildContext context) {
     const int itemsPerPage = 8;
-    final int totalPages = (transportOptions.length / itemsPerPage).ceil();
 
-    double screenWidth = MediaQuery.of(context).size.width;
-    double iconSize = screenWidth > 600 ? 32 : 26;
-    double crossAxisSpacing = screenWidth > 600 ? 30 : 10;
+    final totalPages = (transportOptions.length / itemsPerPage).ceil();
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final colors = Theme.of(context).colorScheme;
+    final primaryColor = isDark
+        ? const Color(0xFF64B5F6)
+        : const Color(0xFF1A73E8);
+
+    final cardColor = isDark
+        ? const Color(0xFF1C1C1E)
+        : const Color(0xFFFFFFFF);
+
+    final borderColor = isDark
+        ? const Color(0xFF343438)
+        : const Color(0xFFE5ECF6);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: borderColor,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(isDark ? 0.12 : 0.035),
+            blurRadius: isDark ? 12 : 20,
+            offset: const Offset(0, 6),
           ),
         ],
-        border: Border.all(color: Colors.grey.withOpacity(0.1), width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              height: 220, // 稍微壓縮高度使視覺更緊湊
+              height: 220,
               child: PageView.builder(
                 controller: _pageController,
-                onPageChanged: (int page) =>
-                    setState(() => _currentPage = page),
+                onPageChanged: (int page) {
+                  setState(() => _currentPage = page);
+                },
                 itemCount: totalPages,
                 itemBuilder: (context, pageIndex) {
                   final start = pageIndex * itemsPerPage;
                   final end = (start + itemsPerPage) > transportOptions.length
                       ? transportOptions.length
                       : start + itemsPerPage;
+
                   final subList = transportOptions.sublist(start, end);
 
                   return GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
-                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     itemCount: subList.length,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 4,
-                      crossAxisSpacing: crossAxisSpacing,
-                      mainAxisSpacing: 0,
-                      childAspectRatio: 0.85, // 調整比例讓內容更置中
+                      crossAxisSpacing: screenWidth > 600 ? 24 : 8,
+                      mainAxisSpacing: 4,
+                      childAspectRatio: screenWidth > 600 ? 0.95 : 0.85,
                     ),
                     itemBuilder: (context, index) {
                       final option = subList[index];
+
                       return _buildTransportCard(
                         context,
                         option['icon']!,
                         option['text']!,
                         option['route']!,
-                        iconSize,
+                        screenWidth > 600 ? 30 : 26,
                       );
                     },
                   );
@@ -151,8 +173,7 @@ class _TransportGridState extends State<TransportGrid> {
     );
   }
 
-  Widget _buildTransportCard(BuildContext context, String icon, String text,
-      String route, double iconSize) {
+  Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     // 動態定義顏色

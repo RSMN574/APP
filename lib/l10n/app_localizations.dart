@@ -6487,6 +6487,301 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'帳號已刪除'**
   String get profileDeleted;
+
+  /// No description provided for @airport_name_TPE.
+  ///
+  /// In zh, this message translates to:
+  /// **'桃園國際機場'**
+  String get airport_name_TPE;
+
+  /// No description provided for @airport_name_TSA.
+  ///
+  /// In zh, this message translates to:
+  /// **'台北松山機場'**
+  String get airport_name_TSA;
+
+  /// No description provided for @airport_name_RMQ.
+  ///
+  /// In zh, this message translates to:
+  /// **'台中清泉崗機場'**
+  String get airport_name_RMQ;
+
+  /// No description provided for @airport_name_KHH.
+  ///
+  /// In zh, this message translates to:
+  /// **'高雄國際機場'**
+  String get airport_name_KHH;
+
+  /// No description provided for @airport_name_TNN.
+  ///
+  /// In zh, this message translates to:
+  /// **'台南機場'**
+  String get airport_name_TNN;
+
+  /// No description provided for @airport_name_HUN.
+  ///
+  /// In zh, this message translates to:
+  /// **'花蓮機場'**
+  String get airport_name_HUN;
+
+  /// No description provided for @airport_name_TTT.
+  ///
+  /// In zh, this message translates to:
+  /// **'台東機場'**
+  String get airport_name_TTT;
+
+  /// No description provided for @airport_name_CYI.
+  ///
+  /// In zh, this message translates to:
+  /// **'嘉義機場'**
+  String get airport_name_CYI;
+
+  /// No description provided for @airport_name_KNH.
+  ///
+  /// In zh, this message translates to:
+  /// **'金門機場'**
+  String get airport_name_KNH;
+
+  /// No description provided for @airport_name_MZG.
+  ///
+  /// In zh, this message translates to:
+  /// **'澎湖馬公機場'**
+  String get airport_name_MZG;
+
+  /// No description provided for @airport_name_MFK.
+  ///
+  /// In zh, this message translates to:
+  /// **'北竿機場'**
+  String get airport_name_MFK;
+
+  /// No description provided for @airport_name_LZN.
+  ///
+  /// In zh, this message translates to:
+  /// **'南竿機場'**
+  String get airport_name_LZN;
+
+  /// No description provided for @airport_name_KYD.
+  ///
+  /// In zh, this message translates to:
+  /// **'蘭嶼機場'**
+  String get airport_name_KYD;
+
+  /// No description provided for @airport_name_GNI.
+  ///
+  /// In zh, this message translates to:
+  /// **'綠島機場'**
+  String get airport_name_GNI;
+
+  /// No description provided for @airport_transport_airport_mrt.
+  ///
+  /// In zh, this message translates to:
+  /// **'機場捷運'**
+  String get airport_transport_airport_mrt;
+
+  /// No description provided for @airport_transport_direct_taipei.
+  ///
+  /// In zh, this message translates to:
+  /// **'直達台北車站，約35分鐘'**
+  String get airport_transport_direct_taipei;
+
+  /// No description provided for @airport_transport_intercity_bus.
+  ///
+  /// In zh, this message translates to:
+  /// **'客運巴士'**
+  String get airport_transport_intercity_bus;
+
+  /// No description provided for @airport_transport_multiple_routes.
+  ///
+  /// In zh, this message translates to:
+  /// **'多條路線通往全台各地'**
+  String get airport_transport_multiple_routes;
+
+  /// No description provided for @airport_transport_taxi.
+  ///
+  /// In zh, this message translates to:
+  /// **'計程車'**
+  String get airport_transport_taxi;
+
+  /// No description provided for @airport_transport_taxi_24h.
+  ///
+  /// In zh, this message translates to:
+  /// **'24小時排班服務'**
+  String get airport_transport_taxi_24h;
+
+  /// No description provided for @airport_transport_car_rental.
+  ///
+  /// In zh, this message translates to:
+  /// **'租車服務'**
+  String get airport_transport_car_rental;
+
+  /// No description provided for @airport_transport_major_rental.
+  ///
+  /// In zh, this message translates to:
+  /// **'各大租車公司進駐'**
+  String get airport_transport_major_rental;
+
+  /// No description provided for @airport_service_duty_free.
+  ///
+  /// In zh, this message translates to:
+  /// **'免稅商店'**
+  String get airport_service_duty_free;
+
+  /// No description provided for @airport_service_lounge.
+  ///
+  /// In zh, this message translates to:
+  /// **'貴賓室'**
+  String get airport_service_lounge;
+
+  /// No description provided for @airport_service_dining.
+  ///
+  /// In zh, this message translates to:
+  /// **'餐飲服務'**
+  String get airport_service_dining;
+
+  /// No description provided for @airport_service_wifi.
+  ///
+  /// In zh, this message translates to:
+  /// **'免費WiFi'**
+  String get airport_service_wifi;
+
+  /// No description provided for @airport_service_currency_exchange.
+  ///
+  /// In zh, this message translates to:
+  /// **'貨幣兌換'**
+  String get airport_service_currency_exchange;
+
+  /// No description provided for @airport_service_luggage_storage.
+  ///
+  /// In zh, this message translates to:
+  /// **'行李寄存'**
+  String get airport_service_luggage_storage;
+
+  /// No description provided for @airport_service_prayer_room.
+  ///
+  /// In zh, this message translates to:
+  /// **'祈禱室'**
+  String get airport_service_prayer_room;
+
+  /// No description provided for @airport_service_nursery.
+  ///
+  /// In zh, this message translates to:
+  /// **'育嬰室'**
+  String get airport_service_nursery;
+
+  /// No description provided for @airport_service_convenience_store.
+  ///
+  /// In zh, this message translates to:
+  /// **'便利商店'**
+  String get airport_service_convenience_store;
+
+  /// No description provided for @airport_service_observation_deck.
+  ///
+  /// In zh, this message translates to:
+  /// **'觀景台'**
+  String get airport_service_observation_deck;
+
+  /// No description provided for @airport_service_nursing_room.
+  ///
+  /// In zh, this message translates to:
+  /// **'哺乳室'**
+  String get airport_service_nursing_room;
+
+  /// No description provided for @airport_emergency_airport_police.
+  ///
+  /// In zh, this message translates to:
+  /// **'機場警察'**
+  String get airport_emergency_airport_police;
+
+  /// No description provided for @airport_emergency_medical_center.
+  ///
+  /// In zh, this message translates to:
+  /// **'醫療中心'**
+  String get airport_emergency_medical_center;
+
+  /// No description provided for @airport_emergency_lost_and_found.
+  ///
+  /// In zh, this message translates to:
+  /// **'遺失物協尋'**
+  String get airport_emergency_lost_and_found;
+
+  /// No description provided for @airport_emergency_info_desk.
+  ///
+  /// In zh, this message translates to:
+  /// **'機場服務台'**
+  String get airport_emergency_info_desk;
+
+  /// No description provided for @airport_emergency_medical_assistance.
+  ///
+  /// In zh, this message translates to:
+  /// **'醫療協助'**
+  String get airport_emergency_medical_assistance;
+
+  /// No description provided for @airport_emergency_police_station.
+  ///
+  /// In zh, this message translates to:
+  /// **'警察局'**
+  String get airport_emergency_police_station;
+
+  /// No description provided for @airport_emergency_service_center.
+  ///
+  /// In zh, this message translates to:
+  /// **'服務中心'**
+  String get airport_emergency_service_center;
+
+  /// No description provided for @airport_emergency_medical_station.
+  ///
+  /// In zh, this message translates to:
+  /// **'醫療站'**
+  String get airport_emergency_medical_station;
+
+  /// No description provided for @airport_for_emergencies_call.
+  ///
+  /// In zh, this message translates to:
+  /// **'緊急情況請撥打：119'**
+  String get airport_for_emergencies_call;
+
+  /// No description provided for @airport_info_desk.
+  ///
+  /// In zh, this message translates to:
+  /// **'機場服務台：{phone}'**
+  String airport_info_desk(String phone);
+
+  /// No description provided for @airport_overview_title.
+  ///
+  /// In zh, this message translates to:
+  /// **'{name}概況'**
+  String airport_overview_title(String name);
+
+  /// No description provided for @airport_overview_content.
+  ///
+  /// In zh, this message translates to:
+  /// **'• IATA代碼：{iataCode}\n• 總面積：{area}公頃\n• 航廈數：{terminals}座\n• 年旅客量：約{passengers}人次\n• 24小時服務電話：{phone}'**
+  String airport_overview_content(String iataCode, String area, int terminals,
+      String passengers, String phone);
+
+  /// No description provided for @airport_emergency_info.
+  ///
+  /// In zh, this message translates to:
+  /// **'緊急情況請撥打：119\n機場服務台：{phone}'**
+  String airport_emergency_info(String phone);
+
+  /// No description provided for @airport_load_failed.
+  ///
+  /// In zh, this message translates to:
+  /// **'載入機場資料失敗'**
+  String get airport_load_failed;
+
+  /// No description provided for @airport_retry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重試'**
+  String get airport_retry;
+
+  /// No description provided for @airport_no_data.
+  ///
+  /// In zh, this message translates to:
+  /// **'無機場資料'**
+  String get airport_no_data;
 }
 
 class _AppLocalizationsDelegate

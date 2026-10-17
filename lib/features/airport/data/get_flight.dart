@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../model/airport_model.dart';
+
 //取得指定[國內機場]氣象資訊觀測資料
 Future<List<dynamic>> getAirportMETAR(String location) async {
   const String url =
@@ -117,16 +119,26 @@ Future<List<dynamic>> getFlight(String airlineId, String flightNumber) async {
 
 class AirportService {
   static const String apiUrl =
-      "https://hidden.rsmn574.com:3920/token/data/airports.json";
+      "http://hidden.rsmn574.com:3920/api/airports";
 
-  static Future<Map<String, dynamic>> loadAirportData(String code) async {
+  /// 取得所有機場（key 為 IATA 代碼）
+  static Future<Map<String, AirportData>> loadAllAirports() async {
     final response = await http.get(Uri.parse(apiUrl));
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      return data[code] ?? {};
-    } else {
+    if (response.statusCode != 200) {
       throw Exception("Failed to load airport data");
     }
-  }
-}
+
+    final data = json.decode(utf8.decode(response.bodyBytes))
+    as Map<String, dynamic>;
+
+    // ⚠️ 注意：JSON 最外層是 { "airports": { "TPE": {...}, ... } }
+    final airportsJson = data['airports'] as Map<String, dynamic>? ?? {};
+
+    return airportsJson.map(
+          (code, raw) => MapEntry(
+        code,
+        AirportData.fromJson(raw as Map<String, dynamic>),
+      ),
+    );
+  }}

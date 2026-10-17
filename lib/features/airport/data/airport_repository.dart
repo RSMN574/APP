@@ -16,6 +16,6 @@ class AirportRepository {
   Future<List<dynamic>> flight(String airlineId, String flightNumber) =>
       getFlight(airlineId, flightNumber);
 
-  Future<Map<String, dynamic>> airportInfo(String code) =>
-      AirportService.loadAirportData(code);
+  Future<Map<String, dynamic>> airportInfo() =>
+      AirportService.loadAllAirports();
 }
