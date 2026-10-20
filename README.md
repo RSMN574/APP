@@ -1,5 +1,12 @@
 # 臺灣通（Taiwan Transit）
 
+![Flutter](https://img.shields.io/badge/Flutter-02569B?logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0175C2?logo=dart&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Android-green)
+
+
 **臺灣通** 是一款整合臺灣公共運輸資訊的應用程式，提供公車、捷運、臺鐵、高鐵、航空、YouBike 等交通資訊，目標是讓使用者能透過單一 App 查詢不同交通工具的相關資訊。
 
 本專案目前分為兩種版本，以區分開發測試與正式使用需求。
