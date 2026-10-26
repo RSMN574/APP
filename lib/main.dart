@@ -27,6 +27,7 @@ import 'package:provider/single_child_widget.dart';
 
 import 'const/regular_class.dart';
 import 'const/regular_const.dart';
+import 'database/bootstrap_service.dart';
 import 'features/airport/pages/airport_page.dart';
 import 'features/auth/data/repositories/firebase_auth_repository.dart';
 import 'features/auth/data/repositories/unavailable_auth_repository.dart';
@@ -64,6 +65,7 @@ final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('zh'));
 
 class AppInitializer {
   static bool firebaseInitialized = false;
+  static bool bootstrapReady = false;
 
   static Future<void> initialize() async {
     Logger.root.level = Level.ALL;
@@ -72,26 +74,41 @@ class AppInitializer {
     });
 
     final log = Logger('MyApp');
-    log.info("app start");
+    log.info('app start');
 
     await SecureStorage.initializeApiKey();
 
+    // ── 1. Firebase / 通知 / Token（你原本的）──
     try {
       await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform);
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       firebaseInitialized = true;
       await requestPermission();
       await initializeNotifications();
       setupForegroundMessageHandler();
       await setupFirebaseMessaging();
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
       final tokenManager = TokenManager();
-      await tokenManager.getToken(); // 啟動時先確保有 token
-      tokenManager.startAutoRefresh(); // 啟動定時更新
+      await tokenManager.getToken();
+      tokenManager.startAutoRefresh();
     } catch (e, stack) {
       log.severe('Firebase 初始化失敗', e, stack);
     }
 
+    // ── 2. 首次預載資料（bus list → SQLite）──
+    // 放在 Firebase 之後，失敗不影響 App 啟動
+    try {
+      await BootstrapService.instance.ensureLoaded(); // city 預設 all
+      bootstrapReady = true;
+      log.info('bootstrap 完成');
+    } catch (e, stack) {
+      log.warning('bootstrap 失敗，使用本地快取', e, stack);
+      // 不清本地，App 仍可讀 SQLite 舊資料
+    }
+
+    // ── 3. 全域錯誤處理 ──
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
       log.severe('Flutter Error: ${details.exception}', details.stack);

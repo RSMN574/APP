@@ -17,6 +17,9 @@ import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 
+import '../../../database/bootstrap_service.dart';
+import '../../../database/sql/app_database.dart';
+
 Timer? _debounceTimer; // 在你的 State 類別頂部宣告這個變數
 
 class Bus extends StatefulWidget {
@@ -78,6 +81,7 @@ final List<MenuItemData> menuItems = [
 ];
 
 class BusState extends State<Bus> {
+
   int _current = 0;
   final PageController pageController = PageController();
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
@@ -159,7 +163,7 @@ class BusState extends State<Bus> {
   void initState() {
     super.initState();
     String currentCity = Provider.of<CityProvider>(context, listen: false).city;
-
+    BootstrapService.instance.dbVersion.addListener(_onDbUpdated);
 // 檢查城市是否存在於列表中
     if (cities.any((city) => city.name == currentCity)) {
       currentCityNotifier.value = currentCity;
@@ -171,9 +175,15 @@ class BusState extends State<Bus> {
     });
     updateCurrent();
   }
+  void _onDbUpdated() {
+    if (!mounted) return;
+    unawaited(_getData());
+    updateCurrent();
+  }
 
   @override
   void dispose() {
+    BootstrapService.instance.dbVersion.removeListener(_onDbUpdated);
     pageController.dispose();
     favoriteStops.dispose();
     favoriteRoutes.dispose();
@@ -192,26 +202,41 @@ class BusState extends State<Bus> {
     }
   }
 
-  Future<List<dynamic>> _loadFavorites(String key,
-      {required String city}) async {
-    FavoriteService db = FavoriteService();
-
-    if (key == "FavoritesRoute") {
-      // 返回 BusRoute 列表
-      return await db.getFavoriteBusRoutes(city: city);
-    } else if (key == "FavoritesStop") {
-      // 返回 Map 列表
-      return await db.getFavoriteStops(city: city);
-    }
-
-    return [];
-  }
 
   Future<List<BusRoute>> _getData() async {
     final city = correspondingIDNotifier.value;
     busCurrentCity = city;
-
+    final db = await AppDatabase.instance.database;
+    final stats = await db.rawQuery(
+      'SELECT city, COUNT(*) AS n FROM bus_route GROUP BY city',
+    );
+    debugPrint('[db] cities=$stats'); debugPrint('12244444444444444444');
     try {
+      // 1) 依 city 查 SQLite
+      List<BusRoute> local;
+      if (city == 'all') {
+        const allCities = [
+          'Taichung', 'Taipei', 'NewTaipei', 'Taoyuan',
+          'Tainan', 'Kaohsiung', 'Keelung', 'Hsinchu', 'InterCity',
+        ];
+        final results = await Future.wait(
+          allCities.map((c) => BusRouteDb.instance.getByCity(c)),
+        );
+        local = results.expand((e) => e).toList();
+      } else {
+        local = await BusRouteDb.instance.getByCity(city);
+      }
+
+      // 2) 本地有資料 → 直接用
+      if (local.isNotEmpty) {
+        if (!mounted) return local;
+        setState(() {
+          busData = local;
+        });
+        return local;
+      }
+
+      // 3) 本地沒有 → 打 API
       final routes = await context.read<BusProvider>().loadRoutes(city);
       if (!mounted) return routes;
       setState(() {
@@ -233,42 +258,82 @@ class BusState extends State<Bus> {
     suggestions.value.clear();
 
     if (id == "route") {
-      final String input = busIdController.text;
-      final List<dynamic> suggestionsForRoute = [];
+      final input = busIdController.text.trim();
+      if (input.isEmpty) return [];
 
-      for (final route in busData) {
-        final locale = Localizations.localeOf(context);
+      final locale = Localizations.localeOf(context);
+      final languageCode = locale.languageCode;
+      final city = correspondingIDNotifier.value;
 
-        final routeName =
-            locale.languageCode == 'en' ? route.routeEn : route.routeZh;
-
-        if (routeName.contains(input)) {
-          if (input == routeName) {
-            suggestions.value.insert(0, route);
-            suggestionsForRoute.insert(0, route);
-          } else {
-            suggestions.value.add(route);
-            suggestionsForRoute.add(route);
-          }
-        }
+      // 1) SQLite 查詢（依 city）
+      List<BusRoute> fromDb;
+      if (city == 'all') {
+        const allCities = [
+          'Taichung', 'Taipei', 'NewTaipei', 'Taoyuan',
+          'Tainan', 'Kaohsiung', 'Keelung', 'Hsinchu', 'InterCity',
+        ];
+        final results = await Future.wait(
+          allCities.map((c) => BusRouteDb.instance.searchByName(
+            city: c,
+            keyword: input,
+            languageCode: languageCode,
+          )),
+        );
+        fromDb = results.expand((e) => e).toList();
+      } else {
+        fromDb = await BusRouteDb.instance.searchByName(
+          city: city,
+          keyword: input,
+          languageCode: languageCode,
+        );
       }
-      return suggestionsForRoute;
+
+      // 2) 記憶體補（SQLite 未寫入時仍可搜）
+      final fromMemory = <BusRoute>[];
+      for (final r in busData) {
+        final name = languageCode == 'en' ? r.routeEn : r.routeZh;
+        if (name.contains(input)) fromMemory.add(r);
+      }
+
+      // 3) 合併去重
+      final seen = <String>{};
+      final merged = <BusRoute>[];
+      for (final r in [...fromDb, ...fromMemory]) {
+        final key = '${r.city}|${r.routeID}';
+        if (seen.contains(key)) continue;
+        seen.add(key);
+        merged.add(r);
+      }
+
+      // 4) 完全符合排最前
+      merged.sort((a, b) {
+        final an = languageCode == 'en' ? a.routeEn : a.routeZh;
+        final bn = languageCode == 'en' ? b.routeEn : b.routeZh;
+        if (an == input && bn != input) return -1;
+        if (an != input && bn == input) return 1;
+        return an.compareTo(bn);
+      });
+
+      suggestions.value.addAll(merged);
+      return merged;
     } else if (id == "stop") {
-      final String input = busIdController.text;
+      // 站牌維持原本 MySQL 寫法（之後可再搬 SQLite）
+      final input = busIdController.text;
       final locale = Localizations.localeOf(context);
       final rawData;
+
       if (locale.languageCode == 'zh') {
         rawData = await mysqlSelect(
             "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
       } else if (locale.languageCode == 'en') {
         rawData = await mysqlSelect(
             "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'");
+                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'");
       } else {
         rawData = await mysqlSelect(
             "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-            "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
+                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
       }
 
       final seen = <String>{};
@@ -290,12 +355,29 @@ class BusState extends State<Bus> {
     return suggestions.value;
   }
 
-// 精緻風格的 AppBar
+// 精緻風格的 AppBar（對齊剛剛的樣式）
   AppBar _buildAppBar() {
     return AppBar(
-      // backgroundColor: _primaryColor,
+      backgroundColor: Colors.white,
       elevation: 0,
+      // —— leading：圓角外殼 + 返回鍵 ——
+      leading: Container(
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF2C2C2C)
+              : const Color(0xFFEEF3FB),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+          color: const Color(0xFF1A73E8),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      // —— title：原本的圖標 + 標題，保留 ——
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
@@ -309,26 +391,39 @@ class BusState extends State<Bus> {
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            AppLocalizations.of(context)!.text_16,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context)!.text_16,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
       ),
       centerTitle: true,
-      iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+      // —— actions：圓角外殼 + info 按鈕 ——
       actions: [
-        IconButton(
-          icon: const Icon(Icons.info_outline_rounded, size: 24),
-          onPressed: _showInfoMenu,
+        Container(
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF2C2C2C)
+                : const Color(0xFFEEF3FB),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.info_outline_rounded, size: 24),
+            color: const Color(0xFF1A73E8),
+            onPressed: _showInfoMenu,
+          ),
         ),
       ],
     );
   }
-
   void _showInfoMenu() {
     showModalBottomSheet(
       context: context,

@@ -42,8 +42,9 @@ class BusRoute {
   factory BusRoute.fromJson(Map<String, dynamic> json) {
     final hasSubRoutes = json['HasSubRoutes'];
     return BusRoute(
-      routeUID: _asString(json['RouteUID']),
-      routeID: _asString(json['RouteID']),
+      // API 小駝峰 routeUid/routeId；DB 還原用 RouteUID/RouteID
+      routeUID: _asString(json['routeUid'] ?? json['RouteUID']),
+      routeID: _asString(json['routeId'] ?? json['RouteID']),
       hasSubRoutes: hasSubRoutes == true || hasSubRoutes == 'true',
       operators: _decodeList(json['Operators']),
       subRoutes: _decodeList(json['SubRoutes']),
@@ -66,7 +67,6 @@ class BusRoute {
       versionID: _asInt(json['VersionID']),
     );
   }
-
   static Map<String, dynamic> _decodeMap(dynamic value) {
     final decoded = _decode(value);
     return decoded is Map ? Map<String, dynamic>.from(decoded) : const {};

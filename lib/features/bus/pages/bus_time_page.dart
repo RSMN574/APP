@@ -16,6 +16,7 @@ import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
 import 'package:com.rsmn574.app/features/bus/data/get_bus_time.dart';
+import 'package:com.rsmn574.app/features/bus/data/bus_position_estimator.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
@@ -118,7 +119,14 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   List<dynamic> stopNamesWithTime2 = [];
   late final TabController _tabController;
   final Set<Marker> markers = {};
+  final Set<Marker> _stopMarkers = {};
+  final Set<Marker> _busMarkers = {};
   Timer? _timer;
+  Timer? _busPositionTimer;
+  bool _isLoadingBusPositions = false;
+  final BusPositionEstimator _busPositionEstimator = const BusPositionEstimator();
+  final Map<int, List<LatLng>> _routePointsByDirection = {};
+  int _busPositionRequestId = 0;
   bool _initialDirectionApplied = false;
   final ValueNotifier<String> _directionNotifier = ValueNotifier("");
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier =
@@ -145,6 +153,23 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
     _tabController.addListener(_handleTabChange);
     _loadData();
+    // 車輛位置獨立更新，不必重載站牌與路線資料。
+    _busPositionTimer = Timer.periodic(
+      const Duration(seconds: 5),
+          (_) => _loadBusPositions(_currentDirection),
+    );
+  }
+
+  int get _currentDirection {
+    if (_tabDirections.isEmpty) return widget.mark?.direction ?? 1;
+    final index = _tabController.index.clamp(0, _tabDirections.length - 1);
+    return _tabDirections[index];
+  }
+
+  void _publishMarkers() {
+    if (!mounted) return;
+    final combined = <Marker>{..._stopMarkers, ..._busMarkers};
+    Provider.of<MarkerProvider>(context, listen: false).setMarkers(combined);
   }
 
   void _handleTabChange() {
@@ -156,6 +181,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
     _loadShape(currentDirection);
     _loadMarkers(currentStops);
+    _loadBusPositions(currentDirection);
   }
 
   void _scrollToIndex(int index) {
@@ -193,12 +219,19 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
         final encoded = item['EncodedPolyline'];
         if (encoded is! String || encoded.isEmpty) continue;
 
+        final decodedPoints = decodePolyline(encoded);
+        if (decodedPoints.length < 2) continue;
+
+        // 保留方向對應的路線座標，供公車位置推估使用。
+        // 若同方向有多筆 Shape，選擇第一條有效完整線形；不任意拼接不相連的線段。
+        _routePointsByDirection.putIfAbsent(direction, () => decodedPoints);
+
         polylines.add(
           Polyline(
             polylineId: PolylineId(
               '${widget.routeName}_${item['ShapeID'] ?? polylines.length}',
             ),
-            points: decodePolyline(encoded),
+            points: decodedPoints,
             width: 4,
             color: Colors.blue,
           ),
@@ -224,13 +257,20 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   }
 
   Future<void> _loadMarkers(List<dynamic> stops) async {
-    Set<Marker> newMarkers = {};
-    for (var stop in stops) {
+    _stopMarkers.clear();
+
+    for (final stop in stops) {
       final pos = stop['StopPosition'];
-      if (pos != null && pos['PositionLat'] != null && pos['PositionLon'] != null) {
-        final stopId = stop['StopID']?.toString() ?? 'Unknown';
-        final marker = Marker(
-          markerId: MarkerId(stopId),
+      if (pos is! Map ||
+          pos['PositionLat'] is! num ||
+          pos['PositionLon'] is! num) {
+        continue;
+      }
+
+      final stopId = stop['StopID']?.toString() ?? 'Unknown';
+      _stopMarkers.add(
+        Marker(
+          markerId: MarkerId('stop_$stopId'),
           position: LatLng(
             (pos['PositionLat'] as num).toDouble(),
             (pos['PositionLon'] as num).toDouble(),
@@ -239,12 +279,138 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
             title: stop['displayStopName'] ?? stop['stopName'] ?? 'Unknown',
             snippet: stopId,
           ),
-        );
-        newMarkers.add(marker);
-      }
+        ),
+      );
     }
-    if (!mounted) return;
-    Provider.of<MarkerProvider>(context, listen: false).setMarkers(newMarkers);
+
+    _publishMarkers();
+  }
+
+  /// 解析可確認的座標／速度／時間欄位；欄位缺失時只顯示原始 GPS，避免假造推估值。
+  double? _numberFrom(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value.trim());
+    return null;
+  }
+
+  DateTime? _dateTimeFrom(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is String && value.trim().isNotEmpty) {
+      return DateTime.tryParse(value.trim())?.toLocal();
+    }
+    return null;
+  }
+
+  /// 每次更新車輛 Marker；資料不足時回退至真實 GPS，不執行位置外推。
+  Future<void> _loadBusPositions(int direction) async {
+    if (_isLoadingBusPositions || !mounted) return;
+    _isLoadingBusPositions = true;
+    final requestId = ++_busPositionRequestId;
+
+    try {
+      final response = await fetchBusRealtimePosition(
+        _tdxRouteName(widget.data, widget.routeName),
+        widget.city,
+        widget.routeID,
+      );
+
+      if (!mounted || requestId != _busPositionRequestId) return;
+
+      final now = DateTime.now();
+      final routePoints = _routePointsByDirection[direction] ?? const <LatLng>[];
+      final nextMarkers = <Marker>{};
+
+      for (final bus in response) {
+        final rawDirection = bus['Direction'];
+        final busDirection = rawDirection is int
+            ? rawDirection
+            : int.tryParse(rawDirection?.toString() ?? '');
+        if (busDirection != null && busDirection != direction) continue;
+
+        final dynamic rawPosition = bus['BusPosition'] ??
+            bus['Position'] ??
+            bus['GPSPosition'];
+        final Map position = rawPosition is Map ? rawPosition : bus;
+
+        // 僅解析實際存在且可轉換的座標欄位，不將缺值補成 0。
+        final lat = _numberFrom(position['PositionLat'] ??
+            position['Latitude'] ?? position['latitude']);
+        final lon = _numberFrom(position['PositionLon'] ??
+            position['Longitude'] ?? position['longitude']);
+        if (lat == null || lon == null ||
+            !lat.isFinite || !lon.isFinite ||
+            lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          if (kDebugMode) {
+            debugPrint('略過缺少有效 GPS 座標的公車資料，欄位：${bus.keys.toList()}');
+          }
+          continue;
+        }
+
+        final gpsPosition = LatLng(lat, lon);
+        final speedKmh = _numberFrom(
+          bus['Speed'] ?? bus['VehicleSpeed'] ?? position['Speed'],
+        );
+        final heading = _numberFrom(
+          bus['Azimuth'] ?? bus['Bearing'] ?? bus['Heading'],
+        );
+        final gpsTime = _dateTimeFrom(
+          bus['GPSTime'] ?? bus['GpsTime'] ?? bus['UpdateTime'] ??
+              bus['SrcRecTime'] ?? bus['SrcTransTime'],
+        );
+
+        BusPositionEstimate? estimate;
+        if (speedKmh != null && gpsTime != null && routePoints.length >= 2) {
+          estimate = _busPositionEstimator.estimate(
+            sample: BusGpsSample(
+              position: gpsPosition,
+              speedKmh: speedKmh,
+              recordedAt: gpsTime,
+              headingDegrees: heading,
+            ),
+            now: now,
+            routePoints: routePoints,
+          );
+        }
+
+        final displayedPosition = estimate?.position ?? gpsPosition;
+        final plate = bus['PlateNumb']?.toString();
+        final vehicleId = bus['VehicleID']?.toString() ??
+            bus['BusID']?.toString() ?? plate ?? '${lat}_$lon';
+        final isEstimated = estimate?.isEstimated ?? false;
+        final statusText = gpsTime == null
+            ? 'GPS 時間未提供，顯示原始位置'
+            : (isEstimated ? '推估位置' : 'GPS 位置');
+
+        nextMarkers.add(
+          Marker(
+            markerId: MarkerId('bus_$vehicleId'),
+            position: displayedPosition,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueAzure,
+            ),
+            rotation: heading ?? 0,
+            infoWindow: InfoWindow(
+              title: plate != null && plate.isNotEmpty ? '公車 $plate' : '即時公車',
+              snippet: '路線：${_tdxRouteName(widget.data, widget.routeName)} · $statusText',
+            ),
+            zIndexInt: 2,
+          ),
+        );
+      }
+
+      if (!mounted || requestId != _busPositionRequestId) return;
+      _busMarkers
+        ..clear()
+        ..addAll(nextMarkers);
+      _publishMarkers();
+      debugPrint('🚌 公車 Marker 更新完成：${nextMarkers.length} 台；方向 $direction');
+    } catch (e, stackTrace) {
+      // API 失敗時保留既有 Marker，不讓短暫網路錯誤清空地圖。
+      debugPrint('載入即時公車位置失敗：$e');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      _isLoadingBusPositions = false;
+    }
   }
 
   void _startAutoReload() {
@@ -263,6 +429,8 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   @override
   void dispose() {
     _timer?.cancel();
+    _busPositionTimer?.cancel();
+    _busPositionRequestId++;
     _tabController.removeListener(_handleTabChange);
     _scrollController.dispose();
     _directionNotifier.dispose();
@@ -421,6 +589,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
       // 8. 載入當前選定方向的 Marker 與 Shape
       _loadMarkers(currentStops);
       _loadShape(currentDirection);
+      _loadBusPositions(currentDirection);
 
       // 9. 通知 UI 更新
       final isEnglish = _isEnglishLocale(context);
