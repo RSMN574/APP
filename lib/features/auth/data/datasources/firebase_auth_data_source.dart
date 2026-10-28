@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/auth_failure.dart';
-import '../models/auth_user_model.dart';
+import '../../model/auth_failure.dart';
+import '../../model/auth_user_model.dart';
+
 
 class FirebaseAuthDataSource {
   FirebaseAuthDataSource({FirebaseAuth? firebaseAuth})
@@ -130,5 +131,39 @@ class FirebaseAuthDataSource {
       'requires-recent-login' => AuthFailureCode.requiresRecentLogin,
       _ => AuthFailureCode.unknown,
     };
+  }
+  Future<void> sendEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const AuthFailure(AuthFailureCode.unknown);
+    }
+
+    try {
+      await user.sendEmailVerification();
+    } on FirebaseAuthException catch (error) {
+      throw AuthFailure(_mapFirebaseError(error.code));
+    }
+  }
+
+  Future<AuthUserModel> reloadUser() async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const AuthFailure(AuthFailureCode.unknown);
+    }
+
+    try {
+      await user.reload();
+
+      final refreshedUser = _firebaseAuth.currentUser;
+      if (refreshedUser == null) {
+        throw const AuthFailure(AuthFailureCode.unknown);
+      }
+
+      return _mapUser(refreshedUser)!;
+    } on FirebaseAuthException catch (error) {
+      throw AuthFailure(_mapFirebaseError(error.code));
+    }
   }
 }

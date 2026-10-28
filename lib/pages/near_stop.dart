@@ -23,6 +23,7 @@ import '../features/bus/data/get_station_info.dart';
 import '../features/bus/model/bus_station_model.dart';
 import '../features/bus/pages/bus_stop_info_page.dart';
 import '../features/bus/pages/bus_time_page.dart';
+import '../features/bus/widgets/bubble.dart';
 import '../features/railway/pages/train_page.dart';
 import '../l10n/app_localizations.dart';
 
@@ -31,7 +32,7 @@ import '../features/bus/model/bus_station_model.dart';
 import '../features/bus/model/bus_route_model.dart';
 
 import '../utils/convert.dart';
-import '../widget/bus/bubble.dart';
+
 import '../widget/error.dart';
 import '../widget/map.dart';
 import '../widget/tab.dart';

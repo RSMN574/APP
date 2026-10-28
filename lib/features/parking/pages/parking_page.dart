@@ -20,6 +20,7 @@ import 'package:com.rsmn574.app/utils/share.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 
+import '../../../firebase/analytics_service.dart';
 import '../../../widget/AppLoading.dart';
 
 /// 🟢 強型別停車場資料模型
@@ -261,6 +262,9 @@ class _ParkingState extends State<Parking> {
   @override
   void initState() {
     super.initState();
+    unawaited(
+      AppAnalytics.logFeatureOpened('parking'),
+    );
     _currentCityNotifier = ValueNotifier<String>("臺中市");
     _correspondingIDNotifier = ValueNotifier<String>("Taichung");
 

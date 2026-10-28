@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../data/models/auth_failure.dart';
+import '../model/auth_failure.dart';
+
 
 class AuthErrorBanner extends StatelessWidget {
   const AuthErrorBanner({super.key, required this.error});

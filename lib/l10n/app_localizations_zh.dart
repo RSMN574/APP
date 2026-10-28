@@ -3380,4 +3380,31 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get airport_no_data => '無機場資料';
+
+  @override
+  String get authVerificationSent => '帳號建立成功，驗證信已寄出，請前往電子信箱完成驗證。';
+
+  @override
+  String get authVerificationSendFailed => '帳號已建立，但驗證信寄送失敗。請稍後重新寄送驗證信。';
+
+  @override
+  String get profileEmailVerified => '電子郵件已驗證';
+
+  @override
+  String get profileEmailNotVerified => '電子郵件尚未驗證';
+
+  @override
+  String get profileSendVerification => '重新寄送驗證信';
+
+  @override
+  String get profileRefreshVerification => '重新檢查驗證狀態';
+
+  @override
+  String get profileVerificationSent => '驗證信已送出，請檢查電子郵件';
+
+  @override
+  String get profileVerificationSendFailed => '驗證信寄送失敗，請稍後再試';
+
+  @override
+  String get profileVerificationRefreshFailed => '無法更新驗證狀態，請稍後再試';
 }

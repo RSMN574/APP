@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
-import '../models/auth_user_model.dart';
+import '../../model/auth_user_model.dart';
+
 
 abstract interface class AuthRepository {
   Stream<AuthUserModel?> get authStateChanges;
@@ -25,4 +26,7 @@ abstract interface class AuthRepository {
   });
 
   Future<void> deleteAccount({String? password});
+  Future<void> sendEmailVerification();
+
+  Future<AuthUserModel> reloadUser();
 }

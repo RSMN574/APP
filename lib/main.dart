@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:com.rsmn574.app/features/airport/state/airport_provider.dart';
 import 'package:com.rsmn574.app/features/parking/state/parking_provider.dart';
 import 'package:com.rsmn574.app/features/traffic/state/traffic_provider.dart';
@@ -16,6 +18,7 @@ import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
 import 'package:com.rsmn574.app/task/task.dart';
 import 'package:com.rsmn574.app/test.dart';
 import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -70,7 +73,9 @@ class AppInitializer {
   static Future<void> initialize() async {
     Logger.root.level = Level.ALL;
     Logger.root.onRecord.listen((record) {
-      print('${record.level.name}: ${record.time}: ${record.message}');
+      print(
+        '${record.level.name}: ${record.time}: ${record.message}',
+      );
     });
 
     final log = Logger('MyApp');
@@ -78,41 +83,92 @@ class AppInitializer {
 
     await SecureStorage.initializeApiKey();
 
-    // ── 1. Firebase / 通知 / Token（你原本的）──
+    // ── 1. Firebase / 通知 / Token ──
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
+
       firebaseInitialized = true;
+
       await requestPermission();
       await initializeNotifications();
       setupForegroundMessageHandler();
       await setupFirebaseMessaging();
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+      FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler,
+      );
+
+      initializeArrivalReminderService();
 
       final tokenManager = TokenManager();
       await tokenManager.getToken();
       tokenManager.startAutoRefresh();
+
+      log.info('Firebase 初始化完成');
     } catch (e, stack) {
       log.severe('Firebase 初始化失敗', e, stack);
     }
 
-    // ── 2. 首次預載資料（bus list → SQLite）──
-    // 放在 Firebase 之後，失敗不影響 App 啟動
+    // ── 2. 全域錯誤處理 ──
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+
+      log.severe(
+        'Flutter Error: ${details.exception}',
+        details.exception,
+        details.stack,
+      );
+
+      if (firebaseInitialized) {
+
+        unawaited(
+          FirebaseCrashlytics.instance.recordFlutterFatalError(
+            details,
+          ),
+        );
+      }
+    };
+
+    // 處理未被其他機制捕捉的非同步錯誤
+    PlatformDispatcher.instance.onError = (error, stack) {
+      log.severe(
+        'Uncaught asynchronous error',
+        error,
+        stack,
+      );
+
+      if (!firebaseInitialized) {
+        // Firebase 尚未初始化，交由 Flutter 預設機制處理
+        return false;
+      }
+
+      unawaited(
+        FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: true,
+        ),
+      );
+
+      return true;
+    };
+
+    // ── 3. 首次預載資料（bus list → SQLite）──
+    // 失敗不影響 App 啟動，保留本地快取
     try {
-      await BootstrapService.instance.ensureLoaded(); // city 預設 all
+      await BootstrapService.instance.ensureLoaded();
+
       bootstrapReady = true;
       log.info('bootstrap 完成');
     } catch (e, stack) {
-      log.warning('bootstrap 失敗，使用本地快取', e, stack);
-      // 不清本地，App 仍可讀 SQLite 舊資料
+      log.warning(
+        'bootstrap 失敗，使用本地快取',
+        e,
+        stack,
+      );
     }
-
-    // ── 3. 全域錯誤處理 ──
-    FlutterError.onError = (FlutterErrorDetails details) {
-      FlutterError.presentError(details);
-      log.severe('Flutter Error: ${details.exception}', details.stack);
-    };
   }
 }
 
@@ -260,7 +316,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
             AppRoutes.notification: (BuildContext context) =>
                 (NotificationPage()),
             AppRoutes.home: (BuildContext context) => (Home()),
-            AppRoutes.bike: (BuildContext context) => (Bike()),
+            // AppRoutes.bike: (BuildContext context) => (Bike()),
             AppRoutes.HSR: (BuildContext context) => (HSR()),
             AppRoutes.EVStation: (BuildContext context) => (EVStation()),
             AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),

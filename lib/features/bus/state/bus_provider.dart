@@ -1,5 +1,6 @@
+// lib/features/bus/state/bus_provider.dart
 import 'package:flutter/foundation.dart';
-
+import '../../../firebase/analytics_service.dart';
 import '../data/bus_repository.dart';
 import '../model/bus_route_model.dart';
 
@@ -26,10 +27,7 @@ class BusProvider extends ChangeNotifier {
   String? get city => _city;
   bool get isLoading => _city != null && _pendingRequests.containsKey(_city);
 
-  Future<List<BusRoute>> loadRoutes(
-    String city, {
-    bool force = false,
-  }) {
+  Future<List<BusRoute>> loadRoutes(String city, {bool force = false}) {
     if (_disposed) {
       return Future.error(StateError('BusProvider has been disposed'));
     }
@@ -65,18 +63,78 @@ class BusProvider extends ChangeNotifier {
   Future<List<BusRoute>> _loadRoutes(String city, int generation) async {
     try {
       final routes = await _repository.fetchRoutes(city);
-      if (generation == _cacheGeneration) {
+
+      await AppAnalytics.logQueryResult(
+        feature: 'bus_routes',
+        success: true,
+      );
+
+      if (generation == _cacheGeneration && !_disposed) {
         _routeCache[city] = _CachedRoutes(routes, DateTime.now());
-        if (_city == city && !_disposed) _routes = routes;
+        if (_city == city) {
+          _routes = routes;
+        }
       }
       return routes;
     } catch (error) {
+      await AppAnalytics.logQueryResult(
+        feature: 'bus_routes',
+        success: false,
+        errorType: error.runtimeType.toString(),
+      );
+
       if (generation == _cacheGeneration && _city == city && !_disposed) {
         _error = error;
         _routes = const [];
       }
       rethrow;
     }
+  }
+
+  // ============================================================
+  // ✅ P1：TDX 即時資料薄封裝。
+  // - Page 不再直接 import data/get_bus_time.dart。
+  // - Provider 只做資料存取入口，不接管 UI 狀態；
+  //   Page 仍負責自己的 generation / mounted / Timer。
+  // ============================================================
+
+  /// TDX A2：指定路線的預估到站時間。
+  Future<List<dynamic>> fetchEstimatedArrivals({
+    required String routeName,
+    required String city,
+    required String routeID,
+  }) {
+    return _repository.fetchEstimatedArrivals(
+      routeName: routeName,
+      city: city,
+      routeID: routeID,
+    );
+  }
+
+  /// TDX A1：指定路線的即時車輛位置。
+  Future<List<Map<String, dynamic>>> fetchRealtimePositions({
+    required String routeName,
+    required String city,
+    required String routeID,
+  }) {
+    return _repository.fetchRealtimePositions(
+      routeName: routeName,
+      city: city,
+      routeID: routeID,
+    );
+  }
+
+  /// TDX：指定路線的形狀（Polyline 解碼前的原始資料）。
+  Future<List<dynamic>> fetchRouteShape({
+    required String city,
+    required String routeName,
+    required String routeID,
+  }) {
+    return _repository.fetchRouteShape(
+      city: city,
+      routeName: routeName,
+      routeID: routeID,
+    );
   }
 
   void clearCache() {
@@ -102,7 +160,6 @@ class BusProvider extends ChangeNotifier {
 
 class _CachedRoutes {
   const _CachedRoutes(this.routes, this.cachedAt);
-
   final List<BusRoute> routes;
   final DateTime cachedAt;
 }

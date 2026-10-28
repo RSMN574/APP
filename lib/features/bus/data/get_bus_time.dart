@@ -65,7 +65,7 @@ Future<List<dynamic>> fetchBusTime(
   final client = TdxApiClient();
   final path =
       '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
-      '${_busScope(city)}/${_encodePathSegment(routeName)}';
+      '${_busScope(city)}/${routeName.trim()}';
 
   final queryParams = <String, String>{
     r'$filter': "RouteID eq '${_odataString(routeID)}'",
@@ -106,7 +106,8 @@ Future<List<Map<String, dynamic>>> fetchBusRealtimePosition(
   final client = TdxApiClient();
   final path =
       '/api/basic/v2/Bus/RealTimeByFrequency/'
-      '${_busScope(city)}/${_encodePathSegment(routeName)}';
+      '${_busScope(city)}/${routeName.trim()}';
+
 
   final queryParams = <String, String>{
     r'$filter': "RouteID eq '${_odataString(routeID)}'",
@@ -308,13 +309,12 @@ Future<List<Map<String, dynamic>>?> getHistoryData(
   final uri = Uri.https(
     _tdxHost,
     '/api/historical/v2/Historical/Bus/RealTimeNearStop/'
-        '${_busScope(city)}/Date/$date/RouteID/${_encodePathSegment(routeId)}',
+        '${_busScope(city)}/Date/$date/RouteID/${routeId.trim()}',
     <String, String>{
       r'$top': sum.toString(),
       r'$format': 'JSONL',
     },
   );
-
   final response = await TdxApiClient()
       .getRaw(
     uri,
@@ -358,7 +358,7 @@ Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
     final uri = Uri.https(
       _tdxHost,
       '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
-          '${_busScope(city)}/${_encodePathSegment(routeName)}',
+          '${_busScope(city)}/${routeName.trim()}',
       <String, String>{
         r'$filter':
         "StopID eq '${_odataString(stopID)}' and Direction eq $direction",
@@ -401,7 +401,7 @@ Future<List<dynamic>> getShape(
   final uri = Uri.https(
     _tdxHost,
     '/api/basic/v2/Bus/Shape/'
-        '${_busScope(city)}/${_encodePathSegment(routeName)}',
+        '${_busScope(city)}/${routeName.trim()}',
     const <String, String>{
       r'$format': 'JSON',
     },

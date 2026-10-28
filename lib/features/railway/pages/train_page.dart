@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
 import 'dart:convert';
@@ -12,6 +14,8 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/features/railway/data/get_train.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
+
+import '../../../firebase/analytics_service.dart';
 
 const Color primaryColor = Color(0xFF2A5CAA);
 const Color accentColor = Color(0xFFFF9F1C);
@@ -29,12 +33,12 @@ String _localizedRailName(dynamic names, {required bool isEnglish}) {
 }
 
 String _localizedRailField(
-  dynamic record, {
-  required String englishKey,
-  required String chineseKey,
-  required bool isEnglish,
-  String fallback = '',
-}) {
+    dynamic record, {
+      required String englishKey,
+      required String chineseKey,
+      required bool isEnglish,
+      String fallback = '',
+    }) {
   if (record is! Map) return '';
 
   final preferred =
@@ -46,6 +50,36 @@ String _localizedRailField(
   return alternate.isNotEmpty ? alternate : fallback;
 }
 
+// ==========================================
+// 跨日時間 / 車次編號 工具（全局）
+// ==========================================
+int _mod1440(int n) => ((n % 1440) + 1440) % 1440;
+
+int _timeToMinutesSafe(String? time) {
+  if (time == null || time.isEmpty) return 0;
+  final parts = time.split(':');
+  if (parts.length < 2) return 0;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return 0;
+  return h * 60 + m;
+}
+
+/// 計算 dep → arr 的旅行分鐘數，跨午夜回傳正數。
+int _calcDurationMinutes(String? dep, String? arr) {
+  return _mod1440(_timeToMinutesSafe(arr) - _timeToMinutesSafe(dep));
+}
+
+/// 將輸入（"110A"、"自強 110" 等）解析為純數字車次；失敗回傳 null。
+int? _parseTrainNoDigits(String? raw) {
+  if (raw == null) return null;
+  final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return null;
+  return int.tryParse(digits);
+}
+
+DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
 class Train extends StatefulWidget {
   const Train({super.key});
 
@@ -54,8 +88,6 @@ class Train extends StatefulWidget {
 }
 
 class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
-
-
   late TabController _tabController;
   final TextEditingController _trainNoController = TextEditingController();
   final TextEditingController _departureController = TextEditingController();
@@ -78,7 +110,6 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -88,19 +119,14 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
     const darkPrimary = Color(0xFF64B5F6);
 
     final primaryColor = isDark ? darkPrimary : lightPrimary;
-    final backgroundColor = isDark
-        ? const Color(0xFF121212)
-        : const Color(0xFFF8FAFD);
-    final surfaceColor = isDark
-        ? const Color(0xFF1C1C1E)
-        : Colors.white;
-    final borderColor = isDark
-        ? const Color(0xFF343438)
-        : const Color(0xFFE5ECF6);
+    final backgroundColor =
+    isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFD);
+    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
+    final borderColor =
+    isDark ? const Color(0xFF343438) : const Color(0xFFE5ECF6);
     final textPrimary = theme.colorScheme.onSurface;
-    final textSecondary = isDark
-        ? const Color(0xFFB0B7C3)
-        : const Color(0xFF64748B);
+    final textSecondary =
+    isDark ? const Color(0xFFB0B7C3) : const Color(0xFF64748B);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -384,7 +410,6 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
       ),
     );
   }
-
 }
 
 class TrainMainPage extends StatefulWidget {
@@ -415,24 +440,29 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   DateTime selectedDate = DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
+  // ✅ 修正 1：firstDate 用純日期，避免時分秒把「今天」排除
   Future<void> _selectDate(BuildContext context) async {
+    final today = _dateOnly(DateTime.now());
+    final initialDate =
+    selectedDate.isBefore(today) ? today : _dateOnly(selectedDate);
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime.now(),
+      initialDate: initialDate,
+      firstDate: today,
       lastDate: DateTime(2101),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Color(0xFF1A73E8),
-                  onPrimary: Theme.of(context).colorScheme.onPrimary,
-                  surface: Theme.of(context).colorScheme.surface,
-                  onSurface: Color(0xFF1A73E8),
-                ),
+              primary: const Color(0xFF1A73E8),
+              onPrimary: Theme.of(context).colorScheme.onPrimary,
+              surface: Theme.of(context).colorScheme.surface,
+              onSurface: const Color(0xFF1A73E8),
+            ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF1A73E8),
+                foregroundColor: const Color(0xFF1A73E8),
               ),
             ),
             dialogTheme: DialogThemeData(
@@ -466,7 +496,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 標題
                 Container(
                   margin: const EdgeInsets.only(bottom: 32),
                   child: Column(
@@ -509,8 +538,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                     ],
                   ),
                 ),
-
-                // 查詢卡片
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -526,7 +553,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                   ),
                   child: Column(
                     children: [
-                      // 車次輸入框
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
@@ -561,8 +587,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // 日期選擇按鈕
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -619,8 +643,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-
-                      // 查詢按鈕
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
@@ -656,13 +678,30 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 return;
                               }
 
+                              // ✅ 修正 6：解析失敗即中止，不再 int.parse 崩潰
+                              final trainNo =
+                              _parseTrainNoDigits(widget.controller.text);
+                              if (trainNo == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('請輸入有效的車次編號'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
                               try {
                                 trainData = await fetchTrain(
-                                  int.parse(widget.controller.text
-                                      .replaceAll(RegExp(r'[^0-9]'), '')),
+                                  trainNo,
                                   selectedDate,
                                 );
                                 if (trainData == null || trainData.isEmpty) {
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -676,19 +715,20 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                     ),
                                   );
                                 } else {
+                                  if (!context.mounted) return;
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => TrainSchedulePage(
-                                          type: 'trainNo',
-                                          time: selectedDate,
-                                          trainNo: int.parse(
-                                              widget.controller.text.replaceAll(
-                                                  RegExp(r'[^0-9]'), ''))),
+                                        type: 'trainNo',
+                                        time: selectedDate,
+                                        trainNo: trainNo,
+                                      ),
                                     ),
                                   );
                                 }
                               } catch (e) {
+                                if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -716,14 +756,18 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                     color: Colors.white,
                                   ),
                                   const SizedBox(width: 8),
-                                  Flexible(child: Text(
-                                    AppLocalizations.of(context)!.text_153,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  )),
+                                  Flexible(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.text_153,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -733,8 +777,6 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                     ],
                   ),
                 ),
-
-                // 提示資訊
                 Container(
                   margin: const EdgeInsets.only(top: 24),
                   padding: const EdgeInsets.all(16),
@@ -812,7 +854,6 @@ class RouteSearchPage extends StatefulWidget {
 }
 
 class _RouteSearchPageState extends State<RouteSearchPage> {
-  // 縣市和對應站名資料
   late final Map<String, List<String>> stationData = {
     AppLocalizations.of(context)!.text_174: [
       AppLocalizations.of(context)!.text_175,
@@ -836,11 +877,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
 
-  // 新增：追蹤選擇狀態
   bool _isDepartureSelected = false;
   bool _isDestinationSelected = false;
-
-
 
   Future<void> _selectDateTime(BuildContext context) async {
     final now = DateTime.now();
@@ -856,7 +894,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       borderRadius: BorderRadius.circular(20),
     );
 
-    // 日期與時間選擇器共用主題
     final pickerTheme = currentTheme.copyWith(
       colorScheme: currentTheme.colorScheme.copyWith(
         primary: primaryColor,
@@ -910,7 +947,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       ),
     );
 
-    // 選擇日期
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate != null &&
@@ -931,15 +967,12 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
 
     if (pickedDate == null || !context.mounted) return;
 
-    // 日期改變時，若原本選擇的時間已過，改用目前時間
     final isToday = pickedDate.year == now.year &&
         pickedDate.month == now.month &&
         pickedDate.day == now.day;
 
     final previousDateTime = selectedDate ?? now;
-    final previousTime = TimeOfDay.fromDateTime(
-      previousDateTime,
-    );
+    final previousTime = TimeOfDay.fromDateTime(previousDateTime);
 
     final initialTime = isToday &&
         (previousTime.hour < now.hour ||
@@ -948,7 +981,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
         ? TimeOfDay.fromDateTime(now)
         : previousTime;
 
-    // 選擇時間
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
@@ -970,7 +1002,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
       pickedTime.minute,
     );
 
-    // 防止選擇今天的過去時間
     if (result.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -985,6 +1016,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     });
   }
 
+  // ✅ 修正 3：用暫存字串交換，避免每次新建 TextEditingController 造成泄漏
   void _swapStations() {
     if (departureSelectedStation.isEmpty &&
         destinationSelectedStation.isEmpty) {
@@ -992,24 +1024,20 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     }
 
     setState(() {
-      // 交換控制器內容
-      final tempController = TextEditingController();
-      tempController.text = widget.departureController.text;
+      final tempText = widget.departureController.text;
       widget.departureController.text = widget.destinationController.text;
-      widget.destinationController.text = tempController.text;
+      widget.destinationController.text = tempText;
 
-      // 交換車站資料
       final tempStation = departureSelectedStation;
       departureSelectedStation = destinationSelectedStation;
       destinationSelectedStation = tempStation;
 
-      // 交換選擇狀態
       final tempSelected = _isDepartureSelected;
       _isDepartureSelected = _isDestinationSelected;
       _isDestinationSelected = tempSelected;
 
       if (widget.departureController.text ==
-              widget.destinationController.text &&
+          widget.destinationController.text &&
           widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1037,7 +1065,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 標題區域
                 Container(
                   margin: const EdgeInsets.only(bottom: 24),
                   child: Column(
@@ -1080,8 +1107,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                     ],
                   ),
                 ),
-
-                // 查詢卡片
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -1097,24 +1122,23 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                   ),
                   child: Column(
                     children: [
-                      // 出發地
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
                             final selectedStation =
-                                await StationDialog.showStationDialog(context);
+                            await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 departureSelectedStation = selectedStation;
                                 _isDepartureSelected = true;
                                 widget.departureController.text =
                                     _localizedRailName(
-                                  departureSelectedStation['StationName'],
-                                  isEnglish: Localizations.localeOf(context)
+                                      departureSelectedStation['StationName'],
+                                      isEnglish: Localizations.localeOf(context)
                                           .languageCode ==
-                                      'en',
-                                );
+                                          'en',
+                                    );
                                 if (widget.departureController.text.isEmpty) {
                                   widget.departureController.text =
                                       AppLocalizations.of(context)!.text_160;
@@ -1150,7 +1174,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     color: _isDepartureSelected
                                         ? const Color(0xFF1A73E8)
                                         : const Color(0xFF1A73E8)
-                                            .withOpacity(0.1),
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1165,7 +1189,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_845,
@@ -1182,7 +1206,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                         _isDepartureSelected
                                             ? widget.departureController.text
                                             : AppLocalizations.of(context)!
-                                                .text_161,
+                                            .text_161,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDepartureSelected
@@ -1221,8 +1245,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           ),
                         ),
                       ),
-
-                      // 交換按鈕
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 8),
                         child: IconButton(
@@ -1248,32 +1270,29 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           onPressed: _swapStations,
                         ),
                       ),
-
-                      // 目的地
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
                             final selectedStation =
-                                await StationDialog.showStationDialog(context);
+                            await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 destinationSelectedStation = selectedStation;
                                 _isDestinationSelected = true;
                                 widget.destinationController.text =
                                     _localizedRailName(
-                                  destinationSelectedStation['StationName'],
-                                  isEnglish: Localizations.localeOf(context)
+                                      destinationSelectedStation['StationName'],
+                                      isEnglish: Localizations.localeOf(context)
                                           .languageCode ==
-                                      'en',
-                                );
+                                          'en',
+                                    );
                                 if (widget.destinationController.text.isEmpty) {
                                   widget.destinationController.text =
                                       AppLocalizations.of(context)!.text_160;
                                 }
                               });
 
-                              // 檢查是否與出發地相同
                               if (widget.departureController.text ==
                                   widget.destinationController.text) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -1318,7 +1337,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     color: _isDestinationSelected
                                         ? const Color(0xFF34C759)
                                         : const Color(0xFF34C759)
-                                            .withOpacity(0.1),
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1333,7 +1352,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_846,
@@ -1350,7 +1369,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                         _isDestinationSelected
                                             ? widget.destinationController.text
                                             : AppLocalizations.of(context)!
-                                                .text_847,
+                                            .text_847,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: _isDestinationSelected
@@ -1389,10 +1408,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
-                      // 日期時間選擇
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -1425,7 +1441,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                     color: selectedDate != null
                                         ? const Color(0xFFFF9500)
                                         : const Color(0xFFFF9500)
-                                            .withOpacity(0.1),
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1440,7 +1456,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_164,
@@ -1457,7 +1473,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
                                             : AppLocalizations.of(context)!
-                                                .text_165,
+                                            .text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -1496,10 +1512,7 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
-                      // 查詢按鈕
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -1571,20 +1584,24 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.search_rounded,
                                     size: 20,
                                     color: Colors.white,
                                   ),
-                                  SizedBox(width: 8),
-                                  Flexible(child: Text(
-                                    AppLocalizations.of(context)!.text_166,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  )),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.text_166,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -1594,8 +1611,6 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                     ],
                   ),
                 ),
-
-                // 提示資訊
                 Container(
                   margin: const EdgeInsets.only(top: 20),
                   padding: const EdgeInsets.all(16),
@@ -1628,18 +1643,18 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           children: [
                             Text(
                               AppLocalizations.of(context)!.text_154,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF1A73E8),
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               AppLocalizations.of(context)!.text_850,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey,
+                                color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1707,7 +1722,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
   DateTime? selectedDate;
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
 
-
   Future<void> _selectDateTime(BuildContext context) async {
     final now = DateTime.now();
     final currentTheme = Theme.of(context);
@@ -1722,7 +1736,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
       borderRadius: BorderRadius.circular(20),
     );
 
-    // 日期與時間選擇器共用主題
     final pickerTheme = currentTheme.copyWith(
       colorScheme: currentTheme.colorScheme.copyWith(
         primary: primaryColor,
@@ -1776,7 +1789,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
       ),
     );
 
-    // 選擇日期
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate != null &&
@@ -1797,15 +1809,12 @@ class _StationSearchPageState extends State<StationSearchPage> {
 
     if (pickedDate == null || !context.mounted) return;
 
-    // 日期改變時，若原本選擇的時間已過，改用目前時間
     final isToday = pickedDate.year == now.year &&
         pickedDate.month == now.month &&
         pickedDate.day == now.day;
 
     final previousDateTime = selectedDate ?? now;
-    final previousTime = TimeOfDay.fromDateTime(
-      previousDateTime,
-    );
+    final previousTime = TimeOfDay.fromDateTime(previousDateTime);
 
     final initialTime = isToday &&
         (previousTime.hour < now.hour ||
@@ -1814,7 +1823,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
         ? TimeOfDay.fromDateTime(now)
         : previousTime;
 
-    // 選擇時間
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
@@ -1836,7 +1844,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
       pickedTime.minute,
     );
 
-    // 防止選擇今天的過去時間
     if (result.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1863,7 +1870,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 標題區域
                 Container(
                   margin: const EdgeInsets.only(bottom: 32),
                   child: Column(
@@ -1888,7 +1894,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                       const SizedBox(height: 16),
                       Text(
                         AppLocalizations.of(context)!.text_851,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF1A73E8),
@@ -1906,8 +1912,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
                     ],
                   ),
                 ),
-
-                // 查詢卡片
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -1923,19 +1927,18 @@ class _StationSearchPageState extends State<StationSearchPage> {
                   ),
                   child: Column(
                     children: [
-                      // 車站名稱選擇
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () async {
                             selectedStation =
-                                await StationDialog.showStationDialog(context);
+                            await StationDialog.showStationDialog(context);
                             if (selectedStation != null) {
                               setState(() {
                                 _controller.text = _localizedRailName(
                                   selectedStation?['StationName'],
                                   isEnglish: Localizations.localeOf(context)
-                                          .languageCode ==
+                                      .languageCode ==
                                       'en',
                                 );
                               });
@@ -1969,7 +1972,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     color: selectedStation != null
                                         ? const Color(0xFF1A73E8)
                                         : const Color(0xFF1A73E8)
-                                            .withOpacity(0.1),
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -1984,7 +1987,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_853,
@@ -2001,7 +2004,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                         selectedStation != null
                                             ? _controller.text
                                             : AppLocalizations.of(context)!
-                                                .text_200,
+                                            .text_200,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedStation != null
@@ -2040,10 +2043,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
-                      // 日期時間選擇
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -2076,7 +2076,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                     color: selectedDate != null
                                         ? const Color(0xFFFF9500)
                                         : const Color(0xFFFF9500)
-                                            .withOpacity(0.1),
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(
@@ -2091,7 +2091,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         AppLocalizations.of(context)!.text_164,
@@ -2108,7 +2108,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                         selectedDate != null
                                             ? dateFormat.format(selectedDate!)
                                             : AppLocalizations.of(context)!
-                                                .text_165,
+                                            .text_165,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: selectedDate != null
@@ -2134,10 +2134,7 @@ class _StationSearchPageState extends State<StationSearchPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
-                      // 查詢按鈕
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -2174,19 +2171,29 @@ class _StationSearchPageState extends State<StationSearchPage> {
                                 return;
                               }
 
+                              // ✅ 修正 4：同時傳入中英文名與非空 stationID
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => StationPage(
-                                    stationName: _localizedRailName(
-                                      selectedStation?['StationName'],
-                                      isEnglish: Localizations.localeOf(context)
-                                              .languageCode ==
-                                          'en',
-                                    ),
-                                    stationID: selectedStation?["StationID"],
-                                    datetime: selectedDate ?? DateTime.now(),
-                                  ),
+                                  builder: (context) {
+                                    final names =
+                                    selectedStation?['StationName'];
+                                    final zhName = (names is Map)
+                                        ? (names['Zh_tw']?.toString() ?? '')
+                                        : (names?.toString() ?? '');
+                                    final enName = (names is Map)
+                                        ? (names['En']?.toString() ?? '')
+                                        : '';
+                                    return StationPage(
+                                      stationName:
+                                      zhName.isNotEmpty ? zhName : enName,
+                                      stationNameEn: enName,
+                                      stationID: selectedStation?["StationID"]
+                                          ?.toString() ??
+                                          '',
+                                      datetime: selectedDate ?? DateTime.now(),
+                                    );
+                                  },
                                 ),
                               );
                             },
@@ -2197,20 +2204,24 @@ class _StationSearchPageState extends State<StationSearchPage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.search_rounded,
                                     size: 20,
                                     color: Colors.white,
                                   ),
-                                  SizedBox(width: 8),
-                                  Flexible(child: Text(
-                                    AppLocalizations.of(context)!.text_854,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                                  )),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.text_854,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -2220,8 +2231,6 @@ class _StationSearchPageState extends State<StationSearchPage> {
                     ],
                   ),
                 ),
-
-                // 提示資訊
                 Container(
                   margin: const EdgeInsets.only(top: 20),
                   padding: const EdgeInsets.all(16),
@@ -2254,18 +2263,18 @@ class _StationSearchPageState extends State<StationSearchPage> {
                           children: [
                             Text(
                               AppLocalizations.of(context)!.text_154,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
                                 color: Color(0xFF1A73E8),
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               AppLocalizations.of(context)!.text_855,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey,
+                                color: Colors.grey[600],
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -2275,18 +2284,16 @@ class _StationSearchPageState extends State<StationSearchPage> {
                     ],
                   ),
                 ),
-
-                // 熱門車站快速選擇
                 Container(
                   margin: const EdgeInsets.only(top: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: EdgeInsets.only(left: 4, bottom: 12),
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
                         child: Text(
                           AppLocalizations.of(context)!.text_203,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1A73E8),
@@ -2308,13 +2315,11 @@ class _StationSearchPageState extends State<StationSearchPage> {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
-                                // TODO: 設置熱門車站
                                 _controller.text = stationName;
-                                // 這裡可以設置對應的 selectedStation
                               },
                               borderRadius: BorderRadius.circular(20),
                               splashColor:
-                                  const Color(0xFF1A73E8).withOpacity(0.1),
+                              const Color(0xFF1A73E8).withOpacity(0.1),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -2376,23 +2381,81 @@ class _StationPageState extends State<StationPage>
   late String displayedStationName;
   late TabController _tabController;
 
+  // ✅ 修正 4：將 ScrollController 提升到 State
+  final ScrollController _trainListScrollController = ScrollController();
+  // ✅ 用 GlobalKey 定位「最近班次」，取代硬編碼 i*152
+  final Map<int, GlobalKey> _trainItemKeys = {};
+  // ✅ 記錄上次滾動的資料簽章，避免閉包捕捉舊資料
+  String? _lastScrolledSig;
+
   @override
   void initState() {
     super.initState();
+    unawaited(
+      AppAnalytics.logFeatureOpened('railway'),
+    );
     displayedStationName = widget.stationName;
     _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void didUpdateWidget(StationPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.datetime != oldWidget.datetime ||
+        widget.stationID != oldWidget.stationID) {
+      _lastScrolledSig = null;
+      _trainItemKeys.clear();
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _trainListScrollController.dispose(); // ✅ 釋放
+    super.dispose();
+  }
+
+  // ✅ 資料簽章：只要長度/首末時刻/目標時間一致，就視為同一批結果
+  String _trainSig(List<dynamic> trains) {
+    if (trains.isEmpty) return 'empty';
+    final first = trains.first['DepartureTime']?.toString() ?? '';
+    final last = trains.last['DepartureTime']?.toString() ?? '';
+    return '${trains.length}|$first|$last'
+        '|${widget.datetime.millisecondsSinceEpoch}';
+  }
+
+  // ✅ 定位到「第一班晚於 widget.datetime 的車次」，跨日亦可
+  void _scrollToNearestTrain(List<dynamic> trains) {
+    if (trains.isEmpty) return;
+    final base = widget.datetime.hour * 60 + widget.datetime.minute;
+    int? targetIdx;
+    for (int i = 0; i < trains.length; i++) {
+      final depMin =
+      _timeToMinutesSafe(trains[i]['DepartureTime']?.toString());
+      final effectiveDep = depMin >= base ? depMin : depMin + 1440;
+      if (effectiveDep >= base) {
+        targetIdx = i;
+        break;
+      }
+    }
+    targetIdx ??= trains.length - 1;
+
+    final key = _trainItemKeys[targetIdx];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.2,
+      );
+    }
   }
 
   void updateStationName(String newStationName) {
     setState(() {
       displayedStationName = newStationName;
     });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   @override
@@ -2527,7 +2590,7 @@ class _StationPageState extends State<StationPage>
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFFF3B30),
+                      color: const Color(0xFFFF3B30),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -2577,7 +2640,7 @@ class _StationPageState extends State<StationPage>
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A73E8),
+                      color: const Color(0xFF1A73E8),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -2598,7 +2661,6 @@ class _StationPageState extends State<StationPage>
           return SingleChildScrollView(
             child: Column(
               children: [
-                // 車站基本資訊卡片
                 Container(
                   margin: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -2631,7 +2693,6 @@ class _StationPageState extends State<StationPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 車站名稱
                             Row(
                               children: [
                                 Container(
@@ -2654,7 +2715,7 @@ class _StationPageState extends State<StationPage>
                                       englishKey: 'StationNameEn',
                                       chineseKey: 'StationNameZh_tw',
                                       isEnglish: Localizations.localeOf(context)
-                                              .languageCode ==
+                                          .languageCode ==
                                           'en',
                                       fallback: AppLocalizations.of(context)!
                                           .text_160,
@@ -2669,8 +2730,6 @@ class _StationPageState extends State<StationPage>
                               ],
                             ),
                             const SizedBox(height: 20),
-
-                            // 資訊項目
                             _buildInfoItem(
                               icon: Icons.location_on_rounded,
                               label: AppLocalizations.of(context)!.text_866,
@@ -2700,8 +2759,6 @@ class _StationPageState extends State<StationPage>
                     ],
                   ),
                 ),
-
-                // 設施地圖和電梯資訊
                 ...data.map((station) {
                   List<Map<String, String>> facilityMaps = [];
                   for (int i = 0; i < 5; i++) {
@@ -2714,7 +2771,7 @@ class _StationPageState extends State<StationPage>
                       isEnglish: isEnglish,
                     );
                     String? mapURL =
-                        station['FacilityMapURLs${i}MapURL'] as String?;
+                    station['FacilityMapURLs${i}MapURL'] as String?;
                     if (mapURL != null) {
                       facilityMaps.add({
                         'mapName': mapName ?? '',
@@ -2724,7 +2781,7 @@ class _StationPageState extends State<StationPage>
                   }
 
                   String? elevatorInfo =
-                      station['Elevators0Description'] as String?;
+                  station['Elevators0Description'] as String?;
 
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -2756,7 +2813,7 @@ class _StationPageState extends State<StationPage>
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFEEF3FB),
                                           borderRadius:
-                                              BorderRadius.circular(10),
+                                          BorderRadius.circular(10),
                                         ),
                                         child: const Icon(
                                           Icons.map_rounded,
@@ -2765,14 +2822,18 @@ class _StationPageState extends State<StationPage>
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      Flexible(child: Text(
-                                        facility['mapName']!,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                                      )),
+                                      Flexible(
+                                        child: Text(
+                                          facility['mapName']!,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -2784,7 +2845,8 @@ class _StationPageState extends State<StationPage>
                                   child: Image.network(
                                     facility['mapURL']!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
+                                    errorBuilder:
+                                        (context, error, stackTrace) {
                                       return Container(
                                         height: 120,
                                         color: Colors.grey[100],
@@ -2915,48 +2977,8 @@ class _StationPageState extends State<StationPage>
     );
   }
 
+  // ✅ 修正 4 + 6：不再每次 build 新建 Controller、用 GlobalKey、修正閉包
   Widget _buildTrainInfoPage() {
-    late final ValueNotifier<double> itemHeightNotifier =
-        ValueNotifier(12.0); // 初始高度
-
-    final ScrollController scrollController = ScrollController();
-    List<dynamic> trainData = []; // 這裡假設 trainData 已經載入
-    /// 找出第一筆 DepartureTime 晚於 widget.datetime 的資料，並滾動到該項目
-    void scrollToNearestTrain() {
-      for (int i = 0; i < trainData.length; i++) {
-        var train = trainData[i];
-        final dep = train['DepartureTime'];
-        if (dep == null) continue;
-
-        final parts = dep.split(':');
-        if (parts.length < 2) continue;
-
-        int? depHour = int.tryParse(parts[0]);
-        int? depMinute = int.tryParse(parts[1]);
-        if (depHour == null || depMinute == null) continue;
-
-        final trainDepTime = DateTime(
-          widget.datetime.year,
-          widget.datetime.month,
-          widget.datetime.day,
-          depHour,
-          depMinute,
-        );
-
-        if (trainDepTime.isAfter(widget.datetime)) {
-          // 根據新卡片設計計算滾動位置 (140px 卡片高度 + 12px 間距)
-          double offset = i * 152.0;
-
-          scrollController.animateTo(
-            offset.clamp(0.0, scrollController.position.maxScrollExtent),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeInOut,
-          );
-          break;
-        }
-      }
-    }
-
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.all(16),
@@ -2973,8 +2995,8 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF3FB),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEEF3FB),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -3003,8 +3025,8 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEEEE),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFEEEE),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -3016,7 +3038,7 @@ class _StationPageState extends State<StationPage>
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context)!.text_875,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.redAccent,
@@ -3041,8 +3063,8 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEEF3FB),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEEF3FB),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -3054,7 +3076,7 @@ class _StationPageState extends State<StationPage>
                   const SizedBox(height: 16),
                   Text(
                     AppLocalizations.of(context)!.text_876,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF1A73E8),
@@ -3063,85 +3085,106 @@ class _StationPageState extends State<StationPage>
                 ],
               ),
             );
-          } else {
-            trainData = snapshot.data!;
+          }
 
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              await Future.delayed(const Duration(milliseconds: 60));
-              scrollToNearestTrain();
+          // ✅ 用局部 final 抓資料，避免閉包捕捉舊值
+          final trainData = snapshot.data!;
+          final sig = _trainSig(trainData);
+
+          if (_lastScrolledSig != sig) {
+            _lastScrolledSig = sig;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _scrollToNearestTrain(trainData);
             });
+          }
 
-            return Column(
-              children: [
-                // 標題欄 - 放在頂部只顯示一次
-                // _buildHeaderRow(),
-                // const SizedBox(height: 16),
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _trainListScrollController,
+                  itemCount: trainData.length,
+                  itemBuilder: (context, index) {
+                    final train = trainData[index];
 
-                // 列車列表
-                Expanded(
-                  child: ListView.builder(
-                    controller: scrollController,
-                    itemCount: trainData.length,
-                    itemBuilder: (context, index) {
-                      var train = trainData[index];
-                      String trainNo = (train['TrainNo']) ??
+                    // ✅ 用 GlobalKey 定位
+                    final itemKey = _trainItemKeys.putIfAbsent(
+                        index, () => GlobalKey());
+
+                    String trainNo = (train['TrainNo'])?.toString() ??
+                        AppLocalizations.of(context)!.text_321;
+                    final trainTypeName = _localizedRailName(
+                      train['TrainTypeName'],
+                      isEnglish:
+                      Localizations.localeOf(context).languageCode == 'en',
+                    );
+                    String trainType =
+                    Localizations.localeOf(context).languageCode == 'en'
+                        ? trainTypeName
+                        : convertTrainType(trainTypeName);
+                    String departureTime = _formatTime(
+                        train['DepartureTime'] ??
+                            AppLocalizations.of(context)!.text_321);
+                    int? delayTime = train['DelayTime'];
+                    String endingStation = _localizedRailName(
+                      train['EndingStationName'],
+                      isEnglish:
+                      Localizations.localeOf(context).languageCode == 'en',
+                    );
+                    if (endingStation.isEmpty) {
+                      endingStation =
                           AppLocalizations.of(context)!.text_321;
-                      final trainTypeName = _localizedRailName(
-                        train['TrainTypeName'],
-                        isEnglish:
-                            Localizations.localeOf(context).languageCode ==
-                                'en',
-                      );
-                      String trainType =
-                          Localizations.localeOf(context).languageCode == 'en'
-                              ? trainTypeName
-                              : convertTrainType(trainTypeName);
-                      String departureTime = _formatTime(
-                          train['DepartureTime'] ??
-                              AppLocalizations.of(context)!.text_321);
-                      int? delayTime = train['DelayTime'];
-                      String endingStation = _localizedRailName(
-                        train['EndingStationName'],
-                        isEnglish:
-                            Localizations.localeOf(context).languageCode ==
-                                'en',
-                      );
-                      if (endingStation.isEmpty) {
-                        endingStation = AppLocalizations.of(context)!.text_321;
-                      }
+                    }
 
-                      // 判斷是否為未讀/重要狀態（延誤的列車）
-                      bool isDelayed = delayTime != null && delayTime > 0;
-                      bool isExpress = trainType.contains(
-                              AppLocalizations.of(context)!.text_877) ||
-                          trainType.contains(
-                              AppLocalizations.of(context)!.text_878) ||
-                          trainType
-                              .contains(AppLocalizations.of(context)!.text_879);
+                    bool isDelayed = delayTime != null && delayTime > 0;
+                    bool isExpress = trainType.contains(
+                        AppLocalizations.of(context)!.text_877) ||
+                        trainType.contains(
+                            AppLocalizations.of(context)!.text_878) ||
+                        trainType
+                            .contains(AppLocalizations.of(context)!.text_879);
 
-                      return Transform.translate(
-                        offset: Offset(0, index * 0.3), // 微妙的層次感
+                    return KeyedSubtree(
+                      key: itemKey,
+                      child: Transform.translate(
+                        offset: Offset(0, index * 0.3),
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () async {
+                              // ✅ 修正 6：車次號碼合法性檢查
+                              final trainNoInt = _parseTrainNoDigits(trainNo);
+                              if (trainNoInt == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('車次號碼無效：$trainNo'),
+                                    backgroundColor: const Color(0xFFFF3B30),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              if (!context.mounted) return;
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TrainSchedulePage(
                                     type: 'trainNo',
                                     time: widget.datetime,
-                                    trainNo: int.parse(train['TrainNo']
-                                        .replaceAll(RegExp(r'[^0-9]'), '')),
+                                    trainNo: trainNoInt,
                                   ),
                                 ),
                               );
                             },
                             borderRadius: BorderRadius.circular(20),
                             splashColor:
-                                const Color(0xFF1A73E8).withOpacity(0.1),
+                            const Color(0xFF1A73E8).withOpacity(0.1),
                             highlightColor:
-                                const Color(0xFFEEF3FB).withOpacity(0.5),
+                            const Color(0xFFEEF3FB).withOpacity(0.5),
                             child: Container(
                               margin: const EdgeInsets.symmetric(
                                   vertical: 6, horizontal: 20),
@@ -3159,21 +3202,20 @@ class _StationPageState extends State<StationPage>
                                 ],
                                 border: isDelayed
                                     ? Border.all(
-                                        color: const Color(0xFFFF3B30)
-                                            .withOpacity(0.2),
-                                        width: 1.5,
-                                      )
+                                  color: const Color(0xFFFF3B30)
+                                      .withOpacity(0.2),
+                                  width: 1.5,
+                                )
                                     : isExpress
-                                        ? Border.all(
-                                            color: const Color(0xFF1A73E8)
-                                                .withOpacity(0.1),
-                                            width: 1,
-                                          )
-                                        : null,
+                                    ? Border.all(
+                                  color: const Color(0xFF1A73E8)
+                                      .withOpacity(0.1),
+                                  width: 1,
+                                )
+                                    : null,
                               ),
                               child: Stack(
                                 children: [
-                                  // 左側裝飾線（延誤列車）
                                   if (isDelayed)
                                     Positioned(
                                       left: 0,
@@ -3191,14 +3233,14 @@ class _StationPageState extends State<StationPage>
                                             begin: Alignment.topCenter,
                                             end: Alignment.bottomCenter,
                                           ),
-                                          borderRadius: const BorderRadius.only(
+                                          borderRadius:
+                                          const BorderRadius.only(
                                             topLeft: Radius.circular(20),
                                             bottomLeft: Radius.circular(20),
                                           ),
                                         ),
                                       ),
                                     ),
-
                                   Padding(
                                     padding: EdgeInsets.only(
                                       left: isDelayed ? 20 : 24,
@@ -3208,9 +3250,8 @@ class _StationPageState extends State<StationPage>
                                     ),
                                     child: Row(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      CrossAxisAlignment.start,
                                       children: [
-                                        // 車次圖標區域
                                         Container(
                                           width: 48,
                                           height: 48,
@@ -3218,11 +3259,11 @@ class _StationPageState extends State<StationPage>
                                             gradient: _getTrainTypeGradient(
                                                 trainType),
                                             borderRadius:
-                                                BorderRadius.circular(14),
+                                            BorderRadius.circular(14),
                                             boxShadow: [
                                               BoxShadow(
                                                 color: _getTrainTypeColor(
-                                                        trainType)
+                                                    trainType)
                                                     .withOpacity(0.3),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 4),
@@ -3236,46 +3277,35 @@ class _StationPageState extends State<StationPage>
                                           ),
                                         ),
                                         const SizedBox(width: 16),
-
-                                        // 內容區域
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            CrossAxisAlignment.start,
                                             children: [
-                                              // 車次和時間
                                               Row(
                                                 crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                                CrossAxisAlignment.start,
                                                 children: [
                                                   Expanded(
                                                     child: Column(
                                                       crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
+                                                      CrossAxisAlignment
+                                                          .start,
                                                       children: [
                                                         Text(
                                                           '車次 $trainNo',
                                                           style: TextStyle(
                                                             fontSize: 17,
                                                             fontWeight:
-                                                                FontWeight.w700,
+                                                            FontWeight.w700,
                                                             color: isDelayed
-                                                                ? Colors.black87
+                                                                ? Colors
+                                                                .black87
                                                                 : Colors
-                                                                    .grey[700],
+                                                                .grey[700],
                                                             height: 1.3,
                                                           ),
                                                         ),
-                                                        // const SizedBox(height: 4),
-                                                        // Text(
-                                                        //   trainType,
-                                                        //   style: TextStyle(
-                                                        //     fontSize: 14,
-                                                        //     color: Colors.grey[600],
-                                                        //     fontWeight: FontWeight.w500,
-                                                        //   ),
-                                                        // ),
                                                       ],
                                                     ),
                                                   ),
@@ -3288,34 +3318,32 @@ class _StationPageState extends State<StationPage>
                                                     decoration: BoxDecoration(
                                                       color: isDelayed
                                                           ? const Color(
-                                                                  0xFFFF3B30)
-                                                              .withOpacity(0.1)
+                                                          0xFFFF3B30)
+                                                          .withOpacity(0.1)
                                                           : const Color(
-                                                                  0xFF1A73E8)
-                                                              .withOpacity(0.1),
+                                                          0xFF1A73E8)
+                                                          .withOpacity(0.1),
                                                       borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
+                                                      BorderRadius.circular(
+                                                          10),
                                                     ),
                                                     child: Text(
                                                       departureTime,
                                                       style: TextStyle(
                                                         fontSize: 15,
                                                         fontWeight:
-                                                            FontWeight.w700,
+                                                        FontWeight.w700,
                                                         color: isDelayed
                                                             ? const Color(
-                                                                0xFFFF3B30)
+                                                            0xFFFF3B30)
                                                             : const Color(
-                                                                0xFF1A73E8),
+                                                            0xFF1A73E8),
                                                       ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                               const SizedBox(height: 8),
-
-                                              // 終點站和狀態
                                               Row(
                                                 children: [
                                                   Expanded(
@@ -3323,31 +3351,24 @@ class _StationPageState extends State<StationPage>
                                                       '往 $endingStation',
                                                       style: TextStyle(
                                                         fontSize: 15,
-                                                        color: Colors.grey[600],
+                                                        color:
+                                                        Colors.grey[600],
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                        FontWeight.w500,
                                                         height: 1.4,
                                                       ),
                                                       maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
+                                                      overflow: TextOverflow
+                                                          .ellipsis,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
-
-                                                  // 狀態標籤
                                                   if (isDelayed)
                                                     _buildStatusBadge(
                                                         '延誤 ${delayTime}分',
-                                                        const Color(0xFFFF3B30))
-                                                  // else if (isExpress)
-                                                  //   _buildStatusBadge('快速', const Color(0xFF1A73E8))
-                                                  // else
-                                                  //   _buildStatusBadge('準點', const Color(0xFF34C759)),
+                                                        const Color(0xFFFF3B30)),
                                                 ],
                                               ),
-
-                                              // 類型標籤
                                               const SizedBox(height: 12),
                                               Row(
                                                 children: [
@@ -3358,17 +3379,17 @@ class _StationPageState extends State<StationPage>
                                                         vertical: 4),
                                                     decoration: BoxDecoration(
                                                       color: _getTrainTypeColor(
-                                                              trainType)
+                                                          trainType)
                                                           .withOpacity(0.1),
                                                       borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
+                                                      BorderRadius.circular(
+                                                          8),
                                                       border: Border.all(
                                                         color:
-                                                            _getTrainTypeColor(
-                                                                    trainType)
-                                                                .withOpacity(
-                                                                    0.3),
+                                                        _getTrainTypeColor(
+                                                            trainType)
+                                                            .withOpacity(
+                                                            0.3),
                                                       ),
                                                     ),
                                                     child: Text(
@@ -3376,23 +3397,22 @@ class _StationPageState extends State<StationPage>
                                                       style: TextStyle(
                                                         fontSize: 12,
                                                         color:
-                                                            _getTrainTypeColor(
-                                                                trainType),
+                                                        _getTrainTypeColor(
+                                                            trainType),
                                                         fontWeight:
-                                                            FontWeight.w600,
+                                                        FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
                                                   const Spacer(),
-                                                  // 導航箭頭
                                                   Container(
                                                     padding:
-                                                        const EdgeInsets.all(6),
+                                                    const EdgeInsets.all(6),
                                                     decoration: BoxDecoration(
                                                       color: Colors.grey[100],
                                                       borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
+                                                      BorderRadius.circular(
+                                                          10),
                                                     ),
                                                     child: const Icon(
                                                       Icons
@@ -3414,19 +3434,18 @@ class _StationPageState extends State<StationPage>
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
-              ],
-            );
-          }
+              ),
+            ],
+          );
         },
       ),
     );
   }
 
-// 輔助方法
   Widget _buildStatusBadge(String text, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -3465,14 +3484,14 @@ class _StationPageState extends State<StationPage>
     if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
         trainType.contains(AppLocalizations.of(context)!.text_878) ||
         trainType.contains(AppLocalizations.of(context)!.text_879)) {
-      return const Color(0xFF1A73E8); // 藍色 - 特快車
+      return const Color(0xFF1A73E8);
     } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
-      return const Color(0xFF34C759); // 綠色 - 普通快車
+      return const Color(0xFF34C759);
     } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
         trainType.contains(AppLocalizations.of(context)!.text_884)) {
-      return const Color(0xFFFF9500); // 橙色 - 區間車
+      return const Color(0xFFFF9500);
     } else {
-      return const Color(0xFFAF52DE); // 紫色 - 其他
+      return const Color(0xFFAF52DE);
     }
   }
 
@@ -3507,7 +3526,6 @@ class _StationPageState extends State<StationPage>
     }
   }
 
-// 標題欄 - 放在頂部只顯示一次
   Widget _buildHeaderRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -3517,49 +3535,38 @@ class _StationPageState extends State<StationPage>
       ),
       child: Row(
         children: [
-          // 車次標題
           Expanded(
             flex: 2,
             child: _buildHeaderItem(AppLocalizations.of(context)!.text_887,
                 Icons.confirmation_number_rounded),
           ),
-
-          // 發車時間標題
           Expanded(
             flex: 2,
             child: _buildHeaderItem(
-                AppLocalizations.of(context)!.text_888, Icons.schedule_rounded),
+                AppLocalizations.of(context)!.text_888,
+                Icons.schedule_rounded),
           ),
-
-          // 車種標題
           Expanded(
             flex: 2,
             child: _buildHeaderItem(
                 AppLocalizations.of(context)!.text_889, Icons.train_rounded),
           ),
-
-          // 終點站標題
           Expanded(
             flex: 3,
             child: _buildHeaderItem(
                 AppLocalizations.of(context)!.text_57, Icons.flag_rounded),
           ),
-
-          // 狀態標題
           Expanded(
             flex: 2,
             child: _buildHeaderItem(AppLocalizations.of(context)!.text_890,
                 Icons.info_outline_rounded),
           ),
-
-          // 空白對齊箭頭
           const SizedBox(width: 16),
         ],
       ),
     );
   }
 
-// 標題項目
   Widget _buildHeaderItem(String title, IconData icon) {
     return Row(
       children: [
@@ -3569,14 +3576,18 @@ class _StationPageState extends State<StationPage>
           color: const Color(0xFF1A73E8),
         ),
         const SizedBox(width: 6),
-        Flexible(child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1A73E8),
-          ), maxLines: 1, overflow: TextOverflow.ellipsis,
-        )),
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1A73E8),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
@@ -3598,9 +3609,9 @@ class RoutePage extends StatefulWidget {
   final DateTime date;
   const RoutePage(
       {super.key,
-      required this.departure,
-      required this.destination,
-      required this.date});
+        required this.departure,
+        required this.destination,
+        required this.date});
 
   @override
   State<RoutePage> createState() => _RoutePageState();
@@ -3620,7 +3631,7 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
-      ItemPositionsListener.create();
+  ItemPositionsListener.create();
 
   // =============================
   // 滾動狀態追蹤
@@ -3628,6 +3639,9 @@ class _RoutePageState extends State<RoutePage> {
   bool _shouldAutoScroll = true;
   DateTime? _lastScrollTime;
   DateTime? _previousDate;
+
+  // ✅ 修正 7：快取 future，避免 rebuild 時重複發請求
+  Future<Map<String, dynamic>>? _routeFuture;
 
   // 通知中心主題色
   static const Color primaryBlue = Color(0xFF1A73E8);
@@ -3639,18 +3653,30 @@ class _RoutePageState extends State<RoutePage> {
   static const Color surfaceColor = Color(0xFFEEF3FB);
 
   @override
-  void didUpdateWidget(RoutePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.date != oldWidget.date) {
-      _shouldAutoScroll = true;
-      _previousDate = oldWidget.date;
-    }
-  }
-
-  @override
   void initState() {
     super.initState();
     _previousDate = widget.date;
+    _routeFuture = queryTrainList();
+  }
+
+  @override
+  void didUpdateWidget(RoutePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final odChanged =
+        widget.departure['StationID']?.toString() !=
+            oldWidget.departure['StationID']?.toString() ||
+            widget.destination['StationID']?.toString() !=
+                oldWidget.destination['StationID']?.toString();
+    final dateChanged = widget.date != oldWidget.date;
+
+    if (odChanged || dateChanged) {
+      _routeFuture = queryTrainList();
+    }
+    if (dateChanged) {
+      _shouldAutoScroll = true;
+      _previousDate = oldWidget.date;
+    }
   }
 
   // =============================
@@ -3664,7 +3690,7 @@ class _RoutePageState extends State<RoutePage> {
         '&day=$weekday';
 
     final res =
-        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
+    await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
     if (res.statusCode != 200) {
       throw Exception('API ${res.statusCode}');
     }
@@ -3674,9 +3700,9 @@ class _RoutePageState extends State<RoutePage> {
   // =============================
   // 時間處理
   // =============================
-  int _timeToMinutes(String hhmm) {
-    final p = hhmm.split(':');
-    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  int _timeToMinutes(String? hhmm) {
+    // ✅ 修正 5：空值/格式錯誤不再崩潰
+    return _timeToMinutesSafe(hhmm);
   }
 
   int _selectedMinutes() {
@@ -3684,8 +3710,30 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   int trainDepMinutes(dynamic t) {
-    final timeStr = t['transfer'] == true ? t['leg1']['depTime'] : t['depTime'];
-    return _timeToMinutes(timeStr);
+    // 1) 非 Map 直接視為無效，排到最後
+    if (t is! Map) return 1440;
+
+    // 2) 明確判斷是否轉乘：transfer == true 才算轉乘
+    final isTransfer = t['transfer'] == true;
+
+    String? timeStr;
+    if (isTransfer) {
+      final leg1 = t['leg1'];
+      if (leg1 is Map) {
+        timeStr = leg1['depTime']?.toString();
+      }
+    } else {
+      timeStr = t['depTime']?.toString();
+    }
+
+    // 3) 空值/格式錯誤：回傳 1440（排在當日最後），避免蓋過有效班次
+    if (timeStr == null || timeStr.isEmpty) return 1440;
+    final minutes = _timeToMinutesSafe(timeStr);
+    // _timeToMinutesSafe 對 "abc" 之類會回 0，這裡再補一層：
+    if (minutes == 0 && timeStr != '00:00' && timeStr != '0:00') {
+      return 1440;
+    }
+    return minutes;
   }
 
   // =============================
@@ -3709,9 +3757,9 @@ class _RoutePageState extends State<RoutePage> {
 
       final types = t['transfer']
           ? [
-              t['leg1']['TrainTypeName'],
-              t['leg2']['TrainTypeName'],
-            ]
+        t['leg1']['TrainTypeName'],
+        t['leg2']['TrainTypeName'],
+      ]
           : [t['TrainTypeName']];
 
       if (allowedTrainTypes.isNotEmpty &&
@@ -3722,26 +3770,25 @@ class _RoutePageState extends State<RoutePage> {
       return true;
     }).toList()
       ..sort(
-        (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
+            (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
       );
   }
 
   // =============================
-  // 找最接近選擇時間的 index
+  // 找最接近選擇時間的 index（O(n)，只在 build 呼叫一次）
+  // ✅ 修正 8：空列表回傳 -1
   // =============================
   int findClosestTrainIndex(List<dynamic> trains) {
+    if (trains.isEmpty) return -1;
     final base = _selectedMinutes();
     for (int i = 0; i < trains.length; i++) {
       if (trainDepMinutes(trains[i]) >= base) {
         return i;
       }
     }
-    return trains.isNotEmpty ? trains.length - 1 : 0;
+    return trains.length - 1;
   }
 
-  // =============================
-  // 檢查是否需要滾動
-  // =============================
   bool _shouldScrollToClosest() {
     if (_shouldAutoScroll) return true;
     if (_previousDate != null && widget.date != _previousDate) return true;
@@ -3753,9 +3800,6 @@ class _RoutePageState extends State<RoutePage> {
     return false;
   }
 
-  // =============================
-  // 取得車種顏色
-  // =============================
   Color _getTrainTypeColor(String trainType) {
     if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
         trainType.contains(AppLocalizations.of(context)!.text_878) ||
@@ -3781,13 +3825,33 @@ class _RoutePageState extends State<RoutePage> {
 
     return InkWell(
       onTap: () async {
+        // ✅ 修正 6：車次號碼合法性檢查
+        final trainNoInt = _parseTrainNoDigits(trainNo?.toString());
+        if (trainNoInt == null) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('車次號碼無效：$trainNo'),
+              backgroundColor: errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+          return;
+        }
+
         try {
           if (context.mounted) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => TrainSchedulePage(
-                    type: 'trainNo', time: widget.date, trainNo: trainNo),
+                  type: 'trainNo',
+                  time: widget.date,
+                  trainNo: trainNoInt,
+                ),
               ),
             );
           }
@@ -3811,7 +3875,6 @@ class _RoutePageState extends State<RoutePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 時間區
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -3819,7 +3882,8 @@ class _RoutePageState extends State<RoutePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(AppLocalizations.of(context)!.text_67,
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey)),
                   Text(
                     t['depTime'],
                     style: const TextStyle(
@@ -3832,7 +3896,7 @@ class _RoutePageState extends State<RoutePage> {
               ),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: successGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -3844,7 +3908,7 @@ class _RoutePageState extends State<RoutePage> {
                     const SizedBox(width: 4),
                     Text(
                       AppLocalizations.of(context)!.text_892,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: successGreen,
@@ -3857,7 +3921,8 @@ class _RoutePageState extends State<RoutePage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(AppLocalizations.of(context)!.text_68,
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.grey)),
                   Text(
                     t['arrTime'],
                     style: const TextStyle(
@@ -3871,8 +3936,6 @@ class _RoutePageState extends State<RoutePage> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // 車次資訊
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -3921,14 +3984,16 @@ class _RoutePageState extends State<RoutePage> {
                 ),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: typeColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: typeColor.withOpacity(0.3)),
                   ),
                   child: Text(
-                    _getTravelTime(t['depTime'], t['arrTime']),
+                    _getTravelTime(
+                        t['depTime']?.toString() ?? '',
+                        t['arrTime']?.toString() ?? ''),
                     style: TextStyle(
                       fontSize: 12,
                       color: typeColor,
@@ -3945,12 +4010,10 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   // =============================
-  // 計算旅行時間
+  // 計算旅行時間（✅ 修正 5：跨日 mod1440）
   // =============================
   String _getTravelTime(String dep, String arr) {
-    final depMin = _timeToMinutes(dep);
-    final arrMin = _timeToMinutes(arr);
-    final diff = arrMin - depMin;
+    final diff = _calcDurationMinutes(dep, arr);
     return '${diff ~/ 60}小時${diff % 60}分';
   }
 
@@ -3968,7 +4031,6 @@ class _RoutePageState extends State<RoutePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 總時間標籤
         Row(
           children: [
             Container(
@@ -4025,12 +4087,9 @@ class _RoutePageState extends State<RoutePage> {
           ],
         ),
         const SizedBox(height: 16),
-
-        // 時間軸
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 時間軸圖標
             Column(
               children: [
                 _buildTimelineDot(successGreen),
@@ -4041,18 +4100,16 @@ class _RoutePageState extends State<RoutePage> {
               ],
             ),
             const SizedBox(width: 12),
-
-            // 行程內容
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 第一段車程 - 可點擊
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () async {
-                        await _navigateToTrainDetail(trainNo1);
+                        await _navigateToTrainDetail(
+                            trainNo1?.toString() ?? '');
                       },
                       borderRadius: BorderRadius.circular(12),
                       splashColor: _getTrainTypeColor(leg1['TrainTypeName'])
@@ -4063,12 +4120,12 @@ class _RoutePageState extends State<RoutePage> {
                   const SizedBox(height: 8),
                   _buildTransferStationCard(t['transferStation'], tight),
                   const SizedBox(height: 8),
-                  // 第二段車程 - 可點擊
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: () async {
-                        await _navigateToTrainDetail(trainNo2);
+                        await _navigateToTrainDetail(
+                            trainNo2?.toString() ?? '');
                       },
                       borderRadius: BorderRadius.circular(12),
                       splashColor: _getTrainTypeColor(leg2['TrainTypeName'])
@@ -4085,19 +4142,34 @@ class _RoutePageState extends State<RoutePage> {
     );
   }
 
-// 新增：車次詳情導航方法
+  // ✅ 修正 6：車次號碼合法性檢查
   Future<void> _navigateToTrainDetail(String trainNo) async {
+    final trainNoInt = _parseTrainNoDigits(trainNo);
+    if (trainNoInt == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('車次號碼無效：$trainNo'),
+          backgroundColor: errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
       if (context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => TrainSchedulePage(
-                type: 'trainNo',
-                time: widget.date,
-                trainNo: int.parse(
-                  trainNo.replaceAll(RegExp(r'[^0-9]'), ''),
-                )),
+              type: 'trainNo',
+              time: widget.date,
+              trainNo: trainNoInt,
+            ),
           ),
         );
       }
@@ -4199,14 +4271,18 @@ class _RoutePageState extends State<RoutePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(child: Text(
-                      '${leg['depTime']} → ${leg['arrTime']}',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                    )),
+                    Flexible(
+                      child: Text(
+                        '${leg['depTime']} → ${leg['arrTime']}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
@@ -4288,7 +4364,7 @@ class _RoutePageState extends State<RoutePage> {
                 if (tight)
                   Text(
                     AppLocalizations.of(context)!.text_893,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       color: errorRed,
                       fontWeight: FontWeight.w500,
@@ -4302,9 +4378,6 @@ class _RoutePageState extends State<RoutePage> {
     );
   }
 
-  // =============================
-  // 顯示日期的格式
-  // =============================
   String _formatDate(DateTime date) {
     final weekday = [
       AppLocalizations.of(context)!.text_306,
@@ -4318,9 +4391,6 @@ class _RoutePageState extends State<RoutePage> {
     return '${date.year}年${date.month}月${date.day}日 週$weekday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
-  // =============================
-  // 畫面
-  // =============================
   @override
   Widget build(BuildContext context) {
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
@@ -4332,7 +4402,7 @@ class _RoutePageState extends State<RoutePage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.train_rounded, size: 20, color: primaryBlue),
+            const Icon(Icons.train_rounded, size: 20, color: primaryBlue),
             const SizedBox(width: 8),
             Text(
               _localizedRailName(
@@ -4364,12 +4434,11 @@ class _RoutePageState extends State<RoutePage> {
           ],
         ),
         centerTitle: true,
-        iconTheme: IconThemeData(color: primaryBlue),
+        iconTheme: const IconThemeData(color: primaryBlue),
       ),
+      // ✅ 修正 7：使用快取 future
       body: FutureBuilder<Map<String, dynamic>>(
-        future: queryTrainList(),
-        key: ValueKey(
-            '${widget.date.day}-${widget.date.hour}-${widget.date.minute}'),
+        future: _routeFuture,
         builder: (_, s) {
           if (s.connectionState == ConnectionState.waiting) {
             return Center(
@@ -4445,7 +4514,7 @@ class _RoutePageState extends State<RoutePage> {
                     const SizedBox(height: 16),
                     Text(
                       AppLocalizations.of(context)!.text_205,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: errorRed,
@@ -4464,7 +4533,7 @@ class _RoutePageState extends State<RoutePage> {
 
           final data = s.data!;
           final trains =
-              buildTrains(data['direct'] ?? [], data['transfer'] ?? []);
+          buildTrains(data['direct'] ?? [], data['transfer'] ?? []);
 
           if (trains.isEmpty) {
             return Center(
@@ -4493,7 +4562,7 @@ class _RoutePageState extends State<RoutePage> {
                     const SizedBox(height: 24),
                     Text(
                       AppLocalizations.of(context)!.text_207,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: primaryBlue,
@@ -4510,10 +4579,12 @@ class _RoutePageState extends State<RoutePage> {
             );
           }
 
-          if (_shouldScrollToClosest() && trains.isNotEmpty) {
+          // ✅ 修正 8：只計算一次 closestIndex
+          final closestIndex = findClosestTrainIndex(trains);
+
+          if (_shouldScrollToClosest() && closestIndex >= 0) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              final closestIndex = findClosestTrainIndex(trains);
-              if (closestIndex >= 0 && closestIndex < trains.length) {
+              if (closestIndex < trains.length) {
                 _itemScrollController.scrollTo(
                   index: closestIndex,
                   duration: const Duration(milliseconds: 300),
@@ -4529,10 +4600,9 @@ class _RoutePageState extends State<RoutePage> {
 
           return Column(
             children: [
-              // 日期時間標籤
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 margin: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: surfaceColor,
@@ -4552,29 +4622,32 @@ class _RoutePageState extends State<RoutePage> {
                           size: 16, color: primaryBlue),
                     ),
                     const SizedBox(width: 12),
-                    Flexible(child: Text(
-                      _formatDate(widget.date),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: primaryBlue,
-                      ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                    )),
+                    Flexible(
+                      child: Text(
+                        _formatDate(widget.date),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: primaryBlue,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
               ),
-
-              // 列表
               Expanded(
                 child: ScrollablePositionedList.builder(
                   itemScrollController: _itemScrollController,
                   itemPositionsListener: _itemPositionsListener,
                   itemCount: trains.length,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   itemBuilder: (_, i) {
                     final t = trains[i];
-                    final isClosest = i == findClosestTrainIndex(trains);
+                    // ✅ 修正 8：O(1) 比較，不再每次呼叫 O(n)
+                    final isClosest = i == closestIndex;
                     final isAfterSelectedTime =
                         trainDepMinutes(t) >= _selectedMinutes();
 
@@ -4594,8 +4667,9 @@ class _RoutePageState extends State<RoutePage> {
                         border: isClosest
                             ? Border.all(color: primaryBlue, width: 2)
                             : !isAfterSelectedTime
-                                ? Border.all(color: Colors.grey[300]!, width: 1)
-                                : null,
+                            ? Border.all(
+                            color: Colors.grey[300]!, width: 1)
+                            : null,
                       ),
                       child: Material(
                         color: Colors.transparent,

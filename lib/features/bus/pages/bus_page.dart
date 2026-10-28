@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/route_planning_page.dart';
-import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/features/bus/widgets/bus_list.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+
 import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
@@ -16,11 +19,11 @@ import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
+import 'package:com.rsmn574.app/features/bus/services/bus_search_service.dart';
 
 import '../../../database/bootstrap_service.dart';
 import '../../../database/sql/app_database.dart';
-
-Timer? _debounceTimer; // 在你的 State 類別頂部宣告這個變數
+import '../../../firebase/analytics_service.dart';
 
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
@@ -29,13 +32,10 @@ class Bus extends StatefulWidget {
   State<Bus> createState() => BusState();
 }
 
-enum SearchType {
-  route,
-  stop,
-}
+enum SearchType { route, stop }
 
 final ValueNotifier<SearchType> _dropdownValueNotifier =
-    ValueNotifier(SearchType.route);
+ValueNotifier(SearchType.route);
 
 class MenuItemData {
   final String id;
@@ -61,129 +61,78 @@ final List<CityItem> cities = [
   CityItem(name: '新竹市', id: 'Hsinchu'),
   CityItem(name: '公路客運', id: 'InterCity'),
 ];
-final List<MenuItemData> menuItems = [
-  MenuItemData(
-    id: 'route',
-    title: 'text_1',
-    icon: Icons.favorite,
-  ),
-  MenuItemData(
-    id: 'stop',
-    title: 'text_2',
-    icon: Icons.favorite,
-  ),
 
-  MenuItemData(
-    id: 'shuttleBus',
-    title: 'text_4',
-    icon: Icons.airport_shuttle,
-  ),
+final List<MenuItemData> menuItems = [
+  MenuItemData(id: 'route', title: 'text_1', icon: Icons.favorite),
+  MenuItemData(id: 'stop', title: 'text_2', icon: Icons.favorite),
+  MenuItemData(id: 'shuttleBus', title: 'text_4', icon: Icons.airport_shuttle),
 ];
 
 class BusState extends State<Bus> {
-
   int _current = 0;
   final PageController pageController = PageController();
+
   ValueNotifier<List<Map<String, dynamic>>> favoriteStops = ValueNotifier([]);
   ValueNotifier<List<BusRoute>> favoriteRoutes = ValueNotifier([]);
   List<BusRoute> busData = [];
+
   ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
   ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
 
   final ValueNotifier<double> suggestionsHeightNotifier =
-      ValueNotifier<double>(0);
+  ValueNotifier<double>(0);
   TextEditingController busIdController = TextEditingController();
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
-  // 顏色定義 - 使用航班主題
+  // 搜尋防抖 / 競態控制
+  Timer? _debounceTimer;
+  int _searchSeq = 0;
+
+  // 收藏載入去重
+  Future<void>? _favoritesInFlight;
+
+  // 品牌主色（沿用原視覺）
   final Color _primaryColor = const Color(0xFF1A73E8);
   final Color _secondaryColor = const Color(0xFFEEF3FB);
 
-  Future<List<dynamic>>? _suggestionFuture; // 確保有寫 List<dynamic> 用來存住請求的結果
-  String _lastQuery = ""; // 用來紀錄上次搜尋的內容，避免重複請求
-// 修正後的 updateCurrent 方法
-  Future<int> updateCurrent() async {
-    try {
-      final db = FavoriteService();
-      final city = correspondingIDNotifier.value;
-
-      final routes = await db.getFavoriteRoutes(city: city);
-
-      favoriteRoutes.value = routes.map((e) {
-        final routeName = e['routeName']?.toString() ?? '';
-        final operatorName = e['operatorName']?.toString() ?? '';
-
-        return BusRoute.fromJson({
-          'RouteUID': e['routeUID']?.toString() ?? '',
-          'RouteID': e['routeID']?.toString() ?? '',
-          'RouteName': jsonEncode({
-            'Zh_tw': routeName,
-            'En': e['routeNameEn']?.toString() ?? routeName,
-          }),
-          'HasSubRoutes': e['hasSubRoutes'] == 1 || e['hasSubRoutes'] == true,
-          'Operators': jsonEncode([
-            {
-              'OperatorName': {
-                'Zh_tw': operatorName,
-                'En': operatorName,
-              }
-            }
-          ]),
-          'SubRoutes': jsonEncode([
-            {
-              'FirstBusTime': e['firstBusTime']?.toString() ?? '',
-              'LastBusTime': e['lastBusTime']?.toString() ?? '',
-            }
-          ]),
-          'DepartureStopNameZh': e['departureStopNameZh']?.toString() ?? '',
-          'DepartureStopNameEn': e['departureStopNameEn']?.toString() ?? '',
-          'DestinationStopNameZh': e['destinationStopNameZh']?.toString() ?? '',
-          'DestinationStopNameEn': e['destinationStopNameEn']?.toString() ?? '',
-          'TicketPriceDescriptionZh': e['ticketPriceDescriptionZh'],
-          'TicketPriceDescriptionEn': e['ticketPriceDescriptionEn'],
-          'RouteMapImageUrl': e['routeMapImageUrl'],
-          'City': e['city']?.toString() ?? '',
-          'CityCode': e['cityCode']?.toString() ?? '',
-          'UpdateTime': DateTime.now().toIso8601String(),
-          'VersionID': '0',
-        });
-      }).toList();
-
-      final stops = await db.getFavoriteStops(city: city);
-      favoriteStops.value = stops;
-
-      return 200;
-    } catch (e) {
-      print('更新收藏數據失敗: $e');
-      return 500;
-    }
-  }
+  // ---------------------------------------------------------------------------
+  // 生命週期
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
-    String currentCity = Provider.of<CityProvider>(context, listen: false).city;
+    final currentCity =
+        Provider.of<CityProvider>(context, listen: false).city;
+
+    // 只在此處記錄一次「公車頁面開啟」，避免 build 重複上報。
+    unawaited(AppAnalytics.logFeatureOpened('bus_page'));
+
     BootstrapService.instance.dbVersion.addListener(_onDbUpdated);
-// 檢查城市是否存在於列表中
+
     if (cities.any((city) => city.name == currentCity)) {
       currentCityNotifier.value = currentCity;
     }
     _initializeFavorites();
     updatedCorrespondingID();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_getData());
+      if (!mounted) return;
+      unawaited(_loadForCurrentCity());
+      unawaited(_reloadFavorites(force: true));
     });
-    updateCurrent();
   }
+
   void _onDbUpdated() {
     if (!mounted) return;
-    unawaited(_getData());
-    updateCurrent();
+    unawaited(_loadForCurrentCity());
+    unawaited(_reloadFavorites(force: true));
   }
 
   @override
   void dispose() {
     BootstrapService.instance.dbVersion.removeListener(_onDbUpdated);
+    _debounceTimer?.cancel();
     pageController.dispose();
     favoriteStops.dispose();
     favoriteRoutes.dispose();
@@ -195,24 +144,36 @@ class BusState extends State<Bus> {
 
   Future<void> _initializeFavorites() async {
     try {
-      favorite_feature dbHelper = favorite_feature();
+      final dbHelper = favorite_feature();
       await dbHelper.initDatabase();
-    } catch (e) {
-      print('Error initializing database: $e');
+    } catch (e, st) {
+      debugPrint('init favorites db failed: $e\n$st');
+      // TODO(Crashlytics): 若已安裝，於此處回報非致命例外。
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // 路線資料
+  // ---------------------------------------------------------------------------
 
-  Future<List<BusRoute>> _getData() async {
+  Future<void> _loadForCurrentCity() async {
     final city = correspondingIDNotifier.value;
     busCurrentCity = city;
-    final db = await AppDatabase.instance.database;
-    final stats = await db.rawQuery(
-      'SELECT city, COUNT(*) AS n FROM bus_route GROUP BY city',
-    );
-    debugPrint('[db] cities=$stats'); debugPrint('12244444444444444444');
+    final data = await _fetchRoutes(city);
+    if (!mounted || correspondingIDNotifier.value != city) return;
+    setState(() => busData = data);
+  }
+
+  Future<List<BusRoute>> _fetchRoutes(String city) async {
     try {
-      // 1) 依 city 查 SQLite
+      final db = await AppDatabase.instance.database;
+      if (kDebugMode) {
+        final stats = await db.rawQuery(
+          'SELECT city, COUNT(*) AS n FROM bus_route GROUP BY city',
+        );
+        debugPrint('[db] city stats: $stats');
+      }
+
       List<BusRoute> local;
       if (city == 'all') {
         const allCities = [
@@ -222,173 +183,186 @@ class BusState extends State<Bus> {
         final results = await Future.wait(
           allCities.map((c) => BusRouteDb.instance.getByCity(c)),
         );
-        local = results.expand((e) => e).toList();
+        final seen = <String>{};
+        local = results
+            .expand((e) => e)
+            .where((r) => seen.add('${r.city}|${r.routeID}'))
+            .toList();
       } else {
         local = await BusRouteDb.instance.getByCity(city);
       }
 
-      // 2) 本地有資料 → 直接用
-      if (local.isNotEmpty) {
-        if (!mounted) return local;
-        setState(() {
-          busData = local;
-        });
-        return local;
-      }
+      if (local.isNotEmpty) return local;
 
-      // 3) 本地沒有 → 打 API
-      final routes = await context.read<BusProvider>().loadRoutes(city);
-      if (!mounted) return routes;
-      setState(() {
-        busData = routes;
-      });
-      return routes;
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          busData = [];
-        });
-      }
-      debugPrint('Unable to load bus routes for $city: $error');
-      return [];
+      if (!mounted) return local;
+      return await context.read<BusProvider>().loadRoutes(city);
+    } catch (error, st) {
+      debugPrint('load routes failed for $city: $error\n$st');
+      // 保留原記憶體資料，不覆蓋成空陣列
+      return busData;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 收藏資料
+  // ---------------------------------------------------------------------------
+
+  Future<void> _reloadFavorites({bool force = false}) {
+    if (!force && _favoritesInFlight != null) return _favoritesInFlight!;
+    final future = _doReloadFavorites();
+    _favoritesInFlight = future;
+    future.whenComplete(() {
+      if (identical(_favoritesInFlight, future)) _favoritesInFlight = null;
+    });
+    return future;
+  }
+
+  Future<void> _doReloadFavorites() async {
+    final city = correspondingIDNotifier.value;
+    final db = FavoriteService();
+    try {
+      final routes = await db.getFavoriteRoutes(city: city);
+      final stops = await db.getFavoriteStops(city: city);
+      if (!mounted || correspondingIDNotifier.value != city) return;
+
+      favoriteRoutes.value =
+          routes.map(_toBusRouteFromFavorite).whereType<BusRoute>().toList();
+      favoriteStops.value = stops;
+    } catch (e, st) {
+      debugPrint('reload favorites failed: $e\n$st');
+    }
+  }
+
+  BusRoute? _toBusRouteFromFavorite(Map<String, dynamic> e) {
+    try {
+      final routeName = e['routeName']?.toString() ?? '';
+      final operatorName = e['operatorName']?.toString() ?? '';
+      return BusRoute.fromJson({
+        'RouteUID': e['routeUID']?.toString() ?? '',
+        'RouteID': e['routeID']?.toString() ?? '',
+        'RouteName': jsonEncode({
+          'Zh_tw': routeName,
+          'En': e['routeNameEn']?.toString() ?? routeName,
+        }),
+        'HasSubRoutes': e['hasSubRoutes'] == 1 || e['hasSubRoutes'] == true,
+        'Operators': jsonEncode([
+          {
+            'OperatorName': {
+              'Zh_tw': operatorName,
+              'En': operatorName,
+            }
+          }
+        ]),
+        'SubRoutes': jsonEncode([
+          {
+            'FirstBusTime': e['firstBusTime']?.toString() ?? '',
+            'LastBusTime': e['lastBusTime']?.toString() ?? '',
+          }
+        ]),
+        'DepartureStopNameZh': e['departureStopNameZh']?.toString() ?? '',
+        'DepartureStopNameEn': e['departureStopNameEn']?.toString() ?? '',
+        'DestinationStopNameZh':
+        e['destinationStopNameZh']?.toString() ?? '',
+        'DestinationStopNameEn':
+        e['destinationStopNameEn']?.toString() ?? '',
+        'TicketPriceDescriptionZh': e['ticketPriceDescriptionZh'],
+        'TicketPriceDescriptionEn': e['ticketPriceDescriptionEn'],
+        'RouteMapImageUrl': e['routeMapImageUrl'],
+        'City': e['city']?.toString() ?? '',
+        'CityCode': e['cityCode']?.toString() ?? '',
+        'UpdateTime': DateTime.now().toIso8601String(),
+        'VersionID': '0',
+      });
+    } catch (err, st) {
+      debugPrint('skip invalid favorite route: $err\n$st');
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 搜尋（防抖 + 競態保護）
+  // ---------------------------------------------------------------------------
+
+  void _cancelPendingSearch() {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _searchSeq++;
+  }
+
+  void _onSearchChanged(String text) {
+    _cancelPendingSearch();
+
+    if (text.trim().isEmpty) {
+      suggestions.value = const [];
+      suggestionsHeightNotifier.value = 0;
+      return;
+    }
+
+    final type = _dropdownValueNotifier.value;
+    final mq = MediaQuery.of(context);
+    suggestionsHeightNotifier.value =
+        mq.size.height - mq.viewInsets.bottom - kToolbarHeight - 200;
+
+    final seq = _searchSeq;
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final result = await _updateSuggestions(
+        type == SearchType.route ? 'route' : 'stop',
+      );
+      if (!mounted || seq != _searchSeq) return;
+      suggestions.value = result;
+    });
   }
 
   Future<List<dynamic>> _updateSuggestions(String id) async {
-    suggestions.value.clear();
+    final input = busIdController.text.trim();
+    if (input.isEmpty) return const [];
 
-    if (id == "route") {
-      final input = busIdController.text.trim();
-      if (input.isEmpty) return [];
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final city = correspondingIDNotifier.value;
 
-      final locale = Localizations.localeOf(context);
-      final languageCode = locale.languageCode;
-      final city = correspondingIDNotifier.value;
-
-      // 1) SQLite 查詢（依 city）
-      List<BusRoute> fromDb;
-      if (city == 'all') {
-        const allCities = [
-          'Taichung', 'Taipei', 'NewTaipei', 'Taoyuan',
-          'Tainan', 'Kaohsiung', 'Keelung', 'Hsinchu', 'InterCity',
-        ];
-        final results = await Future.wait(
-          allCities.map((c) => BusRouteDb.instance.searchByName(
-            city: c,
-            keyword: input,
-            languageCode: languageCode,
-          )),
-        );
-        fromDb = results.expand((e) => e).toList();
-      } else {
-        fromDb = await BusRouteDb.instance.searchByName(
-          city: city,
-          keyword: input,
-          languageCode: languageCode,
-        );
-      }
-
-      // 2) 記憶體補（SQLite 未寫入時仍可搜）
-      final fromMemory = <BusRoute>[];
-      for (final r in busData) {
-        final name = languageCode == 'en' ? r.routeEn : r.routeZh;
-        if (name.contains(input)) fromMemory.add(r);
-      }
-
-      // 3) 合併去重
-      final seen = <String>{};
-      final merged = <BusRoute>[];
-      for (final r in [...fromDb, ...fromMemory]) {
-        final key = '${r.city}|${r.routeID}';
-        if (seen.contains(key)) continue;
-        seen.add(key);
-        merged.add(r);
-      }
-
-      // 4) 完全符合排最前
-      merged.sort((a, b) {
-        final an = languageCode == 'en' ? a.routeEn : a.routeZh;
-        final bn = languageCode == 'en' ? b.routeEn : b.routeZh;
-        if (an == input && bn != input) return -1;
-        if (an != input && bn == input) return 1;
-        return an.compareTo(bn);
-      });
-
-      suggestions.value.addAll(merged);
-      return merged;
-    } else if (id == "stop") {
-      // 站牌維持原本 MySQL 寫法（之後可再搬 SQLite）
-      final input = busIdController.text;
-      final locale = Localizations.localeOf(context);
-      final rawData;
-
-      if (locale.languageCode == 'zh') {
-        rawData = await mysqlSelect(
-            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
-      } else if (locale.languageCode == 'en') {
-        rawData = await mysqlSelect(
-            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.En')) LIKE '%$input%'");
-      } else {
-        rawData = await mysqlSelect(
-            "SELECT StationName FROM Bus.Bus_${correspondingIDNotifier.value}_Stop "
-                "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
-      }
-
-      final seen = <String>{};
-      for (var item in rawData) {
-        final name = locale.languageCode == 'en'
-            ? json.decode(item["StationName"])["En"]
-            : json.decode(item["StationName"])["Zh_tw"];
-        if (seen.contains(name)) continue;
-        seen.add(name);
-
-        if (input == name) {
-          suggestions.value.insert(0, name);
-        } else {
-          suggestions.value.add(name);
-        }
-      }
-      return suggestions.value;
+    if (id == 'route') {
+      return BusSearchService.searchRoutes(
+        city: city,
+        keyword: input,
+        languageCode: languageCode,
+        memoryRoutes: busData,
+      );
     }
-    return suggestions.value;
+    return BusSearchService.searchStops(
+      cityId: city,
+      keyword: input,
+      languageCode: languageCode,
+    );
   }
 
-// 精緻風格的 AppBar（對齊剛剛的樣式）
+  // ---------------------------------------------------------------------------
+  // AppBar / info menu
+  // ---------------------------------------------------------------------------
+
   AppBar _buildAppBar() {
+    final surface = AppThemes.getSurface(context);
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: surface,
       elevation: 0,
-      // —— leading：圓角外殼 + 返回鍵 ——
       leading: Container(
         margin: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF2C2C2C)
-              : const Color(0xFFEEF3FB),
+          color: AppThemes.getCardColor(context),
           borderRadius: BorderRadius.circular(12),
         ),
         child: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
-          color: const Color(0xFF1A73E8),
+          color: _primaryColor,
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      // —— title：原本的圖標 + 標題，保留 ——
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.directions_bus,
-              color: Color(0xFF1A73E8),
-              size: 20,
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+            child: Icon(Icons.directions_bus, color: _primaryColor, size: 20),
           ),
           const SizedBox(width: 10),
           Flexible(
@@ -396,70 +370,70 @@ class BusState extends State<Bus> {
               AppLocalizations.of(context)!.text_16,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ),
         ],
       ),
       centerTitle: true,
-      // —— actions：圓角外殼 + info 按鈕 ——
       actions: [
         Container(
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? const Color(0xFF2C2C2C)
-                : const Color(0xFFEEF3FB),
+            color: AppThemes.getCardColor(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: IconButton(
             icon: const Icon(Icons.info_outline_rounded, size: 24),
-            color: const Color(0xFF1A73E8),
+            color: _primaryColor,
             onPressed: _showInfoMenu,
           ),
         ),
       ],
     );
   }
+
   void _showInfoMenu() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppThemes.getSurface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => SafeArea(
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            _buildMenuOption(
-              icon: Icons.confirmation_number_rounded,
-              title: AppLocalizations.of(context)!.text_17,
-              subtitle: AppLocalizations.of(context)!.text_18,
-              onTap: _navigateToFareInfo,
-            ),
-            const SizedBox(height: 12),
-            _buildMenuOption(
-              icon: Icons.warning_amber_rounded,
-              title: AppLocalizations.of(context)!.text_19,
-              subtitle: AppLocalizations.of(context)!.text_20,
-              onTap: _navigateToAlertInfo,
-            ),
-          ],
-        ),
+              const SizedBox(height: 20),
+              _buildMenuOption(
+                icon: Icons.confirmation_number_rounded,
+                title: AppLocalizations.of(context)!.text_17,
+                subtitle: AppLocalizations.of(context)!.text_18,
+                onTap: _navigateToFareInfo,
+              ),
+              const SizedBox(height: 12),
+              _buildMenuOption(
+                icon: Icons.warning_amber_rounded,
+                title: AppLocalizations.of(context)!.text_19,
+                subtitle: AppLocalizations.of(context)!.text_20,
+                onTap: _navigateToAlertInfo,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -479,6 +453,7 @@ class BusState extends State<Bus> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
+            color: AppThemes.getCardColor(context),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -496,8 +471,8 @@ class BusState extends State<Bus> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF1A73E8),
-                      const Color(0xFF1A73E8).withOpacity(0.8),
+                      _primaryColor,
+                      _primaryColor.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -513,9 +488,10 @@ class BusState extends State<Bus> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -523,12 +499,20 @@ class BusState extends State<Bus> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+              ),
             ],
           ),
         ),
@@ -562,6 +546,7 @@ class BusState extends State<Bus> {
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
+              color: AppThemes.getSurface(context),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -574,7 +559,6 @@ class BusState extends State<Bus> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 標題
                 Container(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
@@ -586,7 +570,6 @@ class BusState extends State<Bus> {
                     ),
                   ),
                 ),
-                // 內容
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -613,7 +596,11 @@ class BusState extends State<Bus> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 16, height: 1.5),
+        style: TextStyle(
+          fontSize: 16,
+          height: 1.5,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }
@@ -624,7 +611,6 @@ class BusState extends State<Bus> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            // backgroundColor: _primaryColor,
             elevation: 0,
             title: Text(AppLocalizations.of(context)!.text_19),
           ),
@@ -639,14 +625,20 @@ class BusState extends State<Bus> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(
+                      child: Text(
+                        'Error: ${snapshot.error}',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    );
                   } else if (!snapshot.hasData ||
+                      snapshot.data is! List ||
                       (snapshot.data as List).isEmpty) {
                     return _buildNoDataWidget();
-                  } else {
-                    final data = snapshot.data as List;
-                    return _buildAlertList(data);
                   }
+                  return _buildAlertList(snapshot.data as List);
                 },
               );
             },
@@ -667,10 +659,7 @@ class BusState extends State<Bus> {
           Expanded(
             child: ListView.builder(
               itemCount: data.length,
-              itemBuilder: (context, index) {
-                final alert = data[index];
-                return _buildAlertCard(alert);
-              },
+              itemBuilder: (context, index) => _buildAlertCard(data[index]),
             ),
           ),
         ],
@@ -697,24 +686,24 @@ class BusState extends State<Bus> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _secondaryColor,
+            color: AppThemes.getCardColor(context),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.warning, color: Color(0xFF1A73E8), size: 20),
+          child: Icon(Icons.warning, color: _primaryColor, size: 20),
         ),
         title: Text(
           alert['Title'] ?? AppLocalizations.of(context)!.text_25,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         subtitle: Text(
           alert['Description'] ?? AppLocalizations.of(context)!.text_26,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Colors.grey,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
       ),
@@ -726,27 +715,36 @@ class BusState extends State<Bus> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.info_outline, size: 64, color: Colors.grey[400]),
+          Icon(
+            Icons.info_outline,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_27,
-            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 16,
+            ),
           ),
         ],
       ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // 城市下拉
+  // ---------------------------------------------------------------------------
+
   Widget _buildCityDropdown([bool includeAll = true]) {
     final filteredList = includeAll
         ? cities
         : cities
-            .where(
-              (city) => city.name != AppLocalizations.of(context)!.text_5,
-            )
-            .toList();
+        .where((city) => city.name != AppLocalizations.of(context)!.text_5)
+        .toList();
+
     return Container(
-      // margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
       decoration: BoxDecoration(
         color: AppThemes.getSurface(context),
@@ -767,10 +765,10 @@ class BusState extends State<Bus> {
               color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.location_on_rounded,
               size: 20,
-              color: Color(0xFF1A73E8),
+              color: _primaryColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -783,35 +781,28 @@ class BusState extends State<Bus> {
             ),
           ),
           const Spacer(),
-          // 為 CustomDropdown 提供明確的寬度約束
           Container(
             width: 160,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              // 自動切換背景色：淺色白 / 深色 0xFF1C1C1E
               color: AppThemes.getCardColor(context),
               borderRadius: BorderRadius.circular(12),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                // 下拉選單整體的背景與形狀
                 dropdownColor: AppThemes.getCardColor(context),
                 borderRadius: BorderRadius.circular(16),
                 isExpanded: true,
-
-                // 設定目前的數值與圖示
                 value: currentCityNotifier.value ==
-                            AppLocalizations.of(context)!.text_5 &&
-                        !includeAll
+                    AppLocalizations.of(context)!.text_5 &&
+                    !includeAll
                     ? null
                     : currentCityNotifier.value,
                 icon: Icon(
-                  Icons.keyboard_arrow_down_rounded, // 圓角箭頭
+                  Icons.keyboard_arrow_down_rounded,
                   size: 20,
                   color: Theme.of(context).colorScheme.primary,
                 ),
-
-                // --- 1. 平時顯示在框框內的樣子 ---
                 selectedItemBuilder: (BuildContext context) {
                   return filteredList.map<Widget>((CityItem city) {
                     return Container(
@@ -841,10 +832,8 @@ class BusState extends State<Bus> {
                     );
                   }).toList();
                 },
-                // --- 2. 點開後的清單佈局 ---
                 items: filteredList.map((CityItem city) {
                   final isSelected = currentCityNotifier.value == city.name;
-
                   return DropdownMenuItem<String>(
                     value: city.name,
                     child: Row(
@@ -855,7 +844,10 @@ class BusState extends State<Bus> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.grey.withOpacity(0.4),
+                                : Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.3),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -868,6 +860,7 @@ class BusState extends State<Bus> {
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -875,44 +868,47 @@ class BusState extends State<Bus> {
                     ),
                   );
                 }).toList(),
-
                 onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      currentCityNotifier.value = value;
-                      updatedCorrespondingID();
-                      _getData();
-                      updateCurrent();
-                    });
+                  if (value == null || value == currentCityNotifier.value) {
+                    return;
                   }
+                  _cancelPendingSearch();
+                  suggestions.value = const [];
+                  suggestionsHeightNotifier.value = 0;
+                  busIdController.clear();
+
+                  currentCityNotifier.value = value;
+                  updatedCorrespondingID();
+                  setState(() => busData = []);
+
+                  unawaited(_loadForCurrentCity());
+                  unawaited(_reloadFavorites(force: true));
                 },
               ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
-    updateCurrent();
     return Scaffold(
       appBar: _buildAppBar(),
       body: GestureDetector(
         onTap: () => hideKeyboard(context),
         child: Column(
           children: [
-            // 城市選擇
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: _buildCityDropdown(),
             ),
-
-            // 搜尋區域
             _buildSearchSection(),
-
-            // 主要內容區域
             Expanded(
               child: Stack(
                 children: [
@@ -945,7 +941,7 @@ class BusState extends State<Bus> {
         ),
         child: Row(
           children: [
-            // 搜尋類型下拉選單
+            // 搜尋類型下拉
             Container(
               width: 130,
               margin: const EdgeInsets.only(left: 4, right: 4),
@@ -985,9 +981,9 @@ class BusState extends State<Bus> {
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withOpacity(0.1)
+                                        .colorScheme
+                                        .primary
+                                        .withOpacity(0.1)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -996,10 +992,10 @@ class BusState extends State<Bus> {
                                     size: 18,
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
+                                        : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.6),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -1012,10 +1008,10 @@ class BusState extends State<Bus> {
                                         : FontWeight.w500,
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey[400]
-                                            : Colors.grey[700],
+                                        : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.7),
                                   ),
                                 ),
                               ],
@@ -1024,33 +1020,33 @@ class BusState extends State<Bus> {
                         }).toList();
                       },
                       onChanged: (SearchType? newValue) {
-                        if (newValue != null) {
-                          _dropdownValueNotifier.value = newValue;
+                        if (newValue == null ||
+                            newValue == _dropdownValueNotifier.value) {
+                          return;
                         }
+                        _cancelPendingSearch();
+                        suggestions.value = const [];
+                        suggestionsHeightNotifier.value = 0;
+                        _dropdownValueNotifier.value = newValue;
                       },
                       items: SearchType.values.map((type) {
                         final isSelected = _dropdownValueNotifier.value == type;
                         final icon = type == SearchType.route
                             ? Icons.alt_route_rounded
                             : Icons.place_rounded;
-
                         return DropdownMenuItem<SearchType>(
                           value: type,
                           child: Container(
                             margin: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
+                                horizontal: 4, vertical: 2),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
+                                horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: isSelected
                                   ? Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withOpacity(0.08)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.08)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -1061,10 +1057,7 @@ class BusState extends State<Bus> {
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey[800]
-                                            : const Color(0xFFEEF3FB),
+                                        : AppThemes.getCardColor(context),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
@@ -1072,10 +1065,7 @@ class BusState extends State<Bus> {
                                     size: 18,
                                     color: isSelected
                                         ? Colors.white
-                                        : Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey[400]
-                                            : const Color(0xFF1A73E8),
+                                        : _primaryColor,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -1089,20 +1079,19 @@ class BusState extends State<Bus> {
                                           : FontWeight.w500,
                                       color: isSelected
                                           ? Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                          : Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.grey[300]
-                                              : Colors.black87,
+                                          .colorScheme
+                                          .primary
+                                          : Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
                                     ),
                                   ),
                                 ),
                                 if (isSelected)
                                   Container(
                                     padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF1A73E8),
+                                    decoration: BoxDecoration(
+                                      color: _primaryColor,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -1121,15 +1110,11 @@ class BusState extends State<Bus> {
                 },
               ),
             ),
-
-            // 分隔線
             Container(
               width: 1,
               height: 32,
-              color: Theme.of(context).dividerColor.withOpacity(0.1),
+              color: Theme.of(context).dividerColor.withOpacity(0.3),
             ),
-
-            // 搜尋輸入框
             Expanded(
               child: Container(
                 margin: const EdgeInsets.only(left: 4, right: 4),
@@ -1138,36 +1123,15 @@ class BusState extends State<Bus> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
-                  onChanged: (text) async {
-                    if (text.isNotEmpty) {
-                      double screenHeight = MediaQuery.of(context).size.height;
-                      double bottomInset =
-                          MediaQuery.of(context).viewInsets.bottom;
-                      double appBarHeight = AppBar().preferredSize.height +
-                          MediaQuery.of(context).padding.top;
-
-                      if (_dropdownValueNotifier.value == SearchType.route) {
-                        await _updateSuggestions('route');
-                        suggestionsHeightNotifier.value =
-                            screenHeight - bottomInset - appBarHeight - 200;
-                      } else if (_dropdownValueNotifier.value ==
-                          SearchType.stop) {
-                        await _updateSuggestions('stop');
-                        suggestionsHeightNotifier.value =
-                            screenHeight - bottomInset - appBarHeight - 200;
-                      }
-                    } else {
-                      suggestions.value.clear();
-                      suggestionsHeightNotifier.value = 0;
-                    }
-                  },
                   controller: busIdController,
+                  onChanged: _onSearchChanged,
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.text_30,
                     hintStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[500]
-                          : Colors.grey[400],
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.4),
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                     ),
@@ -1175,48 +1139,46 @@ class BusState extends State<Bus> {
                       padding: const EdgeInsets.all(8),
                       child: Icon(
                         Icons.search_rounded,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[500]
-                            : const Color(0xFF1A73E8),
+                        color: _primaryColor,
                         size: 20,
                       ),
                     ),
-                    suffixIcon: busIdController.text.isNotEmpty
-                        ? Container(
-                            margin: const EdgeInsets.all(8),
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey[800]
-                                  : const Color(0xFFEEF3FB),
-                              shape: BoxShape.circle,
+                    suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: busIdController,
+                      builder: (context, value, _) {
+                        if (value.text.isEmpty) return const SizedBox.shrink();
+                        return Container(
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: AppThemes.getSurface(context),
+                            shape: BoxShape.circle,
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              _cancelPendingSearch();
+                              busIdController.clear();
+                              suggestions.value = const [];
+                              suggestionsHeightNotifier.value = 0;
+                            },
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                             ),
-                            child: GestureDetector(
-                              onTap: () {
-                                busIdController.clear();
-                                suggestions.value.clear();
-                                suggestionsHeightNotifier.value = 0;
-                              },
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 16,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          )
-                        : null,
+                          ),
+                        );
+                      },
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 12),
                   ),
                   style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey[300]
-                        : Colors.black87,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1287,14 +1249,17 @@ class BusState extends State<Bus> {
 
   Widget _buildTabItem(int index) {
     final bool isSelected = _current == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedStart = isDark ? const Color(0xFF2C2C2E) : Colors.white;
+    final unselectedEnd =
+    isDark ? const Color(0xFF1C1C1E) : Colors.grey[50]!;
+    final unselectedIconBg = isDark ? const Color(0xFF1C1C1E) : _secondaryColor;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
         onTap: () {
-          setState(() {
-            _current = index;
-            updateCurrent();
-          });
+          setState(() => _current = index);
           pageController.animateToPage(
             _current,
             duration: const Duration(milliseconds: 400),
@@ -1308,41 +1273,37 @@ class BusState extends State<Bus> {
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-                    colors: [
-                      const Color(0xFF1A73E8),
-                      const Color(0xFF1A73E8).withOpacity(0.9),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
+              colors: [_primaryColor, _primaryColor.withOpacity(0.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
                 : LinearGradient(
-                    colors: [
-                      Colors.white,
-                      Colors.grey[50]!,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+              colors: [unselectedStart, unselectedEnd],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: isSelected
                 ? [
-                    BoxShadow(
-                      color: const Color(0xFF1A73E8).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
+              BoxShadow(
+                color: _primaryColor.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ]
                 : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
             border: isSelected
-                ? Border.all(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
-                : Border.all(color: Colors.grey[200]!, width: 1),
+                ? Border.all(color: _primaryColor.withOpacity(0.2), width: 1.5)
+                : Border.all(
+              color: Theme.of(context).dividerColor.withOpacity(0.4),
+              width: 1,
+            ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1353,13 +1314,13 @@ class BusState extends State<Bus> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.2)
-                      : const Color(0xFFEEF3FB),
+                      : unselectedIconBg,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   menuItems[index].icon,
                   size: 18,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: isSelected ? Colors.white : _primaryColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1368,7 +1329,7 @@ class BusState extends State<Bus> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: isSelected ? Colors.white : _primaryColor,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1408,7 +1369,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildFavoriteStops() {
-    return _buildFavoriteList(
+    return _buildFavoriteList<Map<String, dynamic>>(
       favoriteStops,
       _buildStopCard,
       AppLocalizations.of(context)!.text_2,
@@ -1416,34 +1377,22 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildFavoriteList<T>(
-    ValueNotifier<List<T>> notifier,
-    Widget Function(T) itemBuilder,
-    String emptyMessage,
-  ) {
-    return FutureBuilder<int>(
-      future: updateCurrent(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('載入失敗: ${snapshot.error}'),
-          );
-        }
-
-        if (!snapshot.hasData || notifier.value.isEmpty) {
-          return _buildEmptyState(emptyMessage);
-        }
-
+      ValueNotifier<List<T>> notifier,
+      Widget Function(T) itemBuilder,
+      String emptyMessage,
+      ) {
+    return ValueListenableBuilder<List<T>>(
+      valueListenable: notifier,
+      builder: (context, list, _) {
+        if (list.isEmpty) return _buildEmptyState(emptyMessage);
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: notifier.value.length,
-          separatorBuilder: (_, __) => const Divider(height: 16),
-          itemBuilder: (context, index) {
-            return itemBuilder(notifier.value[index]);
-          },
+          itemCount: list.length,
+          separatorBuilder: (_, __) => Divider(
+            height: 16,
+            color: Theme.of(context).dividerColor.withOpacity(0.3),
+          ),
+          itemBuilder: (context, index) => itemBuilder(list[index]),
         );
       },
     );
@@ -1451,7 +1400,6 @@ class BusState extends State<Bus> {
 
   Widget _buildRouteCard(BusRoute route) {
     final locale = Localizations.localeOf(context);
-
     return _buildInfoCard(
       title: locale.languageCode == 'en'
           ? (route.routeEn?.isNotEmpty == true ? route.routeEn! : route.routeZh)
@@ -1469,7 +1417,6 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildStopCard(Map<String, dynamic> stop) {
-    print(stop);
     return _buildInfoCard(
       title: stop["stopName"]?.toString() ?? '',
       onTap: () => _navigateToStopDetails(stop),
@@ -1486,7 +1433,7 @@ class BusState extends State<Bus> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppThemes.getCardColor(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1497,11 +1444,12 @@ class BusState extends State<Bus> {
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: _secondaryColor,
+            color: AppThemes.getSurface(context),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
@@ -1512,26 +1460,31 @@ class BusState extends State<Bus> {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Colors.black87,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         subtitle: subtitle != null
             ? Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              )
+          subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 14,
+            color:
+            Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+          ),
+        )
             : null,
         trailing: onRemove != null
             ? IconButton(
-                icon: const Icon(Icons.favorite, color: Colors.red),
-                onPressed: onRemove,
-              )
+          icon: const Icon(Icons.favorite, color: Colors.red),
+          onPressed: onRemove,
+        )
             : null,
         onTap: onTap,
       ),
@@ -1546,14 +1499,14 @@ class BusState extends State<Bus> {
           Icon(
             Icons.favorite_border,
             size: 64,
-            color: Colors.grey[400],
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
             '暫無$message',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[600],
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1562,7 +1515,7 @@ class BusState extends State<Bus> {
             AppLocalizations.of(context)!.text_31,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[500],
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
         ],
@@ -1575,11 +1528,18 @@ class BusState extends State<Bus> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.build, size: 64, color: Colors.grey),
+          Icon(
+            Icons.build,
+            size: 64,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_32,
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 16,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
         ],
       ),
@@ -1591,7 +1551,6 @@ class BusState extends State<Bus> {
       valueListenable: suggestionsHeightNotifier,
       builder: (context, height, child) {
         if (height <= 0) return const SizedBox();
-
         return Positioned(
           top: 0,
           left: 0,
@@ -1599,7 +1558,7 @@ class BusState extends State<Bus> {
           height: height,
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemes.getSurface(context),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -1609,101 +1568,53 @@ class BusState extends State<Bus> {
                 ),
               ],
             ),
-            child: suggestions.value.isNotEmpty
-                ? _buildSuggestionsList()
-                : Center(
-                    child: Text(AppLocalizations.of(context)!.text_33,
-                        style: const TextStyle(color: Colors.grey))),
+            child: ValueListenableBuilder<List>(
+              valueListenable: suggestions,
+              builder: (context, list, _) {
+                if (list.isEmpty) {
+                  return Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.text_33,
+                      style: TextStyle(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.6),
+                      ),
+                    ),
+                  );
+                }
+                if (_dropdownValueNotifier.value != SearchType.route) {
+                  return BusStopList(list);
+                }
+                return Buslist(
+                  suggestions: list,
+                  city: correspondingIDNotifier.value == 'all'
+                      ? "Taipei,Taichung"
+                      : correspondingIDNotifier.value,
+                );
+              },
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildSuggestionsList() {
-    // 如果是選取「站牌」搜尋，維持你原本的寫法（直接返回）
-    if (_dropdownValueNotifier.value != SearchType.route) {
-      return BusStopList(suggestions.value);
-    }
+  // ---------------------------------------------------------------------------
+  // 其他輔助
+  // ---------------------------------------------------------------------------
 
-    // ✅ 核心改動：外層包裹 ValueListenableBuilder，一邊輸入，這裡就會一邊即時重繪
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: busIdController, // 監聽輸入框的文字變化
-      builder: (context, textEditingValue, child) {
-        final query = textEditingValue.text;
-
-        // 1. 防護機制：如果沒輸入任何字，直接返回空列表，省去撈資料庫的時間
-        if (query.isEmpty) {
-          _suggestionFuture = Future.value([]); // 清空 Future
-          _lastQuery = '';
-          return Buslist(
-            suggestions: const [],
-            city: correspondingIDNotifier.value == 'all'
-                ? "Taipei,Taichung"
-                : correspondingIDNotifier.value,
-          );
-        }
-
-        // 2. 關鍵：如果關鍵字真的變了，才處理更新邏輯
-        if (_lastQuery != query) {
-          _lastQuery = query;
-
-          // 🚀 實作 Debounce (防抖)：使用者停止輸入 300 毫秒後，才真正發送 SQL 請求
-          _debounceTimer?.cancel(); // 取消上一次的計時
-
-          // 建立一個新的暫存 Future，先讓 UI 知道 Future 變了
-          final completer = Completer<List<dynamic>>();
-          _suggestionFuture = completer.future;
-
-          _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
-            try {
-              // 300ms 到了，真的去查資料庫
-              final data = await _updateSuggestions('route');
-              if (!completer.isCompleted) completer.complete(data);
-            } catch (e) {
-              if (!completer.isCompleted) completer.completeError(e);
-            }
-          });
-        }
-
-        // 3. 渲染與原本結構相同的 FutureBuilder
-        return FutureBuilder<List<dynamic>>(
-          future: _suggestionFuture,
-          builder: (context, snapshot) {
-            // 如果正在等待（且目前還沒有舊資料），顯示轉圈圈
-            if (snapshot.connectionState == ConnectionState.waiting &&
-                !snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            // 成功取得資料，或是有快取舊資料，直接顯示
-            return Buslist(
-              suggestions: snapshot.data ?? [],
-              city: correspondingIDNotifier.value == 'all'
-                  ? "Taipei,Taichung"
-                  : correspondingIDNotifier.value,
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // 其他方法保持不變，但使用新的顏色變數
   void updatedCorrespondingID() {
     final city = cities.firstWhere(
-      (city) => city.name == currentCityNotifier.value,
-      orElse: () => const CityItem(
-        name: '全部',
-        id: 'all',
-      ),
+          (c) => c.name == currentCityNotifier.value,
+      orElse: () => const CityItem(name: '全部', id: 'all'),
     );
-
     correspondingIDNotifier.value = city.id;
   }
 
   void hideKeyboard(BuildContext context) {
-    FocusScopeNode currentFocus = FocusScope.of(context);
+    final currentFocus = FocusScope.of(context);
     if (!currentFocus.hasPrimaryFocus && currentFocus.focusedChild != null) {
       FocusManager.instance.primaryFocus?.unfocus();
     }
@@ -1716,32 +1627,33 @@ class BusState extends State<Bus> {
     final routeName = isEnglish
         ? (route.routeEn?.isNotEmpty == true ? route.routeEn! : route.routeZh)
         : route.routeZh;
-
     final departureName = isEnglish
         ? (route.departureStopNameEn?.isNotEmpty == true
-            ? route.departureStopNameEn!
-            : route.departureStopNameZh)
+        ? route.departureStopNameEn!
+        : route.departureStopNameZh)
         : route.departureStopNameZh;
-
     final destinationName = isEnglish
         ? (route.destinationStopNameEn?.isNotEmpty == true
-            ? route.destinationStopNameEn!
-            : route.destinationStopNameZh)
+        ? route.destinationStopNameEn!
+        : route.destinationStopNameZh)
         : route.destinationStopNameZh;
-
     final jsonField = isEnglish ? "En" : "Zh_tw";
+    final cityId = correspondingIDNotifier.value;
 
-    final baseData = await mysqlSelect("""
-SELECT *
-FROM Bus.bus_route
-WHERE City = '${correspondingIDNotifier.value}'
-AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
-""");
+    if (!BusSearchService.allowedCityIds.contains(cityId)) return;
 
-    // 取得 RouteID
-    String rawCity = correspondingIDNotifier.value;
-    String rawRouteID = route.routeID.toString();
+    // 記錄「開啟即時資訊頁」（避免在 build 中觸發；只在導航時呼叫一次）
+    unawaited(AppAnalytics.logFeatureOpened('bus_time_page'));
 
+    final detail = await BusSearchService.fetchRouteDetail(
+      cityId: cityId,
+      routeName: routeName,
+      jsonField: jsonField,
+    );
+
+    if (!mounted) return;
+
+    final rawRouteID = route.routeID.toString();
     const needsPaddingCities = [
       'Keelung',
       'Hsinchu',
@@ -1749,8 +1661,7 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
       'Pingtung',
       'InterCity',
     ];
-
-    final finalRouteID = needsPaddingCities.contains(rawCity)
+    final finalRouteID = needsPaddingCities.contains(cityId)
         ? rawRouteID.padLeft(4, '0')
         : rawRouteID;
 
@@ -1758,14 +1669,14 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
       context,
       MaterialPageRoute(
         builder: (_) => BusTime(
-          routeName: routeName,
+          routeName: route.routeZh,
           departureStopName: departureName,
           destinationStopName: destinationName,
           operators: "",
           routeMapImageUrl:
-              baseData.isNotEmpty ? baseData[0]["RouteMapImageUrl"] : "",
-          city: correspondingIDNotifier.value,
-          routeID: finalRouteID,
+          detail?["RouteMapImageUrl"]?.toString() ?? "",
+          city: cityId,
+          routeID: route.routeID.toString(),
           hasSubRoutes: route.hasSubRoute,
           data: route,
         ),
@@ -1774,6 +1685,7 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
   }
 
   void _navigateToStopDetails(Map<String, dynamic> stop) {
+    unawaited(AppAnalytics.logFeatureOpened('bus_stop_info_page'));
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1795,34 +1707,48 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
       cancelBtnText: AppLocalizations.of(context)!.text_36,
       confirmBtnColor: Colors.green,
       onCancelBtnTap: () => Navigator.pop(context),
-      onConfirmBtnTap: () {
-        _removeFavorite(context, item, SharedPreferencesList);
-        Navigator.pop(context);
+      onConfirmBtnTap: () async {
+        await _removeFavorite(context, item, SharedPreferencesList);
+        if (context.mounted) Navigator.pop(context);
       },
     );
   }
 
   Future<void> _removeFavorite(
       BuildContext context, String item, String SharedPreferencesList) async {
-    favorite_feature db = favorite_feature();
-    if (SharedPreferencesList == "FavoritesRoute") {
-      await db.removeFavoriteRoute(
-        item,
-        correspondingIDNotifier.value,
-      );
-    } else if (SharedPreferencesList == "FavoritesStop") {
-      await db.removeFavoriteStop(item, correspondingIDNotifier.value);
+    final db = favorite_feature();
+    try {
+      if (SharedPreferencesList == "FavoritesRoute") {
+        await db.removeFavoriteRoute(item, correspondingIDNotifier.value);
+      } else if (SharedPreferencesList == "FavoritesStop") {
+        await db.removeFavoriteStop(item, correspondingIDNotifier.value);
+      }
+      // 記錄收藏移除事件（沿用已存在的 logFeatureOpened 介面）
+      unawaited(AppAnalytics.logFeatureOpened(
+        SharedPreferencesList == "FavoritesRoute"
+            ? 'bus_unfavorite_route'
+            : 'bus_unfavorite_stop',
+      ));
+      await _reloadFavorites(force: true);
+    } catch (e, st) {
+      debugPrint('remove favorite failed: $e\n$st');
     }
-    setState(() {});
   }
 
   Widget BusStopList(List suggestions) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final highlightColor =
+    isDark ? _primaryColor.withOpacity(0.18) : _secondaryColor;
+
     return ListView.builder(
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: index == 0 ? _secondaryColor : Colors.white,
+            color: index == 0
+                ? highlightColor
+                : AppThemes.getSurface(context),
             borderRadius: BorderRadius.circular(8),
           ),
           child: ListTile(
@@ -1832,14 +1758,19 @@ AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.${jsonField}')) = '$routeName'
                 color: _primaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child:
-                  const Icon(Icons.place, size: 16, color: Color(0xFF1A73E8)),
+              child: Icon(Icons.place, size: 16, color: _primaryColor),
             ),
             title: Text(
               suggestions[index].toString(),
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
             onTap: () {
+              unawaited(AppAnalytics.logFeatureOpened('bus_stop_info_page'));
               Navigator.push(
                 context,
                 MaterialPageRoute(

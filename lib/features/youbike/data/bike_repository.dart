@@ -11,10 +11,12 @@ class BikeRepository {
 
   Future<List<YouBikeStation>> fetchStations(String city) async {
     final cityCode = convertCityCode(city);
+print(cityCode);
     final result = await executeQueryWithRetry(
-      'SELECT * FROM Bike.ubike WHERE AuthorityID = ?',
+      'SELECT * FROM Bike.bike_station WHERE AuthorityID = ?',
       params: [cityCode],
     );
+
     final rows = result.rows.map((row) => row.assoc()).toList();
 
     return rows.map(_parseStationRow).toList(growable: false);

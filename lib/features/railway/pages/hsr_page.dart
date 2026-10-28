@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -13,6 +15,8 @@ import 'package:com.rsmn574.app/features/railway/data/get_hsr.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
+
+import '../../../firebase/analytics_service.dart';
 
 // 高鐵主題色
 const Color primaryColor = Color(0xFFDC5321); // 高鐵橘
@@ -35,6 +39,7 @@ class _HSRState extends State<HSR> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    unawaited(AppAnalytics.logFeatureOpened('hsr'));
     _tabController = TabController(length: 3, vsync: this);
   }
 

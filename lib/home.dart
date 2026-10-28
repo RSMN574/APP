@@ -137,7 +137,7 @@ class _HomeState extends State<_HomeContent>
   }
 
   Future<void> _fetchData() async {
-    await context.read<BikeProvider>().loadStations();
+    await context.read<BikeProvider>().loadStations(context);
     if (mounted && _bottomSheetController != null) {
       await _loadBikeMarkers();
     }
@@ -364,7 +364,7 @@ class _HomeState extends State<_HomeContent>
       child: Center(
         child: TextButton(
           onPressed: () async {
-            await context.read<BikeProvider>().loadStations(force: true);
+            await context.read<BikeProvider>().loadStations(context,force: true);
             if (mounted && _bottomSheetController != null) {
               await _loadBikeMarkers();
             }

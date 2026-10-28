@@ -1197,5 +1197,16 @@
   "airport_emergency_info": "緊急情況請撥打：119\n機場服務台：{phone}",
   "airport_load_failed": "載入機場資料失敗",
   "airport_retry": "重試",
-  "airport_no_data": "無機場資料"
+  "airport_no_data": "無機場資料",
+  "authVerificationSent": "帳號建立成功，驗證信已寄出，請前往電子信箱完成驗證。",
+  "authVerificationSendFailed": "帳號已建立，但驗證信寄送失敗。請稍後重新寄送驗證信。",
+
+    "profileEmailVerified": "電子郵件已驗證",
+    "profileEmailNotVerified": "電子郵件尚未驗證",
+    "profileSendVerification": "重新寄送驗證信",
+    "profileRefreshVerification": "重新檢查驗證狀態",
+    "profileVerificationSent": "驗證信已送出，請檢查電子郵件",
+    "profileVerificationSendFailed": "驗證信寄送失敗，請稍後再試",
+    "profileVerificationRefreshFailed": "無法更新驗證狀態，請稍後再試"
+
 }

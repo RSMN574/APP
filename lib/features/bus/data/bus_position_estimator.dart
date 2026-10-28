@@ -131,7 +131,7 @@ class BusPositionEstimator {
     }
 
     final extrapolationSeconds =
-        (age.inMilliseconds / 1000).clamp(0.0, maxExtrapolation.inMilliseconds / 1000).toDouble();
+    (age.inMilliseconds / 1000).clamp(0.0, maxExtrapolation.inMilliseconds / 1000).toDouble();
     final travelMeters = speed / 3.6 * extrapolationSeconds;
     final targetDistance = (projection.distanceAlongMeters + travelMeters)
         .clamp(0.0, projection.totalRouteMeters).toDouble();
@@ -160,10 +160,10 @@ class BusPositionEstimator {
   }
 
   _RouteProjection? _projectOntoRoute(
-    LatLng gps,
-    List<LatLng> points,
-    double? heading,
-  ) {
+      LatLng gps,
+      List<LatLng> points,
+      double? heading,
+      ) {
     final cumulative = <double>[0];
     for (var i = 1; i < points.length; i++) {
       cumulative.add(
@@ -195,7 +195,7 @@ class BusPositionEstimator {
         best = _RouteProjection(
           point: projected.point,
           distanceAlongMeters:
-              cumulative[i] + segmentLength * projected.t,
+          cumulative[i] + segmentLength * projected.t,
           totalRouteMeters: total,
         );
       }
@@ -233,10 +233,10 @@ class BusPositionEstimator {
   }
 
   _SegmentProjection _projectPointToSegment(
-    LatLng point,
-    LatLng start,
-    LatLng end,
-  ) {
+      LatLng point,
+      LatLng start,
+      LatLng end,
+      ) {
     // Local equirectangular projection; suitable for short city bus segments.
     final meanLat = (start.latitude + end.latitude + point.latitude) / 3;
     final cosLat = math.cos(meanLat * math.pi / 180);
@@ -265,11 +265,11 @@ class BusPositionEstimator {
 
   bool _validCoordinate(LatLng point) =>
       point.latitude.isFinite &&
-      point.longitude.isFinite &&
-      point.latitude >= -90 &&
-      point.latitude <= 90 &&
-      point.longitude >= -180 &&
-      point.longitude <= 180;
+          point.longitude.isFinite &&
+          point.latitude >= -90 &&
+          point.latitude <= 90 &&
+          point.longitude >= -180 &&
+          point.longitude <= 180;
 
   double _distanceMeters(LatLng a, LatLng b) {
     const earthRadius = 6371000.0;

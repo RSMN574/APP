@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../data/models/auth_failure.dart';
-import '../data/models/auth_user_model.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/firebase_auth_repository.dart';
+import '../model/auth_failure.dart';
+import '../model/auth_user_model.dart';
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({AuthRepository? repository})
@@ -105,7 +105,15 @@ class AuthProvider extends ChangeNotifier {
       _notifyListeners();
     }
   }
+  Future<bool> sendEmailVerification() {
+    return _run(_repository.sendEmailVerification);
+  }
 
+  Future<bool> refreshEmailVerification() {
+    return _run(() async {
+      _currentUser = await _repository.reloadUser();
+    });
+  }
   void clearError() {
     _error = null;
     _passwordResetSent = false;

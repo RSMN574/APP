@@ -6782,6 +6782,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'無機場資料'**
   String get airport_no_data;
+
+  /// No description provided for @authVerificationSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號建立成功，驗證信已寄出，請前往電子信箱完成驗證。'**
+  String get authVerificationSent;
+
+  /// No description provided for @authVerificationSendFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'帳號已建立，但驗證信寄送失敗。請稍後重新寄送驗證信。'**
+  String get authVerificationSendFailed;
+
+  /// No description provided for @profileEmailVerified.
+  ///
+  /// In zh, this message translates to:
+  /// **'電子郵件已驗證'**
+  String get profileEmailVerified;
+
+  /// No description provided for @profileEmailNotVerified.
+  ///
+  /// In zh, this message translates to:
+  /// **'電子郵件尚未驗證'**
+  String get profileEmailNotVerified;
+
+  /// No description provided for @profileSendVerification.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新寄送驗證信'**
+  String get profileSendVerification;
+
+  /// No description provided for @profileRefreshVerification.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新檢查驗證狀態'**
+  String get profileRefreshVerification;
+
+  /// No description provided for @profileVerificationSent.
+  ///
+  /// In zh, this message translates to:
+  /// **'驗證信已送出，請檢查電子郵件'**
+  String get profileVerificationSent;
+
+  /// No description provided for @profileVerificationSendFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'驗證信寄送失敗，請稍後再試'**
+  String get profileVerificationSendFailed;
+
+  /// No description provided for @profileVerificationRefreshFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法更新驗證狀態，請稍後再試'**
+  String get profileVerificationRefreshFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 
+import '../../model/auth_failure.dart';
+import '../../model/auth_user_model.dart';
 import '../datasources/firebase_auth_data_source.dart';
 import '../datasources/user_cloud_data_source.dart';
-import '../models/auth_failure.dart';
-import '../models/auth_user_model.dart';
+
 import 'auth_repository.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
@@ -28,7 +29,15 @@ class FirebaseAuthRepository implements AuthRepository {
     await _syncProfile(user);
     return user;
   }
+  @override
+  Future<void> sendEmailVerification() {
+    return _dataSource.sendEmailVerification();
+  }
 
+  @override
+  Future<AuthUserModel> reloadUser() {
+    return _dataSource.reloadUser();
+  }
   @override
   Future<AuthUserModel> register({
     required String email,

@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../const/regular_const.dart';
+import '../../../firebase/analytics_service.dart';
 import '../data/metro_repository.dart';
 import '../state/metro_provider.dart';
 import '../widgets/metro_map_painter.dart';
@@ -60,6 +62,9 @@ class _MetroState extends State<Metro> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    unawaited(
+      AppAnalytics.logFeatureOpened('metro'),
+    );
     _metroState = context.read<MetroProvider>()
       ..addListener(_onMetroStateChanged);
 

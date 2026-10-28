@@ -1,203 +1,429 @@
+
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../database/tdx_api_client.dart';
 
-// 初始化通知
+const String _tasksKey = 'reminderTasks';
+const int _alarmId = 9999;
+const String _channelId = 'arrival_alerts_channel';
+const String _channelName = '到站提醒通知';
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
-Future<dynamic> fetchBusTimeByTask(routeName, routeID, city, stopID) async {
-  String filter = "StopID eq '$stopID' and RouteID eq '$routeID'";
-  String encodedFilter = Uri.encodeQueryComponent(filter);
+FlutterLocalNotificationsPlugin();
 
-  var url =
-      "https://tdx.transportdata.tw/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName"
-      "?%24filter=$encodedFilter&%24format=JSON";
-  // final token =await  getToken();
+const InitializationSettings _notificationSettings = InitializationSettings(
+  android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+);
 
+const NotificationDetails _arrivalNotificationDetails = NotificationDetails(
+  android: AndroidNotificationDetails(
+    _channelId,
+    _channelName,
+    channelDescription: '公車到站提醒',
+    importance: Importance.max,
+    priority: Priority.high,
+    playSound: true,
+    enableVibration: true,
+  ),
+);
+
+/// 在 main() 的 runApp() 之前呼叫。
+Future<void> initializeArrivalReminderService() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final initialized = await AndroidAlarmManager.initialize();
+  debugPrint('[ArrivalReminder] AlarmManager initialized: $initialized');
+
+  await flutterLocalNotificationsPlugin.initialize(
+    _notificationSettings,
+  );
+
+  final androidPlugin =
+  flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+
+  final permissionGranted =
+  await androidPlugin?.requestNotificationsPermission();
+
+  debugPrint(
+    '[ArrivalReminder] Notification permission: $permissionGranted',
+  );
+}
+
+/// 查詢 TDX 公車預估到站資料。
+Future<List<dynamic>> fetchBusTimeByTask(
+    String routeName,
+    String routeID,
+    String city,
+    String stopID,
+    ) async {
+  final filter = "StopID eq '$stopID' and RouteID eq '$routeID'";
+
+  final uri = Uri.https(
+    'tdx.transportdata.tw',
+    '/api/basic/v2/Bus/EstimatedTimeOfArrival/City/$city/$routeName',
+    {
+      r'$filter': filter,
+      r'$format': 'JSON',
+    },
+  );
+
+  final response = await TdxApiClient().getRaw(
+    uri,
+    headers: const {'accept': 'application/json'},
+  );
+
+  if (response.statusCode != 200) {
+    throw HttpException(
+      'TDX HTTP ${response.statusCode}',
+      uri: uri,
+    );
+  }
+
+  final decoded = jsonDecode(response.body);
+
+  if (decoded is! List) {
+    throw const FormatException('TDX 回傳格式不是清單');
+  }
+
+  return decoded;
+}
+
+/// 穩定的通知 ID。
+int _notificationId(String key) {
+  var hash = 0;
+
+  for (final unit in key.codeUnits) {
+    hash = (hash * 31 + unit) & 0x7fffffff;
+  }
+
+  return hash == 0 ? 1 : hash;
+}
+
+String _taskKey({
+  required String transportType,
+  required String routeID,
+  required String city,
+  required String stopID,
+}) {
+  return '$transportType|$city|$routeID|$stopID';
+}
+
+/// 背景工作入口必須是頂層函式。
+@pragma('vm:entry-point')
+Future<void> backgroundTask() async {
   try {
-    // await connMysql();
+    DartPluginRegistrant.ensureInitialized();
 
-    // 发起 GET 请求
-    final response = await TdxApiClient().getRaw(
-      Uri.parse(url),
-      headers: {
-        // 'Authorization': 'Bearer $token',
-        'accept': 'application/json',
-      },
+    await flutterLocalNotificationsPlugin.initialize(
+      _notificationSettings,
     );
 
-    // 检查响应状态
-    if (response.statusCode != 200) {
-      throw HttpException('HTTP error! status: ${response.statusCode}');
-    }
+    final prefs = await SharedPreferences.getInstance();
+    final storedTasks = prefs.getStringList(_tasksKey) ?? [];
 
-    // 解析 JSON 数据
-    final jsonData = await jsonDecode(response.body);
+    if (storedTasks.isEmpty) return;
 
-    // TODO: 将解析后的 JSON 数据转换为 SQL 插入语句
-    // 这里你可以根据你的需求来构建 SQL 语句，例如：
-    // String sql = 'INSERT INTO $tableName (...) VALUES (...)';
+    final updatedTasks = <String>[];
 
-    if (kDebugMode) {
-      print('JSON fetched successfully: $jsonData');
-    }
-    return jsonData;
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error occurred: $e');
-    }
-  }
-}
+    for (final raw in storedTasks) {
+      Map<String, dynamic> task;
 
-Future<void> backgroundTask() async {
-  final prefs = await SharedPreferences.getInstance();
-  final tasks = prefs.getStringList('reminderTasks') ?? [];
-
-  for (var jsonStr in tasks) {
-    final task = jsonDecode(jsonStr) as Map<String, dynamic>;
-    final type = task['transportType'] as String;
-    final name = task['routeName'] as String;
-    final id = task['routeID'] as String;
-    final city = task['city'] as String;
-    final UserDestinationStopName = task['UserDestinationStopName'] as String;
-
-    List<dynamic> data;
-    // 根據 type 呼叫不同的 fetchXxxByTask(...)
-    if (type == 'bus') {
-      final stop = task['stopID'] as String;
-      data = await fetchBusTimeByTask(name, id, city, stop);
-      for (final item in data) {
-        final et = item['EstimateTime'] as int?;
-        if (et != null && et < 300) {
-          await flutterLocalNotificationsPlugin.show(
-            id.hashCode, // 每筆任務不同的通知 ID
-            '到站提醒',
-            '【$type】$name 即將抵達 $UserDestinationStopName！',
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                '到站提醒',
-                '到站提醒通知',
-                importance: Importance.max,
-                priority: Priority.high,
-              ),
-            ),
-          );
-          break;
-        }
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is! Map) continue;
+        task = Map<String, dynamic>.from(decoded);
+      } catch (error) {
+        debugPrint('[ArrivalReminder] 無效任務資料：$error');
+        continue;
       }
-    } else if (type == 'train') {
-      await flutterLocalNotificationsPlugin.show(
-        id.hashCode, // 每筆任務不同的通知 ID
-        '到站提醒',
-        '【$type】$name 即將抵達 $UserDestinationStopName！',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            '到站提醒',
-            '到站提醒通知',
-            importance: Importance.max,
-            priority: Priority.high,
-          ),
-        ),
-      );
-    } else {
-      continue; // 其他類型同理
+
+      if (task['notified'] == true ||
+          task['transportType'] != 'bus') {
+        updatedTasks.add(jsonEncode(task));
+        continue;
+      }
+
+      final routeName = task['routeName']?.toString() ?? '';
+      final routeID = task['routeID']?.toString() ?? '';
+      final city = task['city']?.toString() ?? '';
+      final stopID = task['stopID']?.toString() ?? '';
+      final stopName =
+          task['UserDestinationStopName']?.toString() ?? '';
+
+      if (routeName.isEmpty ||
+          routeID.isEmpty ||
+          city.isEmpty ||
+          stopID.isEmpty ||
+          stopName.isEmpty) {
+        debugPrint('[ArrivalReminder] 任務缺少必要欄位：$task');
+        updatedTasks.add(jsonEncode(task));
+        continue;
+      }
+
+      try {
+        final data = await fetchBusTimeByTask(
+          routeName,
+          routeID,
+          city,
+          stopID,
+        );
+
+        var shouldNotify = false;
+
+        for (final item in data) {
+          if (item is! Map) continue;
+
+          if (item['RouteID']?.toString() != routeID ||
+              item['StopID']?.toString() != stopID) {
+            continue;
+          }
+
+          final estimate = item['EstimateTime'];
+
+          if (estimate is num && estimate >= 0 && estimate < 300) {
+            shouldNotify = true;
+            break;
+          }
+        }
+
+        if (shouldNotify) {
+          final key = task['taskKey']?.toString() ??
+              _taskKey(
+                transportType: 'bus',
+                routeID: routeID,
+                city: city,
+                stopID: stopID,
+              );
+
+          await flutterLocalNotificationsPlugin.show(
+            _notificationId(key),
+            '公車到站提醒',
+            '$routeName 即將抵達 $stopName，請留意公車動態。',
+            _arrivalNotificationDetails,
+          );
+
+          task['notified'] = true;
+          debugPrint('[ArrivalReminder] 已通知：$routeName / $stopName');
+        }
+      } catch (error, stackTrace) {
+        // API 失敗時保留任務，下一輪仍可重試。
+        debugPrint('[ArrivalReminder] 提醒任務執行失敗：$error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
+      updatedTasks.add(jsonEncode(task));
     }
+
+    await prefs.setStringList(_tasksKey, updatedTasks);
+  } catch (error, stackTrace) {
+    debugPrint('[ArrivalReminder] 背景工作失敗：$error');
+    debugPrintStack(stackTrace: stackTrace);
   }
 }
 
+/// 建立公車到站提醒。
 Future<void> startReminder({
-  required String transportType, // 例如 'bus'
+  required String transportType,
   required String routeName,
   required String routeID,
   required String city,
-  String? stopID, // 改為可選
-  required UserStartingStopName,
-  required UserDestinationStopName,
+  String? stopID,
+  required String UserStartingStopName,
+  required String UserDestinationStopName,
 }) async {
-  final prefs = await SharedPreferences.getInstance();
-  if (transportType == "bus") {
-    // 建立新提醒任務資料
-    final newTask = {
-      'transportType': transportType,
-      'routeName': routeName,
-      'routeID': routeID,
-      'city': city,
-      'stopID': stopID,
-      'UserStartingStopName': UserStartingStopName,
-      'UserDestinationStopName': UserDestinationStopName
-    };
-    // 加入提醒任務清單
-    List<String> taskList = prefs.getStringList('reminderTasks') ?? [];
-    taskList.add(jsonEncode(newTask));
-    await prefs.setStringList('reminderTasks', taskList);
+  final normalizedStopID = stopID?.trim() ?? '';
 
-    // 啟動背景任務（僅需啟動一次）
-    await AndroidAlarmManager.periodic(
-      const Duration(minutes: 1),
-      9999, // 全域任務 ID，建議不要用 routeID，否則會重複啟動
-      backgroundTask,
-      wakeup: true,
-      exact: true,
-      rescheduleOnReboot: true,
+  if (transportType != 'bus') {
+    throw ArgumentError('目前只支援公車到站提醒');
+  }
+
+  if (routeName.trim().isEmpty ||
+      routeID.trim().isEmpty ||
+      city.trim().isEmpty ||
+      normalizedStopID.isEmpty) {
+    throw ArgumentError('路線名稱、路線 ID、城市及站牌 ID 不可為空');
+  }
+
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final originalTasks = prefs.getStringList(_tasksKey) ?? [];
+    final tasks = <Map<String, dynamic>>[];
+
+    for (final raw in originalTasks) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          tasks.add(Map<String, dynamic>.from(decoded));
+        }
+      } catch (_) {
+        // 忽略損壞的舊任務資料。
+      }
+    }
+
+    final key = _taskKey(
+      transportType: 'bus',
+      routeID: routeID.trim(),
+      city: city.trim(),
+      stopID: normalizedStopID,
     );
 
-    print("提醒已啟動：${newTask['transportType']} ${newTask['routeName']}");
+    final existingIndex = tasks.indexWhere((task) {
+      if (task['taskKey'] == key) return true;
+
+      return task['transportType'] == 'bus' &&
+          task['city']?.toString() == city.trim() &&
+          task['routeID']?.toString() == routeID.trim() &&
+          task['stopID']?.toString() == normalizedStopID;
+    });
+
+    if (existingIndex == -1) {
+      tasks.add({
+        'taskKey': key,
+        'transportType': 'bus',
+        'routeName': routeName.trim(),
+        'routeID': routeID.trim(),
+        'city': city.trim(),
+        'stopID': normalizedStopID,
+        'UserStartingStopName': UserStartingStopName,
+        'UserDestinationStopName': UserDestinationStopName,
+        'notified': false,
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+    }
+
+    final saved = await prefs.setStringList(
+      _tasksKey,
+      tasks.map(jsonEncode).toList(),
+    );
+
+    if (!saved) {
+      throw StateError('無法儲存提醒任務');
+    }
+
+    // 先確認 AlarmManager 已初始化，再建立週期排程。
+    final scheduled = await AndroidAlarmManager.periodic(
+      const Duration(minutes: 1),
+      _alarmId,
+      backgroundTask,
+      wakeup: true,
+      rescheduleOnReboot: true,
+      exact: false,
+    );
+
+    if (!scheduled) {
+      // 回復儲存前的任務清單。
+      await prefs.setStringList(_tasksKey, originalTasks);
+      throw StateError('AndroidAlarmManager 無法建立背景排程');
+    }
+
+    debugPrint('[ArrivalReminder] 提醒建立成功：$key');
+  } catch (error, stackTrace) {
+    debugPrint('[ArrivalReminder] 新增提醒失敗：$error');
+    debugPrintStack(stackTrace: stackTrace);
+    rethrow;
   }
 }
 
+/// 移除指定路線的所有提醒。
 Future<void> removeReminder(String routeID) async {
   final prefs = await SharedPreferences.getInstance();
-  List<String> taskList = prefs.getStringList('reminderTasks') ?? [];
+  final tasks = prefs.getStringList(_tasksKey) ?? [];
+  final remaining = <String>[];
 
-  // 移除符合 routeID 的項目
-  taskList.removeWhere((task) {
-    final taskData = jsonDecode(task);
-    return taskData['routeID'] == routeID;
-  });
+  for (final raw in tasks) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) continue;
 
-  await prefs.setStringList('reminderTasks', taskList);
-  print("提醒已移除：$routeID");
+      final task = Map<String, dynamic>.from(decoded);
 
-  // 如果全部都刪光了，也可以考慮停止 Alarm Manager
-  if (taskList.isEmpty) {
-    await AndroidAlarmManager.cancel(9999);
-    print("已停止所有背景任務");
+      if (task['routeID']?.toString() == routeID) {
+        final key = task['taskKey']?.toString();
+        if (key != null) {
+          await flutterLocalNotificationsPlugin.cancel(
+            _notificationId(key),
+          );
+        }
+      } else {
+        remaining.add(raw);
+      }
+    } catch (_) {
+      remaining.add(raw);
+    }
+  }
+
+  await prefs.setStringList(_tasksKey, remaining);
+
+  if (remaining.isEmpty) {
+    await AndroidAlarmManager.cancel(_alarmId);
+  }
+
+  debugPrint('[ArrivalReminder] 已移除路線提醒：$routeID');
+}
+
+/// 移除指定站牌的提醒。
+Future<void> removeReminderByStop({
+  required String routeID,
+  required String city,
+  required String stopID,
+}) async {
+  final prefs = await SharedPreferences.getInstance();
+  final tasks = prefs.getStringList(_tasksKey) ?? [];
+
+  final key = _taskKey(
+    transportType: 'bus',
+    routeID: routeID,
+    city: city,
+    stopID: stopID,
+  );
+
+  final remaining = <String>[];
+
+  for (final raw in tasks) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        remaining.add(raw);
+        continue;
+      }
+
+      final task = Map<String, dynamic>.from(decoded);
+
+      if (task['taskKey'] == key) {
+        await flutterLocalNotificationsPlugin.cancel(
+          _notificationId(key),
+        );
+      } else {
+        remaining.add(raw);
+      }
+    } catch (_) {
+      remaining.add(raw);
+    }
+  }
+
+  await prefs.setStringList(_tasksKey, remaining);
+
+  if (remaining.isEmpty) {
+    await AndroidAlarmManager.cancel(_alarmId);
   }
 }
 
+/// 手動測試本機通知。
 Future<void> testTask() async {
-  try {
-    // 獲取當前時間的分鐘數
-    int currentMinute = DateTime.now().minute;
-
-    // 檢查當前分鐘數是否為偶數
-    if (currentMinute % 2 == 0) {
-      await flutterLocalNotificationsPlugin.show(
-        DateTime.now().millisecondsSinceEpoch ~/ 1000, // 使用時間戳作為唯一 ID
-        '到站提醒測試',
-        '【測試類型】測試路線 即將抵達 測試站牌！',
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'arrival_alerts_channel', // 必須與主 channel ID 一致
-            '到站提醒通知',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true, // 測試時建議開啟聲音
-            enableVibration: true,
-          ),
-        ),
-      );
-      debugPrint('測試通知已觸發');
-    } else {
-      debugPrint('當前分鐘數為奇數，未觸發通知');
-    }
-  } catch (e) {
-    debugPrint('通知發送失敗: $e');
-  }
+  await flutterLocalNotificationsPlugin.show(
+    777001,
+    '到站提醒測試',
+    '這是一則台灣通本機通知測試。',
+    _arrivalNotificationDetails,
+  );
 }

@@ -2,7 +2,12 @@ import 'dart:async';
 
 import 'package:com.rsmn574.app/features/youbike/data/bike_repository.dart';
 import 'package:com.rsmn574.app/models/bike.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+
+import '../../../const/regular_class.dart';
+import '../../../utils/convert.dart';
 
 /// The single source of truth for the YouBike sheet and map.
 class BikeProvider extends ChangeNotifier {
@@ -34,16 +39,24 @@ class BikeProvider extends ChangeNotifier {
   String get city => _city;
   bool get isLoadingStations => _stationLoads.containsKey(_city);
 
-  Future<void> loadStations({
-    String city = 'Taichung',
-    bool force = false,
-  }) {
+  Future<void> loadStations(
+      BuildContext context, {
+        bool force = false,
+      }) {
     if (_disposed) {
-      return Future.error(StateError('BikeProvider has been disposed'));
+      return Future.error(
+        StateError('BikeProvider has been disposed'),
+      );
     }
 
-    if (_city != city) {
-      _city = city;
+    final currentCity =
+        Provider.of<CityProvider>(context, listen: false).city;
+
+    // 中文城市名稱轉成 TDX 使用的英文城市名稱
+    final targetCity = cityNameConverter(currentCity);
+
+    if (_city != targetCity) {
+      _city = targetCity;
       _stations = const [];
       _selectedStation = null;
       _cancelAvailabilityRequest();
@@ -52,26 +65,31 @@ class BikeProvider extends ChangeNotifier {
       _stationError = null;
     }
 
-    final cachedEntry = _stationCache[city];
+    final cachedEntry = _stationCache[targetCity];
+
     if (!force &&
         cachedEntry != null &&
-        DateTime.now().difference(cachedEntry.cachedAt) < _stationCacheTtl) {
+        DateTime.now().difference(cachedEntry.cachedAt) <
+            _stationCacheTtl) {
       _stations = cachedEntry.stations;
       _stationError = null;
       _notifyListeners();
       return Future.value();
     }
 
-    final existingLoad = _stationLoads[city];
-    if (existingLoad != null) return existingLoad;
+    final existingLoad = _stationLoads[targetCity];
+    if (existingLoad != null) {
+      return existingLoad;
+    }
 
-    final loadFuture = _loadStations(city);
-    _stationLoads[city] = loadFuture;
+    final loadFuture = _loadStations(targetCity);
+    _stationLoads[targetCity] = loadFuture;
+
     _notifyListeners();
     return loadFuture;
   }
-
   Future<void> _loadStations(String city) async {
+    print(city);
     if (_city == city) _stationError = null;
     try {
       final stations = await _repository.fetchStations(city);
@@ -105,11 +123,11 @@ class BikeProvider extends ChangeNotifier {
   }
 
   Future<BikeAvailability> _loadAvailability(
-    String city,
-    String stationId,
-    int requestId,
-    Completer<void> abort,
-  ) async {
+      String city,
+      String stationId,
+      int requestId,
+      Completer<void> abort,
+      ) async {
     try {
       return await _repository.fetchAvailability(
         city,

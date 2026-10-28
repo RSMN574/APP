@@ -3452,4 +3452,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get airport_no_data => 'No airport data';
+
+  @override
+  String get authVerificationSent =>
+      'Account created. A verification email has been sent. Please check your inbox.';
+
+  @override
+  String get authVerificationSendFailed =>
+      'Account created, but the verification email could not be sent. Please try again later.';
+
+  @override
+  String get profileEmailVerified => 'Email verified';
+
+  @override
+  String get profileEmailNotVerified => 'Email not verified';
+
+  @override
+  String get profileSendVerification => 'Resend verification email';
+
+  @override
+  String get profileRefreshVerification => 'Refresh verification status';
+
+  @override
+  String get profileVerificationSent =>
+      'Verification email sent. Please check your inbox.';
+
+  @override
+  String get profileVerificationSendFailed =>
+      'Failed to send verification email. Please try again later.';
+
+  @override
+  String get profileVerificationRefreshFailed =>
+      'Could not refresh verification status. Please try again.';
 }

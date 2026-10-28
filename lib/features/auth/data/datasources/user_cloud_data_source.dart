@@ -4,7 +4,9 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import '../models/auth_user_model.dart';
+import '../../model/auth_user_model.dart';
+
+
 
 class UserCloudDataSource {
   UserCloudDataSource({FirebaseFirestore? firestore, FirebaseStorage? storage})

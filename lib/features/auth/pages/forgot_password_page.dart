@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+
+import '../../../const/app_colors.dart';
+import '../../../const/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../state/auth_provider.dart';
 import '../widgets/auth_email_field.dart';
@@ -45,6 +48,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<AuthProvider>();
+    final colors = context.appColors;
 
     return AuthFormLayout(
       title: l10n.authForgotPasswordTitle,
@@ -56,29 +60,46 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           children: [
             if (provider.error != null) ...[
               AuthErrorBanner(error: provider.error!),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
             if (provider.passwordResetSent) ...[
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  l10n.authResetEmailSent,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: colors.successContainer,
+                  borderRadius: AppRadius.roundedLg,
+                  border: Border.all(
+                    color: colors.success.withValues(alpha: 0.3),
                   ),
                 ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: colors.success,
+                      size: AppSizes.iconMd,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        l10n.authResetEmailSent,
+                        style: TextStyle(
+                          fontSize: AppTypography.bodyMedium,
+                          fontWeight: FontWeight.w500,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
             AuthEmailField(
               controller: _emailController,
               validator: (value) => _validateEmail(value, l10n),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             AuthSubmitButton(
               label: l10n.authSendResetEmail,
               isLoading: provider.isLoading,
@@ -89,8 +110,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       ),
       footer: TextButton(
         onPressed:
-            provider.isLoading ? null : () => Navigator.of(context).pop(),
-        child: Text(l10n.authBackToLogin),
+        provider.isLoading ? null : () => Navigator.of(context).pop(),
+        child: Text(
+          l10n.authBackToLogin,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: colors.info,
+          ),
+        ),
       ),
     );
   }

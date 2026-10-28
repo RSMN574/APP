@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+
+import '../../../const/app_colors.dart';
+import '../../../const/app_design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../state/auth_provider.dart';
 import '../widgets/auth_email_field.dart';
@@ -42,17 +45,45 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final succeeded = await context.read<AuthProvider>().register(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-    if (succeeded && mounted) await Navigator.of(context).maybePop();
+
+    final auth = context.read<AuthProvider>();
+    final colors = context.appColors;
+
+    final registered = await auth.register(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted || !registered) return;
+
+    final emailSent = await auth.sendEmailVerification();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          emailSent
+              ? AppLocalizations.of(context)!.authVerificationSent
+              : AppLocalizations.of(context)!.authVerificationSendFailed,
+        ),
+        backgroundColor: emailSent ? colors.success : colors.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.roundedMd,
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    await Navigator.of(context).maybePop();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<AuthProvider>();
+    final colors = context.appColors;
 
     return AuthFormLayout(
       title: l10n.authRegisterTitle,
@@ -65,13 +96,13 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               if (provider.error != null) ...[
                 AuthErrorBanner(error: provider.error!),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
               ],
               AuthEmailField(
                 controller: _emailController,
                 validator: (value) => _validateEmail(value, l10n),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               AuthPasswordField(
                 controller: _passwordController,
                 label: l10n.authPassword,
@@ -82,7 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               AuthPasswordField(
                 controller: _confirmPasswordController,
                 label: l10n.authConfirmPassword,
@@ -91,7 +122,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ? l10n.authValidationPasswordMismatch
                     : null,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               AuthSubmitButton(
                 label: l10n.authRegister,
                 isLoading: provider.isLoading,
@@ -105,16 +136,28 @@ class _RegisterPageState extends State<RegisterPage> {
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(l10n.authHaveAccount),
+          Text(
+            l10n.authHaveAccount,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: AppTypography.bodyMedium,
+            ),
+          ),
           TextButton(
             onPressed: provider.isLoading
                 ? null
                 : () => Navigator.of(context).pushReplacement(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const LoginPage(),
-                      ),
-                    ),
-            child: Text(l10n.authLogin),
+              MaterialPageRoute<void>(
+                builder: (_) => const LoginPage(),
+              ),
+            ),
+            child: Text(
+              l10n.authLogin,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: colors.info,
+              ),
+            ),
           ),
         ],
       ),
