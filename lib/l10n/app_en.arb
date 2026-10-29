@@ -1211,7 +1211,11 @@
   "profileRefreshVerification": "Refresh verification status",
   "profileVerificationSent": "Verification email sent. Please check your inbox.",
   "profileVerificationSendFailed": "Failed to send verification email. Please try again later.",
-  "profileVerificationRefreshFailed": "Could not refresh verification status. Please try again."
+  "profileVerificationRefreshFailed": "Could not refresh verification status. Please try again.",
+
+    "evConnectorCount": "{count} connectors",
+    "evChargingPointId": "Charging point ID: {id}"
+
 }
 
 

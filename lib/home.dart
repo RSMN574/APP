@@ -8,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 
+import 'const/app_colors.dart';
 import 'const/regular_class.dart';
 import 'const/regular_const.dart';
 import 'models/bike.dart';
@@ -201,7 +202,7 @@ class _HomeState extends State<_HomeContent>
     final bikeProvider = context.read<BikeProvider>();
     final controller = showBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // 讓 Container 自己控制背景
+      backgroundColor: Colors.transparent,
       builder: (_) => ChangeNotifierProvider.value(
         value: bikeProvider,
         child: Builder(builder: _buildBikeContent),
@@ -222,6 +223,8 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildMainContent(BuildContext context) {
+    final colors = context.appColors;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.43,
       minChildSize: _bottomSheetHeightMin,
@@ -234,12 +237,13 @@ class _HomeState extends State<_HomeContent>
               margin: const EdgeInsets.only(top: 60),
               height: 800,
               decoration: BoxDecoration(
-                color: AppThemes.getSurface(context),
+                color: colors.cardBackground,          // ← 改這行
                 borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24)), // LMG: 增加圓角
+                  top: Radius.circular(24),
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: colors.shadow,              // ← 改這行
                     blurRadius: 20,
                     offset: const Offset(0, -5),
                   ),
@@ -251,8 +255,8 @@ class _HomeState extends State<_HomeContent>
                   children: [
                     TransportGrid(onClick: _handleClick),
                     const ImgSwiper(),
-                    const WeatherAlertCard(
-                      cityName: '台中市',
+                    WeatherAlertCard(
+                      cityName: Provider.of<CityProvider>(context).city,
                     ),
                   ],
                 ),
@@ -263,6 +267,8 @@ class _HomeState extends State<_HomeContent>
       },
     );
   }
+
+
 
   void _updateSelectedStation(YouBikeStation? station) {
     final bike = context.read<BikeProvider>();
@@ -289,61 +295,65 @@ class _HomeState extends State<_HomeContent>
 
   Widget _buildBikeContent(BuildContext context) {
     final bike = context.watch<BikeProvider>();
-    final colors = Theme.of(context).colorScheme;
+    final colors = context.appColors;
 
     return Container(
       decoration: BoxDecoration(
-        color: colors.surface,
+        color: colors.cardBackground,
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(24),
         ),
       ),
       child: bike.selectedStation == null
           ? bike.isLoadingStations
-              ? _buildLoadingState(context)
-              : bike.stationError != null
-                  ? _buildStationLoadError()
-                  : BikeDefaultContent(
-                      stations: bike.stations,
-                      onStationSelected: _updateSelectedStation,
-                    )
+          ? _buildLoadingState(context)
+          : bike.stationError != null
+          ? _buildStationLoadError()
+          : BikeDefaultContent(
+        stations: bike.stations,
+        onStationSelected: _updateSelectedStation,
+      )
           : FutureBuilder<BikeAvailability?>(
-              future: bike.availabilityFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingState(context);
-                }
+        future: bike.availabilityFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return _buildLoadingState(context);
+          }
 
-                if (snapshot.hasError || !snapshot.hasData) {
-                  return _buildAvailabilityError(
-                    snapshot.hasError
-                        ? AppLocalizations.of(context)!.text_131
-                        : AppLocalizations.of(context)!.text_132,
-                    snapshot.hasError
-                        ? Icons.error_outline
-                        : Icons.info_outline,
-                  );
-                }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return _buildAvailabilityError(
+              snapshot.hasError
+                  ? AppLocalizations.of(context)!.text_131
+                  : AppLocalizations.of(context)!.text_132,
+              snapshot.hasError
+                  ? Icons.error_outline
+                  : Icons.info_outline,
+            );
+          }
 
-                final stationName = bike.selectedStation!.stationName.zhTw;
-                final data = snapshot.data!;
+          final stationName = bike.selectedStation!.stationName.zhTw;
+          final data = snapshot.data!;
 
-                return _buildContentSection(context, stationName, data);
-              },
-            ),
+          return _buildContentSection(context, stationName, data);
+        },
+      ),
     );
   }
 
   Widget _buildAvailabilityError(String text, IconData icon) {
+    final colors = context.appColors;
     return SizedBox(
       height: 300,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 40, color: Colors.grey[400]),
+            Icon(icon, size: 40, color: colors.textHint),
             const SizedBox(height: 16),
-            Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
+            Text(
+              text,
+              style: TextStyle(color: colors.textSecondary, fontSize: 15),
+            ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () {
@@ -364,7 +374,9 @@ class _HomeState extends State<_HomeContent>
       child: Center(
         child: TextButton(
           onPressed: () async {
-            await context.read<BikeProvider>().loadStations(context,force: true);
+            await context
+                .read<BikeProvider>()
+                .loadStations(context, force: true);
             if (mounted && _bottomSheetController != null) {
               await _loadBikeMarkers();
             }
@@ -376,19 +388,19 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildLoadingState(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final colors = context.appColors;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           LoadingAnimationWidget.stretchedDots(
-            color: colors.primary,
+            color: colors.info,
             size: 40,
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_133,
-            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(color: colors.textSecondary, fontSize: 14),
           ),
         ],
       ),
@@ -397,7 +409,7 @@ class _HomeState extends State<_HomeContent>
 
   Widget _buildContentSection(
       BuildContext context, String stationName, BikeAvailability data) {
-    final colors = Theme.of(context).colorScheme;
+    final colors = context.appColors;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Column(
@@ -408,8 +420,7 @@ class _HomeState extends State<_HomeContent>
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(
-                    color: Colors.grey.withValues(alpha: 0.15), width: 1),
+                bottom: BorderSide(color: colors.divider, width: 1),
               ),
             ),
             child: Row(
@@ -417,12 +428,12 @@ class _HomeState extends State<_HomeContent>
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: colors.primaryContainer,
+                    color: colors.infoContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.pin_drop,
-                    color: colors.onPrimaryContainer,
+                    color: colors.info,
                     size: 18,
                   ),
                 ),
@@ -432,7 +443,7 @@ class _HomeState extends State<_HomeContent>
                     stationName,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      color: colors.onSurface,
+                      color: colors.textPrimary,
                       fontSize: 16,
                     ),
                   ),
@@ -443,7 +454,7 @@ class _HomeState extends State<_HomeContent>
                   icon: Icon(
                     Icons.close_rounded,
                     size: 22,
-                    color: colors.onSurfaceVariant,
+                    color: colors.textSecondary,
                   ),
                   onPressed: () {
                     _updateSelectedStation(null);
@@ -468,12 +479,13 @@ class _HomeState extends State<_HomeContent>
   }
 
   Widget _buildCompactDataGrid(
-    BuildContext context, {
-    required String rentBikes,
-    required String returnSpots,
-    required String generalBikes,
-    required String electricBikes,
-  }) {
+      BuildContext context, {
+        required String rentBikes,
+        required String returnSpots,
+        required String generalBikes,
+        required String electricBikes,
+      }) {
+    final colors = context.appColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -482,7 +494,7 @@ class _HomeState extends State<_HomeContent>
             _buildMetricTile(
               context,
               icon: Icons.pedal_bike,
-              color: const Color(0xFF34C759),
+              color: colors.success,
               title: AppLocalizations.of(context)!.text_134,
               value: rentBikes,
               widthFactor: 0.5,
@@ -491,7 +503,7 @@ class _HomeState extends State<_HomeContent>
             _buildMetricTile(
               context,
               icon: Icons.local_parking,
-              color: const Color(0xFF1A73E8),
+              color: colors.info,
               title: AppLocalizations.of(context)!.text_135,
               value: returnSpots,
               widthFactor: 0.5,
@@ -502,9 +514,9 @@ class _HomeState extends State<_HomeContent>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: colors.mutedBackground,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            border: Border.all(color: colors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,7 +526,7 @@ class _HomeState extends State<_HomeContent>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 12),

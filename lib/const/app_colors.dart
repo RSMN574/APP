@@ -138,10 +138,10 @@ class AppColors extends ThemeExtension<AppColors> {
       scrim: Color.lerp(scrim, other.scrim, t)!,
       success: Color.lerp(success, other.success, t)!,
       successContainer:
-          Color.lerp(successContainer, other.successContainer, t)!,
+      Color.lerp(successContainer, other.successContainer, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       warningContainer:
-          Color.lerp(warningContainer, other.warningContainer, t)!,
+      Color.lerp(warningContainer, other.warningContainer, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
       info: Color.lerp(info, other.info, t)!,
@@ -153,7 +153,7 @@ class AppColors extends ThemeExtension<AppColors> {
 extension AppColorsContext on BuildContext {
   AppColors get appColors =>
       Theme.of(this).extension<AppColors>() ??
-      (Theme.of(this).brightness == Brightness.dark
-          ? AppColors.dark
-          : AppColors.light);
+          (Theme.of(this).brightness == Brightness.dark
+              ? AppColors.dark
+              : AppColors.light);
 }

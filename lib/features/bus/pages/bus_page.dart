@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
+import 'package:com.rsmn574.app/const/app_colors.dart';
 import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
@@ -21,6 +22,7 @@ import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/features/bus/services/bus_search_service.dart';
 
+import '../../../const/surface_decoration.dart';
 import '../../../database/bootstrap_service.dart';
 import '../../../database/sql/app_database.dart';
 import '../../../firebase/analytics_service.dart';
@@ -49,6 +51,7 @@ class MenuItemData {
   });
 }
 
+// 城市資料：`name` 為資料值（用於比對 / 顯示），不屬於 UI 靜態字串。
 final List<CityItem> cities = [
   CityItem(name: '全部', id: 'all'),
   CityItem(name: '臺中市', id: 'Taichung'),
@@ -76,8 +79,8 @@ class BusState extends State<Bus> {
   ValueNotifier<List<BusRoute>> favoriteRoutes = ValueNotifier([]);
   List<BusRoute> busData = [];
 
-  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>("全部");
-  ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>("");
+  ValueNotifier<String> currentCityNotifier = ValueNotifier<String>('全部');
+  ValueNotifier<String> correspondingIDNotifier = ValueNotifier<String>('');
 
   final ValueNotifier<double> suggestionsHeightNotifier =
   ValueNotifier<double>(0);
@@ -91,9 +94,9 @@ class BusState extends State<Bus> {
   // 收藏載入去重
   Future<void>? _favoritesInFlight;
 
-  // 品牌主色（沿用原視覺）
-  final Color _primaryColor = const Color(0xFF1A73E8);
-  final Color _secondaryColor = const Color(0xFFEEF3FB);
+  // ✅ P2：改為由主題取得，避免硬編碼品牌色。
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+  Color get _secondaryColor => context.appColors.mutedBackground;
 
   // ---------------------------------------------------------------------------
   // 生命週期
@@ -148,7 +151,6 @@ class BusState extends State<Bus> {
       await dbHelper.initDatabase();
     } catch (e, st) {
       debugPrint('init favorites db failed: $e\n$st');
-      // TODO(Crashlytics): 若已安裝，於此處回報非致命例外。
     }
   }
 
@@ -198,7 +200,6 @@ class BusState extends State<Bus> {
       return await context.read<BusProvider>().loadRoutes(city);
     } catch (error, st) {
       debugPrint('load routes failed for $city: $error\n$st');
-      // 保留原記憶體資料，不覆蓋成空陣列
       return busData;
     }
   }
@@ -340,6 +341,7 @@ class BusState extends State<Bus> {
   // ---------------------------------------------------------------------------
 
   AppBar _buildAppBar() {
+    final colorScheme = Theme.of(context).colorScheme;
     final surface = AppThemes.getSurface(context);
     return AppBar(
       backgroundColor: surface,
@@ -373,7 +375,7 @@ class BusState extends State<Bus> {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: colorScheme.onSurface,
               ),
             ),
           ),
@@ -398,6 +400,7 @@ class BusState extends State<Bus> {
   }
 
   void _showInfoMenu() {
+    final colorScheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppThemes.getSurface(context),
@@ -414,7 +417,7 @@ class BusState extends State<Bus> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).dividerColor,
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -445,6 +448,7 @@ class BusState extends State<Bus> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -457,7 +461,7 @@ class BusState extends State<Bus> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: colorScheme.shadow.withOpacity(0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -479,7 +483,7 @@ class BusState extends State<Bus> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 24, color: Colors.white),
+                child: Icon(icon, size: 24, color: colorScheme.onPrimary),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -491,7 +495,7 @@ class BusState extends State<Bus> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -499,10 +503,7 @@ class BusState extends State<Bus> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.7),
+                        color: colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -511,7 +512,7 @@ class BusState extends State<Bus> {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                color: colorScheme.onSurface.withOpacity(0.4),
               ),
             ],
           ),
@@ -536,6 +537,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildFareInfoContent() {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -550,7 +552,7 @@ class BusState extends State<Bus> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: colorScheme.shadow.withOpacity(0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -566,7 +568,7 @@ class BusState extends State<Bus> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppThemes.getPrimary(context),
+                      color: _primaryColor,
                     ),
                   ),
                 ),
@@ -579,6 +581,7 @@ class BusState extends State<Bus> {
                     const SizedBox(height: 12),
                     _buildInfoText(AppLocalizations.of(context)!.text_24),
                     const SizedBox(height: 12),
+                    // TODO(P2-i18n): 需新增 ARB key（電子票證說明）。
                     _buildInfoText(
                         "4. 電子票證包含悠遊卡 (EASYCARD)、一卡通 (iPASS)、愛金卡 (icash2.0)。"),
                   ],
@@ -668,6 +671,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildAlertCard(Map<String, dynamic> alert) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
       decoration: BoxDecoration(
@@ -675,7 +679,7 @@ class BusState extends State<Bus> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.05),
             offset: const Offset(0, 4),
             blurRadius: 8,
           ),
@@ -696,14 +700,14 @@ class BusState extends State<Bus> {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: colorScheme.onSurface,
           ),
         ),
         subtitle: Text(
           alert['Description'] ?? AppLocalizations.of(context)!.text_26,
           style: TextStyle(
             fontSize: 14,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            color: colorScheme.onSurface.withOpacity(0.7),
           ),
         ),
       ),
@@ -711,6 +715,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildNoDataWidget() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -718,13 +723,13 @@ class BusState extends State<Bus> {
           Icon(
             Icons.info_outline,
             size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            color: colorScheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_27,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withOpacity(0.6),
               fontSize: 16,
             ),
           ),
@@ -738,6 +743,7 @@ class BusState extends State<Bus> {
   // ---------------------------------------------------------------------------
 
   Widget _buildCityDropdown([bool includeAll = true]) {
+    final colorScheme = Theme.of(context).colorScheme;
     final filteredList = includeAll
         ? cities
         : cities
@@ -751,7 +757,7 @@ class BusState extends State<Bus> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colorScheme.shadow.withOpacity(0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -801,7 +807,7 @@ class BusState extends State<Bus> {
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   size: 20,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorScheme.primary,
                 ),
                 selectedItemBuilder: (BuildContext context) {
                   return filteredList.map<Widget>((CityItem city) {
@@ -812,7 +818,7 @@ class BusState extends State<Bus> {
                           Icon(
                             Icons.location_on_rounded,
                             size: 18,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -823,7 +829,7 @@ class BusState extends State<Bus> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color: colorScheme.onSurface,
                               ),
                             ),
                           ),
@@ -843,11 +849,8 @@ class BusState extends State<Bus> {
                           height: 6,
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.3),
+                                ? colorScheme.primary
+                                : colorScheme.onSurface.withOpacity(0.3),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -860,7 +863,7 @@ class BusState extends State<Bus> {
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -924,6 +927,9 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildSearchSection() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
@@ -933,7 +939,7 @@ class BusState extends State<Bus> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: colorScheme.shadow.withOpacity(0.06),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -953,6 +959,10 @@ class BusState extends State<Bus> {
               child: ValueListenableBuilder<SearchType>(
                 valueListenable: _dropdownValueNotifier,
                 builder: (context, value, child) {
+                  String labelOf(SearchType t) => t == SearchType.route
+                      ? l10n.text_15
+                      : l10n.text_29;
+
                   return DropdownButtonHideUnderline(
                     child: DropdownButton<SearchType>(
                       value: _dropdownValueNotifier.value,
@@ -962,7 +972,7 @@ class BusState extends State<Bus> {
                       icon: Icon(
                         Icons.keyboard_arrow_down_rounded,
                         size: 20,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: colorScheme.primary,
                       ),
                       selectedItemBuilder: (BuildContext context) {
                         return SearchType.values.map<Widget>((type) {
@@ -980,10 +990,7 @@ class BusState extends State<Bus> {
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Theme.of(context)
-                                        .colorScheme
-                                        .primary
-                                        .withOpacity(0.1)
+                                        ? colorScheme.primary.withOpacity(0.1)
                                         : Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -991,27 +998,21 @@ class BusState extends State<Bus> {
                                     icon,
                                     size: 18,
                                     color: isSelected
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.6),
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface.withOpacity(0.6),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  type == SearchType.route ? '路線' : '站牌',
+                                  labelOf(type),
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: isSelected
                                         ? FontWeight.w600
                                         : FontWeight.w500,
                                     color: isSelected
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.7),
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                 ),
                               ],
@@ -1043,10 +1044,7 @@ class BusState extends State<Bus> {
                                 horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.08)
+                                  ? colorScheme.primary.withOpacity(0.08)
                                   : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -1056,7 +1054,7 @@ class BusState extends State<Bus> {
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? Theme.of(context).colorScheme.primary
+                                        ? colorScheme.primary
                                         : AppThemes.getCardColor(context),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1064,26 +1062,22 @@ class BusState extends State<Bus> {
                                     icon,
                                     size: 18,
                                     color: isSelected
-                                        ? Colors.white
-                                        : _primaryColor,
+                                        ? colorScheme.onPrimary
+                                        : colorScheme.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    type == SearchType.route ? '路線' : '站牌',
+                                    labelOf(type),
                                     style: TextStyle(
                                       fontSize: 15,
                                       fontWeight: isSelected
                                           ? FontWeight.w600
                                           : FontWeight.w500,
                                       color: isSelected
-                                          ? Theme.of(context)
-                                          .colorScheme
-                                          .primary
-                                          : Theme.of(context)
-                                          .colorScheme
-                                          .onSurface,
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurface,
                                     ),
                                   ),
                                 ),
@@ -1091,13 +1085,13 @@ class BusState extends State<Bus> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: _primaryColor,
+                                      color: colorScheme.primary,
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(
+                                    child: Icon(
                                       Icons.check_rounded,
                                       size: 14,
-                                      color: Colors.white,
+                                      color: colorScheme.onPrimary,
                                     ),
                                   ),
                               ],
@@ -1113,7 +1107,7 @@ class BusState extends State<Bus> {
             Container(
               width: 1,
               height: 32,
-              color: Theme.of(context).dividerColor.withOpacity(0.3),
+              color: colorScheme.outlineVariant.withOpacity(0.3),
             ),
             Expanded(
               child: Container(
@@ -1126,12 +1120,9 @@ class BusState extends State<Bus> {
                   controller: busIdController,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)!.text_30,
+                    hintText: l10n.text_30,
                     hintStyle: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.4),
+                      color: colorScheme.onSurface.withOpacity(0.4),
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                     ),
@@ -1164,10 +1155,7 @@ class BusState extends State<Bus> {
                             child: Icon(
                               Icons.close_rounded,
                               size: 16,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.6),
+                              color: colorScheme.onSurface.withOpacity(0.6),
                             ),
                           ),
                         );
@@ -1178,7 +1166,7 @@ class BusState extends State<Bus> {
                         horizontal: 12, vertical: 12),
                   ),
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: colorScheme.onSurface,
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1192,6 +1180,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildMainContent() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1199,7 +1188,7 @@ class BusState extends State<Bus> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.05),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1248,12 +1237,9 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildTabItem(int index) {
+    final colors = context.appColors;
+    final scheme = Theme.of(context).colorScheme;
     final bool isSelected = _current == index;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final unselectedStart = isDark ? const Color(0xFF2C2C2E) : Colors.white;
-    final unselectedEnd =
-    isDark ? const Color(0xFF1C1C1E) : Colors.grey[50]!;
-    final unselectedIconBg = isDark ? const Color(0xFF1C1C1E) : _secondaryColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -1270,41 +1256,9 @@ class BusState extends State<Bus> {
           duration: const Duration(milliseconds: 400),
           width: 100,
           height: 76,
-          decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-              colors: [_primaryColor, _primaryColor.withOpacity(0.9)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            )
-                : LinearGradient(
-              colors: [unselectedStart, unselectedEnd],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: isSelected
-                ? [
-              BoxShadow(
-                color: _primaryColor.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ]
-                : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-            border: isSelected
-                ? Border.all(color: _primaryColor.withOpacity(0.2), width: 1.5)
-                : Border.all(
-              color: Theme.of(context).dividerColor.withOpacity(0.4),
-              width: 1,
-            ),
-          ),
+          decoration: isSelected
+              ? SurfaceDecoration.selected(context, radius: 16)
+              : SurfaceDecoration.outlined(context, radius: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1313,14 +1267,14 @@ class BusState extends State<Bus> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.white.withOpacity(0.2)
-                      : unselectedIconBg,
+                      ? colors.info.withOpacity(0.12)
+                      : colors.mutedBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   menuItems[index].icon,
                   size: 18,
-                  color: isSelected ? Colors.white : _primaryColor,
+                  color: colors.info,
                 ),
               ),
               const SizedBox(height: 8),
@@ -1329,7 +1283,7 @@ class BusState extends State<Bus> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : _primaryColor,
+                  color: colors.info,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1339,7 +1293,6 @@ class BusState extends State<Bus> {
       ),
     );
   }
-
   Widget _buildPageView() {
     return PageView.builder(
       itemCount: menuItems.length,
@@ -1390,7 +1343,7 @@ class BusState extends State<Bus> {
           itemCount: list.length,
           separatorBuilder: (_, __) => Divider(
             height: 16,
-            color: Theme.of(context).dividerColor.withOpacity(0.3),
+            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3),
           ),
           itemBuilder: (context, index) => itemBuilder(list[index]),
         );
@@ -1431,13 +1384,14 @@ class BusState extends State<Bus> {
     VoidCallback? onTap,
     VoidCallback? onRemove,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
         color: AppThemes.getCardColor(context),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withOpacity(0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1465,7 +1419,7 @@ class BusState extends State<Bus> {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
-            color: Theme.of(context).colorScheme.onSurface,
+            color: colorScheme.onSurface,
           ),
         ),
         subtitle: subtitle != null
@@ -1475,14 +1429,16 @@ class BusState extends State<Bus> {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 14,
-            color:
-            Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            color: colorScheme.onSurface.withOpacity(0.7),
           ),
         )
             : null,
         trailing: onRemove != null
             ? IconButton(
-          icon: const Icon(Icons.favorite, color: Colors.red),
+          icon: Icon(
+            Icons.favorite,
+            color: context.appColors.danger,
+          ),
           onPressed: onRemove,
         )
             : null,
@@ -1492,6 +1448,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildEmptyState(String message) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1499,14 +1456,15 @@ class BusState extends State<Bus> {
           Icon(
             Icons.favorite_border,
             size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            color: colorScheme.onSurface.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
+          // TODO(P2-i18n): 需新增 ARB key（"暫無 {target}"）。
           Text(
             '暫無$message',
             style: TextStyle(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withOpacity(0.6),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1515,7 +1473,7 @@ class BusState extends State<Bus> {
             AppLocalizations.of(context)!.text_31,
             style: TextStyle(
               fontSize: 14,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              color: colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
         ],
@@ -1524,6 +1482,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildComingSoon() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1531,14 +1490,14 @@ class BusState extends State<Bus> {
           Icon(
             Icons.build,
             size: 64,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+            color: colorScheme.onSurface.withOpacity(0.4),
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_32,
             style: TextStyle(
               fontSize: 16,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ],
@@ -1547,6 +1506,7 @@ class BusState extends State<Bus> {
   }
 
   Widget _buildSuggestionsOverlay() {
+    final colorScheme = Theme.of(context).colorScheme;
     return ValueListenableBuilder<double>(
       valueListenable: suggestionsHeightNotifier,
       builder: (context, height, child) {
@@ -1562,7 +1522,7 @@ class BusState extends State<Bus> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: colorScheme.shadow.withOpacity(0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -1576,10 +1536,7 @@ class BusState extends State<Bus> {
                     child: Text(
                       AppLocalizations.of(context)!.text_33,
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.6),
+                        color: colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   );
@@ -1642,7 +1599,6 @@ class BusState extends State<Bus> {
 
     if (!BusSearchService.allowedCityIds.contains(cityId)) return;
 
-    // 記錄「開啟即時資訊頁」（避免在 build 中觸發；只在導航時呼叫一次）
     unawaited(AppAnalytics.logFeatureOpened('bus_time_page'));
 
     final detail = await BusSearchService.fetchRouteDetail(
@@ -1676,7 +1632,7 @@ class BusState extends State<Bus> {
           routeMapImageUrl:
           detail?["RouteMapImageUrl"]?.toString() ?? "",
           city: cityId,
-          routeID: route.routeID.toString(),
+          routeID: finalRouteID,
           hasSubRoutes: route.hasSubRoute,
           data: route,
         ),
@@ -1705,7 +1661,7 @@ class BusState extends State<Bus> {
       text: AppLocalizations.of(context)!.text_34,
       confirmBtnText: AppLocalizations.of(context)!.text_35,
       cancelBtnText: AppLocalizations.of(context)!.text_36,
-      confirmBtnColor: Colors.green,
+      confirmBtnColor: context.appColors.success,
       onCancelBtnTap: () => Navigator.pop(context),
       onConfirmBtnTap: () async {
         await _removeFavorite(context, item, SharedPreferencesList);
@@ -1723,7 +1679,6 @@ class BusState extends State<Bus> {
       } else if (SharedPreferencesList == "FavoritesStop") {
         await db.removeFavoriteStop(item, correspondingIDNotifier.value);
       }
-      // 記錄收藏移除事件（沿用已存在的 logFeatureOpened 介面）
       unawaited(AppAnalytics.logFeatureOpened(
         SharedPreferencesList == "FavoritesRoute"
             ? 'bus_unfavorite_route'
@@ -1736,9 +1691,8 @@ class BusState extends State<Bus> {
   }
 
   Widget BusStopList(List suggestions) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final highlightColor =
-    isDark ? _primaryColor.withOpacity(0.18) : _secondaryColor;
+    final colorScheme = Theme.of(context).colorScheme;
+    final highlightColor = colorScheme.primary.withOpacity(0.12);
 
     return ListView.builder(
       itemCount: suggestions.length,
@@ -1755,10 +1709,10 @@ class BusState extends State<Bus> {
             leading: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.1),
+                color: colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Icon(Icons.place, size: 16, color: _primaryColor),
+              child: Icon(Icons.place, size: 16, color: colorScheme.primary),
             ),
             title: Text(
               suggestions[index].toString(),
@@ -1766,7 +1720,7 @@ class BusState extends State<Bus> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: colorScheme.onSurface,
               ),
             ),
             onTap: () {

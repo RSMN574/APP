@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,20 +20,20 @@ const String _tdxHost = 'tdx.transportdata.tw';
 ///
 /// 注意：回傳值已包含 City/，呼叫端不要再額外加一次 City/。
 String _busScope(String city) {
-  final normalizedCity = city.trim();
+final normalizedCity = city.trim();
 
-  if (normalizedCity.isEmpty ||
-      normalizedCity.toLowerCase() == 'all' ||
-      normalizedCity == 'InterCity') {
-    return 'InterCity';
-  }
+if (normalizedCity.isEmpty ||
+normalizedCity.toLowerCase() == 'all' ||
+normalizedCity == 'InterCity') {
+return 'InterCity';
+}
 
-  // 避免呼叫端傳入已經帶有 City/ 的值時重複加前綴。
-  if (normalizedCity.startsWith('City/')) {
-    return normalizedCity;
-  }
+// 避免呼叫端傳入已經帶有 City/ 的值時重複加前綴。
+if (normalizedCity.startsWith('City/')) {
+return normalizedCity;
+}
 
-  return 'City/$normalizedCity';
+return 'City/$normalizedCity';
 }
 
 /// 將 OData 字串值中的單引號跳脫，避免 filter 字串格式錯誤。
@@ -43,51 +44,51 @@ String _encodePathSegment(String value) => Uri.encodeComponent(value.trim());
 
 /// 解析 API 回傳的陣列，並轉成 Map 清單。
 List<Map<String, dynamic>> _parseMapList(
-    dynamic response, {
-      required String apiName,
-    }) {
-  if (response is! List) {
-    throw FormatException('$apiName 回傳格式不是 JSON 陣列');
-  }
+dynamic response, {
+required String apiName,
+}) {
+if (response is! List) {
+throw FormatException('$apiName 回傳格式不是 JSON 陣列');
+}
 
-  return response
-      .whereType<Map>()
-      .map((item) => Map<String, dynamic>.from(item))
-      .toList(growable: false);
+return response
+    .whereType<Map>()
+    .map((item) => Map<String, dynamic>.from(item))
+    .toList(growable: false);
 }
 
 /// 取得指定路線的預估到站時間。
 Future<List<dynamic>> fetchBusTime(
-    String routeName,
-    String city,
-    String routeID,
-    ) async {
-  final client = TdxApiClient();
-  final path =
-      '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
-      '${_busScope(city)}/${routeName.trim()}';
+String routeName,
+String city,
+String routeID,
+) async {
+final client = TdxApiClient();
+final path =
+'/api/basic/v2/Bus/EstimatedTimeOfArrival/'
+'${_busScope(city)}/${routeName.trim()}';
 
-  final queryParams = <String, String>{
-    r'$filter': "RouteID eq '${_odataString(routeID)}'",
-    r'$format': 'JSON',
-  };
+final queryParams = <String, String>{
+r'$filter': "RouteID eq '${_odataString(routeID)}'",
+r'$format': 'JSON',
+};
 
-  try {
-    final response = await client.get(
-      path,
-      queryParams: queryParams,
-    );
+try {
+final response = await client.get(
+path,
+queryParams: queryParams,
+);
 
-    if (response is! List) {
-      throw const FormatException('TDX 預估到站時間 API 回傳格式不是陣列');
-    }
+if (response is! List) {
+throw const FormatException('TDX 預估到站時間 API 回傳格式不是陣列');
+}
 
-    return response;
-  } catch (error, stackTrace) {
-    debugPrint('fetchBusTime 失敗：$error');
-    debugPrintStack(stackTrace: stackTrace);
-    rethrow;
-  }
+return response;
+} catch (error, stackTrace) {
+debugPrint('fetchBusTime 失敗：$error');
+debugPrintStack(stackTrace: stackTrace);
+rethrow;
+}
 }
 
 /// 取得指定縣市與路線的公車動態定時資料（TDX A1）。
@@ -99,23 +100,76 @@ Future<List<dynamic>> fetchBusTime(
 /// 若 city 為 Taipei，路徑應為：
 /// /api/basic/v2/Bus/RealTimeByFrequency/City/Taipei/307
 Future<List<Map<String, dynamic>>> fetchBusRealtimePosition(
+String routeName,
+String city,
+String routeID,
+) async {
+final client = TdxApiClient();
+final path =
+'/api/basic/v2/Bus/RealTimeByFrequency/'
+'${_busScope(city)}/${routeName.trim()}';
+
+
+final queryParams = <String, String>{
+r'$filter': "RouteID eq '${_odataString(routeID)}'",
+r'$format': 'JSON',
+};
+
+try {
+debugPrint('🚌 TDX 即時公車 API 路徑：$path');
+
+final response = await client.get(
+path,
+queryParams: queryParams,
+);
+
+final result = _parseMapList(
+response,
+apiName: 'TDX 即時公車 API',
+);
+
+debugPrint('🚌 即時公車資料筆數：${result.length}');
+if (result.isNotEmpty) {
+debugPrint('🚌 即時公車第一筆資料：${result.first}');
+} else {
+debugPrint('🚌 此路線目前沒有回傳即時公車資料');
+}
+
+return result;
+} catch (error, stackTrace) {
+debugPrint('fetchBusRealtimePosition 失敗：$error');
+debugPrintStack(stackTrace: stackTrace);
+rethrow;
+}
+}
+
+
+
+
+Future<List<Map<String, dynamic>>> fetchS2STravelTime(
     String routeName,
     String city,
     String routeID,
     ) async {
   final client = TdxApiClient();
-  final path =
-      '/api/basic/v2/Bus/RealTimeByFrequency/'
-      '${_busScope(city)}/${routeName.trim()}';
 
+  final scope = _busScope(city);
+  final encodedRouteID = Uri.encodeComponent(routeID);
+
+  final path =
+      '/api/basic/v2/Bus/S2STravelTime/$scope/$encodedRouteID';
 
   final queryParams = <String, String>{
-    r'$filter': "RouteID eq '${_odataString(routeID)}'",
+    r'$top': '30',
     r'$format': 'JSON',
   };
 
   try {
-    debugPrint('🚌 TDX 即時公車 API 路徑：$path');
+    debugPrint('🚌 S2S city=$city');
+    debugPrint('🚌 S2S scope=$scope');
+    debugPrint('🚌 S2S routeName=$routeName');
+    debugPrint('🚌 S2S routeID=$routeID');
+    debugPrint('🚌 S2S path=$path');
 
     final response = await client.get(
       path,
@@ -124,311 +178,311 @@ Future<List<Map<String, dynamic>>> fetchBusRealtimePosition(
 
     final result = _parseMapList(
       response,
-      apiName: 'TDX 即時公車 API',
+      apiName: 'TDX 站間行車時間 API',
     );
 
-    debugPrint('🚌 即時公車資料筆數：${result.length}');
+    debugPrint('🚌 S2S 資料筆數=${result.length}');
     if (result.isNotEmpty) {
-      debugPrint('🚌 即時公車第一筆資料：${result.first}');
-    } else {
-      debugPrint('🚌 此路線目前沒有回傳即時公車資料');
+      debugPrint('🚌 S2S 第一筆資料=${result.first}');
     }
 
     return result;
   } catch (error, stackTrace) {
-    debugPrint('fetchBusRealtimePosition 失敗：$error');
+    debugPrint('fetchS2STravelTime 失敗：$error');
     debugPrintStack(stackTrace: stackTrace);
     rethrow;
   }
 }
 
+
 /// 取得大眾運輸路線規劃結果。
 Future<Map<String, dynamic>> getDirections(
-    String origin,
-    String destination,
-    dynamic time,
-    Map<String, dynamic> option,
-    ) async {
-  final rawModes = option['TransportModes'];
-  final transportModes = rawModes is List
-      ? rawModes.map((value) => value.toString()).toList()
-      : <String>[];
+String origin,
+String destination,
+dynamic time,
+Map<String, dynamic> option,
+) async {
+final rawModes = option['TransportModes'];
+final transportModes = rawModes is List
+? rawModes.map((value) => value.toString()).toList()
+    : <String>[];
 
-  final travelMode = option['TravelMode']?.toString() ?? '';
+final travelMode = option['TravelMode']?.toString() ?? '';
 
-  final uri = Uri.https(
-    _tdxHost,
-    '/api/maas/routing',
-    <String, String>{
-      'origin': origin,
-      'destination': destination,
-      'gc': '1.0',
-      'top': '10',
-      'transit': transportModes.join(','),
-      'transfer_time': '5,60',
-      'depart': time.toString(),
-      'first_mile_mode': travelMode,
-      'first_mile_time': '10',
-      'last_mile_mode': travelMode,
-      'last_mile_time': '10',
-    },
-  );
+final uri = Uri.https(
+_tdxHost,
+'/api/maas/routing',
+<String, String>{
+'origin': origin,
+'destination': destination,
+'gc': '1.0',
+'top': '10',
+'transit': transportModes.join(','),
+'transfer_time': '5,60',
+'depart': time.toString(),
+'first_mile_mode': travelMode,
+'first_mile_time': '10',
+'last_mile_mode': travelMode,
+'last_mile_time': '10',
+},
+);
 
-  try {
-    final response = await TdxApiClient()
-        .getRaw(
-      uri,
-      headers: const {'Accept': 'application/json'},
-    )
-        .timeout(const Duration(seconds: 20));
+try {
+final response = await TdxApiClient()
+    .getRaw(
+uri,
+headers: const {'Accept': 'application/json'},
+)
+    .timeout(const Duration(seconds: 20));
 
-    if (response.statusCode != HttpStatus.ok) {
-      throw HttpException(
-        '路線規劃 API HTTP ${response.statusCode}: ${response.body}',
-        uri: uri,
-      );
-    }
+if (response.statusCode != HttpStatus.ok) {
+throw HttpException(
+'路線規劃 API HTTP ${response.statusCode}: ${response.body}',
+uri: uri,
+);
+}
 
-    final decoded = jsonDecode(response.body);
-    if (decoded is! Map) {
-      throw const FormatException('路線規劃 API 回傳格式不是 JSON 物件');
-    }
+final decoded = jsonDecode(response.body);
+if (decoded is! Map) {
+throw const FormatException('路線規劃 API 回傳格式不是 JSON 物件');
+}
 
-    return Map<String, dynamic>.from(decoded);
-  } catch (error, stackTrace) {
-    debugPrint('getDirections 失敗：$error');
-    debugPrintStack(stackTrace: stackTrace);
-    rethrow;
-  }
+return Map<String, dynamic>.from(decoded);
+} catch (error, stackTrace) {
+debugPrint('getDirections 失敗：$error');
+debugPrintStack(stackTrace: stackTrace);
+rethrow;
+}
 }
 
 /// 取得指定座標附近的公車站牌，並依距離排序。
 ///
 /// location 格式：latitude,longitude
 Future<List<BusStationInfo>> getNearStation(String location) async {
-  final decodedLocation = Uri.decodeComponent(location);
-  final parts = decodedLocation.split(',');
+final decodedLocation = Uri.decodeComponent(location);
+final parts = decodedLocation.split(',');
 
-  if (parts.length < 2) {
-    throw const FormatException(
-      "Location 格式錯誤，必須為 'latitude,longitude'",
-    );
-  }
+if (parts.length < 2) {
+throw const FormatException(
+"Location 格式錯誤，必須為 'latitude,longitude'",
+);
+}
 
-  final userLat = double.tryParse(parts[0].trim());
-  final userLon = double.tryParse(parts[1].trim());
+final userLat = double.tryParse(parts[0].trim());
+final userLon = double.tryParse(parts[1].trim());
 
-  if (userLat == null ||
-      userLon == null ||
-      !userLat.isFinite ||
-      !userLon.isFinite ||
-      userLat < -90 ||
-      userLat > 90 ||
-      userLon < -180 ||
-      userLon > 180) {
-    throw const FormatException('Location 的經緯度無效');
-  }
+if (userLat == null ||
+userLon == null ||
+!userLat.isFinite ||
+!userLon.isFinite ||
+userLat < -90 ||
+userLat > 90 ||
+userLon < -180 ||
+userLon > 180) {
+throw const FormatException('Location 的經緯度無效');
+}
 
-  final uri = Uri.https(
-    _tdxHost,
-    '/api/advanced/v2/Bus/Station/NearBy',
-    <String, String>{
-      r'$spatialFilter': 'nearby($userLat,$userLon,400)',
-      r'$format': 'JSON',
-    },
-  );
+final uri = Uri.https(
+_tdxHost,
+'/api/advanced/v2/Bus/Station/NearBy',
+<String, String>{
+r'$spatialFilter': 'nearby($userLat,$userLon,400)',
+r'$format': 'JSON',
+},
+);
 
-  final response = await TdxApiClient()
-      .getRaw(
-    uri,
-    headers: const {'Accept': 'application/json'},
-  )
-      .timeout(const Duration(seconds: 20));
+final response = await TdxApiClient()
+    .getRaw(
+uri,
+headers: const {'Accept': 'application/json'},
+)
+    .timeout(const Duration(seconds: 20));
 
-  if (response.statusCode != HttpStatus.ok) {
-    throw HttpException(
-      '附近站牌 API HTTP ${response.statusCode}: ${response.body}',
-      uri: uri,
-    );
-  }
+if (response.statusCode != HttpStatus.ok) {
+throw HttpException(
+'附近站牌 API HTTP ${response.statusCode}: ${response.body}',
+uri: uri,
+);
+}
 
-  final decoded = jsonDecode(response.body);
-  if (decoded is! List) {
-    throw const FormatException('附近站牌 API 回傳格式不是 JSON 陣列');
-  }
+final decoded = jsonDecode(response.body);
+if (decoded is! List) {
+throw const FormatException('附近站牌 API 回傳格式不是 JSON 陣列');
+}
 
-  final List<BusStationInfo> stations;
-  try {
-    stations = decoded
-        .whereType<Map>()
-        .map(
-          (item) => BusStationInfo.fromMap(
-        Map<String, dynamic>.from(item),
-      ),
-    )
-        .toList();
-  } catch (error, stackTrace) {
-    debugPrint('附近站牌 JSON 解析失敗：$error');
-    debugPrintStack(stackTrace: stackTrace);
-    rethrow;
-  }
+final List<BusStationInfo> stations;
+try {
+stations = decoded
+    .whereType<Map>()
+    .map(
+(item) => BusStationInfo.fromMap(
+Map<String, dynamic>.from(item),
+),
+)
+    .toList();
+} catch (error, stackTrace) {
+debugPrint('附近站牌 JSON 解析失敗：$error');
+debugPrintStack(stackTrace: stackTrace);
+rethrow;
+}
 
-  stations.sort((a, b) {
-    final distanceA = calculateApproxDistance(
-      userLat,
-      userLon,
-      a.positionLat,
-      a.positionLon,
-    );
-    final distanceB = calculateApproxDistance(
-      userLat,
-      userLon,
-      b.positionLat,
-      b.positionLon,
-    );
-    return distanceA.compareTo(distanceB);
-  });
+stations.sort((a, b) {
+final distanceA = calculateApproxDistance(
+userLat,
+userLon,
+a.positionLat,
+a.positionLon,
+);
+final distanceB = calculateApproxDistance(
+userLat,
+userLon,
+b.positionLat,
+b.positionLon,
+);
+return distanceA.compareTo(distanceB);
+});
 
-  return stations;
+return stations;
 }
 
 /// 取得指定日期、路線的歷史公車動態資料。
 Future<List<Map<String, dynamic>>?> getHistoryData(
-    String city,
-    String routeId,
-    int sum,
-    ) async {
-  if (sum <= 0) {
-    return <Map<String, dynamic>>[];
-  }
+String city,
+String routeId,
+int sum,
+) async {
+if (sum <= 0) {
+return <Map<String, dynamic>>[];
+}
 
-  final date = DateFormat('yyyy-MM-dd').format(
-    DateTime.now().subtract(const Duration(days: 2)),
-  );
+final date = DateFormat('yyyy-MM-dd').format(
+DateTime.now().subtract(const Duration(days: 2)),
+);
 
-  final uri = Uri.https(
-    _tdxHost,
-    '/api/historical/v2/Historical/Bus/RealTimeNearStop/'
-        '${_busScope(city)}/Date/$date/RouteID/${routeId.trim()}',
-    <String, String>{
-      r'$top': sum.toString(),
-      r'$format': 'JSONL',
-    },
-  );
-  final response = await TdxApiClient()
-      .getRaw(
-    uri,
-    headers: const {'Accept': 'application/json'},
-  )
-      .timeout(const Duration(seconds: 20));
+final uri = Uri.https(
+_tdxHost,
+'/api/historical/v2/Historical/Bus/RealTimeNearStop/'
+'${_busScope(city)}/Date/$date/RouteID/${routeId.trim()}',
+<String, String>{
+r'$top': sum.toString(),
+r'$format': 'JSONL',
+},
+);
+final response = await TdxApiClient()
+    .getRaw(
+uri,
+headers: const {'Accept': 'application/json'},
+)
+    .timeout(const Duration(seconds: 20));
 
-  if (response.statusCode != HttpStatus.ok) {
-    throw HttpException(
-      '歷史公車動態 API HTTP ${response.statusCode}: ${response.body}',
-      uri: uri,
-    );
-  }
+if (response.statusCode != HttpStatus.ok) {
+throw HttpException(
+'歷史公車動態 API HTTP ${response.statusCode}: ${response.body}',
+uri: uri,
+);
+}
 
-  final result = <Map<String, dynamic>>[];
-  for (final line in response.body.split('\n')) {
-    final trimmedLine = line.trim();
-    if (trimmedLine.isEmpty) continue;
+final result = <Map<String, dynamic>>[];
+for (final line in response.body.split('\n')) {
+final trimmedLine = line.trim();
+if (trimmedLine.isEmpty) continue;
 
-    final decoded = jsonDecode(trimmedLine);
-    if (decoded is Map) {
-      result.add(Map<String, dynamic>.from(decoded));
-    } else {
-      debugPrint('略過非 JSON 物件的歷史資料行');
-    }
-  }
+final decoded = jsonDecode(trimmedLine);
+if (decoded is Map) {
+result.add(Map<String, dynamic>.from(decoded));
+} else {
+debugPrint('略過非 JSON 物件的歷史資料行');
+}
+}
 
-  return result;
+return result;
 }
 
 /// 依站牌 ID 取得預估到站時間。
 Future<List<Map<String, dynamic>>> fetchBusTimeWithStopID(
-    String routeName,
-    String city,
-    String stopID,
-    String direction,
-    ) async {
-  try {
-    await connMysql();
+String routeName,
+String city,
+String stopID,
+String direction,
+) async {
+try {
+await connMysql();
 
-    final uri = Uri.https(
-      _tdxHost,
-      '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
-          '${_busScope(city)}/${routeName.trim()}',
-      <String, String>{
-        r'$filter':
-        "StopID eq '${_odataString(stopID)}' and Direction eq $direction",
-        r'$format': 'JSON',
-      },
-    );
+final uri = Uri.https(
+_tdxHost,
+'/api/basic/v2/Bus/EstimatedTimeOfArrival/'
+'${_busScope(city)}/${routeName.trim()}',
+<String, String>{
+r'$filter':
+"StopID eq '${_odataString(stopID)}' and Direction eq $direction",
+r'$format': 'JSON',
+},
+);
 
-    final response = await TdxApiClient()
-        .getRaw(
-      uri,
-      headers: const {'Accept': 'application/json'},
-    )
-        .timeout(const Duration(seconds: 20));
+final response = await TdxApiClient()
+    .getRaw(
+uri,
+headers: const {'Accept': 'application/json'},
+)
+    .timeout(const Duration(seconds: 20));
 
-    if (response.statusCode != HttpStatus.ok) {
-      throw HttpException(
-        '預估到站時間 API HTTP ${response.statusCode}: ${response.body}',
-        uri: uri,
-      );
-    }
+if (response.statusCode != HttpStatus.ok) {
+throw HttpException(
+'預估到站時間 API HTTP ${response.statusCode}: ${response.body}',
+uri: uri,
+);
+}
 
-    final decoded = jsonDecode(response.body);
-    return _parseMapList(
-      decoded,
-      apiName: '預估到站時間 API',
-    );
-  } catch (error, stackTrace) {
-    debugPrint('fetchBusTimeWithStopID 失敗：$error');
-    debugPrintStack(stackTrace: stackTrace);
-    rethrow;
-  }
+final decoded = jsonDecode(response.body);
+return _parseMapList(
+decoded,
+apiName: '預估到站時間 API',
+);
+} catch (error, stackTrace) {
+debugPrint('fetchBusTimeWithStopID 失敗：$error');
+debugPrintStack(stackTrace: stackTrace);
+rethrow;
+}
 }
 
 /// 取得指定路線的行駛形狀資料，並依 RouteID 篩選。
 Future<List<dynamic>> getShape(
-    String city,
-    String routeName,
-    String routeID,
-    ) async {
-  final uri = Uri.https(
-    _tdxHost,
-    '/api/basic/v2/Bus/Shape/'
-        '${_busScope(city)}/${routeName.trim()}',
-    const <String, String>{
-      r'$format': 'JSON',
-    },
-  );
+String city,
+String routeName,
+String routeID,
+) async {
+final uri = Uri.https(
+_tdxHost,
+'/api/basic/v2/Bus/Shape/'
+'${_busScope(city)}/${routeName.trim()}',
+const <String, String>{
+r'$format': 'JSON',
+},
+);
 
-  final response = await TdxApiClient()
-      .getRaw(
-    uri,
-    headers: const {'Accept': 'application/json'},
-  )
-      .timeout(const Duration(seconds: 20));
+final response = await TdxApiClient()
+    .getRaw(
+uri,
+headers: const {'Accept': 'application/json'},
+)
+    .timeout(const Duration(seconds: 20));
 
-  if (response.statusCode != HttpStatus.ok) {
-    throw HttpException(
-      '公車路線形狀 API HTTP ${response.statusCode}: ${response.body}',
-      uri: uri,
-    );
-  }
-
-  final decoded = jsonDecode(response.body);
-  if (decoded is! List) {
-    throw const FormatException('公車路線形狀 API 回傳格式不是 JSON 陣列');
-  }
-
-  return decoded.where((item) {
-    if (item is! Map) return false;
-    final itemRouteID = item['RouteID'];
-    return itemRouteID != null && itemRouteID.toString() == routeID;
-  }).toList();
+if (response.statusCode != HttpStatus.ok) {
+throw HttpException(
+'公車路線形狀 API HTTP ${response.statusCode}: ${response.body}',
+uri: uri,
+);
 }
+
+final decoded = jsonDecode(response.body);
+if (decoded is! List) {
+throw const FormatException('公車路線形狀 API 回傳格式不是 JSON 陣列');
+}
+
+return decoded.where((item) {
+if (item is! Map) return false;
+final itemRouteID = item['RouteID'];
+return itemRouteID != null && itemRouteID.toString() == routeID;
+}).toList();
+}
+

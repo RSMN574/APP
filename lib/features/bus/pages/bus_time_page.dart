@@ -29,6 +29,9 @@ import 'package:com.rsmn574.app/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
 
+import '../../../const/app_colors.dart';
+import '../../../const/regular_const.dart' as colorScheme;
+import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/AppLoading.dart';
 
@@ -324,7 +327,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     if (!mounted) return;
 
     final requestId = ++_busPositionRequestId;
-print(widget.routeName);
+    print(widget.routeName);
     try {
       final response = await fetchBusRealtimePosition(
         _tdxRouteName(widget.data, widget.routeName),
@@ -795,11 +798,11 @@ print(widget.routeName);
             borderRadius: BorderRadius.circular(20),
           ),
           elevation: 0,
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppThemes.getSurface(context),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -929,7 +932,7 @@ print(widget.routeName);
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppThemes.getSurface(context),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -1055,6 +1058,7 @@ print(widget.routeName);
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) {
@@ -1113,10 +1117,7 @@ print(widget.routeName);
                               height: 150,
                               margin: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness ==
-                                    Brightness.dark
-                                    ? const Color(0xFF2C2C2C)
-                                    : const Color(0xFFEEF3FB),
+                                color: AppThemes.getCardColor(context),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: IconButton(
@@ -1132,10 +1133,10 @@ print(widget.routeName);
                               routeInfo[0],
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF1A73E8),
+                                color: colorScheme.primary,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -1153,7 +1154,7 @@ print(widget.routeName);
                                 child: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert_rounded,
                                       size: 20, color: Color(0xFF1A73E8)),
-                                  color: Colors.white,
+                                  color: AppThemes.getSurface(context),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
                                   ),
@@ -1219,7 +1220,7 @@ print(widget.routeName);
                           body: Stack(
                             children: [
                               Container(
-                                color: bgColorWhite,
+                                color: colorScheme.surface,
                                 child: TabBarView(
                                   controller: _tabController,
                                   children: widget.hasSubRoutes
@@ -1438,7 +1439,7 @@ print(widget.routeName);
         builder: (context, _) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppThemes.getSurface(context),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -1481,6 +1482,7 @@ print(widget.routeName);
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1488,38 +1490,65 @@ print(widget.routeName);
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+            color: isSelected
+                ? colorScheme.primaryContainer
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: isSelected
-                ? Border.all(
-              color: const Color(0xFF1A73E8).withOpacity(0.3),
-              width: 1.5,
-            )
-                : Border.all(
-              color: Colors.grey[300]!,
-              width: 1,
+            border: Border.all(
+              color: isSelected
+                  ? colorScheme.primary.withOpacity(0.3)
+                  : colorScheme.outlineVariant,
+              width: isSelected ? 1.5 : 1,
             ),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[600],
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  height: 1.1,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 2),
+              SizedBox(
+                width: 70,
+                child: Text(
+                  // 原本是 `text`（tab 標題，例如起站名 / 終點站名）
+                  text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurfaceVariant,
+                    height: 1.2,
+                  ),
                 ),
               ),
             ],
@@ -1530,6 +1559,7 @@ print(widget.routeName);
   }
 
   Widget _buildTabContent(List stopNamesWithTime) {
+    final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return RefreshIndicator(
@@ -1545,7 +1575,7 @@ print(widget.routeName);
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
 
-          final color = stop["color"] == '0'
+          final color =stop["color"] == '0'
               ? const Color.fromRGBO(235, 15, 41, 0.85)
               : (stop["color"] == '2'
               ? const Color.fromRGBO(225, 85, 104, 0.1)
@@ -1582,17 +1612,20 @@ print(widget.routeName);
                   stop["nextBusTime"]!,
                   maxLines: 1,
                   style: TextStyle(
-                    fontFamily: 'MiSans-normal',
+
                     fontSize: 17,
                     color: stop["color"] == '0'
-                        ? Colors.white
+                        ? colorScheme.onPrimary
                         : (stop["color"] == '2'
                         ? const Color.fromRGBO(255, 85, 104, 1)
                         : (stop["color"] == l10n.text_317
-                        ? const Color.fromRGBO(149, 149, 149, 1.0)
+                        ? const Color.fromRGBO(
+                        149, 149, 149, 1.0)
                         : (stop["color"] == "min"
-                        ? const Color.fromRGBO(13, 168, 255, 1)
-                        : const Color.fromRGBO(68, 68, 68, 1)))),
+                        ? const Color.fromRGBO(
+                        13, 168, 255, 1)
+                        : const Color.fromRGBO(
+                        68, 68, 68, 1)))),
                   ),
                 ),
               ),
@@ -1604,7 +1637,7 @@ print(widget.routeName);
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontFamily: 'MiSans',
+
                         fontSize: stop["isHighlighted"] == true ? 18 : 17,
                         fontWeight: stop["isHighlighted"] == true
                             ? FontWeight.w900
@@ -1612,10 +1645,10 @@ print(widget.routeName);
                             ? FontWeight.w600
                             : FontWeight.normal),
                         color: stop["isHighlighted"] == true
-                            ? Colors.blue[800]
+                            ? Colors.blue[800]                      // 高亮站：固定深藍
                             : (stop["color"] == l10n.text_317
-                            ? const Color.fromRGBO(136, 136, 136, 1)
-                            : Colors.black),
+                            ? colorScheme.onSurfaceVariant      // 無資料站：跟隨主題的次要文字色
+                            : colorScheme.onSurface),           // 一般站：跟隨主題的主要文字色
                         letterSpacing:
                         stop["isHighlighted"] == true ? 1.0 : 0.5,
                         shadows: stop["isHighlighted"] == true
@@ -1662,8 +1695,8 @@ print(widget.routeName);
           );
         },
         separatorBuilder: (BuildContext context, int index) {
-          return const Divider(
-            color: Color.fromRGBO(231, 231, 231, 1),
+          return Divider(
+            color: colorScheme.outlineVariant,
             height: _stopSeparatorHeight,
             thickness: 1,
             indent: 20,
@@ -1686,17 +1719,7 @@ print(widget.routeName);
           elevation: 0,
           backgroundColor: Colors.transparent,
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
+            decoration: SurfaceDecoration.dialog(context),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: SingleChildScrollView(
@@ -1721,28 +1744,26 @@ print(widget.routeName);
   }
 
   Widget _buildDialogHeader(String stopName) {
+    final colors = context.appColors;
     return Column(
       children: [
         Container(
           width: 60,
           height: 60,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEEF3FB),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: const Icon(
+          decoration: SurfaceDecoration.muted(context, radius: 15),
+          child: Icon(
             Icons.directions_bus,
             size: 30,
-            color: Color(0xFF1A73E8),
+            color: colors.info,
           ),
         ),
         const SizedBox(height: 16),
         Text(
           stopName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A73E8),
+            color: colors.info,
             letterSpacing: -0.3,
           ),
           textAlign: TextAlign.center,
@@ -1755,14 +1776,13 @@ print(widget.routeName);
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[600],
+            color: colors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
       ],
     );
   }
-
   Widget _buildDialogOptions(BuildContext context, estimates, stopName, stop) {
     return Column(
       children: [
@@ -1822,35 +1842,27 @@ print(widget.routeName);
     required String type,
     required Map<String, dynamic> data,
   }) {
+    final colors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _handleOptionTap(context, type, data),
         borderRadius: BorderRadius.circular(12),
-        splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-        highlightColor: const Color(0xFFEEF3FB),
+        splashColor: colors.info.withOpacity(0.1),
+        highlightColor: colors.mutedBackground,
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.grey[200]!,
-              width: 1,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: SurfaceDecoration.outlined(context),
           child: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF3FB),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: SurfaceDecoration.muted(context),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: const Color(0xFF1A73E8),
+                  color: colors.info,
                 ),
               ),
               const SizedBox(width: 16),
@@ -1860,10 +1872,10 @@ print(widget.routeName);
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1871,7 +1883,7 @@ print(widget.routeName);
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -1880,7 +1892,7 @@ print(widget.routeName);
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Colors.grey[400],
+                color: colors.textHint,
               ),
             ],
           ),
@@ -1890,6 +1902,7 @@ print(widget.routeName);
   }
 
   Widget _buildCloseButton(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: double.infinity,
       child: Material(
@@ -1900,10 +1913,10 @@ print(widget.routeName);
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                color: colorScheme.primary.withOpacity(0.3),
                 width: 1.5,
               ),
             ),
@@ -1912,7 +1925,7 @@ print(widget.routeName);
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A73E8),
+                color: colorScheme.onPrimaryContainer,
               ),
               textAlign: TextAlign.center,
             ),

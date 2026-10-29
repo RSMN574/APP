@@ -3484,4 +3484,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileVerificationRefreshFailed =>
       'Could not refresh verification status. Please try again.';
+
+  @override
+  String evConnectorCount(int count) {
+    return '$count connectors';
+  }
+
+  @override
+  String evChargingPointId(String id) {
+    return 'Charging point ID: $id';
+  }
 }

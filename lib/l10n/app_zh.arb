@@ -1207,6 +1207,22 @@
     "profileRefreshVerification": "重新檢查驗證狀態",
     "profileVerificationSent": "驗證信已送出，請檢查電子郵件",
     "profileVerificationSendFailed": "驗證信寄送失敗，請稍後再試",
-    "profileVerificationRefreshFailed": "無法更新驗證狀態，請稍後再試"
+    "profileVerificationRefreshFailed": "無法更新驗證狀態，請稍後再試",
+
+    "evConnectorCount": "{count} 個接口",
+    "@evConnectorCount": {
+      "description": "EV 充電接口數量",
+      "placeholders": {
+        "count": { "type": "int" }
+      }
+    },
+    "evChargingPointId": "充電點 ID: {id}",
+    "@evChargingPointId": {
+      "description": "EV 充電點 ID",
+      "placeholders": {
+        "id": { "type": "String" }
+      }
+    }
+
 
 }

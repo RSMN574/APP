@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_svg/svg.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_page.dart';
+
 // 保持原有的 import
+import '../const/app_colors.dart';
 import '../const/regular_class.dart';
+import '../const/surface_decoration.dart';
 import '../l10n/app_localizations.dart';
-import '../test.dart';
-import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
+
 
 class TransportGrid extends StatefulWidget {
   final Function(String) onClick;
@@ -72,10 +73,6 @@ class _TransportGridState extends State<TransportGrid> {
       'text': AppLocalizations.of(context)!.text_523,
       'route': 'EVStation'
     },
-    // {'icon': 'assets/icons/road.svg', 'text': '路況', 'route': 'traffic'},
-    // {'icon': 'assets/icons/motorcycle.svg', 'text': '租車', 'route': 'rent'},
-    // {'icon': 'assets/icons/motorcycle.svg', 'text': 'test', 'route': 'test'},
-    // {'icon': 'assets/icons/motorcycle.svg', 'text': '時速表', 'route': 'speedometer'},
   ];
 
   @override
@@ -84,41 +81,13 @@ class _TransportGridState extends State<TransportGrid> {
 
     final totalPages = (transportOptions.length / itemsPerPage).ceil();
     final screenWidth = MediaQuery.of(context).size.width;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final colors = Theme.of(context).colorScheme;
-    final primaryColor = isDark
-        ? const Color(0xFF64B5F6)
-        : const Color(0xFF1A73E8);
-
-    final cardColor = isDark
-        ? const Color(0xFF1C1C1E)
-        : const Color(0xFFFFFFFF);
-
-    final borderColor = isDark
-        ? const Color(0xFF343438)
-        : const Color(0xFFE5ECF6);
 
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 10,
       ),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: borderColor,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.12 : 0.035),
-            blurRadius: isDark ? 12 : 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: SurfaceDecoration.cardShadow(context, radius: 24),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
         child: Column(
@@ -173,22 +142,14 @@ class _TransportGridState extends State<TransportGrid> {
     );
   }
 
-  Widget _buildTransportCard(BuildContext context, String icon, String text, String route, double iconSize) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // 動態定義顏色
-    final Color primaryColor = Theme.of(context).colorScheme.primary;
-    final Color iconColor = isDark
-        ? Theme.of(context).colorScheme.primaryContainer
-        : Colors.blue.shade800;
-    final Color textColor =
-        isDark ? Colors.white.withOpacity(0.9) : Colors.blueGrey.shade800;
+  Widget _buildTransportCard(BuildContext context, String icon, String text,
+      String route, double iconSize) {
+    final colors = context.appColors;
 
     return InkWell(
       onTap: () => _onTransportTap(context, route, text),
       borderRadius: BorderRadius.circular(20),
-      // 深色模式下點擊水波紋稍微亮一點
-      splashColor: primaryColor.withOpacity(isDark ? 0.1 : 0.05),
+      splashColor: colors.info.withOpacity(0.1),
       highlightColor: Colors.transparent,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -196,29 +157,14 @@ class _TransportGridState extends State<TransportGrid> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [
-                        primaryColor.withOpacity(0.15),
-                        primaryColor.withOpacity(0.02)
-                      ]
-                    : [
-                        Colors.blue.withOpacity(0.08),
-                        Colors.blue.withOpacity(0.03)
-                      ],
-              ),
+              color: colors.infoContainer,
               shape: BoxShape.circle,
             ),
             child: SvgPicture.asset(
               icon,
               width: iconSize,
               height: iconSize,
-              // 深色模式下圖示用 primary 或較亮的藍，避免看不見
-              colorFilter: ColorFilter.mode(
-                  isDark ? primaryColor : Colors.blue.shade700,
-                  BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(colors.info, BlendMode.srcIn),
             ),
           ),
           const SizedBox(height: 4),
@@ -231,8 +177,8 @@ class _TransportGridState extends State<TransportGrid> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: textColor,
-                fontWeight: FontWeight.w600, // 稍微加粗提高可讀性
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
             ),
@@ -243,11 +189,12 @@ class _TransportGridState extends State<TransportGrid> {
   }
 
   Widget _buildPageIndicator(int totalPages) {
+    final colors = context.appColors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(
         totalPages,
-        (index) => AnimatedContainer(
+            (index) => AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           width: _currentPage == index ? 18 : 6,
           height: 6,
@@ -255,15 +202,14 @@ class _TransportGridState extends State<TransportGrid> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
             color: _currentPage == index
-                ? Colors.blue.shade600
-                : Colors.blue.withOpacity(0.15),
+                ? colors.info
+                : colors.info.withOpacity(0.15),
           ),
         ),
       ),
     );
   }
 
-  // 保持原有跳轉邏輯
   void _onTransportTap(BuildContext context, String route, String text) {
     debugPrint("$text 頁面跳轉");
     if (route == "bus") {

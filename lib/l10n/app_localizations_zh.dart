@@ -3407,4 +3407,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileVerificationRefreshFailed => '無法更新驗證狀態，請稍後再試';
+
+  @override
+  String evConnectorCount(int count) {
+    return '$count 個接口';
+  }
+
+  @override
+  String evChargingPointId(String id) {
+    return '充電點 ID: $id';
+  }
 }

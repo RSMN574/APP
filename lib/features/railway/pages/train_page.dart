@@ -15,44 +15,32 @@ import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/features/railway/data/get_train.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
+import '../../../const/app_colors.dart';
+import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 
-const Color primaryColor = Color(0xFF2A5CAA);
-const Color accentColor = Color(0xFFFF9F1C);
-const Color textPrimary = Color(0xFF2D3748);
-const Color textSecondary = Color(0xFF718096);
-const Color surfaceColor = Color(0xFFF3F5F7);
 
 String _localizedRailName(dynamic names, {required bool isEnglish}) {
   if (names is! Map) return names?.toString() ?? '';
-
   final preferred = names[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
   if (preferred.isNotEmpty) return preferred;
-
   return names[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
 }
 
-String _localizedRailField(
-    dynamic record, {
-      required String englishKey,
+String _localizedRailField(dynamic record,
+    {required String englishKey,
       required String chineseKey,
       required bool isEnglish,
-      String fallback = '',
-    }) {
+      String fallback = ''}) {
   if (record is! Map) return '';
-
   final preferred =
       record[isEnglish ? englishKey : chineseKey]?.toString() ?? '';
   if (preferred.isNotEmpty) return preferred;
-
   final alternate =
       record[isEnglish ? chineseKey : englishKey]?.toString() ?? '';
   return alternate.isNotEmpty ? alternate : fallback;
 }
 
-// ==========================================
-// 跨日時間 / 車次編號 工具（全局）
-// ==========================================
 int _mod1440(int n) => ((n % 1440) + 1440) % 1440;
 
 int _timeToMinutesSafe(String? time) {
@@ -65,12 +53,10 @@ int _timeToMinutesSafe(String? time) {
   return h * 60 + m;
 }
 
-/// 計算 dep → arr 的旅行分鐘數，跨午夜回傳正數。
 int _calcDurationMinutes(String? dep, String? arr) {
   return _mod1440(_timeToMinutesSafe(arr) - _timeToMinutesSafe(dep));
 }
 
-/// 將輸入（"110A"、"自強 110" 等）解析為純數字車次；失敗回傳 null。
 int? _parseTrainNoDigits(String? raw) {
   if (raw == null) return null;
   final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
@@ -112,51 +98,34 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    const lightPrimary = Color(0xFF1A73E8);
-    const darkPrimary = Color(0xFF64B5F6);
-
-    final primaryColor = isDark ? darkPrimary : lightPrimary;
-    final backgroundColor =
-    isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFD);
-    final surfaceColor = isDark ? const Color(0xFF1C1C1E) : Colors.white;
-    final borderColor =
-    isDark ? const Color(0xFF343438) : const Color(0xFFE5ECF6);
-    final textPrimary = theme.colorScheme.onSurface;
-    final textSecondary =
-    isDark ? const Color(0xFFB0B7C3) : const Color(0xFF64748B);
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: colors.cardBackground,
       appBar: AppBar(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: surfaceColor,
-        foregroundColor: primaryColor,
-        iconTheme: IconThemeData(color: primaryColor),
+        backgroundColor: colors.cardBackground,
+        foregroundColor: colors.info,
+        iconTheme: IconThemeData(color: colors.info),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.10),
+                color: colors.infoContainer,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                Icons.directions_bus,
-                color: primaryColor,
-                size: 20,
-              ),
+              child: Icon(Icons.directions_bus, color: colors.info, size: 20),
             ),
             const SizedBox(width: 10),
             Text(
-              AppLocalizations.of(context)!.text_826,
+              l10n.text_826,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: primaryColor,
+                color: colors.info,
               ),
             ),
           ],
@@ -165,49 +134,38 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            Tab(text: AppLocalizations.of(context)!.text_145),
-            Tab(text: AppLocalizations.of(context)!.text_146),
-            Tab(text: AppLocalizations.of(context)!.text_147),
+            Tab(text: l10n.text_145),
+            Tab(text: l10n.text_146),
+            Tab(text: l10n.text_147),
           ],
-          labelColor: primaryColor,
-          unselectedLabelColor: textSecondary,
-          indicatorColor: primaryColor,
+          labelColor: colors.info,
+          unselectedLabelColor: colors.textSecondary,
+          indicatorColor: colors.info,
           indicatorSize: TabBarIndicatorSize.label,
           indicatorWeight: 3,
-          dividerColor: borderColor,
-          overlayColor: WidgetStatePropertyAll(
-            primaryColor.withOpacity(0.06),
-          ),
+          dividerColor: colors.border,
+          overlayColor: WidgetStatePropertyAll(colors.info.withOpacity(0.06)),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(
-              Icons.more_vert_rounded,
-              color: primaryColor,
-            ),
-            iconColor: primaryColor,
-            color: surfaceColor,
+            icon: Icon(Icons.more_vert_rounded, color: colors.info),
+            iconColor: colors.info,
+            color: colors.cardBackground,
             surfaceTintColor: Colors.transparent,
-            elevation: isDark ? 4 : 3,
+            elevation: 4,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: borderColor),
+              side: BorderSide(color: colors.border),
             ),
             itemBuilder: (BuildContext context) => [
               PopupMenuItem<String>(
                 value: 'line',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.train,
-                      color: primaryColor,
-                      size: 20,
-                    ),
+                    Icon(Icons.train, color: colors.info, size: 20),
                     const SizedBox(width: 12),
-                    Text(
-                      AppLocalizations.of(context)!.text_827,
-                      style: TextStyle(color: textPrimary),
-                    ),
+                    Text(l10n.text_827,
+                        style: TextStyle(color: colors.textPrimary)),
                   ],
                 ),
               ),
@@ -219,160 +177,117 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
                     context,
                     MaterialPageRoute(
                       builder: (context) => Scaffold(
-                        backgroundColor: backgroundColor,
+                        backgroundColor: colors.cardBackground,
                         appBar: AppBar(
                           elevation: 0,
                           scrolledUnderElevation: 0,
-                          backgroundColor: surfaceColor,
-                          foregroundColor: primaryColor,
-                          iconTheme: IconThemeData(
-                            color: primaryColor,
-                          ),
+                          backgroundColor: colors.cardBackground,
+                          foregroundColor: colors.info,
+                          iconTheme: IconThemeData(color: colors.info),
                           title: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: primaryColor.withOpacity(0.10),
+                                  color: colors.infoContainer,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(
-                                  Icons.train,
-                                  color: primaryColor,
-                                  size: 20,
-                                ),
+                                child: Icon(Icons.train,
+                                    color: colors.info, size: 20),
                               ),
                               const SizedBox(width: 10),
-                              Text(
-                                AppLocalizations.of(context)!.text_827,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: primaryColor,
-                                ),
-                              ),
+                              Text(l10n.text_827,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.info,
+                                  )),
                             ],
                           ),
                           centerTitle: true,
                         ),
                         body: FutureBuilder(
                           future: mysqlSelect(
-                            "SELECT * FROM Train.Train_Line;",
-                          ),
-                          builder: (
-                              BuildContext context,
-                              AsyncSnapshot snapshot,
-                              ) {
+                              "SELECT * FROM Train.Train_Line;"),
+                          builder: (BuildContext context,
+                              AsyncSnapshot snapshot) {
                             if (snapshot.connectionState ==
                                 ConnectionState.waiting) {
                               return Center(
                                 child: CircularProgressIndicator(
-                                  color: primaryColor,
-                                ),
+                                    color: colors.info),
                               );
                             }
-
                             if (snapshot.hasError) {
                               return Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(24),
                                   child: Text(
+                                    // TODO: i18n
                                     "載入失敗: ${snapshot.error}",
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      color: isDark
-                                          ? const Color(0xFFFF8A80)
-                                          : const Color(0xFFD32F2F),
-                                      fontSize: 16,
-                                    ),
+                                        color: colors.danger,
+                                        fontSize: 16),
                                   ),
                                 ),
                               );
                             }
-
                             if (!snapshot.hasData ||
                                 (snapshot.data as List).isEmpty) {
                               return Center(
                                 child: Text(
-                                  AppLocalizations.of(context)!.text_828,
+                                  l10n.text_828,
                                   style: TextStyle(
-                                    color: textSecondary,
-                                    fontSize: 16,
-                                  ),
+                                      color: colors.textSecondary,
+                                      fontSize: 16),
                                 ),
                               );
                             }
-
                             final lineData = snapshot.data as List;
-
                             return Container(
-                              color: backgroundColor,
+                              color: colors.cardBackground,
                               child: ListView.builder(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
+                                padding:
+                                const EdgeInsets.symmetric(vertical: 8),
                                 itemCount: lineData.length,
                                 itemBuilder: (context, index) {
                                   final line = lineData[index];
-
-                                  final lineNameZh =
-                                      line['LineNameZh'] ??
-                                          AppLocalizations.of(context)!
-                                              .text_321;
-
+                                  final lineNameZh = line['LineNameZh'] ??
+                                      l10n.text_321;
                                   final lineNameEn =
                                       line['LineNameEn'] ?? 'Unknown';
-
                                   final sectionNameZh =
                                       line['LineSectionNameZh'] ??
-                                          AppLocalizations.of(context)!
-                                              .text_829;
-
+                                          l10n.text_829;
                                   return Container(
                                     margin: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                      horizontal: 16,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: surfaceColor,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: borderColor,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(
-                                            isDark ? 0.10 : 0.035,
-                                          ),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
+                                        vertical: 6, horizontal: 16),
+                                    decoration: SurfaceDecoration.cardShadow(
+                                        context,
+                                        radius: 16),
                                     child: ListTile(
                                       contentPadding:
                                       const EdgeInsets.symmetric(
-                                        horizontal: 18,
-                                        vertical: 6,
-                                      ),
+                                          horizontal: 18, vertical: 6),
                                       title: Text(
                                         lineNameZh.toString(),
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
-                                          color: textPrimary,
+                                          color: colors.textPrimary,
                                         ),
                                       ),
                                       subtitle: Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 4,
-                                        ),
+                                        padding:
+                                        const EdgeInsets.only(top: 4),
                                         child: Text(
+                                          // TODO: i18n（區間：）
                                           "$lineNameEn\n區間：$sectionNameZh",
                                           style: TextStyle(
                                             fontSize: 14,
                                             height: 1.5,
-                                            color: textSecondary,
+                                            color: colors.textSecondary,
                                           ),
                                         ),
                                       ),
@@ -396,16 +311,12 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
       body: TabBarView(
         controller: _tabController,
         children: [
-          TripNumberSearchPage(
-            controller: _trainNoController,
-          ),
+          TripNumberSearchPage(controller: _trainNoController),
           RouteSearchPage(
             departureController: _departureController,
             destinationController: _destinationController,
           ),
-          StationSearchPage(
-            controller: _stationController,
-          ),
+          StationSearchPage(controller: _stationController),
         ],
       ),
     );
@@ -414,21 +325,21 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
 
 class TrainMainPage extends StatefulWidget {
   const TrainMainPage({super.key});
-
   @override
   State<TrainMainPage> createState() => _TrainMainPageState();
 }
 
 class _TrainMainPageState extends State<TrainMainPage> {
   @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
-  }
+  Widget build(BuildContext context) => const Placeholder();
 }
+
+// ─────────────────────────────────────────────────────
+// TripNumberSearchPage
+// ─────────────────────────────────────────────────────
 
 class TripNumberSearchPage extends StatefulWidget {
   final TextEditingController controller;
-
   const TripNumberSearchPage({Key? key, required this.controller})
       : super(key: key);
 
@@ -440,8 +351,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   DateTime selectedDate = DateTime.now();
   final DateFormat dateFormat = DateFormat('yyyy年MM月dd日');
 
-  // ✅ 修正 1：firstDate 用純日期，避免時分秒把「今天」排除
   Future<void> _selectDate(BuildContext context) async {
+    final colors = context.appColors;
     final today = _dateOnly(DateTime.now());
     final initialDate =
     selectedDate.isBefore(today) ? today : _dateOnly(selectedDate);
@@ -455,18 +366,16 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xFF1A73E8),
-              onPrimary: Theme.of(context).colorScheme.onPrimary,
-              surface: Theme.of(context).colorScheme.surface,
-              onSurface: const Color(0xFF1A73E8),
+              primary: colors.info,
+              onPrimary: colors.cardBackground,
+              surface: colors.cardBackground,
+              onSurface: colors.textPrimary,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF1A73E8),
-              ),
+              style: TextButton.styleFrom(foregroundColor: colors.info),
             ),
             dialogTheme: DialogThemeData(
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: colors.cardBackground,
               shape: const RoundedRectangleBorder(
                 borderRadius: BorderRadius.all(Radius.circular(20)),
               ),
@@ -478,16 +387,17 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
     );
 
     if (picked != null && picked != selectedDate) {
-      setState(() {
-        selectedDate = picked;
-      });
+      setState(() => selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colors.cardBackground,
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
@@ -504,86 +414,57 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(
-                          Icons.search_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                        child: Icon(Icons.search_rounded,
+                            size: 40, color: colors.info),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.text_830,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A73E8),
-                        ),
-                      ),
+                      Text(l10n.text_830,
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: colors.info)),
                       const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context)!.text_831,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(l10n.text_831,
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                  decoration:
+                  SurfaceDecoration.cardShadow(context, radius: 20),
                   child: Column(
                     children: [
                       Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFEEF3FB),
-                            width: 1,
-                          ),
+                        decoration: SurfaceDecoration.outlined(
+                          context,
+                          radius: 12,
+                          borderColor: colors.border,
                         ),
                         child: TextField(
                           controller: widget.controller,
                           decoration: InputDecoration(
-                            hintText: AppLocalizations.of(context)!.text_832,
-                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            hintText: l10n.text_832,
+                            hintStyle: TextStyle(color: colors.textHint),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            prefixIcon: Container(
+                                horizontal: 16, vertical: 16),
+                            prefixIcon: Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.train_rounded,
-                                color: const Color(0xFF1A73E8),
-                              ),
+                              child: Icon(Icons.train_rounded,
+                                  color: colors.info),
                             ),
                           ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black87,
-                          ),
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: colors.textPrimary),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -592,51 +473,38 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                         child: InkWell(
                           onTap: () => _selectDate(context),
                           borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+                          splashColor: colors.info.withOpacity(0.1),
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: const Color(0xFFEEF3FB),
-                                width: 1,
-                              ),
-                            ),
+                                horizontal: 16, vertical: 14),
+                            decoration: SurfaceDecoration.muted(
+                                context, radius: 12),
                             child: Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1A73E8)
-                                        .withOpacity(0.1),
+                                    color: colors.infoContainer,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 18,
-                                    color: Color(0xFF1A73E8),
-                                  ),
+                                  child: Icon(
+                                      Icons.calendar_today_rounded,
+                                      size: 18,
+                                      color: colors.info),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     dateFormat.format(selectedDate),
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1A73E8),
-                                    ),
+                                    style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                        color: colors.info),
                                   ),
                                 ),
-                                const Icon(
-                                  Icons.arrow_drop_down_rounded,
-                                  color: Color(0xFF1A73E8),
-                                ),
+                                Icon(Icons.arrow_drop_down_rounded,
+                                    color: colors.info),
                               ],
                             ),
                           ),
@@ -645,15 +513,11 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       const SizedBox(height: 24),
                       Container(
                         decoration: BoxDecoration(
+                          color: colors.info,
                           borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF1A73E8).withOpacity(0.3),
+                              color: colors.info.withOpacity(0.3),
                               blurRadius: 12,
                               offset: const Offset(0, 6),
                             ),
@@ -666,9 +530,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               if (widget.controller.text.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_833),
-                                    backgroundColor: const Color(0xFFFF3B30),
+                                    content: Text(l10n.text_833),
+                                    backgroundColor: colors.danger,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -677,15 +540,14 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 );
                                 return;
                               }
-
-                              // ✅ 修正 6：解析失敗即中止，不再 int.parse 崩潰
                               final trainNo =
                               _parseTrainNoDigits(widget.controller.text);
                               if (trainNo == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
+                                    // TODO: i18n
                                     content: const Text('請輸入有效的車次編號'),
-                                    backgroundColor: const Color(0xFFFF3B30),
+                                    backgroundColor: colors.danger,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -694,20 +556,15 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 );
                                 return;
                               }
-
                               try {
-                                trainData = await fetchTrain(
-                                  trainNo,
-                                  selectedDate,
-                                );
+                                trainData =
+                                await fetchTrain(trainNo, selectedDate);
                                 if (trainData == null || trainData.isEmpty) {
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(
-                                          AppLocalizations.of(context)!
-                                              .text_834),
-                                      backgroundColor: const Color(0xFFFF9500),
+                                      content: Text(l10n.text_834),
+                                      backgroundColor: colors.warning,
                                       behavior: SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
@@ -731,9 +588,8 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_834),
-                                    backgroundColor: const Color(0xFFFF9500),
+                                    content: Text(l10n.text_834),
+                                    backgroundColor: colors.warning,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
@@ -743,27 +599,24 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                               }
                             },
                             borderRadius: BorderRadius.circular(12),
-                            splashColor: Colors.white.withOpacity(0.2),
+                            splashColor:
+                            colors.cardBackground.withOpacity(0.2),
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
-                                    Icons.search_rounded,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
+                                  Icon(Icons.search_rounded,
+                                      size: 20, color: colors.cardBackground),
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
-                                      AppLocalizations.of(context)!.text_153,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
+                                      l10n.text_153,
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: colors.cardBackground),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -780,50 +633,38 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                 Container(
                   margin: const EdgeInsets.only(top: 24),
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFEEF3FB),
-                      width: 1,
-                    ),
+                  decoration: SurfaceDecoration.outlined(
+                    context,
+                    radius: 16,
+                    borderColor: colors.border,
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
+                        child: Icon(Icons.info_outline_rounded,
+                            size: 16, color: colors.info),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              AppLocalizations.of(context)!.text_835,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A73E8),
-                              ),
-                            ),
+                            Text(l10n.text_835,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.info)),
                             const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.text_836,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            Text(l10n.text_836,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.textSecondary,
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -839,10 +680,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
   }
 }
 
+// ─────────────────────────────────────────────────────
+// RouteSearchPage
+// ─────────────────────────────────────────────────────
+
 class RouteSearchPage extends StatefulWidget {
   final TextEditingController departureController;
   final TextEditingController destinationController;
-
   const RouteSearchPage({
     Key? key,
     required this.departureController,
@@ -881,88 +725,62 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   bool _isDestinationSelected = false;
 
   Future<void> _selectDateTime(BuildContext context) async {
+    final colors = context.appColors;
     final now = DateTime.now();
     final currentTheme = Theme.of(context);
-    final isDark = currentTheme.brightness == Brightness.dark;
-
-    const primaryColor = Color(0xFF1A73E8);
-
-    final surfaceColor = currentTheme.colorScheme.surface;
+    final surface = currentTheme.colorScheme.surface;
     final textColor = currentTheme.colorScheme.onSurface;
-
     final dialogShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(20),
     );
 
     final pickerTheme = currentTheme.copyWith(
       colorScheme: currentTheme.colorScheme.copyWith(
-        primary: primaryColor,
-        onPrimary: Colors.white,
-        surface: surfaceColor,
+        primary: colors.info,
+        onPrimary: colors.cardBackground,
+        surface: surface,
         onSurface: textColor,
       ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: surfaceColor,
-        shape: dialogShape,
-      ),
+      dialogTheme:
+      DialogThemeData(backgroundColor: surface, shape: dialogShape),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
-      ),
+          style: TextButton.styleFrom(foregroundColor: colors.info)),
       timePickerTheme: TimePickerThemeData(
-        backgroundColor: surfaceColor,
-        hourMinuteTextColor: primaryColor,
-        hourMinuteColor: primaryColor.withOpacity(
-          isDark ? 0.20 : 0.07,
-        ),
+        backgroundColor: surface,
+        hourMinuteTextColor: colors.info,
+        hourMinuteColor: colors.info.withOpacity(0.20),
         hourMinuteShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: primaryColor.withOpacity(
-              isDark ? 0.50 : 0.25,
-            ),
-          ),
+          side: BorderSide(color: colors.info.withOpacity(0.5)),
         ),
         dayPeriodTextColor: textColor,
-        dayPeriodColor: primaryColor.withOpacity(
-          isDark ? 0.25 : 0.10,
-        ),
+        dayPeriodColor: colors.info.withOpacity(0.25),
         dayPeriodShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        dialBackgroundColor: isDark
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFFF1F5FC),
+        dialBackgroundColor: colors.mutedBackground,
         dialTextColor: textColor,
-        dialHandColor: primaryColor,
-        entryModeIconColor: primaryColor,
+        dialHandColor: colors.info,
+        entryModeIconColor: colors.info,
         helpTextStyle: currentTheme.textTheme.labelSmall,
-        cancelButtonStyle: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
-        confirmButtonStyle: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
+        cancelButtonStyle:
+        TextButton.styleFrom(foregroundColor: colors.info),
+        confirmButtonStyle:
+        TextButton.styleFrom(foregroundColor: colors.info),
       ),
     );
 
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate != null &&
-          !selectedDate!.isBefore(
-            DateTime(now.year, now.month, now.day),
-          )
+          !selectedDate!
+              .isBefore(DateTime(now.year, now.month, now.day))
           ? selectedDate!
           : now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: pickerTheme,
-          child: child!,
-        );
-      },
+      builder: (context, child) =>
+          Theme(data: pickerTheme, child: child!),
     );
 
     if (pickedDate == null || !context.mounted) return;
@@ -970,10 +788,8 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     final isToday = pickedDate.year == now.year &&
         pickedDate.month == now.month &&
         pickedDate.day == now.day;
-
     final previousDateTime = selectedDate ?? now;
     final previousTime = TimeOfDay.fromDateTime(previousDateTime);
-
     final initialTime = isToday &&
         (previousTime.hour < now.hour ||
             (previousTime.hour == now.hour &&
@@ -984,79 +800,155 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
-      builder: (context, child) {
-        return Theme(
-          data: pickerTheme,
-          child: child!,
-        );
-      },
+      builder: (context, child) =>
+          Theme(data: pickerTheme, child: child!),
     );
 
     if (pickedTime == null || !context.mounted) return;
 
-    final result = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
+    final result = DateTime(pickedDate.year, pickedDate.month, pickedDate.day,
+        pickedTime.hour, pickedTime.minute);
 
     if (result.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('不能選擇過去的時間，請重新選擇。'),
+        SnackBar(
+          // TODO: i18n
+          content: const Text('不能選擇過去的時間，請重新選擇。'),
+          backgroundColor: colors.danger,
         ),
       );
       return;
     }
 
-    setState(() {
-      selectedDate = result;
-    });
+    setState(() => selectedDate = result);
   }
 
-  // ✅ 修正 3：用暫存字串交換，避免每次新建 TextEditingController 造成泄漏
   void _swapStations() {
     if (departureSelectedStation.isEmpty &&
         destinationSelectedStation.isEmpty) {
       return;
     }
-
     setState(() {
       final tempText = widget.departureController.text;
       widget.departureController.text = widget.destinationController.text;
       widget.destinationController.text = tempText;
-
       final tempStation = departureSelectedStation;
       departureSelectedStation = destinationSelectedStation;
       destinationSelectedStation = tempStation;
-
       final tempSelected = _isDepartureSelected;
       _isDepartureSelected = _isDestinationSelected;
       _isDestinationSelected = tempSelected;
-
       if (widget.departureController.text ==
           widget.destinationController.text &&
           widget.departureController.text.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context)!.text_157),
-            backgroundColor: const Color(0xFFFF3B30),
+            backgroundColor: context.appColors.danger,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+                borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     });
   }
 
+  Widget _buildPickerTile({
+    required BuildContext context,
+    required bool isSelected,
+    required IconData icon,
+    required Color accent,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    final colors = context.appColors;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: accent.withOpacity(0.1),
+        child: Container(
+          width: double.infinity,
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? accent.withOpacity(0.05)
+                : colors.mutedBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? accent.withOpacity(0.3)
+                  : colors.border,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected ? accent : accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon,
+                    size: 20,
+                    color: isSelected ? colors.cardBackground : accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected ? accent : colors.textHint,
+                            fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
+                    Text(value,
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? accent
+                                : colors.textHint),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              isSelected
+                  ? Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.check_rounded,
+                    size: 16, color: accent),
+              )
+                  : Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: colors.textHint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colors.cardBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -1073,177 +965,63 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(
-                          Icons.route_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                        child: Icon(Icons.route_rounded,
+                            size: 40, color: colors.info),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.text_843,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A73E8),
-                        ),
-                      ),
+                      Text(l10n.text_843,
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: colors.info)),
                       const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context)!.text_844,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(l10n.text_844,
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                  decoration:
+                  SurfaceDecoration.cardShadow(context, radius: 20),
                   child: Column(
                     children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () async {
-                            final selectedStation =
-                            await StationDialog.showStationDialog(context);
-                            if (selectedStation != null) {
-                              setState(() {
-                                departureSelectedStation = selectedStation;
-                                _isDepartureSelected = true;
+                      _buildPickerTile(
+                        context: context,
+                        isSelected: _isDepartureSelected,
+                        icon: Icons.train_rounded,
+                        accent: colors.info,
+                        label: l10n.text_845,
+                        value: _isDepartureSelected
+                            ? widget.departureController.text
+                            : l10n.text_161,
+                        onTap: () async {
+                          final selectedStation =
+                          await StationDialog.showStationDialog(context);
+                          if (selectedStation != null) {
+                            setState(() {
+                              departureSelectedStation = selectedStation;
+                              _isDepartureSelected = true;
+                              widget.departureController.text =
+                                  _localizedRailName(
+                                    departureSelectedStation['StationName'],
+                                    isEnglish: Localizations.localeOf(context)
+                                        .languageCode ==
+                                        'en',
+                                  );
+                              if (widget.departureController.text.isEmpty) {
                                 widget.departureController.text =
-                                    _localizedRailName(
-                                      departureSelectedStation['StationName'],
-                                      isEnglish: Localizations.localeOf(context)
-                                          .languageCode ==
-                                          'en',
-                                    );
-                                if (widget.departureController.text.isEmpty) {
-                                  widget.departureController.text =
-                                      AppLocalizations.of(context)!.text_160;
-                                }
-                              });
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _isDepartureSelected
-                                  ? const Color(0xFF1A73E8).withOpacity(0.05)
-                                  : const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _isDepartureSelected
-                                    ? const Color(0xFF1A73E8).withOpacity(0.3)
-                                    : const Color(0xFFEEF3FB),
-                                width: _isDepartureSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: _isDepartureSelected
-                                        ? const Color(0xFF1A73E8)
-                                        : const Color(0xFF1A73E8)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.train_rounded,
-                                    size: 20,
-                                    color: _isDepartureSelected
-                                        ? Colors.white
-                                        : const Color(0xFF1A73E8),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.text_845,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: _isDepartureSelected
-                                              ? const Color(0xFF1A73E8)
-                                              : Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _isDepartureSelected
-                                            ? widget.departureController.text
-                                            : AppLocalizations.of(context)!
-                                            .text_161,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: _isDepartureSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: _isDepartureSelected
-                                              ? const Color(0xFF1A73E8)
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_isDepartureSelected)
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1A73E8)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.check_rounded,
-                                      size: 16,
-                                      color: Color(0xFF1A73E8),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.arrow_forward_ios_rounded,
-                                    size: 16,
-                                    color: Colors.grey,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
+                                    l10n.text_160;
+                              }
+                            });
+                          }
+                        },
                       ),
                       Container(
                         margin: const EdgeInsets.symmetric(vertical: 8),
@@ -1251,358 +1029,160 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A73E8).withOpacity(0.1),
+                              color: colors.infoContainer,
                               borderRadius: BorderRadius.circular(30),
                               border: Border.all(
-                                color: const Color(0xFF1A73E8).withOpacity(0.3),
-                                width: 1,
-                              ),
+                                  color: colors.info.withOpacity(0.3),
+                                  width: 1),
                             ),
                             child: Transform.rotate(
                               angle: 90 * (3.1415926535 / 180),
-                              child: const Icon(
-                                Icons.swap_vert_rounded,
-                                color: Color(0xFF1A73E8),
-                                size: 24,
-                              ),
+                              child: Icon(Icons.swap_vert_rounded,
+                                  color: colors.info, size: 24),
                             ),
                           ),
                           onPressed: _swapStations,
                         ),
                       ),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () async {
-                            final selectedStation =
-                            await StationDialog.showStationDialog(context);
-                            if (selectedStation != null) {
-                              setState(() {
-                                destinationSelectedStation = selectedStation;
-                                _isDestinationSelected = true;
+                      _buildPickerTile(
+                        context: context,
+                        isSelected: _isDestinationSelected,
+                        icon: Icons.flag_rounded,
+                        accent: colors.success,
+                        label: l10n.text_846,
+                        value: _isDestinationSelected
+                            ? widget.destinationController.text
+                            : l10n.text_847,
+                        onTap: () async {
+                          final selectedStation =
+                          await StationDialog.showStationDialog(context);
+                          if (selectedStation != null) {
+                            setState(() {
+                              destinationSelectedStation = selectedStation;
+                              _isDestinationSelected = true;
+                              widget.destinationController.text =
+                                  _localizedRailName(
+                                    destinationSelectedStation['StationName'],
+                                    isEnglish: Localizations.localeOf(context)
+                                        .languageCode ==
+                                        'en',
+                                  );
+                              if (widget.destinationController.text.isEmpty) {
                                 widget.destinationController.text =
-                                    _localizedRailName(
-                                      destinationSelectedStation['StationName'],
-                                      isEnglish: Localizations.localeOf(context)
-                                          .languageCode ==
-                                          'en',
-                                    );
-                                if (widget.destinationController.text.isEmpty) {
-                                  widget.destinationController.text =
-                                      AppLocalizations.of(context)!.text_160;
-                                }
-                              });
-
-                              if (widget.departureController.text ==
-                                  widget.destinationController.text) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_157),
-                                    backgroundColor: const Color(0xFFFF3B30),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
+                                    l10n.text_160;
                               }
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFF34C759).withOpacity(0.1),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _isDestinationSelected
-                                  ? const Color(0xFF34C759).withOpacity(0.05)
-                                  : const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _isDestinationSelected
-                                    ? const Color(0xFF34C759).withOpacity(0.3)
-                                    : const Color(0xFFEEF3FB),
-                                width: _isDestinationSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: _isDestinationSelected
-                                        ? const Color(0xFF34C759)
-                                        : const Color(0xFF34C759)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.flag_rounded,
-                                    size: 20,
-                                    color: _isDestinationSelected
-                                        ? Colors.white
-                                        : const Color(0xFF34C759),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.text_846,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: _isDestinationSelected
-                                              ? const Color(0xFF34C759)
-                                              : Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _isDestinationSelected
-                                            ? widget.destinationController.text
-                                            : AppLocalizations.of(context)!
-                                            .text_847,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: _isDestinationSelected
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: _isDestinationSelected
-                                              ? const Color(0xFF34C759)
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_isDestinationSelected)
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF34C759)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.check_rounded,
-                                      size: 16,
-                                      color: Color(0xFF34C759),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.arrow_forward_ios_rounded,
-                                    size: 16,
-                                    color: Colors.grey,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _selectDateTime(context),
-                          borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFFFF9500).withOpacity(0.1),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedDate != null
-                                  ? const Color(0xFFFF9500).withOpacity(0.05)
-                                  : const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selectedDate != null
-                                    ? const Color(0xFFFF9500).withOpacity(0.3)
-                                    : const Color(0xFFEEF3FB),
-                                width: selectedDate != null ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: selectedDate != null
-                                        ? const Color(0xFFFF9500)
-                                        : const Color(0xFFFF9500)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 20,
-                                    color: selectedDate != null
-                                        ? Colors.white
-                                        : const Color(0xFFFF9500),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.text_164,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: selectedDate != null
-                                              ? const Color(0xFFFF9500)
-                                              : Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        selectedDate != null
-                                            ? dateFormat.format(selectedDate!)
-                                            : AppLocalizations.of(context)!
-                                            .text_165,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: selectedDate != null
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                          color: selectedDate != null
-                                              ? const Color(0xFFFF9500)
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (selectedDate != null)
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFF9500)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.edit_calendar_rounded,
-                                      size: 18,
-                                      color: Color(0xFFFF9500),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.edit_calendar_rounded,
-                                    size: 20,
-                                    color: Color(0xFFFF9500),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1A73E8).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              if (!_isDepartureSelected) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_848),
-                                    backgroundColor: const Color(0xFFFF3B30),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              if (!_isDestinationSelected) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_849),
-                                    backgroundColor: const Color(0xFFFF3B30),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RoutePage(
-                                    departure: departureSelectedStation,
-                                    destination: destinationSelectedStation,
-                                    date: selectedDate ??
-                                        DateTime.now()
-                                            .add(const Duration(minutes: 1)),
-                                  ),
+                            });
+                            if (widget.departureController.text ==
+                                widget.destinationController.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.text_157),
+                                  backgroundColor: colors.danger,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(12)),
                                 ),
                               );
-                            },
+                            }
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      _buildPickerTile(
+                        context: context,
+                        isSelected: selectedDate != null,
+                        icon: Icons.calendar_today_rounded,
+                        accent: colors.warning,
+                        label: l10n.text_164,
+                        value: selectedDate != null
+                            ? dateFormat.format(selectedDate!)
+                            : l10n.text_165,
+                        onTap: () => _selectDateTime(context),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.info,
                             borderRadius: BorderRadius.circular(12),
-                            splashColor: Colors.white.withOpacity(0.2),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.search_rounded,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      AppLocalizations.of(context)!.text_166,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.info.withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                if (!_isDepartureSelected) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Text(l10n.text_848),
+                                    backgroundColor: colors.danger,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(12)),
+                                  ));
+                                  return;
+                                }
+                                if (!_isDestinationSelected) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Text(l10n.text_849),
+                                    backgroundColor: colors.danger,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                        BorderRadius.circular(12)),
+                                  ));
+                                  return;
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RoutePage(
+                                      departure: departureSelectedStation,
+                                      destination: destinationSelectedStation,
+                                      date: selectedDate ??
+                                          DateTime.now().add(
+                                              const Duration(minutes: 1)),
                                     ),
                                   ),
-                                ],
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              splashColor:
+                              colors.cardBackground.withOpacity(0.2),
+                              child: Container(
+                                padding:
+                                const EdgeInsets.symmetric(vertical: 16),
+                                child: Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search_rounded,
+                                        size: 20,
+                                        color: colors.cardBackground),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.text_166,
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: colors.cardBackground),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -1614,50 +1194,38 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
                 Container(
                   margin: const EdgeInsets.only(top: 20),
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFEEF3FB),
-                      width: 1,
-                    ),
+                  decoration: SurfaceDecoration.outlined(
+                    context,
+                    radius: 16,
+                    borderColor: colors.border,
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
+                        child: Icon(Icons.info_outline_rounded,
+                            size: 16, color: colors.info),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              AppLocalizations.of(context)!.text_154,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A73E8),
-                              ),
-                            ),
+                            Text(l10n.text_154,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.info)),
                             const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.text_850,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            Text(l10n.text_850,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.textSecondary,
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -1673,9 +1241,12 @@ class _RouteSearchPageState extends State<RouteSearchPage> {
   }
 }
 
+// ─────────────────────────────────────────────────────
+// StationSearchPage
+// ─────────────────────────────────────────────────────
+
 class StationSearchPage extends StatefulWidget {
   final TextEditingController controller;
-
   const StationSearchPage({super.key, required this.controller});
 
   @override
@@ -1723,88 +1294,60 @@ class _StationSearchPageState extends State<StationSearchPage> {
   final DateFormat dateFormat = DateFormat('yyyy年M月d日 HH:mm');
 
   Future<void> _selectDateTime(BuildContext context) async {
+    final colors = context.appColors;
     final now = DateTime.now();
     final currentTheme = Theme.of(context);
-    final isDark = currentTheme.brightness == Brightness.dark;
-
-    const primaryColor = Color(0xFF1A73E8);
-
-    final surfaceColor = currentTheme.colorScheme.surface;
+    final surface = currentTheme.colorScheme.surface;
     final textColor = currentTheme.colorScheme.onSurface;
-
     final dialogShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    );
+        borderRadius: BorderRadius.circular(20));
 
     final pickerTheme = currentTheme.copyWith(
       colorScheme: currentTheme.colorScheme.copyWith(
-        primary: primaryColor,
-        onPrimary: Colors.white,
-        surface: surfaceColor,
+        primary: colors.info,
+        onPrimary: colors.cardBackground,
+        surface: surface,
         onSurface: textColor,
       ),
-      dialogTheme: DialogThemeData(
-        backgroundColor: surfaceColor,
-        shape: dialogShape,
-      ),
+      dialogTheme:
+      DialogThemeData(backgroundColor: surface, shape: dialogShape),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
-      ),
+          style: TextButton.styleFrom(foregroundColor: colors.info)),
       timePickerTheme: TimePickerThemeData(
-        backgroundColor: surfaceColor,
-        hourMinuteTextColor: primaryColor,
-        hourMinuteColor: primaryColor.withOpacity(
-          isDark ? 0.20 : 0.07,
-        ),
+        backgroundColor: surface,
+        hourMinuteTextColor: colors.info,
+        hourMinuteColor: colors.info.withOpacity(0.20),
         hourMinuteShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: primaryColor.withOpacity(
-              isDark ? 0.50 : 0.25,
-            ),
-          ),
+          side: BorderSide(color: colors.info.withOpacity(0.5)),
         ),
         dayPeriodTextColor: textColor,
-        dayPeriodColor: primaryColor.withOpacity(
-          isDark ? 0.25 : 0.10,
-        ),
-        dayPeriodShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        dialBackgroundColor: isDark
-            ? const Color(0xFF2C2C2E)
-            : const Color(0xFFF1F5FC),
+        dayPeriodColor: colors.info.withOpacity(0.25),
+        dayPeriodShape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        dialBackgroundColor: colors.mutedBackground,
         dialTextColor: textColor,
-        dialHandColor: primaryColor,
-        entryModeIconColor: primaryColor,
+        dialHandColor: colors.info,
+        entryModeIconColor: colors.info,
         helpTextStyle: currentTheme.textTheme.labelSmall,
-        cancelButtonStyle: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
-        confirmButtonStyle: TextButton.styleFrom(
-          foregroundColor: primaryColor,
-        ),
+        cancelButtonStyle:
+        TextButton.styleFrom(foregroundColor: colors.info),
+        confirmButtonStyle:
+        TextButton.styleFrom(foregroundColor: colors.info),
       ),
     );
 
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: selectedDate != null &&
-          !selectedDate!.isBefore(
-            DateTime(now.year, now.month, now.day),
-          )
+          !selectedDate!
+              .isBefore(DateTime(now.year, now.month, now.day))
           ? selectedDate!
           : now,
       firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: pickerTheme,
-          child: child!,
-        );
-      },
+      builder: (context, child) =>
+          Theme(data: pickerTheme, child: child!),
     );
 
     if (pickedDate == null || !context.mounted) return;
@@ -1812,10 +1355,8 @@ class _StationSearchPageState extends State<StationSearchPage> {
     final isToday = pickedDate.year == now.year &&
         pickedDate.month == now.month &&
         pickedDate.day == now.day;
-
     final previousDateTime = selectedDate ?? now;
     final previousTime = TimeOfDay.fromDateTime(previousDateTime);
-
     final initialTime = isToday &&
         (previousTime.hour < now.hour ||
             (previousTime.hour == now.hour &&
@@ -1826,42 +1367,122 @@ class _StationSearchPageState extends State<StationSearchPage> {
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: initialTime,
-      builder: (context, child) {
-        return Theme(
-          data: pickerTheme,
-          child: child!,
-        );
-      },
+      builder: (context, child) =>
+          Theme(data: pickerTheme, child: child!),
     );
 
     if (pickedTime == null || !context.mounted) return;
 
-    final result = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
+    final result = DateTime(pickedDate.year, pickedDate.month, pickedDate.day,
+        pickedTime.hour, pickedTime.minute);
 
     if (result.isBefore(DateTime.now())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('不能選擇過去的時間，請重新選擇。'),
+        SnackBar(
+          // TODO: i18n
+          content: const Text('不能選擇過去的時間，請重新選擇。'),
+          backgroundColor: colors.danger,
         ),
       );
       return;
     }
 
-    setState(() {
-      selectedDate = result;
-    });
+    setState(() => selectedDate = result);
+  }
+
+  Widget _buildPickerTile({
+    required BuildContext context,
+    required bool isSelected,
+    required IconData icon,
+    required Color accent,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    final colors = context.appColors;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        splashColor: accent.withOpacity(0.1),
+        child: Container(
+          width: double.infinity,
+          padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? accent.withOpacity(0.05)
+                : colors.mutedBackground,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+              isSelected ? accent.withOpacity(0.3) : colors.border,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected ? accent : accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon,
+                    size: 20,
+                    color: isSelected ? colors.cardBackground : accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: isSelected ? accent : colors.textHint,
+                            fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
+                    Text(value,
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? accent
+                                : colors.textHint),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              isSelected
+                  ? Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                    color: accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6)),
+                child: Icon(Icons.check_rounded,
+                    size: 16, color: accent),
+              )
+                  : Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: colors.textHint),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colors.cardBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -1878,351 +1499,156 @@ class _StationSearchPageState extends State<StationSearchPage> {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Icon(
-                          Icons.location_city_rounded,
-                          size: 40,
-                          color: Colors.white,
-                        ),
+                        child: Icon(Icons.location_city_rounded,
+                            size: 40, color: colors.info),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        AppLocalizations.of(context)!.text_851,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1A73E8),
-                        ),
-                      ),
+                      Text(l10n.text_851,
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: colors.info)),
                       const SizedBox(height: 8),
-                      Text(
-                        AppLocalizations.of(context)!.text_852,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(l10n.text_852,
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                  decoration:
+                  SurfaceDecoration.cardShadow(context, radius: 20),
                   child: Column(
                     children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () async {
-                            selectedStation =
-                            await StationDialog.showStationDialog(context);
-                            if (selectedStation != null) {
-                              setState(() {
-                                _controller.text = _localizedRailName(
-                                  selectedStation?['StationName'],
-                                  isEnglish: Localizations.localeOf(context)
-                                      .languageCode ==
-                                      'en',
-                                );
-                              });
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedStation != null
-                                  ? const Color(0xFF1A73E8).withOpacity(0.05)
-                                  : const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selectedStation != null
-                                    ? const Color(0xFF1A73E8).withOpacity(0.3)
-                                    : const Color(0xFFEEF3FB),
-                                width: selectedStation != null ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: selectedStation != null
-                                        ? const Color(0xFF1A73E8)
-                                        : const Color(0xFF1A73E8)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.train_rounded,
-                                    size: 20,
-                                    color: selectedStation != null
-                                        ? Colors.white
-                                        : const Color(0xFF1A73E8),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.text_853,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: selectedStation != null
-                                              ? const Color(0xFF1A73E8)
-                                              : Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        selectedStation != null
-                                            ? _controller.text
-                                            : AppLocalizations.of(context)!
-                                            .text_200,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: selectedStation != null
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                          color: selectedStation != null
-                                              ? const Color(0xFF1A73E8)
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (selectedStation != null)
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1A73E8)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Icon(
-                                      Icons.check_rounded,
-                                      size: 16,
-                                      color: Color(0xFF1A73E8),
-                                    ),
-                                  )
-                                else
-                                  const Icon(
-                                    Icons.arrow_forward_ios_rounded,
-                                    size: 16,
-                                    color: Colors.grey,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _buildPickerTile(
+                        context: context,
+                        isSelected: selectedStation != null,
+                        icon: Icons.train_rounded,
+                        accent: colors.info,
+                        label: l10n.text_853,
+                        value: selectedStation != null
+                            ? _controller.text
+                            : l10n.text_200,
+                        onTap: () async {
+                          selectedStation =
+                          await StationDialog.showStationDialog(context);
+                          if (selectedStation != null) {
+                            setState(() {
+                              _controller.text = _localizedRailName(
+                                selectedStation?['StationName'],
+                                isEnglish:
+                                Localizations.localeOf(context)
+                                    .languageCode ==
+                                    'en',
+                              );
+                            });
+                          }
+                        },
                       ),
                       const SizedBox(height: 20),
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _selectDateTime(context),
-                          borderRadius: BorderRadius.circular(12),
-                          splashColor: const Color(0xFFFF9500).withOpacity(0.1),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedDate != null
-                                  ? const Color(0xFFFF9500).withOpacity(0.05)
-                                  : const Color(0xFFF8FAFD),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selectedDate != null
-                                    ? const Color(0xFFFF9500).withOpacity(0.3)
-                                    : const Color(0xFFEEF3FB),
-                                width: selectedDate != null ? 1.5 : 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: selectedDate != null
-                                        ? const Color(0xFFFF9500)
-                                        : const Color(0xFFFF9500)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 20,
-                                    color: selectedDate != null
-                                        ? Colors.white
-                                        : const Color(0xFFFF9500),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.text_164,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: selectedDate != null
-                                              ? const Color(0xFFFF9500)
-                                              : Colors.grey,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        selectedDate != null
-                                            ? dateFormat.format(selectedDate!)
-                                            : AppLocalizations.of(context)!
-                                            .text_165,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: selectedDate != null
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                          color: selectedDate != null
-                                              ? const Color(0xFFFF9500)
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.edit_calendar_rounded,
-                                  size: 20,
-                                  color: selectedDate != null
-                                      ? const Color(0xFFFF9500)
-                                      : Colors.grey[400],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      _buildPickerTile(
+                        context: context,
+                        isSelected: selectedDate != null,
+                        icon: Icons.calendar_today_rounded,
+                        accent: colors.warning,
+                        label: l10n.text_164,
+                        value: selectedDate != null
+                            ? dateFormat.format(selectedDate!)
+                            : l10n.text_165,
+                        onTap: () => _selectDateTime(context),
                       ),
                       const SizedBox(height: 24),
-                      Container(
+                      SizedBox(
                         width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colors.info,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.info.withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF1A73E8).withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () {
-                              if (selectedStation == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        AppLocalizations.of(context)!.text_200),
-                                    backgroundColor: const Color(0xFFFF3B30),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                if (selectedStation == null) {
+                                  ScaffoldMessenger.of(context)
+                                      .showSnackBar(SnackBar(
+                                    content: Text(l10n.text_200),
+                                    backgroundColor: colors.danger,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                        borderRadius:
+                                        BorderRadius.circular(12)),
+                                  ));
+                                  return;
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) {
+                                      final names =
+                                      selectedStation?['StationName'];
+                                      final zhName = (names is Map)
+                                          ? (names['Zh_tw']?.toString() ?? '')
+                                          : (names?.toString() ?? '');
+                                      final enName = (names is Map)
+                                          ? (names['En']?.toString() ?? '')
+                                          : '';
+                                      return StationPage(
+                                        stationName: zhName.isNotEmpty
+                                            ? zhName
+                                            : enName,
+                                        stationNameEn: enName,
+                                        stationID: selectedStation?[
+                                        "StationID"]
+                                            ?.toString() ??
+                                            '',
+                                        datetime:
+                                        selectedDate ?? DateTime.now(),
+                                      );
+                                    },
                                   ),
                                 );
-                                return;
-                              }
-
-                              // ✅ 修正 4：同時傳入中英文名與非空 stationID
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) {
-                                    final names =
-                                    selectedStation?['StationName'];
-                                    final zhName = (names is Map)
-                                        ? (names['Zh_tw']?.toString() ?? '')
-                                        : (names?.toString() ?? '');
-                                    final enName = (names is Map)
-                                        ? (names['En']?.toString() ?? '')
-                                        : '';
-                                    return StationPage(
-                                      stationName:
-                                      zhName.isNotEmpty ? zhName : enName,
-                                      stationNameEn: enName,
-                                      stationID: selectedStation?["StationID"]
-                                          ?.toString() ??
-                                          '',
-                                      datetime: selectedDate ?? DateTime.now(),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            splashColor: Colors.white.withOpacity(0.2),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.search_rounded,
-                                    size: 20,
-                                    color: Colors.white,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Flexible(
-                                    child: Text(
-                                      AppLocalizations.of(context)!.text_854,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              splashColor:
+                              colors.cardBackground.withOpacity(0.2),
+                              child: Container(
+                                padding:
+                                const EdgeInsets.symmetric(vertical: 16),
+                                child: Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search_rounded,
+                                        size: 20,
+                                        color: colors.cardBackground),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        l10n.text_854,
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: colors.cardBackground),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -2234,50 +1660,35 @@ class _StationSearchPageState extends State<StationSearchPage> {
                 Container(
                   margin: const EdgeInsets.only(top: 20),
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFEEF3FB),
-                      width: 1,
-                    ),
-                  ),
+                  decoration: SurfaceDecoration.outlined(
+                      context, radius: 16, borderColor: colors.border),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A73E8).withOpacity(0.1),
+                          color: colors.infoContainer,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
-                          Icons.info_outline_rounded,
-                          size: 16,
-                          color: Color(0xFF1A73E8),
-                        ),
+                        child: Icon(Icons.info_outline_rounded,
+                            size: 16, color: colors.info),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              AppLocalizations.of(context)!.text_154,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A73E8),
-                              ),
-                            ),
+                            Text(l10n.text_154,
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.info)),
                             const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(context)!.text_855,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            Text(l10n.text_855,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: colors.textSecondary,
+                                    fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -2290,58 +1701,46 @@ class _StationSearchPageState extends State<StationSearchPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 12),
-                        child: Text(
-                          AppLocalizations.of(context)!.text_203,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A73E8),
-                          ),
-                        ),
+                        padding:
+                        const EdgeInsets.only(left: 4, bottom: 12),
+                        child: Text(l10n.text_203,
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: colors.info)),
                       ),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
                         children: [
-                          AppLocalizations.of(context)!.text_175,
-                          AppLocalizations.of(context)!.text_192,
-                          AppLocalizations.of(context)!.text_185,
-                          AppLocalizations.of(context)!.text_178,
-                          AppLocalizations.of(context)!.text_193,
-                          AppLocalizations.of(context)!.text_181,
+                          l10n.text_175,
+                          l10n.text_192,
+                          l10n.text_185,
+                          l10n.text_178,
+                          l10n.text_193,
+                          l10n.text_181,
                         ].map((stationName) {
                           return Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () {
-                                _controller.text = stationName;
-                              },
+                              onTap: () => _controller.text = stationName,
                               borderRadius: BorderRadius.circular(20),
-                              splashColor:
-                              const Color(0xFF1A73E8).withOpacity(0.1),
+                              splashColor: colors.info.withOpacity(0.1),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
+                                    horizontal: 16, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEEF3FB),
+                                  color: colors.infoContainer,
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: const Color(0xFF1A73E8)
-                                        .withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                                      color: colors.info.withOpacity(0.2),
+                                      width: 1),
                                 ),
-                                child: Text(
-                                  stationName,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF1A73E8),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                                child: Text(stationName,
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: colors.info,
+                                        fontWeight: FontWeight.w500)),
                               ),
                             ),
                           );
@@ -2358,6 +1757,10 @@ class _StationSearchPageState extends State<StationSearchPage> {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────
+// StationPage（車站詳情）
+// ─────────────────────────────────────────────────────
 
 class StationPage extends StatefulWidget {
   final String stationName;
@@ -2380,20 +1783,14 @@ class _StationPageState extends State<StationPage>
     with SingleTickerProviderStateMixin {
   late String displayedStationName;
   late TabController _tabController;
-
-  // ✅ 修正 4：將 ScrollController 提升到 State
   final ScrollController _trainListScrollController = ScrollController();
-  // ✅ 用 GlobalKey 定位「最近班次」，取代硬編碼 i*152
   final Map<int, GlobalKey> _trainItemKeys = {};
-  // ✅ 記錄上次滾動的資料簽章，避免閉包捕捉舊資料
   String? _lastScrolledSig;
 
   @override
   void initState() {
     super.initState();
-    unawaited(
-      AppAnalytics.logFeatureOpened('railway'),
-    );
+    unawaited(AppAnalytics.logFeatureOpened('railway'));
     displayedStationName = widget.stationName;
     _tabController = TabController(length: 2, vsync: this);
   }
@@ -2411,11 +1808,10 @@ class _StationPageState extends State<StationPage>
   @override
   void dispose() {
     _tabController.dispose();
-    _trainListScrollController.dispose(); // ✅ 釋放
+    _trainListScrollController.dispose();
     super.dispose();
   }
 
-  // ✅ 資料簽章：只要長度/首末時刻/目標時間一致，就視為同一批結果
   String _trainSig(List<dynamic> trains) {
     if (trains.isEmpty) return 'empty';
     final first = trains.first['DepartureTime']?.toString() ?? '';
@@ -2424,7 +1820,6 @@ class _StationPageState extends State<StationPage>
         '|${widget.datetime.millisecondsSinceEpoch}';
   }
 
-  // ✅ 定位到「第一班晚於 widget.datetime 的車次」，跨日亦可
   void _scrollToNearestTrain(List<dynamic> trains) {
     if (trains.isEmpty) return;
     final base = widget.datetime.hour * 60 + widget.datetime.minute;
@@ -2439,61 +1834,56 @@ class _StationPageState extends State<StationPage>
       }
     }
     targetIdx ??= trains.length - 1;
-
     final key = _trainItemKeys[targetIdx];
     final ctx = key?.currentContext;
     if (ctx != null) {
-      Scrollable.ensureVisible(
-        ctx,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-        alignment: 0.2,
-      );
+      Scrollable.ensureVisible(ctx,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.2);
     }
   }
 
   void updateStationName(String newStationName) {
-    setState(() {
-      displayedStationName = newStationName;
-    });
+    setState(() => displayedStationName = newStationName);
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFD),
+      backgroundColor: colors.cardBackground,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: colors.cardBackground,
         elevation: 0,
         title: Text(
-          Localizations.localeOf(context).languageCode == 'en'
+          isEnglish
               ? '${widget.stationNameEn.trim().isNotEmpty ? widget.stationNameEn : widget.stationName} Station'
+          // TODO: i18n（車站）
               : '${widget.stationName} 車站',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF1A73E8),
-            letterSpacing: -0.5,
-          ),
+          style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: colors.info,
+              letterSpacing: -0.5),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+        iconTheme: IconThemeData(color: colors.info),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFF1A73E8),
-          labelColor: const Color(0xFF1A73E8),
-          unselectedLabelColor: Colors.grey[600],
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          ),
+          indicatorColor: colors.info,
+          labelColor: colors.info,
+          unselectedLabelColor: colors.textSecondary,
+          labelStyle:
+          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          unselectedLabelStyle:
+          const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
           tabs: [
-            Tab(text: AppLocalizations.of(context)!.text_856),
-            Tab(text: AppLocalizations.of(context)!.text_655),
+            Tab(text: l10n.text_856),
+            Tab(text: l10n.text_655),
           ],
         ),
       ),
@@ -2508,17 +1898,19 @@ class _StationPageState extends State<StationPage>
   }
 
   Widget _buildHomePage() {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
     String _getStationClass(String? stationClass) {
-      Map<String, String> stationClassMap = {
-        '0': AppLocalizations.of(context)!.text_857,
-        '1': AppLocalizations.of(context)!.text_858,
-        '2': AppLocalizations.of(context)!.text_859,
-        '3': AppLocalizations.of(context)!.text_860,
-        '4': AppLocalizations.of(context)!.text_861,
-        '5': AppLocalizations.of(context)!.text_862,
+      final map = {
+        '0': l10n.text_857,
+        '1': l10n.text_858,
+        '2': l10n.text_859,
+        '3': l10n.text_860,
+        '4': l10n.text_861,
+        '5': l10n.text_862,
       };
-      return stationClassMap[stationClass] ??
-          AppLocalizations.of(context)!.text_863;
+      return map[stationClass] ?? l10n.text_863;
     }
 
     return FutureBuilder<List<dynamic>>(
@@ -2528,21 +1920,10 @@ class _StationPageState extends State<StationPage>
           return Center(
             child: Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+              decoration:
+              SurfaceDecoration.cardShadow(context, radius: 20),
               child: CircularProgressIndicator(
-                color: const Color(0xFF1A73E8),
-                strokeWidth: 3,
-              ),
+                  color: colors.info, strokeWidth: 3),
             ),
           );
         } else if (snapshot.hasError) {
@@ -2550,17 +1931,8 @@ class _StationPageState extends State<StationPage>
             child: Container(
               padding: const EdgeInsets.all(24),
               margin: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
+              decoration:
+              SurfaceDecoration.cardShadow(context, radius: 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -2568,41 +1940,25 @@ class _StationPageState extends State<StationPage>
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFFFF3B30).withOpacity(0.1),
-                          const Color(0xFFFF3B30).withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: colors.dangerContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.error_outline_rounded,
-                      size: 40,
-                      color: Color(0xFFFF3B30),
-                    ),
+                    child: Icon(Icons.error_outline_rounded,
+                        size: 40, color: colors.danger),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.text_205,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFFFF3B30),
-                    ),
-                  ),
+                  Text(l10n.text_205,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: colors.danger)),
                   const SizedBox(height: 8),
-                  Text(
-                    '${snapshot.error}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('${snapshot.error}',
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textSecondary,
+                          fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center),
                 ],
               ),
             ),
@@ -2618,40 +1974,24 @@ class _StationPageState extends State<StationPage>
                     width: 120,
                     height: 120,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          const Color(0xFF1A73E8).withOpacity(0.1),
-                          const Color(0xFF1A73E8).withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: colors.infoContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.train_outlined,
-                      size: 50,
-                      color: Color(0xFF1A73E8),
-                    ),
+                    child: Icon(Icons.train_outlined,
+                        size: 50, color: colors.info),
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    AppLocalizations.of(context)!.text_864,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1A73E8),
-                    ),
-                  ),
+                  Text(l10n.text_864,
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: colors.info)),
                   const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.text_865,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(l10n.text_865,
+                      style: TextStyle(
+                          fontSize: 14,
+                          color: colors.textSecondary,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -2663,24 +2003,14 @@ class _StationPageState extends State<StationPage>
               children: [
                 Container(
                   margin: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
+                  decoration:
+                  SurfaceDecoration.cardShadow(context, radius: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       ClipRRect(
                         borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
+                            top: Radius.circular(20)),
                         child: Image.network(
                           'https://res.klook.com/images/fl_lossy.progressive,q_65/c_fill,w_1295,h_720,f_auto/w_80,x_15,y_15,g_south_west,l_klook_water/activities/zdmg5rjnbvgaubuqzoxz/%E8%8A%B1%E8%93%AE%E5%A4%9A%E8%89%AF%E8%BB%8A%E7%AB%99%E7%91%9E%E7%A9%97%E7%89%A7%E5%A0%B4%E4%B8%83%E6%98%9F%E6%BD%AD%E4%B8%80%E6%97%A5%E9%81%8A%EF%BC%88%E5%A2%BE%E4%B8%81%E5%B1%8F%E6%9D%B1%E5%87%BA%E7%99%BC%EF%BC%89.jpg',
                           height: 180,
@@ -2697,34 +2027,27 @@ class _StationPageState extends State<StationPage>
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEEF3FB),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.train_rounded,
-                                    size: 20,
-                                    color: Color(0xFF1A73E8),
-                                  ),
+                                  decoration:
+                                  SurfaceDecoration.muted(context,
+                                      radius: 12),
+                                  child: Icon(Icons.train_rounded,
+                                      size: 20, color: colors.info),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    _localizedRailField(
-                                      data[0],
-                                      englishKey: 'StationNameEn',
-                                      chineseKey: 'StationNameZh_tw',
-                                      isEnglish: Localizations.localeOf(context)
-                                          .languageCode ==
-                                          'en',
-                                      fallback: AppLocalizations.of(context)!
-                                          .text_160,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black87,
-                                    ),
+                                    _localizedRailField(data[0],
+                                        englishKey: 'StationNameEn',
+                                        chineseKey: 'StationNameZh_tw',
+                                        isEnglish: Localizations.localeOf(
+                                            context)
+                                            .languageCode ==
+                                            'en',
+                                        fallback: l10n.text_160),
+                                    style: TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.textPrimary),
                                   ),
                                 ),
                               ],
@@ -2732,26 +2055,26 @@ class _StationPageState extends State<StationPage>
                             const SizedBox(height: 20),
                             _buildInfoItem(
                               icon: Icons.location_on_rounded,
-                              label: AppLocalizations.of(context)!.text_866,
+                              label: l10n.text_866,
                               value: data[1]['StationAddress'] ??
-                                  AppLocalizations.of(context)!.text_867,
+                                  l10n.text_867,
                             ),
                             _buildInfoItem(
                               icon: Icons.grade_rounded,
-                              label: AppLocalizations.of(context)!.text_868,
-                              value: _getStationClass(data[1]['StationClass']),
+                              label: l10n.text_868,
+                              value:
+                              _getStationClass(data[1]['StationClass']),
                             ),
                             _buildInfoItem(
                               icon: Icons.phone_rounded,
-                              label: AppLocalizations.of(context)!.text_869,
+                              label: l10n.text_869,
                               value: data[1]['StationPhone'] ??
-                                  AppLocalizations.of(context)!.text_870,
+                                  l10n.text_870,
                             ),
                             _buildInfoItem(
                               icon: Icons.qr_code_rounded,
-                              label: AppLocalizations.of(context)!.text_871,
-                              value: data[1]['StationID'] ??
-                                  AppLocalizations.of(context)!.text_872,
+                              label: l10n.text_871,
+                              value: data[1]['StationID'] ?? l10n.text_872,
                             ),
                           ],
                         ),
@@ -2760,29 +2083,23 @@ class _StationPageState extends State<StationPage>
                   ),
                 ),
                 ...data.map((station) {
-                  List<Map<String, String>> facilityMaps = [];
+                  final facilityMaps = <Map<String, String>>[];
                   for (int i = 0; i < 5; i++) {
                     final isEnglish =
                         Localizations.localeOf(context).languageCode == 'en';
-                    String? mapName = _localizedRailField(
-                      station,
-                      englishKey: 'FacilityMapURLs${i}MapNameEn',
-                      chineseKey: 'FacilityMapURLs${i}MapNameZh_tw',
-                      isEnglish: isEnglish,
-                    );
-                    String? mapURL =
+                    final mapName = _localizedRailField(station,
+                        englishKey: 'FacilityMapURLs${i}MapNameEn',
+                        chineseKey: 'FacilityMapURLs${i}MapNameZh_tw',
+                        isEnglish: isEnglish);
+                    final mapURL =
                     station['FacilityMapURLs${i}MapURL'] as String?;
                     if (mapURL != null) {
-                      facilityMaps.add({
-                        'mapName': mapName ?? '',
-                        'mapURL': mapURL,
-                      });
+                      facilityMaps.add(
+                          {'mapName': mapName, 'mapURL': mapURL});
                     }
                   }
-
-                  String? elevatorInfo =
+                  final elevatorInfo =
                   station['Elevators0Description'] as String?;
-
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -2790,17 +2107,9 @@ class _StationPageState extends State<StationPage>
                         ...facilityMaps.map((facility) {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
+                            decoration: SurfaceDecoration.cardShadow(
+                                context,
+                                radius: 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -2810,29 +2119,22 @@ class _StationPageState extends State<StationPage>
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFEEF3FB),
-                                          borderRadius:
-                                          BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(
-                                          Icons.map_rounded,
-                                          size: 18,
-                                          color: Color(0xFF1A73E8),
-                                        ),
+                                        decoration:
+                                        SurfaceDecoration.muted(context,
+                                            radius: 10),
+                                        child: Icon(Icons.map_rounded,
+                                            size: 18, color: colors.info),
                                       ),
                                       const SizedBox(width: 12),
                                       Flexible(
-                                        child: Text(
-                                          facility['mapName']!,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                        child: Text(facility['mapName']!,
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: colors.textPrimary),
+                                            maxLines: 1,
+                                            overflow:
+                                            TextOverflow.ellipsis),
                                       ),
                                     ],
                                   ),
@@ -2849,17 +2151,15 @@ class _StationPageState extends State<StationPage>
                                         (context, error, stackTrace) {
                                       return Container(
                                         height: 120,
-                                        color: Colors.grey[100],
+                                        color: colors.mutedBackground,
                                         child: Center(
-                                          child: Text(
-                                            AppLocalizations.of(context)!
-                                                .text_873,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[600],
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
+                                          child: Text(l10n.text_873,
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: colors
+                                                      .textSecondary,
+                                                  fontWeight:
+                                                  FontWeight.w500)),
                                         ),
                                       );
                                     },
@@ -2873,41 +2173,30 @@ class _StationPageState extends State<StationPage>
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.06),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
+                            decoration: SurfaceDecoration.cardShadow(
+                                context,
+                                radius: 16),
                             child: Row(
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF34C759)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: colors.successContainer,
+                                    borderRadius:
+                                    BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(
-                                    Icons.elevator_rounded,
-                                    size: 20,
-                                    color: Color(0xFF34C759),
-                                  ),
+                                  child: Icon(Icons.elevator_rounded,
+                                      size: 20, color: colors.success),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
+                                    // TODO: i18n（電梯資訊:）
                                     "電梯資訊: $elevatorInfo",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: TextStyle(
+                                        fontSize: 14,
+                                        color: colors.textPrimary,
+                                        fontWeight: FontWeight.w500),
                                   ),
                                 ),
                               ],
@@ -2930,6 +2219,7 @@ class _StationPageState extends State<StationPage>
     required String label,
     required String value,
   }) {
+    final colors = context.appColors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -2937,38 +2227,25 @@ class _StationPageState extends State<StationPage>
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              size: 16,
-              color: const Color(0xFF1A73E8),
-            ),
+            decoration: SurfaceDecoration.muted(context, radius: 8),
+            child: Icon(icon, size: 16, color: colors.info),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(value,
+                    style: TextStyle(
+                        fontSize: 15,
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -2977,10 +2254,12 @@ class _StationPageState extends State<StationPage>
     );
   }
 
-  // ✅ 修正 4 + 6：不再每次 build 新建 Controller、用 GlobalKey、修正閉包
   Widget _buildTrainInfoPage() {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
-      color: Colors.white,
+      color: colors.cardBackground,
       padding: const EdgeInsets.all(16),
       child: FutureBuilder<List<dynamic>>(
         future: context
@@ -2995,25 +2274,19 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEEF3FB),
+                    decoration: BoxDecoration(
+                      color: colors.infoContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.train_rounded,
-                      size: 28,
-                      color: Color(0xFF1A73E8),
-                    ),
+                    child: Icon(Icons.train_rounded,
+                        size: 28, color: colors.info),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.text_874,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A73E8),
-                    ),
-                  ),
+                  Text(l10n.text_874,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.info)),
                 ],
               ),
             );
@@ -3025,33 +2298,23 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFEEEE),
+                    decoration: BoxDecoration(
+                      color: colors.dangerContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.error_outline_rounded,
-                      size: 28,
-                      color: Color(0xFFFF3B30),
-                    ),
+                    child: Icon(Icons.error_outline_rounded,
+                        size: 28, color: colors.danger),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.text_875,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.redAccent,
-                    ),
-                  ),
+                  Text(l10n.text_875,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.danger)),
                   const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.text_206,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
+                  Text(l10n.text_206,
+                      style: TextStyle(
+                          fontSize: 14, color: colors.textSecondary)),
                 ],
               ),
             );
@@ -3063,31 +2326,24 @@ class _StationPageState extends State<StationPage>
                   Container(
                     width: 60,
                     height: 60,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEEF3FB),
+                    decoration: BoxDecoration(
+                      color: colors.infoContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.info_outline_rounded,
-                      size: 28,
-                      color: Color(0xFF1A73E8),
-                    ),
+                    child: Icon(Icons.info_outline_rounded,
+                        size: 28, color: colors.info),
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.text_876,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A73E8),
-                    ),
-                  ),
+                  Text(l10n.text_876,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: colors.info)),
                 ],
               ),
             );
           }
 
-          // ✅ 用局部 final 抓資料，避免閉包捕捉舊值
           final trainData = snapshot.data!;
           final sig = _trainSig(trainData);
 
@@ -3107,43 +2363,37 @@ class _StationPageState extends State<StationPage>
                   itemCount: trainData.length,
                   itemBuilder: (context, index) {
                     final train = trainData[index];
+                    final itemKey =
+                    _trainItemKeys.putIfAbsent(index, () => GlobalKey());
 
-                    // ✅ 用 GlobalKey 定位
-                    final itemKey = _trainItemKeys.putIfAbsent(
-                        index, () => GlobalKey());
-
-                    String trainNo = (train['TrainNo'])?.toString() ??
-                        AppLocalizations.of(context)!.text_321;
+                    final trainNo = (train['TrainNo'])?.toString() ??
+                        l10n.text_321;
                     final trainTypeName = _localizedRailName(
                       train['TrainTypeName'],
-                      isEnglish:
-                      Localizations.localeOf(context).languageCode == 'en',
+                      isEnglish: Localizations.localeOf(context)
+                          .languageCode ==
+                          'en',
                     );
-                    String trainType =
-                    Localizations.localeOf(context).languageCode == 'en'
+                    final trainType = Localizations.localeOf(context)
+                        .languageCode ==
+                        'en'
                         ? trainTypeName
                         : convertTrainType(trainTypeName);
-                    String departureTime = _formatTime(
-                        train['DepartureTime'] ??
-                            AppLocalizations.of(context)!.text_321);
-                    int? delayTime = train['DelayTime'];
-                    String endingStation = _localizedRailName(
+                    final departureTime =
+                    _formatTime(train['DepartureTime'] ?? l10n.text_321);
+                    final delayTime = train['DelayTime'];
+                    var endingStation = _localizedRailName(
                       train['EndingStationName'],
-                      isEnglish:
-                      Localizations.localeOf(context).languageCode == 'en',
+                      isEnglish: Localizations.localeOf(context)
+                          .languageCode ==
+                          'en',
                     );
-                    if (endingStation.isEmpty) {
-                      endingStation =
-                          AppLocalizations.of(context)!.text_321;
-                    }
+                    if (endingStation.isEmpty) endingStation = l10n.text_321;
 
-                    bool isDelayed = delayTime != null && delayTime > 0;
-                    bool isExpress = trainType.contains(
-                        AppLocalizations.of(context)!.text_877) ||
-                        trainType.contains(
-                            AppLocalizations.of(context)!.text_878) ||
-                        trainType
-                            .contains(AppLocalizations.of(context)!.text_879);
+                    final isDelayed = delayTime != null && delayTime > 0;
+                    final isExpress = trainType.contains(l10n.text_877) ||
+                        trainType.contains(l10n.text_878) ||
+                        trainType.contains(l10n.text_879);
 
                     return KeyedSubtree(
                       key: itemKey,
@@ -3153,19 +2403,19 @@ class _StationPageState extends State<StationPage>
                           color: Colors.transparent,
                           child: InkWell(
                             onTap: () async {
-                              // ✅ 修正 6：車次號碼合法性檢查
-                              final trainNoInt = _parseTrainNoDigits(trainNo);
+                              final trainNoInt =
+                              _parseTrainNoDigits(trainNo);
                               if (trainNoInt == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('車次號碼無效：$trainNo'),
-                                    backgroundColor: const Color(0xFFFF3B30),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                );
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(SnackBar(
+                                  // TODO: i18n（車次號碼無效：）
+                                  content: Text('車次號碼無效：$trainNo'),
+                                  backgroundColor: colors.danger,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(12)),
+                                ));
                                 return;
                               }
                               if (!context.mounted) return;
@@ -3181,37 +2431,34 @@ class _StationPageState extends State<StationPage>
                               );
                             },
                             borderRadius: BorderRadius.circular(20),
-                            splashColor:
-                            const Color(0xFF1A73E8).withOpacity(0.1),
+                            splashColor: colors.info.withOpacity(0.1),
                             highlightColor:
-                            const Color(0xFFEEF3FB).withOpacity(0.5),
+                            colors.mutedBackground.withOpacity(0.5),
                             child: Container(
                               margin: const EdgeInsets.symmetric(
                                   vertical: 6, horizontal: 20),
-                              padding: const EdgeInsets.all(0),
+                              padding: EdgeInsets.zero,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: colors.cardBackground,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black
-                                        .withOpacity(isDelayed ? 0.08 : 0.04),
+                                    color: colors.shadow,
                                     blurRadius: isDelayed ? 20 : 12,
-                                    offset: Offset(0, isDelayed ? 6 : 3),
+                                    offset: Offset(
+                                        0, isDelayed ? 6 : 3),
                                   ),
                                 ],
                                 border: isDelayed
                                     ? Border.all(
-                                  color: const Color(0xFFFF3B30)
-                                      .withOpacity(0.2),
-                                  width: 1.5,
-                                )
+                                    color: colors.danger
+                                        .withOpacity(0.2),
+                                    width: 1.5)
                                     : isExpress
                                     ? Border.all(
-                                  color: const Color(0xFF1A73E8)
-                                      .withOpacity(0.1),
-                                  width: 1,
-                                )
+                                    color:
+                                    colors.info.withOpacity(0.1),
+                                    width: 1)
                                     : null,
                               ),
                               child: Stack(
@@ -3224,19 +2471,12 @@ class _StationPageState extends State<StationPage>
                                       child: Container(
                                         width: 4,
                                         decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              const Color(0xFFFF3B30),
-                                              const Color(0xFFFF3B30)
-                                                  .withOpacity(0.7),
-                                            ],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
+                                          color: colors.danger,
                                           borderRadius:
                                           const BorderRadius.only(
                                             topLeft: Radius.circular(20),
-                                            bottomLeft: Radius.circular(20),
+                                            bottomLeft:
+                                            Radius.circular(20),
                                           ),
                                         ),
                                       ),
@@ -3256,7 +2496,7 @@ class _StationPageState extends State<StationPage>
                                           width: 48,
                                           height: 48,
                                           decoration: BoxDecoration(
-                                            gradient: _getTrainTypeGradient(
+                                            color: _getTrainTypeColor(
                                                 trainType),
                                             borderRadius:
                                             BorderRadius.circular(14),
@@ -3273,7 +2513,7 @@ class _StationPageState extends State<StationPage>
                                           child: Icon(
                                             _getTrainTypeIcon(trainType),
                                             size: 24,
-                                            color: Colors.white,
+                                            color: colors.cardBackground,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -3284,29 +2524,24 @@ class _StationPageState extends State<StationPage>
                                             children: [
                                               Row(
                                                 crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                                CrossAxisAlignment
+                                                    .start,
                                                 children: [
                                                   Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                      CrossAxisAlignment
-                                                          .start,
-                                                      children: [
-                                                        Text(
-                                                          '車次 $trainNo',
-                                                          style: TextStyle(
-                                                            fontSize: 17,
-                                                            fontWeight:
-                                                            FontWeight.w700,
-                                                            color: isDelayed
-                                                                ? Colors
-                                                                .black87
-                                                                : Colors
-                                                                .grey[700],
-                                                            height: 1.3,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                    child: Text(
+                                                      // TODO: i18n（車次）
+                                                      '車次 $trainNo',
+                                                      style: TextStyle(
+                                                        fontSize: 17,
+                                                        fontWeight:
+                                                        FontWeight.w700,
+                                                        color: isDelayed
+                                                            ? colors
+                                                            .textPrimary
+                                                            : colors
+                                                            .textPrimary,
+                                                        height: 1.3,
+                                                      ),
                                                     ),
                                                   ),
                                                   const SizedBox(width: 12),
@@ -3315,17 +2550,16 @@ class _StationPageState extends State<StationPage>
                                                         .symmetric(
                                                         horizontal: 10,
                                                         vertical: 6),
-                                                    decoration: BoxDecoration(
+                                                    decoration:
+                                                    BoxDecoration(
                                                       color: isDelayed
-                                                          ? const Color(
-                                                          0xFFFF3B30)
-                                                          .withOpacity(0.1)
-                                                          : const Color(
-                                                          0xFF1A73E8)
-                                                          .withOpacity(0.1),
+                                                          ? colors
+                                                          .dangerContainer
+                                                          : colors
+                                                          .infoContainer,
                                                       borderRadius:
-                                                      BorderRadius.circular(
-                                                          10),
+                                                      BorderRadius
+                                                          .circular(10),
                                                     ),
                                                     child: Text(
                                                       departureTime,
@@ -3334,10 +2568,8 @@ class _StationPageState extends State<StationPage>
                                                         fontWeight:
                                                         FontWeight.w700,
                                                         color: isDelayed
-                                                            ? const Color(
-                                                            0xFFFF3B30)
-                                                            : const Color(
-                                                            0xFF1A73E8),
+                                                            ? colors.danger
+                                                            : colors.info,
                                                       ),
                                                     ),
                                                   ),
@@ -3348,56 +2580,58 @@ class _StationPageState extends State<StationPage>
                                                 children: [
                                                   Expanded(
                                                     child: Text(
+                                                      // TODO: i18n（往）
                                                       '往 $endingStation',
                                                       style: TextStyle(
                                                         fontSize: 15,
-                                                        color:
-                                                        Colors.grey[600],
+                                                        color: colors
+                                                            .textSecondary,
                                                         fontWeight:
                                                         FontWeight.w500,
                                                         height: 1.4,
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow
+                                                      overflow:
+                                                      TextOverflow
                                                           .ellipsis,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   if (isDelayed)
                                                     _buildStatusBadge(
+                                                      // TODO: i18n（延誤 X分）
                                                         '延誤 ${delayTime}分',
-                                                        const Color(0xFFFF3B30)),
+                                                        colors.danger),
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
                                               Row(
                                                 children: [
                                                   Container(
-                                                    padding: const EdgeInsets
+                                                    padding:
+                                                    const EdgeInsets
                                                         .symmetric(
                                                         horizontal: 10,
                                                         vertical: 4),
-                                                    decoration: BoxDecoration(
+                                                    decoration:
+                                                    BoxDecoration(
                                                       color: _getTrainTypeColor(
                                                           trainType)
                                                           .withOpacity(0.1),
                                                       borderRadius:
-                                                      BorderRadius.circular(
-                                                          8),
+                                                      BorderRadius
+                                                          .circular(8),
                                                       border: Border.all(
-                                                        color:
-                                                        _getTrainTypeColor(
+                                                        color: _getTrainTypeColor(
                                                             trainType)
-                                                            .withOpacity(
-                                                            0.3),
+                                                            .withOpacity(0.3),
                                                       ),
                                                     ),
                                                     child: Text(
-                                                      (trainType),
+                                                      trainType,
                                                       style: TextStyle(
                                                         fontSize: 12,
-                                                        color:
-                                                        _getTrainTypeColor(
+                                                        color: _getTrainTypeColor(
                                                             trainType),
                                                         fontWeight:
                                                         FontWeight.w600,
@@ -3407,18 +2641,22 @@ class _StationPageState extends State<StationPage>
                                                   const Spacer(),
                                                   Container(
                                                     padding:
-                                                    const EdgeInsets.all(6),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.grey[100],
+                                                    const EdgeInsets
+                                                        .all(6),
+                                                    decoration:
+                                                    BoxDecoration(
+                                                      color: colors
+                                                          .mutedBackground,
                                                       borderRadius:
-                                                      BorderRadius.circular(
-                                                          10),
+                                                      BorderRadius
+                                                          .circular(10),
                                                     ),
-                                                    child: const Icon(
+                                                    child: Icon(
                                                       Icons
                                                           .arrow_forward_ios_rounded,
                                                       size: 14,
-                                                      color: Colors.grey,
+                                                      color: colors
+                                                          .textSecondary,
                                                     ),
                                                   ),
                                                 ],
@@ -3452,156 +2690,60 @@ class _StationPageState extends State<StationPage>
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  LinearGradient _getTrainTypeGradient(String trainType) {
-    final color = _getTrainTypeColor(trainType);
-    return LinearGradient(
-      colors: [
-        color,
-        color.withOpacity(0.8),
-      ],
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 12, color: color, fontWeight: FontWeight.w600)),
     );
   }
 
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
-        trainType.contains(AppLocalizations.of(context)!.text_878) ||
-        trainType.contains(AppLocalizations.of(context)!.text_879)) {
-      return const Color(0xFF1A73E8);
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
-      return const Color(0xFF34C759);
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
-        trainType.contains(AppLocalizations.of(context)!.text_884)) {
-      return const Color(0xFFFF9500);
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    if (trainType.contains(l10n.text_877) ||
+        trainType.contains(l10n.text_878) ||
+        trainType.contains(l10n.text_879)) {
+      return colors.info;
+    } else if (trainType.contains(l10n.text_882)) {
+      return colors.success;
+    } else if (trainType.contains(l10n.text_883) ||
+        trainType.contains(l10n.text_884)) {
+      return colors.warning;
     } else {
-      return const Color(0xFFAF52DE);
+      return colors.info;
     }
   }
 
   IconData _getTrainTypeIcon(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
-        trainType.contains(AppLocalizations.of(context)!.text_878) ||
-        trainType.contains(AppLocalizations.of(context)!.text_879)) {
+    final l10n = AppLocalizations.of(context)!;
+    if (trainType.contains(l10n.text_877) ||
+        trainType.contains(l10n.text_878) ||
+        trainType.contains(l10n.text_879)) {
       return Icons.directions_railway_filled_rounded;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
+    } else if (trainType.contains(l10n.text_882)) {
       return Icons.train_rounded;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
-        trainType.contains(AppLocalizations.of(context)!.text_884)) {
+    } else if (trainType.contains(l10n.text_883) ||
+        trainType.contains(l10n.text_884)) {
       return Icons.directions_subway_rounded;
     } else {
       return Icons.directions_transit_rounded;
     }
   }
 
-  String _getTrainTypeCategory(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
-        trainType.contains(AppLocalizations.of(context)!.text_878) ||
-        trainType.contains(AppLocalizations.of(context)!.text_879)) {
-      return AppLocalizations.of(context)!.text_885;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
-      return AppLocalizations.of(context)!.text_886;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883)) {
-      return AppLocalizations.of(context)!.text_65;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_884)) {
-      return AppLocalizations.of(context)!.text_137;
-    } else {
-      return AppLocalizations.of(context)!.text_542;
-    }
-  }
-
-  Widget _buildHeaderRow() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF3FB),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_887,
-                Icons.confirmation_number_rounded),
-          ),
-          Expanded(
-            flex: 2,
-            child: _buildHeaderItem(
-                AppLocalizations.of(context)!.text_888,
-                Icons.schedule_rounded),
-          ),
-          Expanded(
-            flex: 2,
-            child: _buildHeaderItem(
-                AppLocalizations.of(context)!.text_889, Icons.train_rounded),
-          ),
-          Expanded(
-            flex: 3,
-            child: _buildHeaderItem(
-                AppLocalizations.of(context)!.text_57, Icons.flag_rounded),
-          ),
-          Expanded(
-            flex: 2,
-            child: _buildHeaderItem(AppLocalizations.of(context)!.text_890,
-                Icons.info_outline_rounded),
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderItem(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: const Color(0xFF1A73E8),
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A73E8),
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
   String _formatTime(String time) {
     try {
       final parsedTime = DateTime.parse('1970-01-01 $time');
-      final formatter = DateFormat('hh:mm a');
-      return formatter.format(parsedTime);
+      return DateFormat('hh:mm a').format(parsedTime);
     } catch (e) {
       return time;
     }
   }
 }
+
+// ─────────────────────────────────────────────────────
+// RoutePage（路線結果）
+// ─────────────────────────────────────────────────────
 
 class RoutePage extends StatefulWidget {
   final Map<String, dynamic> departure;
@@ -3618,39 +2760,20 @@ class RoutePage extends StatefulWidget {
 }
 
 class _RoutePageState extends State<RoutePage> {
-  // =============================
-  // 篩選條件
-  // =============================
   bool onlyDirect = false;
   bool onlyTransfer = false;
   int maxTotalMinutes = 999;
   Set<String> allowedTrainTypes = {};
 
-  // =============================
-  // 滾動控制器
-  // =============================
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener =
   ItemPositionsListener.create();
 
-  // =============================
-  // 滾動狀態追蹤
-  // =============================
   bool _shouldAutoScroll = true;
   DateTime? _lastScrollTime;
   DateTime? _previousDate;
 
-  // ✅ 修正 7：快取 future，避免 rebuild 時重複發請求
   Future<Map<String, dynamic>>? _routeFuture;
-
-  // 通知中心主題色
-  static const Color primaryBlue = Color(0xFF1A73E8);
-  static const Color successGreen = Color(0xFF34C759);
-  static const Color warningOrange = Color(0xFFFF9500);
-  static const Color errorRed = Color(0xFFFF3B30);
-  static const Color purple = Color(0xFFAF52DE);
-  static const Color backgroundLight = Color(0xFFF8FAFD);
-  static const Color surfaceColor = Color(0xFFEEF3FB);
 
   @override
   void initState() {
@@ -3662,129 +2785,81 @@ class _RoutePageState extends State<RoutePage> {
   @override
   void didUpdateWidget(RoutePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-
     final odChanged =
         widget.departure['StationID']?.toString() !=
             oldWidget.departure['StationID']?.toString() ||
             widget.destination['StationID']?.toString() !=
                 oldWidget.destination['StationID']?.toString();
     final dateChanged = widget.date != oldWidget.date;
-
-    if (odChanged || dateChanged) {
-      _routeFuture = queryTrainList();
-    }
+    if (odChanged || dateChanged) _routeFuture = queryTrainList();
     if (dateChanged) {
       _shouldAutoScroll = true;
       _previousDate = oldWidget.date;
     }
   }
 
-  // =============================
-  // API
-  // =============================
   Future<Map<String, dynamic>> queryTrainList() async {
     final weekday = widget.date.weekday % 7;
     final url = 'http://hidden.rsmn574.com:3920/api/train'
         '?from=${widget.departure["StationID"]}'
         '&to=${widget.destination["StationID"]}'
         '&day=$weekday';
-
     final res =
     await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
-    if (res.statusCode != 200) {
-      throw Exception('API ${res.statusCode}');
-    }
+    if (res.statusCode != 200) throw Exception('API ${res.statusCode}');
     return jsonDecode(res.body);
   }
 
-  // =============================
-  // 時間處理
-  // =============================
-  int _timeToMinutes(String? hhmm) {
-    // ✅ 修正 5：空值/格式錯誤不再崩潰
-    return _timeToMinutesSafe(hhmm);
-  }
+  int _timeToMinutes(String? hhmm) => _timeToMinutesSafe(hhmm);
 
-  int _selectedMinutes() {
-    return widget.date.hour * 60 + widget.date.minute;
-  }
+  int _selectedMinutes() =>
+      widget.date.hour * 60 + widget.date.minute;
 
   int trainDepMinutes(dynamic t) {
-    // 1) 非 Map 直接視為無效，排到最後
     if (t is! Map) return 1440;
-
-    // 2) 明確判斷是否轉乘：transfer == true 才算轉乘
     final isTransfer = t['transfer'] == true;
-
     String? timeStr;
     if (isTransfer) {
       final leg1 = t['leg1'];
-      if (leg1 is Map) {
-        timeStr = leg1['depTime']?.toString();
-      }
+      if (leg1 is Map) timeStr = leg1['depTime']?.toString();
     } else {
       timeStr = t['depTime']?.toString();
     }
-
-    // 3) 空值/格式錯誤：回傳 1440（排在當日最後），避免蓋過有效班次
     if (timeStr == null || timeStr.isEmpty) return 1440;
     final minutes = _timeToMinutesSafe(timeStr);
-    // _timeToMinutesSafe 對 "abc" 之類會回 0，這裡再補一層：
     if (minutes == 0 && timeStr != '00:00' && timeStr != '0:00') {
       return 1440;
     }
     return minutes;
   }
 
-  // =============================
-  // 合併、排序、篩選
-  // =============================
   List<dynamic> buildTrains(List direct, List transfer) {
     final all = [
       ...direct.map((e) => {...e, 'transfer': false}),
       ...transfer.map((e) => {...e, 'transfer': true}),
     ];
-
     return all.where((t) {
       if (onlyDirect && t['transfer']) return false;
       if (onlyTransfer && !t['transfer']) return false;
-
       if (t['transfer'] &&
           t['totalTimeMin'] != null &&
-          t['totalTimeMin'] > maxTotalMinutes) {
-        return false;
-      }
-
+          t['totalTimeMin'] > maxTotalMinutes) return false;
       final types = t['transfer']
-          ? [
-        t['leg1']['TrainTypeName'],
-        t['leg2']['TrainTypeName'],
-      ]
+          ? [t['leg1']['TrainTypeName'], t['leg2']['TrainTypeName']]
           : [t['TrainTypeName']];
-
       if (allowedTrainTypes.isNotEmpty &&
-          !types.any((e) => allowedTrainTypes.contains(e))) {
-        return false;
-      }
-
+          !types.any((e) => allowedTrainTypes.contains(e))) return false;
       return true;
     }).toList()
-      ..sort(
-            (a, b) => trainDepMinutes(a).compareTo(trainDepMinutes(b)),
-      );
+      ..sort((a, b) =>
+          trainDepMinutes(a).compareTo(trainDepMinutes(b)));
   }
 
-  // =============================
-  // 找最接近選擇時間的 index（O(n)，只在 build 呼叫一次）
-  // ✅ 修正 8：空列表回傳 -1
-  // =============================
   int findClosestTrainIndex(List<dynamic> trains) {
     if (trains.isEmpty) return -1;
     final base = _selectedMinutes();
     for (int i = 0; i < trains.length; i++) {
-      if (trainDepMinutes(trains[i]) >= base) {
-        return i;
-      }
+      if (trainDepMinutes(trains[i]) >= base) return i;
     }
     return trains.length - 1;
   }
@@ -3794,54 +2869,48 @@ class _RoutePageState extends State<RoutePage> {
     if (_previousDate != null && widget.date != _previousDate) return true;
     if (_lastScrollTime == null ||
         DateTime.now().difference(_lastScrollTime!) >
-            const Duration(seconds: 2)) {
-      return true;
-    }
+            const Duration(seconds: 2)) return true;
     return false;
   }
 
   Color _getTrainTypeColor(String trainType) {
-    if (trainType.contains(AppLocalizations.of(context)!.text_877) ||
-        trainType.contains(AppLocalizations.of(context)!.text_878) ||
-        trainType.contains(AppLocalizations.of(context)!.text_879)) {
-      return primaryBlue;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_882)) {
-      return successGreen;
-    } else if (trainType.contains(AppLocalizations.of(context)!.text_883) ||
-        trainType.contains(AppLocalizations.of(context)!.text_884)) {
-      return warningOrange;
-    } else {
-      return purple;
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    if (trainType.contains(l10n.text_877) ||
+        trainType.contains(l10n.text_878) ||
+        trainType.contains(l10n.text_879)) {
+      return colors.info;
+    } else if (trainType.contains(l10n.text_882)) {
+      return colors.success;
+    } else if (trainType.contains(l10n.text_883) ||
+        trainType.contains(l10n.text_884)) {
+      return colors.warning;
     }
+    return colors.info;
   }
 
-  // =============================
-  // UI 卡片 - 直達車
-  // =============================
   Widget directCard(dynamic t) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
     final trainType = t['TrainTypeName'] ?? '';
     final typeColor = _getTrainTypeColor(trainType);
     final trainNo = t['TrainNo'];
 
     return InkWell(
       onTap: () async {
-        // ✅ 修正 6：車次號碼合法性檢查
         final trainNoInt = _parseTrainNoDigits(trainNo?.toString());
         if (trainNoInt == null) {
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('車次號碼無效：$trainNo'),
-              backgroundColor: errorRed,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            // TODO: i18n（車次號碼無效：）
+            content: Text('車次號碼無效：$trainNo'),
+            backgroundColor: colors.danger,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ));
           return;
         }
-
         try {
           if (context.mounted) {
             Navigator.push(
@@ -3856,18 +2925,15 @@ class _RoutePageState extends State<RoutePage> {
             );
           }
         } catch (e) {
-          debugPrint(AppLocalizations.of(context)!.text_891);
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('查詢車次 $trainNo 失敗'),
-                backgroundColor: errorRed,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              // TODO: i18n（查詢車次 X 失敗）
+              content: Text('查詢車次 $trainNo 失敗'),
+              backgroundColor: colors.danger,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ));
           }
         }
       },
@@ -3881,56 +2947,47 @@ class _RoutePageState extends State<RoutePage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(AppLocalizations.of(context)!.text_67,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey)),
-                  Text(
-                    t['depTime'],
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  Text(l10n.text_67,
+                      style: TextStyle(
+                          fontSize: 12, color: colors.textSecondary)),
+                  Text(t['depTime'],
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: colors.textPrimary)),
                 ],
               ),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: successGreen.withOpacity(0.1),
+                  color: colors.successContainer,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.directions_railway_rounded,
-                        size: 16, color: successGreen),
+                        size: 16, color: colors.success),
                     const SizedBox(width: 4),
-                    Text(
-                      AppLocalizations.of(context)!.text_892,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: successGreen,
-                      ),
-                    ),
+                    Text(l10n.text_892,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colors.success)),
                   ],
                 ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(AppLocalizations.of(context)!.text_68,
-                      style: const TextStyle(
-                          fontSize: 12, color: Colors.grey)),
-                  Text(
-                    t['arrTime'],
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  Text(l10n.text_68,
+                      style: TextStyle(
+                          fontSize: 12, color: colors.textSecondary)),
+                  Text(t['arrTime'],
+                      style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: colors.textPrimary)),
                 ],
               ),
             ],
@@ -3938,24 +2995,17 @@ class _RoutePageState extends State<RoutePage> {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: SurfaceDecoration.muted(context, radius: 12),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [typeColor, typeColor.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: typeColor,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.train_rounded,
-                      size: 18, color: Colors.white),
+                  child: Icon(Icons.train_rounded,
+                      size: 18, color: colors.cardBackground),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -3963,42 +3013,38 @@ class _RoutePageState extends State<RoutePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
+                        // TODO: i18n（車次）
                         '車次 $trainNo',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: colors.textPrimary),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        trainType,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(trainType,
+                          style: TextStyle(
+                              fontSize: 14,
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: typeColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: typeColor.withOpacity(0.3)),
+                    border:
+                    Border.all(color: typeColor.withOpacity(0.3)),
                   ),
                   child: Text(
-                    _getTravelTime(
-                        t['depTime']?.toString() ?? '',
+                    _getTravelTime(t['depTime']?.toString() ?? '',
                         t['arrTime']?.toString() ?? ''),
                     style: TextStyle(
-                      fontSize: 12,
-                      color: typeColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+                        fontSize: 12,
+                        color: typeColor,
+                        fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -4009,18 +3055,13 @@ class _RoutePageState extends State<RoutePage> {
     );
   }
 
-  // =============================
-  // 計算旅行時間（✅ 修正 5：跨日 mod1440）
-  // =============================
   String _getTravelTime(String dep, String arr) {
     final diff = _calcDurationMinutes(dep, arr);
     return '${diff ~/ 60}小時${diff % 60}分';
   }
 
-  // =============================
-  // UI 卡片 - 轉乘車
-  // =============================
   Widget transferTimeline(dynamic t) {
+    final colors = context.appColors;
     final tight = t['isTight'] == true;
     final totalMin = t['totalTimeMin'] ?? 0;
     final leg1 = t['leg1'];
@@ -4034,17 +3075,17 @@ class _RoutePageState extends State<RoutePage> {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: tight
-                    ? errorRed.withOpacity(0.1)
-                    : warningOrange.withOpacity(0.1),
+                    ? colors.dangerContainer
+                    : colors.warningContainer,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: tight
-                      ? errorRed.withOpacity(0.3)
-                      : warningOrange.withOpacity(0.3),
-                ),
+                    color: tight
+                        ? colors.danger.withOpacity(0.3)
+                        : colors.warning.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -4053,35 +3094,33 @@ class _RoutePageState extends State<RoutePage> {
                         ? Icons.warning_amber_rounded
                         : Icons.timeline_rounded,
                     size: 16,
-                    color: tight ? errorRed : warningOrange,
+                    color: tight ? colors.danger : colors.warning,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     t['totalTimeHuman'] ??
                         '${totalMin ~/ 60}小時${totalMin % 60}分',
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: tight ? errorRed : warningOrange,
-                    ),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color:
+                        tight ? colors.danger : colors.warning),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(20),
-              ),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 4),
+              decoration: SurfaceDecoration.muted(context, radius: 20),
               child: Text(
+                // TODO: i18n（轉乘 X 分）
                 '轉乘 ${t['waitMin']} 分',
                 style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
-                ),
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -4092,11 +3131,11 @@ class _RoutePageState extends State<RoutePage> {
           children: [
             Column(
               children: [
-                _buildTimelineDot(successGreen),
+                _buildTimelineDot(colors.success),
                 _buildTimelineLine(),
-                _buildTimelineDot(tight ? errorRed : warningOrange),
+                _buildTimelineDot(tight ? colors.danger : colors.warning),
                 _buildTimelineLine(),
-                _buildTimelineDot(primaryBlue),
+                _buildTimelineDot(colors.info),
               ],
             ),
             const SizedBox(width: 12),
@@ -4107,10 +3146,8 @@ class _RoutePageState extends State<RoutePage> {
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () async {
-                        await _navigateToTrainDetail(
-                            trainNo1?.toString() ?? '');
-                      },
+                      onTap: () async => _navigateToTrainDetail(
+                          trainNo1?.toString() ?? ''),
                       borderRadius: BorderRadius.circular(12),
                       splashColor: _getTrainTypeColor(leg1['TrainTypeName'])
                           .withOpacity(0.1),
@@ -4123,10 +3160,8 @@ class _RoutePageState extends State<RoutePage> {
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () async {
-                        await _navigateToTrainDetail(
-                            trainNo2?.toString() ?? '');
-                      },
+                      onTap: () async => _navigateToTrainDetail(
+                          trainNo2?.toString() ?? ''),
                       borderRadius: BorderRadius.circular(12),
                       splashColor: _getTrainTypeColor(leg2['TrainTypeName'])
                           .withOpacity(0.1),
@@ -4142,24 +3177,20 @@ class _RoutePageState extends State<RoutePage> {
     );
   }
 
-  // ✅ 修正 6：車次號碼合法性檢查
   Future<void> _navigateToTrainDetail(String trainNo) async {
+    final colors = context.appColors;
     final trainNoInt = _parseTrainNoDigits(trainNo);
     if (trainNoInt == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('車次號碼無效：$trainNo'),
-          backgroundColor: errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('車次號碼無效：$trainNo'),
+        backgroundColor: colors.danger,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12)),
+      ));
       return;
     }
-
     try {
       if (context.mounted) {
         Navigator.push(
@@ -4174,18 +3205,14 @@ class _RoutePageState extends State<RoutePage> {
         );
       }
     } catch (e) {
-      debugPrint(AppLocalizations.of(context)!.text_891);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('查詢車次 $trainNo 失敗'),
-            backgroundColor: errorRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('查詢車次 $trainNo 失敗'),
+          backgroundColor: colors.danger,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ));
       }
     }
   }
@@ -4194,73 +3221,41 @@ class _RoutePageState extends State<RoutePage> {
     return Container(
       width: 12,
       height: 12,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color, color.withOpacity(0.8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 
   Widget _buildTimelineLine() {
+    final colors = context.appColors;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       width: 2,
       height: 24,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.grey[400]!, Colors.grey[300]!],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      color: colors.border,
     );
   }
 
   Widget _buildLegCard(dynamic leg, {required bool isFirst}) {
+    final colors = context.appColors;
     final trainType = leg['TrainTypeName'] ?? '';
     final typeColor = _getTrainTypeColor(trainType);
     final trainNo = leg['TrainNo'];
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: SurfaceDecoration.cardShadow(context, radius: 12),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [typeColor, typeColor.withOpacity(0.8)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              color: typeColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               isFirst ? Icons.departure_board_rounded : Icons.train_rounded,
               size: 16,
-              color: Colors.white,
+              color: colors.cardBackground,
             ),
           ),
           const SizedBox(width: 12),
@@ -4274,11 +3269,10 @@ class _RoutePageState extends State<RoutePage> {
                     Flexible(
                       child: Text(
                         '${leg['depTime']} → ${leg['arrTime']}',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: colors.textPrimary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -4291,25 +3285,22 @@ class _RoutePageState extends State<RoutePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
+                        // TODO: i18n（車次）
                         '車次 $trainNo',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: typeColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                            fontSize: 11,
+                            color: typeColor,
+                            fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  trainType,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text(trainType,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -4319,17 +3310,18 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   Widget _buildTransferStationCard(dynamic station, bool tight) {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: tight
-            ? errorRed.withOpacity(0.05)
-            : warningOrange.withOpacity(0.05),
+            ? colors.danger.withOpacity(0.05)
+            : colors.warning.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: tight
-              ? errorRed.withOpacity(0.2)
-              : warningOrange.withOpacity(0.2),
+              ? colors.danger.withOpacity(0.2)
+              : colors.warning.withOpacity(0.2),
         ),
       ),
       child: Row(
@@ -4338,15 +3330,12 @@ class _RoutePageState extends State<RoutePage> {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: tight
-                  ? errorRed.withOpacity(0.1)
-                  : warningOrange.withOpacity(0.1),
+                  ? colors.danger.withOpacity(0.1)
+                  : colors.warning.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.transfer_within_a_station_rounded,
-              size: 16,
-              color: tight ? errorRed : warningOrange,
-            ),
+            child: Icon(Icons.transfer_within_a_station_rounded,
+                size: 16, color: tight ? colors.danger : colors.warning),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -4354,21 +3343,20 @@ class _RoutePageState extends State<RoutePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
+                  // TODO: i18n（轉乘站）
                   '轉乘站 ${station['name']}',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: tight ? errorRed : warningOrange,
-                  ),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: tight ? colors.danger : colors.warning),
                 ),
                 if (tight)
                   Text(
                     AppLocalizations.of(context)!.text_893,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: errorRed,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: colors.danger,
+                        fontWeight: FontWeight.w500),
                   ),
               ],
             ),
@@ -4379,64 +3367,63 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   String _formatDate(DateTime date) {
+    final l10n = AppLocalizations.of(context)!;
     final weekday = [
-      AppLocalizations.of(context)!.text_306,
-      AppLocalizations.of(context)!.text_307,
-      AppLocalizations.of(context)!.text_308,
-      AppLocalizations.of(context)!.text_309,
-      AppLocalizations.of(context)!.text_310,
-      AppLocalizations.of(context)!.text_311,
-      AppLocalizations.of(context)!.text_312
+      l10n.text_306,
+      l10n.text_307,
+      l10n.text_308,
+      l10n.text_309,
+      l10n.text_310,
+      l10n.text_311,
+      l10n.text_312
     ][date.weekday - 1];
+    // TODO: i18n（年月日 週）
     return '${date.year}年${date.month}月${date.day}日 週$weekday ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    final isEnglish =
+        Localizations.localeOf(context).languageCode == 'en';
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colors.cardBackground,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: colors.cardBackground,
         elevation: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.train_rounded, size: 20, color: primaryBlue),
+            Icon(Icons.train_rounded, size: 20, color: colors.info),
             const SizedBox(width: 8),
             Text(
-              _localizedRailName(
-                widget.departure['StationName'],
-                isEnglish: isEnglish,
-              ),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              _localizedRailName(widget.departure['StationName'],
+                  isEnglish: isEnglish),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textPrimary),
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: const Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: primaryBlue),
+              child: Icon(Icons.arrow_forward_rounded,
+                  size: 16, color: colors.info),
             ),
             Text(
-              _localizedRailName(
-                widget.destination['StationName'],
-                isEnglish: isEnglish,
-              ),
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              _localizedRailName(widget.destination['StationName'],
+                  isEnglish: isEnglish),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: colors.textPrimary),
             ),
           ],
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: primaryBlue),
+        iconTheme: IconThemeData(color: colors.info),
       ),
-      // ✅ 修正 7：使用快取 future
       body: FutureBuilder<Map<String, dynamic>>(
         future: _routeFuture,
         builder: (_, s) {
@@ -4444,53 +3431,31 @@ class _RoutePageState extends State<RoutePage> {
             return Center(
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+                decoration:
+                SurfaceDecoration.cardShadow(context, radius: 20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const CircularProgressIndicator(
-                        color: primaryBlue, strokeWidth: 3),
+                    CircularProgressIndicator(
+                        color: colors.info, strokeWidth: 3),
                     const SizedBox(height: 16),
-                    Text(
-                      AppLocalizations.of(context)!.text_894,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: primaryBlue,
-                      ),
-                    ),
+                    Text(l10n.text_894,
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: colors.info)),
                   ],
                 ),
               ),
             );
           }
-
           if (s.hasError) {
             return Center(
               child: Container(
                 padding: const EdgeInsets.all(24),
                 margin: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+                decoration:
+                SurfaceDecoration.cardShadow(context, radius: 20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -4498,33 +3463,22 @@ class _RoutePageState extends State<RoutePage> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            errorRed.withOpacity(0.1),
-                            errorRed.withOpacity(0.05)
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.error_outline_rounded,
-                          size: 40, color: errorRed),
+                          color: colors.dangerContainer,
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.error_outline_rounded,
+                          size: 40, color: colors.danger),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      AppLocalizations.of(context)!.text_205,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: errorRed,
-                      ),
-                    ),
+                    Text(l10n.text_205,
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: colors.danger)),
                     const SizedBox(height: 8),
-                    Text(
-                      AppLocalizations.of(context)!.text_206,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
+                    Text(l10n.text_206,
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: colors.textSecondary)),
                   ],
                 ),
               ),
@@ -4546,40 +3500,28 @@ class _RoutePageState extends State<RoutePage> {
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primaryBlue.withOpacity(0.1),
-                            primaryBlue.withOpacity(0.05)
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.train_outlined,
-                          size: 50, color: primaryBlue),
+                          color: colors.infoContainer,
+                          shape: BoxShape.circle),
+                      child: Icon(Icons.train_outlined,
+                          size: 50, color: colors.info),
                     ),
                     const SizedBox(height: 24),
-                    Text(
-                      AppLocalizations.of(context)!.text_207,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: primaryBlue,
-                      ),
-                    ),
+                    Text(l10n.text_207,
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: colors.info)),
                     const SizedBox(height: 8),
-                    Text(
-                      AppLocalizations.of(context)!.text_895,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    ),
+                    Text(l10n.text_895,
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: colors.textSecondary)),
                   ],
                 ),
               ),
             );
           }
 
-          // ✅ 修正 8：只計算一次 closestIndex
           final closestIndex = findClosestTrainIndex(trains);
 
           if (_shouldScrollToClosest() && closestIndex >= 0) {
@@ -4601,35 +3543,30 @@ class _RoutePageState extends State<RoutePage> {
           return Column(
             children: [
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 12),
                 margin: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: primaryBlue.withOpacity(0.2)),
-                ),
+                decoration: SurfaceDecoration.outlined(context,
+                    radius: 16, borderColor: colors.info.withOpacity(0.2)),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.calendar_today_rounded,
-                          size: 16, color: primaryBlue),
+                          color: colors.infoContainer,
+                          borderRadius: BorderRadius.circular(8)),
+                      child: Icon(Icons.calendar_today_rounded,
+                          size: 16, color: colors.info),
                     ),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
                         _formatDate(widget.date),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: primaryBlue,
-                        ),
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: colors.info),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -4642,11 +3579,10 @@ class _RoutePageState extends State<RoutePage> {
                   itemScrollController: _itemScrollController,
                   itemPositionsListener: _itemPositionsListener,
                   itemCount: trains.length,
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 8),
                   itemBuilder: (_, i) {
                     final t = trains[i];
-                    // ✅ 修正 8：O(1) 比較，不再每次呼叫 O(n)
                     final isClosest = i == closestIndex;
                     final isAfterSelectedTime =
                         trainDepMinutes(t) >= _selectedMinutes();
@@ -4654,28 +3590,27 @@ class _RoutePageState extends State<RoutePage> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colors.cardBackground,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black
-                                .withOpacity(isClosest ? 0.1 : 0.04),
+                            color: colors.shadow,
                             blurRadius: isClosest ? 20 : 12,
                             offset: Offset(0, isClosest ? 6 : 4),
                           ),
                         ],
                         border: isClosest
-                            ? Border.all(color: primaryBlue, width: 2)
+                            ? Border.all(color: colors.info, width: 2)
                             : !isAfterSelectedTime
                             ? Border.all(
-                            color: Colors.grey[300]!, width: 1)
+                            color: colors.border, width: 1)
                             : null,
                       ),
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),
-                          splashColor: primaryBlue.withOpacity(0.1),
+                          splashColor: colors.info.withOpacity(0.1),
                           child: Container(
                             padding: const EdgeInsets.all(20),
                             child: t['transfer']

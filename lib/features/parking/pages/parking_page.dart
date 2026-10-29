@@ -20,6 +20,8 @@ import 'package:com.rsmn574.app/utils/share.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 
+import '../../../const/app_colors.dart';
+import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/AppLoading.dart';
 
@@ -536,27 +538,23 @@ class _ParkingState extends State<Parking> {
   }
 
   Widget _buildCityDropdown(BuildContext context) {
+    final colors = context.appColors;
+
     return Container(
       width: 150,
       margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: AppThemes.getCardColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.15),
-        ),
-      ),
+      decoration: SurfaceDecoration.outlined(context, radius: 12),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          dropdownColor: AppThemes.getCardColor(context),
+          dropdownColor: colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           isExpanded: true,
           value: _selectedCity,
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
             size: 20,
-            color: Theme.of(context).colorScheme.primary,
+            color: colors.info,
           ),
           selectedItemBuilder: (BuildContext context) {
             return cities.map<Widget>((CityItem city) {
@@ -567,7 +565,7 @@ class _ParkingState extends State<Parking> {
                     Icon(
                       Icons.location_on_rounded,
                       size: 16,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: colors.info,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -578,7 +576,7 @@ class _ParkingState extends State<Parking> {
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: colors.textPrimary,
                         ),
                       ),
                     ),
@@ -598,8 +596,8 @@ class _ParkingState extends State<Parking> {
                     height: 6,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey.withOpacity(0.4),
+                          ? colors.info
+                          : colors.textHint.withOpacity(0.4),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -610,7 +608,8 @@ class _ParkingState extends State<Parking> {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? colors.info : colors.textPrimary,
                       ),
                     ),
                   ),

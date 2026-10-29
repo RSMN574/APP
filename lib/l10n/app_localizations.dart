@@ -6836,6 +6836,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'無法更新驗證狀態，請稍後再試'**
   String get profileVerificationRefreshFailed;
+
+  /// EV 充電接口數量
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 個接口'**
+  String evConnectorCount(int count);
+
+  /// EV 充電點 ID
+  ///
+  /// In zh, this message translates to:
+  /// **'充電點 ID: {id}'**
+  String evChargingPointId(String id);
 }
 
 class _AppLocalizationsDelegate

@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 
+import 'package:com.rsmn574.app/const/app_colors.dart';
+import 'package:com.rsmn574.app/const/surface_decoration.dart';
+
+/// 通用分頁元件：上方一排 Tab，下方 PageView。
+///
+/// 樣式統一使用 `SurfaceDecoration` + `AppColors`，支援深色模式。
 class TabWidget extends StatefulWidget {
+  final List<String> items;
+  final List<IconData> icons;
+  final List<String> id;
+  final Widget Function(BuildContext context, PageController controller)
+  buildPageView;
+
   const TabWidget({
     super.key,
     required this.items,
@@ -9,13 +21,8 @@ class TabWidget extends StatefulWidget {
     required this.buildPageView,
   });
 
-  final Widget Function(BuildContext, PageController) buildPageView;
-  final List<String> items;
-  final List<IconData> icons;
-  final List<String> id;
-
   @override
-  _TabWidgetState createState() => _TabWidgetState();
+  State<TabWidget> createState() => _TabWidgetState();
 }
 
 class _TabWidgetState extends State<TabWidget> {
@@ -30,56 +37,39 @@ class _TabWidgetState extends State<TabWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildTabBar(),
-          Expanded(
-            child: widget.buildPageView(context, pageController),
-          ),
-        ],
-      ),
-    );
-  }
+    final colors = context.appColors;
 
-  Widget _buildTabBar() {
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: ListView.builder(
-        physics: const BouncingScrollPhysics(),
-        itemCount: widget.items.length,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (ctx, index) => _buildTabItem(index),
-      ),
+    return Column(
+      children: [
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 12,
+            ),
+            itemCount: widget.items.length,
+            itemBuilder: (ctx, index) => _buildTabItem(index),
+          ),
+        ),
+        Expanded(
+          child: widget.buildPageView(context, pageController),
+        ),
+      ],
     );
   }
 
   Widget _buildTabItem(int index) {
+    final colors = context.appColors;
     final bool isSelected = _current == index;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: GestureDetector(
         onTap: () {
-          setState(() {
-            _current = index;
-          });
+          setState(() => _current = index);
           pageController.animateToPage(
             _current,
             duration: const Duration(milliseconds: 400),
@@ -90,45 +80,9 @@ class _TabWidgetState extends State<TabWidget> {
           duration: const Duration(milliseconds: 400),
           width: 100,
           height: 76,
-          decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: [
-                      const Color(0xFF1A73E8),
-                      const Color(0xFF1A73E8).withOpacity(0.9),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : LinearGradient(
-                    colors: [
-                      Colors.white,
-                      Colors.grey[50]!,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFF1A73E8).withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-            border: isSelected
-                ? Border.all(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
-                : Border.all(color: Colors.grey[200]!, width: 1),
-          ),
+          decoration: isSelected
+              ? SurfaceDecoration.selected(context, radius: 16)
+              : SurfaceDecoration.outlined(context, radius: 16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -137,14 +91,14 @@ class _TabWidgetState extends State<TabWidget> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.white.withOpacity(0.2)
-                      : const Color(0xFFEEF3FB),
+                      ? colors.info.withOpacity(0.12)
+                      : colors.mutedBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   widget.icons[index],
                   size: 18,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: colors.info,
                 ),
               ),
               const SizedBox(height: 8),
@@ -153,7 +107,7 @@ class _TabWidgetState extends State<TabWidget> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: colors.info,
                 ),
                 textAlign: TextAlign.center,
               ),

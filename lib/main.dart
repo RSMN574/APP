@@ -36,6 +36,7 @@ import 'features/auth/data/repositories/firebase_auth_repository.dart';
 import 'features/auth/data/repositories/unavailable_auth_repository.dart';
 import 'features/auth/pages/login_page.dart';
 import 'features/auth/pages/profile_page.dart';
+import 'features/nearby_stations/pages/nearby_stations_page.dart';
 import 'features/sync/state/cloud_sync_provider.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'features/bus/pages/bus_page.dart';

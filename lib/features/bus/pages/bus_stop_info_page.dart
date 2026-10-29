@@ -579,9 +579,7 @@ class _BusStopInfoState extends State<BusStopInfo>
                           )
                               : l10n.text_322,
                           style: TextStyle(
-                            fontFamily: stop["color"] == "0"
-                                ? 'MiSans-Semibold'
-                                : 'MiSans-normal',
+
                             fontSize: 17,
                             color: stop["color"] == l10n.text_317
                                 ? colorScheme.onSurfaceVariant
@@ -592,7 +590,7 @@ class _BusStopInfoState extends State<BusStopInfo>
                         Text(
                           "往 ${stop["to"] ?? l10n.text_323}",
                           style: TextStyle(
-                            fontFamily: 'MiSans-normal',
+
                             fontSize: 14,
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -783,42 +781,79 @@ class _BusStopInfoState extends State<BusStopInfo>
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _streamController.stream,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData &&
-              snapshot.connectionState == ConnectionState.waiting) {
-            return const AppLoading();
-          } else if (snapshot.hasError) {
-            debugPrint('${snapshot.error}');
-            return ErrorPage();
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return ErrorPage();
-          } else {
-            return Scaffold(
-              appBar: PreferredSize(
-                preferredSize: const Size.fromHeight(150),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                    color: colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.shadow.withOpacity(0.08),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _streamController.stream,
+      builder: (context, snapshot) {
+        // 初始載入：背景色與正式頁面保持一致。
+        if (!snapshot.hasData &&
+            snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            backgroundColor: colorScheme.surface,
+            body: ColoredBox(
+              color: colorScheme.surface,
+              child: const AppLoading(),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          debugPrint('站牌資料載入失敗：${snapshot.error}');
+
+          return Scaffold(
+            backgroundColor: colorScheme.surface,
+            body: ColoredBox(
+              color: colorScheme.surface,
+              child: ErrorPage(),
+            ),
+          );
+        }
+
+        final data = snapshot.data;
+
+        if (data == null || data.isEmpty) {
+          return Scaffold(
+            backgroundColor: colorScheme.surface,
+            body: ColoredBox(
+              color: colorScheme.surface,
+              child: ErrorPage(),
+            ),
+          );
+        }
+
+        final tabBar = _buildTabBar(data);
+        const appBarHeight = 200.0;
+        return Scaffold(
+          backgroundColor: colorScheme.surface,
+
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(appBarHeight),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                  child: Stack(
-                    children: [
-                      AppBar(
+                ],
+              ),
+              child: SizedBox(
+                height: appBarHeight,
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: AppBar(
                         backgroundColor: colorScheme.surface,
+                        surfaceTintColor: Colors.transparent,
                         elevation: 0,
                         leading: Container(
                           margin: const EdgeInsets.all(4),
@@ -827,8 +862,10 @@ class _BusStopInfoState extends State<BusStopInfo>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_rounded,
-                                size: 20),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_rounded,
+                              size: 20,
+                            ),
                             color: colorScheme.primary,
                             onPressed: () => Navigator.pop(context),
                           ),
@@ -853,8 +890,10 @@ class _BusStopInfoState extends State<BusStopInfo>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.refresh_rounded,
-                                  size: 20),
+                              icon: const Icon(
+                                Icons.refresh_rounded,
+                                size: 20,
+                              ),
                               color: colorScheme.primary,
                               onPressed: _loadData,
                             ),
@@ -866,8 +905,10 @@ class _BusStopInfoState extends State<BusStopInfo>
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert_rounded,
-                                  size: 20),
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                size: 20,
+                              ),
                               iconColor: colorScheme.primary,
                               color: colorScheme.surfaceContainer,
                               shape: RoundedRectangleBorder(
@@ -881,50 +922,45 @@ class _BusStopInfoState extends State<BusStopInfo>
                               <PopupMenuEntry<String>>[
                                 _buildPopupMenuItem(
                                   icon: Icons.info_outline_rounded,
-                                  title:
-                                  AppLocalizations.of(context)!.text_333,
+                                  title: AppLocalizations.of(context)!.text_333,
                                   value: 'info',
                                   color: colorScheme.primary,
                                 ),
                                 _buildPopupMenuItem(
                                   icon: Icons.favorite_border_rounded,
-                                  title:
-                                  AppLocalizations.of(context)!.text_334,
+                                  title: AppLocalizations.of(context)!.text_334,
                                   value: 'favorite',
                                   color: context.appColors.danger,
                                 ),
                                 _buildPopupMenuItem(
                                   icon: Icons.sort_rounded,
-                                  title:
-                                  AppLocalizations.of(context)!.text_335,
+                                  title: AppLocalizations.of(context)!.text_335,
                                   value: 'sort',
                                   color: context.appColors.success,
                                 ),
                               ],
                               onSelected: (String action) async {
                                 if (action == 'favorite') {
-                                  favorite_feature dbHelper =
-                                  favorite_feature();
+                                  final dbHelper = favorite_feature();
+
                                   final output =
                                   await dbHelper.addFavoriteStop(
                                     stopName: widget.stop,
                                     city: widget.city,
                                   );
 
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
 
                                   if (output == 100) {
                                     QuickAlert.show(
                                       context: context,
                                       type: QuickAlertType.success,
-                                      // TODO(P2-i18n): 需新增 ARB key。
                                       text: '${widget.stop}已儲存項目',
                                     );
                                   } else if (output == -1) {
                                     QuickAlert.show(
                                       context: context,
                                       type: QuickAlertType.warning,
-                                      // TODO(P2-i18n): 需新增 ARB key。
                                       text: '${widget.stop}已存在於列表中，不會重複添加',
                                     );
                                   } else if (output == 200) {
@@ -932,8 +968,7 @@ class _BusStopInfoState extends State<BusStopInfo>
                                       context: context,
                                       type: QuickAlertType.error,
                                       title: 'Oops...',
-                                      text: AppLocalizations.of(context)!
-                                          .text_336,
+                                      text: AppLocalizations.of(context)!.text_336,
                                     );
                                   }
                                 } else if (action == 'sort') {
@@ -945,12 +980,16 @@ class _BusStopInfoState extends State<BusStopInfo>
                             ),
                           ),
                         ],
-                        bottom: _buildTabBar(snapshot.data!),
+                        bottom: tabBar,
                       ),
-                      Positioned(
-                        top: 8,
-                        left: 0,
-                        right: 0,
+                    ),
+
+                    // 頂部裝飾橫條。
+                    Positioned(
+                      top: 8,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
                         child: Center(
                           child: Container(
                             width: 40,
@@ -963,149 +1002,162 @@ class _BusStopInfoState extends State<BusStopInfo>
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              body: Stack(
-                children: [
-                  Container(
-                    color: colorScheme.surface,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: List.generate(
-                        _stationIDs.value.length,
-                            (index) =>
-                            _buildTabContent(_stationIDs.value[index]),
+            ),
+          ),
+
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: ColoredBox(
+                  color: colorScheme.surface,
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: List.generate(
+                      _stationIDs.value.length,
+                          (index) => _buildTabContent(
+                        _stationIDs.value[index],
                       ),
                     ),
                   ),
-                  if (isTimerOn.value == false)
-                    Positioned(
-                      bottom: 12,
-                      left: 16,
-                      right: 16,
-                      child: Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                // 深色 toast 樣式，與主題無關，保留原色。
-                                color: Colors.grey[700]!.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme.surface.withOpacity(0.1),
-                                  width: 1,
+                ),
+              ),
+
+              // 自動更新暫停提示。
+              if (isTimerOn.value == false)
+                Positioned(
+                  bottom: 12,
+                  left: 16,
+                  right: 16,
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(
+                          sigmaX: 8,
+                          sigmaY: 8,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[700]!.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: colorScheme.surface.withOpacity(0.1),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.pause_circle_filled_rounded,
+                                color: colorScheme.onPrimary,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  AppLocalizations.of(context)!.text_349,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onPrimary,
+                                  ),
                                 ),
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.pause_circle_filled_rounded,
-                                    color: colorScheme.onPrimary,
-                                    size: 16,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+
+              // 自動更新倒數提示。
+              else if (isTimerOn.value == true)
+                Positioned(
+                  bottom: 12,
+                  left: 16,
+                  right: 16,
+                  child: Center(
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _remainingSecondsNotifier,
+                      builder: (context, remainingTime, child) {
+                        final isWarning = remainingTime <= 10;
+
+                        return GestureDetector(
+                          onTap: _loadData,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 8,
+                                sigmaY: 8,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (isWarning
+                                      ? context.appColors.warning
+                                      : colorScheme.primary)
+                                      .withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colorScheme.surface
+                                        .withOpacity(0.1),
+                                    width: 1,
                                   ),
-                                  SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      AppLocalizations.of(context)!
-                                          .text_349,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isWarning
+                                          ? Icons.warning_amber_rounded
+                                          : Icons.autorenew_rounded,
+                                      color: colorScheme.onPrimary,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '$remainingTime 秒',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
                                         color: colorScheme.onPrimary,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    )
-                  else if (isTimerOn.value == true)
-                    Positioned(
-                      bottom: 12,
-                      left: 16,
-                      right: 16,
-                      child: Center(
-                        child: ValueListenableBuilder<int>(
-                          valueListenable: _remainingSecondsNotifier,
-                          builder: (context, remainingTime, child) {
-                            final isWarning = remainingTime <= 10;
-
-                            return GestureDetector(
-                              onTap: () {
-                                _loadData();
-                              },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                      sigmaX: 8, sigmaY: 8),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: (isWarning
-                                          ? context.appColors.warning
-                                          : colorScheme.primary)
-                                          .withOpacity(0.7),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color:
-                                        colorScheme.surface.withOpacity(0.1),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                      MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          isWarning
-                                              ? Icons.warning_amber_rounded
-                                              : Icons.autorenew_rounded,
-                                          color: colorScheme.onPrimary,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          "$remainingTime 秒",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: colorScheme.onPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    )
-                ],
-              ),
-            );
-          }
-        },
-      ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
+
 
   PreferredSize _buildTabBar(List<Map<String, dynamic>> station) {
     final ids = _stationIDs.value;
