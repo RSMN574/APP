@@ -26,6 +26,7 @@ import '../../../const/surface_decoration.dart';
 import '../../../database/bootstrap_service.dart';
 import '../../../database/sql/app_database.dart';
 import '../../../firebase/analytics_service.dart';
+import '../../../widget/app_custom_bar.dart';
 
 class Bus extends StatefulWidget {
   const Bus({Key? key}) : super(key: key);
@@ -53,22 +54,22 @@ class MenuItemData {
 
 // 城市資料：`name` 為資料值（用於比對 / 顯示），不屬於 UI 靜態字串。
 final List<CityItem> cities = [
-  CityItem(name: '全部', id: 'all'),
-  CityItem(name: '臺中市', id: 'Taichung'),
-  CityItem(name: '臺北市', id: 'Taipei'),
-  CityItem(name: '新北市', id: 'NewTaipei'),
-  CityItem(name: '桃園市', id: 'Taoyuan'),
-  CityItem(name: '臺南市', id: 'Tainan'),
-  CityItem(name: '高雄市', id: 'Kaohsiung'),
-  CityItem(name: '基隆市', id: 'Keelung'),
-  CityItem(name: '新竹市', id: 'Hsinchu'),
-  CityItem(name: '公路客運', id: 'InterCity'),
+  const CityItem(name: '全部', id: 'all'),
+  const CityItem(name: '臺中市', id: 'Taichung'),
+  const CityItem(name: '臺北市', id: 'Taipei'),
+  const CityItem(name: '新北市', id: 'NewTaipei'),
+  const CityItem(name: '桃園市', id: 'Taoyuan'),
+  const CityItem(name: '臺南市', id: 'Tainan'),
+  const CityItem(name: '高雄市', id: 'Kaohsiung'),
+  const CityItem(name: '基隆市', id: 'Keelung'),
+  const CityItem(name: '新竹市', id: 'Hsinchu'),
+  const CityItem(name: '公路客運', id: 'InterCity'),
 ];
 
 final List<MenuItemData> menuItems = [
-  MenuItemData(id: 'route', title: 'text_1', icon: Icons.favorite),
-  MenuItemData(id: 'stop', title: 'text_2', icon: Icons.favorite),
-  MenuItemData(id: 'shuttleBus', title: 'text_4', icon: Icons.airport_shuttle),
+  const MenuItemData(id: 'route', title: 'text_1', icon: Icons.favorite),
+  const MenuItemData(id: 'stop', title: 'text_2', icon: Icons.favorite),
+  const MenuItemData(id: 'shuttleBus', title: 'text_4', icon: Icons.airport_shuttle),
 ];
 
 class BusState extends State<Bus> {
@@ -340,64 +341,7 @@ class BusState extends State<Bus> {
   // AppBar / info menu
   // ---------------------------------------------------------------------------
 
-  AppBar _buildAppBar() {
-    final colorScheme = Theme.of(context).colorScheme;
-    final surface = AppThemes.getSurface(context);
-    return AppBar(
-      backgroundColor: surface,
-      elevation: 0,
-      leading: Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: AppThemes.getCardColor(context),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
-          color: _primaryColor,
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
-            child: Icon(Icons.directions_bus, color: _primaryColor, size: 20),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              AppLocalizations.of(context)!.text_16,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
-      ),
-      centerTitle: true,
-      actions: [
-        Container(
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppThemes.getCardColor(context),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.info_outline_rounded, size: 24),
-            color: _primaryColor,
-            onPressed: _showInfoMenu,
-          ),
-        ),
-      ],
-    );
-  }
+
 
   void _showInfoMenu() {
     final colorScheme = Theme.of(context).colorScheme;
@@ -902,7 +846,17 @@ class BusState extends State<Bus> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar(),
+      appBar: AppCustomBar(
+        title: AppLocalizations.of(context)!.text_16,
+        actions: [
+          appBarActionButton(
+            context: context,
+            icon: Icons.info_outline_rounded,
+            tooltip: '資訊',
+            onPressed: _showInfoMenu,
+          ),
+        ],
+      ),
       body: GestureDetector(
         onTap: () => hideKeyboard(context),
         child: Column(

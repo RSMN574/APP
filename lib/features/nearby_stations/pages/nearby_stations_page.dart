@@ -1,19 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:animated_list_plus/animated_list_plus.dart';
 import 'package:animated_list_plus/transitions.dart';
 import 'package:flutter/material.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
+import 'package:synchronized/synchronized.dart';
 
-import '../../../const/app_colors.dart';
 import '../../../const/regular_class.dart';
-import '../../../const/regular_const.dart';
-import '../../../const/surface_decoration.dart';
 import '../../../database/get_data.dart';
 import '../../../database/mrt/get_mrt_info.dart';
 import '../../../database/sql/favorite_feature.dart';
@@ -26,11 +24,24 @@ import '../../bus/data/get_bus_time.dart';
 import '../../bus/data/get_station_info.dart';
 import '../../bus/model/bus_route_model.dart';
 import '../../bus/model/bus_station_model.dart';
-
+import '../../bus/pages/bus_stop_info_page.dart';
 import '../../bus/pages/bus_time_page.dart';
 import '../../bus/widgets/bubble.dart';
 import '../../railway/pages/train_page.dart';
-import '../nearby_stations_controller.dart';
+
+// Top-level / State shared Notifiers
+final ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
+final ValueNotifier<String> _selectStationID = ValueNotifier<String>('');
+final ValueNotifier<String> _selectStationGroupID = ValueNotifier<String>('');
+final ValueNotifier<Set<Marker>> _markers = ValueNotifier<Set<Marker>>({});
+final ValueNotifier<String> _stopName = ValueNotifier<String>('');
+String _stopNameEn = '';
+final ValueNotifier<String> _tabSelect = ValueNotifier<String>('bus');
+final ValueNotifier<int> _indexNotifier = ValueNotifier<int>(0);
+final ValueNotifier<SortType> _sortNotifier =
+ValueNotifier<SortType>(SortType.timeAsc);
+
+final GlobalKey<_NearbyStationsPageState> mapKey = GlobalKey();
 
 String _localizedName(BuildContext context, dynamic names,
     {String fallback = ''}) {
@@ -46,33 +57,20 @@ class NearbyStationsPage extends StatefulWidget {
   const NearbyStationsPage({Key? key}) : super(key: key);
 
   @override
-  State<NearbyStationsPage> createState() => NearbyStationsPageState();
+  _NearbyStationsPageState createState() => _NearbyStationsPageState();
 }
 
-class NearbyStationsPageState extends State<NearbyStationsPage> {
+class _NearbyStationsPageState extends State<NearbyStationsPage> {
   GoogleMapController? _mapController;
   Future<List<BusStationInfo>>? _futureNearStations;
   final DraggableScrollableController _scrollController =
   DraggableScrollableController();
   MarkerProvider? _markerProvider;
 
-  final NearbyStationsController _controller = NearbyStationsController();
-
   GoogleMapController? get mapController => _mapController;
 
   void setMapController(GoogleMapController controller) {
     _mapController = controller;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _busInit();
-    _controller.addListener(_onControllerChanged);
-  }
-
-  void _onControllerChanged() {
-    if (mounted) setState(() {});
   }
 
   Future<void> _updateFutureNearStations() async {
@@ -84,6 +82,14 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
             "${locationProvider.latitude},${locationProvider.longitude}"),
       );
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _busInit();
+    _tabSelect.addListener(_handleTabSelectChange);
+    _selectStationID.addListener(_updateMarkerStyle);
   }
 
   void _busInit() async {
@@ -123,20 +129,21 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
           "positionLon": posMap["PositionLon"],
         };
       }).toList();
+    } else {
+      return [];
     }
-    return [];
   }
 
   void _handleTabSelectChange() async {
     final locationProvider =
     Provider.of<LocationProvider>(context, listen: false);
-    if (_controller.tabSelect == "bus") {
+    if (_tabSelect.value == "bus") {
       await _updateFutureNearStations();
       final stations = await _futureNearStations;
       if (mounted) {
         _loadBusMarkers(stations);
       }
-    } else if (_controller.tabSelect == "metro") {
+    } else if (_tabSelect.value == "metro") {
       final stations = await getNearMRTStation(
         Uri.encodeComponent(
             "${locationProvider.latitude},${locationProvider.longitude}"),
@@ -146,7 +153,7 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
           _convertStations("metro", stations.map((s) => s.toJson()).toList()),
         );
       }
-    } else if (_controller.tabSelect == "train") {
+    } else if (_tabSelect.value == "train") {
       final stations = await getNearTrainStation(
         locationProvider.latitude,
         locationProvider.longitude,
@@ -165,8 +172,8 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onControllerChanged);
-    _controller.dispose();
+    _tabSelect.removeListener(_handleTabSelectChange);
+    _selectStationID.removeListener(_updateMarkerStyle);
     _scrollController.dispose();
     _markerProvider?.setMarkers({});
     super.dispose();
@@ -209,18 +216,20 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                 .toList();
 
             if (stationIDs.isEmpty) return;
+
             if (!mounted) return;
 
-            if (_isSameStationGroup(_controller.stationIDs, stationIDs)) {
-              _controller.setSelectStationID(stopID);
+            if (_isSameStationGroup(_stationIDs.value, stationIDs)) {
+              _selectStationID.value = stopID;
             } else {
-              _controller.setStopName(stopName, en: station.stationNameZh);
-              _controller.setSelectStationGroupID(stationGroupID);
-              _controller.setStationIDs(stationIDs);
-              _controller.setSelectStationID(stopID);
+              _stopName.value = stopName;
+              _stopNameEn = station.stationNameZh;
+              _selectStationGroupID.value = stationGroupID;
+              _stationIDs.value = stationIDs;
+              _selectStationID.value = stopID;
             }
 
-            _controller.setIndex(1);
+            _indexNotifier.value = 1;
 
             _mapController?.animateCamera(
               CameraUpdate.newCameraPosition(
@@ -237,8 +246,8 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
       );
       markers.add(marker);
     }
-    _controller.setMarkers(markers);
-    _controller.updateMarkerStyle();
+    _markers.value = markers;
+    _updateMarkerStyle();
   }
 
   bool _isSameStationGroup(List<String>? oldList, List<String>? newList) {
@@ -282,24 +291,47 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
       final positionLat = station["positionLat"];
       final positionLon = station["positionLon"];
 
-      if (stationID == null || positionLat == null || positionLon == null) {
+      if (stationID == null || positionLat == null || positionLon == null)
         continue;
-      }
 
       final marker = Marker(
         markerId: MarkerId(stationID),
         position: LatLng(positionLat, positionLon),
-        infoWindow: InfoWindow(title: stationName, snippet: stationID),
+        infoWindow: InfoWindow(
+          title: stationName,
+          snippet: stationID,
+        ),
       );
       markers.add(marker);
     }
 
-    _controller.setMarkers(markers);
+    _markers.value = markers;
+  }
+
+  static void _updateMarkerStyle() {
+    _markers.value = _markers.value.map((marker) {
+      if (marker.markerId.value == _selectStationID.value) {
+        return marker.copyWith(
+          iconParam: BitmapDescriptor.defaultMarkerWithHue(190.0),
+        );
+      } else {
+        return marker.copyWith(
+          iconParam: BitmapDescriptor.defaultMarker,
+        );
+      }
+    }).toSet();
+  }
+
+  static void _clearMarkerStyle() {
+    _markers.value = _markers.value.map((marker) {
+      return marker.copyWith(
+        iconParam: BitmapDescriptor.defaultMarker,
+      );
+    }).toSet();
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final locationProvider = Provider.of<LocationProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
@@ -308,35 +340,32 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
         screenHeight - (screenHeight * 0.2) - appBarHeight - bottomNavBarHeight;
 
     return PopScope(
-      canPop: _controller.index == 0,
+      canPop: _indexNotifier.value == 0,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _controller.index > 0) {
-          _controller.setIndex(_controller.index - 1);
+        if (!didPop && _indexNotifier.value > 0) {
+          _indexNotifier.value--;
         }
       },
       child: Scaffold(
-        backgroundColor: colors.cardBackground,
         body: Stack(
           children: [
             Positioned.fill(
-              child: Container(
-                color: colors.cardBackground,
-                child: SizedBox(
-                  height: mapHeight,
-                  child: AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, _) {
-                      return map(
-                        markers: _controller.markers,
-                        onMapCreated: (GoogleMapController controller) {
-                          _mapController = controller;
-                        },
-                      );
-                    },
-                  ),
+              child: SizedBox(
+                height: mapHeight,
+                child: ValueListenableBuilder<Set<Marker>>(
+                  valueListenable: _markers,
+                  builder: (context, markers, child) {
+                    return map(
+                      markers: markers,
+                      onMapCreated: (GoogleMapController controller) {
+                        _mapController = controller;
+                      },
+                    );
+                  },
                 ),
               ),
             ),
+
             DraggableScrollableSheet(
               controller: _scrollController,
               initialChildSize: 0.43,
@@ -369,7 +398,10 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: colors.textHint.withOpacity(0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.5),
                             borderRadius: BorderRadius.circular(2.5),
                           ),
                         ),
@@ -378,15 +410,15 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                     Container(
                       height: 800,
                       decoration: BoxDecoration(
-                        color: AppThemes.getSurface(context),
-                        borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(16)),
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(16)),
                       ),
-                      child: AnimatedBuilder(
-                        animation: _controller,
-                        builder: (context, _) {
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: _indexNotifier,
+                        builder: (context, index, child) {
                           return IndexedStack(
-                            index: _controller.index,
+                            index: index,
                             children: <Widget>[
                               TabWidget(
                                 items: [
@@ -411,7 +443,12 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                     itemBuilder: (context, pageIndex) {
                                       switch (pageIndex) {
                                         case 0:
-                                          _controller.setTabSelect("bus");
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            if (_tabSelect.value != "bus") {
+                                              _tabSelect.value = "bus";
+                                            }
+                                          });
                                           return SingleChildScrollView(
                                             controller: scrollController,
                                             child: FutureBuilder<
@@ -428,43 +465,128 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                       child:
                                                       LoadingAnimationWidget
                                                           .stretchedDots(
-                                                        color:
-                                                        colors.textPrimary,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurface,
                                                         size: 40,
                                                       ),
                                                     ),
                                                   );
                                                 }
+
                                                 if (snapshot.hasError) {
-                                                  return _buildErrorColumn(
-                                                    colors,
-                                                    onRetry: () =>
-                                                        _updateFutureNearStations(),
+                                                  return Center(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .center,
+                                                      children: [
+                                                        const SizedBox(
+                                                            height: 40),
+                                                        Text(
+                                                          AppLocalizations.of(
+                                                              context)!
+                                                              .text_419,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                            FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            _updateFutureNearStations();
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.refresh,
+                                                              color: Theme.of(
+                                                                  context)
+                                                                  .colorScheme
+                                                                  .onSurface),
+                                                          label: Text(
+                                                            AppLocalizations.of(
+                                                                context)!
+                                                                .text_420,
+                                                            style: TextStyle(
+                                                                color: Theme.of(
+                                                                    context)
+                                                                    .colorScheme
+                                                                    .onSurface,
+                                                                fontSize: 14),
+                                                          ),
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                            Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .surface,
+                                                            foregroundColor:
+                                                            Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurface,
+                                                            elevation: 3,
+                                                            padding:
+                                                            const EdgeInsets
+                                                                .symmetric(
+                                                                horizontal:
+                                                                20,
+                                                                vertical:
+                                                                12),
+                                                            shape:
+                                                            RoundedRectangleBorder(
+                                                              borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                  12),
+                                                            ),
+                                                            shadowColor:
+                                                            Colors.black12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   );
                                                 }
+
                                                 if (snapshot.hasData &&
                                                     snapshot.data != null &&
-                                                    snapshot
-                                                        .data!.isNotEmpty) {
-                                                  final groupedStations =
-                                                  <String,
-                                                      List<Map<String,
-                                                          dynamic>>>{};
-                                                  final stationNamesEn =
-                                                  <String, String>{};
+                                                    snapshot.data!.isNotEmpty) {
+                                                  final Map<
+                                                      String,
+                                                      List<
+                                                          Map<String,
+                                                              dynamic>>>
+                                                  groupedStations = {};
+                                                  final Map<String, String>
+                                                  stationNamesEn = {};
                                                   for (var station
                                                   in snapshot.data!) {
-                                                    final stationName =
+                                                    String stationName =
                                                         station.stationNameZh;
-                                                    groupedStations
-                                                        .putIfAbsent(
-                                                        stationName,
-                                                            () => [])
+
+                                                    if (!groupedStations
+                                                        .containsKey(
+                                                        stationName)) {
+                                                      groupedStations[
+                                                      stationName] = [];
+                                                    }
+                                                    groupedStations[
+                                                    stationName]!
                                                         .add(station.toJson());
                                                   }
 
-                                                  final result =
-                                                  groupedStations.entries
+                                                  final List<
+                                                      Map<String, dynamic>>
+                                                  result = groupedStations
+                                                      .entries
                                                       .map((entry) {
                                                     return {
                                                       "StationGroup": {
@@ -492,17 +614,38 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     ),
                                                   );
                                                 }
-                                                return _buildEmptyColumn(
-                                                    colors);
+
+                                                return Container(
+                                                  margin: const EdgeInsets.only(
+                                                      top: 20),
+                                                  child: Center(
+                                                    child: Text(
+                                                      AppLocalizations.of(
+                                                          context)!
+                                                          .text_419,
+                                                      style: TextStyle(
+                                                          color: Theme.of(
+                                                              context)
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 16),
+                                                    ),
+                                                  ),
+                                                );
                                               },
                                             ),
                                           );
                                         case 1:
-                                          _controller.setTabSelect("metro");
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            if (_tabSelect.value != "metro") {
+                                              _tabSelect.value = "metro";
+                                            }
+                                          });
                                           return SingleChildScrollView(
                                             controller: scrollController,
-                                            child: FutureBuilder<
-                                                List<MRTStation>>(
+                                            child:
+                                            FutureBuilder<List<MRTStation>>(
                                               future: getNearMRTStation(
                                                 Uri.encodeComponent(
                                                   "${locationProvider.latitude},${locationProvider.longitude}",
@@ -515,24 +658,87 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     child:
                                                     LoadingAnimationWidget
                                                         .stretchedDots(
-                                                      color: colors.textPrimary,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
                                                       size: 40,
                                                     ),
                                                   );
                                                 }
+
                                                 if (snapshot.hasError) {
-                                                  return _buildErrorColumn(
-                                                    colors,
-                                                    onRetry: () =>
-                                                        setState(() {}),
+                                                  return Center(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .center,
+                                                      children: [
+                                                        Text(
+                                                          AppLocalizations.of(
+                                                              context)!
+                                                              .text_419,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                            FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            setState(() {});
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.refresh,
+                                                              color: Theme.of(
+                                                                  context)
+                                                                  .colorScheme
+                                                                  .onSurface),
+                                                          label: Text(
+                                                            AppLocalizations.of(
+                                                                context)!
+                                                                .text_420,
+                                                            style: TextStyle(
+                                                                color: Theme.of(
+                                                                    context)
+                                                                    .colorScheme
+                                                                    .onSurface,
+                                                                fontSize: 14),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   );
                                                 }
+
                                                 final stations =
                                                     snapshot.data ?? [];
                                                 if (stations.isEmpty) {
-                                                  return _buildEmptyColumn(
-                                                      colors);
+                                                  return Container(
+                                                    margin:
+                                                    const EdgeInsets.only(
+                                                        top: 20),
+                                                    child: Center(
+                                                      child: Text(
+                                                        AppLocalizations.of(
+                                                            context)!
+                                                            .text_419,
+                                                        style: TextStyle(
+                                                            color: Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 16),
+                                                      ),
+                                                    ),
+                                                  );
                                                 }
+
                                                 return Padding(
                                                   padding:
                                                   const EdgeInsets.all(16),
@@ -548,11 +754,15 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                             ),
                                           );
                                         case 2:
-                                          _controller.setTabSelect("train");
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            if (_tabSelect.value != "train") {
+                                              _tabSelect.value = "train";
+                                            }
+                                          });
                                           return SingleChildScrollView(
                                             controller: scrollController,
-                                            child:
-                                            FutureBuilder<List<dynamic>>(
+                                            child: FutureBuilder<List<dynamic>>(
                                               future: getNearTrainStation(
                                                 locationProvider.latitude,
                                                 locationProvider.longitude,
@@ -564,19 +774,61 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     child:
                                                     LoadingAnimationWidget
                                                         .stretchedDots(
-                                                      color: colors.textPrimary,
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onSurface,
                                                       size: 40,
                                                     ),
                                                   );
-                                                } else if (snapshot
-                                                    .hasError) {
-                                                  return _buildErrorColumn(
-                                                    colors,
-                                                    onRetry: () =>
-                                                        setState(() {}),
+                                                } else if (snapshot.hasError) {
+                                                  return Center(
+                                                    child: Column(
+                                                      mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .center,
+                                                      children: [
+                                                        Text(
+                                                          AppLocalizations.of(
+                                                              context)!
+                                                              .text_419,
+                                                          style: TextStyle(
+                                                            color: Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                            FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 16),
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            setState(() {});
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.refresh,
+                                                              color: Theme.of(
+                                                                  context)
+                                                                  .colorScheme
+                                                                  .onSurface),
+                                                          label: Text(
+                                                            AppLocalizations.of(
+                                                                context)!
+                                                                .text_420,
+                                                            style: TextStyle(
+                                                                color: Theme.of(
+                                                                    context)
+                                                                    .colorScheme
+                                                                    .onSurface,
+                                                                fontSize: 14),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
                                                   );
-                                                } else if (snapshot
-                                                    .hasData) {
+                                                } else if (snapshot.hasData) {
                                                   return Padding(
                                                     padding:
                                                     const EdgeInsets.all(
@@ -593,19 +845,22 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                           "StationName"]);
                                                           return GestureDetector(
                                                             onTap: () {
-                                                              final today =
+                                                              DateTime today =
                                                               DateTime
                                                                   .now();
-                                                              final todayDate =
+                                                              DateTime
+                                                              todayDate =
                                                               DateTime(
                                                                 today.year,
                                                                 today.month,
                                                                 today.day,
                                                               );
+
                                                               Navigator.push(
                                                                 context,
                                                                 MaterialPageRoute(
-                                                                  builder: (context) =>
+                                                                  builder:
+                                                                      (context) =>
                                                                       StationPage(
                                                                         stationName:
                                                                         nameMap[
@@ -623,21 +878,42 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                               );
                                                             },
                                                             child: Container(
-                                                              margin: const EdgeInsets
+                                                              margin:
+                                                              const EdgeInsets
                                                                   .symmetric(
                                                                 vertical: 8,
                                                                 horizontal: 12,
                                                               ),
-                                                              padding: const EdgeInsets
+                                                              padding:
+                                                              const EdgeInsets
                                                                   .symmetric(
                                                                 vertical: 12,
                                                                 horizontal: 16,
                                                               ),
                                                               decoration:
-                                                              SurfaceDecoration
-                                                                  .cardShadow(
-                                                                context,
-                                                                radius: 12,
+                                                              BoxDecoration(
+                                                                color: Theme.of(
+                                                                    context)
+                                                                    .colorScheme
+                                                                    .surface,
+                                                                borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                    12),
+                                                                boxShadow: [
+                                                                  BoxShadow(
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withOpacity(
+                                                                        0.05),
+                                                                    blurRadius:
+                                                                    8,
+                                                                    offset:
+                                                                    const Offset(
+                                                                        0,
+                                                                        4),
+                                                                  ),
+                                                                ],
                                                               ),
                                                               child: Column(
                                                                 crossAxisAlignment:
@@ -655,16 +931,20 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                                       fontWeight:
                                                                       FontWeight
                                                                           .w400,
-                                                                      color: colors
-                                                                          .textPrimary,
+                                                                      color: Theme.of(
+                                                                          context)
+                                                                          .colorScheme
+                                                                          .onSurface,
                                                                     ),
                                                                   ),
                                                                   const SizedBox(
                                                                       height:
                                                                       8),
                                                                   Divider(
-                                                                    color: colors
-                                                                        .divider,
+                                                                    color: Theme.of(
+                                                                        context)
+                                                                        .colorScheme
+                                                                        .outlineVariant,
                                                                     thickness:
                                                                     0.5,
                                                                   ),
@@ -677,30 +957,45 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                                                     ),
                                                   );
                                                 } else {
-                                                  return _buildEmptyColumn(
-                                                      colors);
+                                                  return Container(
+                                                    margin:
+                                                    const EdgeInsets.only(
+                                                        top: 20),
+                                                    child: Center(
+                                                      child: Text(
+                                                        AppLocalizations.of(
+                                                            context)!
+                                                            .text_419,
+                                                        style: TextStyle(
+                                                            color: Theme.of(
+                                                                context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 16),
+                                                      ),
+                                                    ),
+                                                  );
                                                 }
                                               },
                                             ),
                                           );
                                         case 3:
-                                          _controller.setTabSelect("HSR");
+                                          WidgetsBinding.instance
+                                              .addPostFrameCallback((_) {
+                                            if (_tabSelect.value != "HSR") {
+                                              _tabSelect.value = "HSR";
+                                            }
+                                          });
                                           return Center(
                                             child: Text(
-                                              AppLocalizations.of(context)!
-                                                  .text_421,
-                                              style: TextStyle(
-                                                  color: colors.textPrimary),
-                                            ),
+                                                AppLocalizations.of(context)!
+                                                    .text_421),
                                           );
                                         default:
                                           return Center(
                                             child: Text(
-                                              AppLocalizations.of(context)!
-                                                  .text_422,
-                                              style: TextStyle(
-                                                  color: colors.textPrimary),
-                                            ),
+                                                AppLocalizations.of(context)!
+                                                    .text_422),
                                           );
                                       }
                                     },
@@ -730,27 +1025,31 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                     _handleTabSelectChange();
                   },
                   borderRadius: BorderRadius.circular(50),
-                  splashColor: colors.info.withOpacity(0.2),
-                  highlightColor: colors.mutedBackground,
+                  splashColor: const Color(0xFF1A73E8).withOpacity(0.2),
+                  highlightColor:
+                  Theme.of(context).colorScheme.primaryContainer,
                   child: Container(
                     width: 56,
                     height: 56,
                     padding: const EdgeInsets.all(14.0),
                     decoration: BoxDecoration(
-                      color: colors.cardBackground,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(50),
                       boxShadow: [
                         BoxShadow(
-                          color: colors.shadow,
+                          color: Colors.black.withOpacity(0.12),
                           blurRadius: 12.0,
                           offset: const Offset(0, 4),
                         ),
                       ],
-                      border: Border.all(color: colors.border, width: 1),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        width: 1,
+                      ),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.refresh_rounded,
-                      color: colors.info,
+                      color: Color(0xFF1A73E8),
                       size: 24,
                     ),
                   ),
@@ -763,64 +1062,13 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
     );
   }
 
-  Widget _buildErrorColumn(AppColors colors,
-      {required VoidCallback onRetry}) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.text_419,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: onRetry,
-            icon: Icon(Icons.refresh, color: colors.info),
-            label: Text(
-              AppLocalizations.of(context)!.text_420,
-              style: TextStyle(color: colors.textPrimary, fontSize: 14),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.cardBackground,
-              foregroundColor: colors.textPrimary,
-              elevation: 3,
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              shadowColor: colors.shadow,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyColumn(AppColors colors) {
-    return Container(
-      margin: const EdgeInsets.only(top: 20),
-      child: Center(
-        child: Text(
-          AppLocalizations.of(context)!.text_419,
-          style: TextStyle(color: colors.textSecondary, fontSize: 16),
-        ),
-      ),
-    );
-  }
-
   Widget _stationCard({required Map<String, dynamic> station}) {
-    final colors = context.appColors;
     final List<String> stationIDs =
         (station["StationGroup"]["Stations"] as List<dynamic>?)
             ?.map((s) => s["stationID"].toString())
             .toList() ??
             [];
+
     final firstStation = station["StationGroup"]["Stations"][0];
 
     void onCardTap() {
@@ -828,30 +1076,26 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
         CameraUpdate.newCameraPosition(
           CameraPosition(
             target: LatLng(
-              firstStation["positionLat"],
-              firstStation["positionLon"],
-            ),
+                firstStation["positionLat"], firstStation["positionLon"]),
             zoom: 19.0,
           ),
         ),
       );
 
-      _controller.setStopName(
-        station["StationGroup"]["StationGroupName"]["Zh_tw"],
-        en: station["StationGroup"]["StationGroupName"]["En"]?.toString() ?? '',
-      );
-      _controller.setStationIDs(stationIDs);
-      _controller
-          .setSelectStationID(stationIDs.isEmpty ? '' : stationIDs.first);
-      _controller.setIndex(1);
+      _stopName.value = station["StationGroup"]["StationGroupName"]["Zh_tw"];
+      _stopNameEn =
+          station["StationGroup"]["StationGroupName"]["En"]?.toString() ?? '';
+      _stationIDs.value = stationIDs;
+      _selectStationID.value = stationIDs.isEmpty ? '' : stationIDs.first;
+      _indexNotifier.value = 1;
     }
 
     return GestureDetector(
       onTap: onCardTap,
       onHorizontalDragEnd: (details) {
         if (details.velocity.pixelsPerSecond.dx < -200) {
-          if (_controller.index > 0) {
-            _controller.setIndex(1);
+          if (_indexNotifier.value > 0) {
+            _indexNotifier.value = 1;
           }
         }
       },
@@ -862,48 +1106,72 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
           child: InkWell(
             onTap: onCardTap,
             borderRadius: BorderRadius.circular(16),
-            splashColor: colors.info.withOpacity(0.1),
-            highlightColor: colors.mutedBackground,
+            splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+            highlightColor:
+            Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               padding: const EdgeInsets.all(16),
-              decoration: SurfaceDecoration.cardShadow(context, radius: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Row(
                 children: [
                   Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: colors.infoContainer,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.train_rounded,
                       size: 20,
-                      color: colors.info,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      _localizedName(context,
-                          station["StationGroup"]["StationGroupName"]),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: colors.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _localizedName(context,
+                              station["StationGroup"]["StationGroupName"]),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: SurfaceDecoration.muted(context, radius: 8),
+                    decoration: BoxDecoration(
+                      color:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
-                      color: colors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -916,7 +1184,6 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
   }
 
   Widget _mrtStationCard({required MRTStation station}) {
-    final colors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -932,31 +1199,41 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
               ),
             ),
           );
-          _controller.setStopName(station.stationName.zhTw,
-              en: station.stationName.en ?? '');
-          _controller.setStationIDs([station.stationID]);
-          _controller.setIndex(1);
+          _stopName.value = station.stationName.zhTw;
+          _stopNameEn = station.stationName.en ?? '';
+          _stationIDs.value = [station.stationID];
+          _indexNotifier.value = 1;
         },
         borderRadius: BorderRadius.circular(16),
-        splashColor: colors.success.withOpacity(0.1),
-        highlightColor: colors.mutedBackground,
+        splashColor: const Color(0xFF34C759).withOpacity(0.1),
+        highlightColor: Theme.of(context).colorScheme.surfaceContainerHighest,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
           padding: const EdgeInsets.all(16),
-          decoration: SurfaceDecoration.cardShadow(context, radius: 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
           child: Row(
             children: [
               Container(
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: colors.successContainer,
+                  color: const Color(0xFF34C759).withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.subway_rounded,
                   size: 20,
-                  color: colors.success,
+                  color: Color(0xFF34C759),
                 ),
               ),
               const SizedBox(width: 12),
@@ -972,7 +1249,7 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: colors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -983,7 +1260,7 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
                         station.stationName.en,
                         style: TextStyle(
                           fontSize: 13,
-                          color: colors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w500,
                         ),
                         maxLines: 1,
@@ -995,11 +1272,14 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
               ),
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: SurfaceDecoration.muted(context, radius: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: colors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -1009,72 +1289,54 @@ class NearbyStationsPageState extends State<NearbyStationsPage> {
     );
   }
 
-  /// 選中站點後顯示的「到站資訊」面板。
-  ///
-  /// - bus / train / HSR 都走同一套 `BusStopList`
-  /// - metro 走 `MRTStationList`
   Widget _buildDraggableScrollableSheetPageTwo(
       ScrollController scrollController) {
-    final colors = context.appColors;
-    final tab = _controller.tabSelect;
-
-    if (tab == "metro") {
+    if (_tabSelect.value == "bus") {
       return Container(
         decoration: BoxDecoration(
-          color: colors.cardBackground,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: PrimaryScrollController(
-          controller: scrollController,
-          child: MRTStationList(
-            station: _controller.stopName,
-          ),
-        ),
-      );
-    }
-
-    // bus / train / HSR 統一使用 BusStopList
-    if (tab == "bus" || tab == "train" || tab == "HSR") {
-      return Container(
-        decoration: BoxDecoration(
-          color: colors.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
         ),
         child: PrimaryScrollController(
           controller: scrollController,
           child: BusStopList(
-            _controller.stopName,
-            controller: _controller,
-            key: ValueKey(_controller.stopName),
+            _stopName.value,
+            key: ValueKey(_stopName.value),
           ),
         ),
       );
-    }
-
-    // fallback
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.cardBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: PrimaryScrollController(
-        controller: scrollController,
-        child: Center(
-          child: Text(
-            AppLocalizations.of(context)!.text_422,
-            style: TextStyle(color: colors.textPrimary),
+    } else if (_tabSelect.value == "metro") {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PrimaryScrollController(
+          controller: scrollController,
+          child: MRTStationList(
+            station: _stopName.value,
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: PrimaryScrollController(
+          controller: scrollController,
+          child: Center(child: Text(AppLocalizations.of(context)!.text_422)),
+        ),
+      );
+    }
   }
 }
 
 class BusStopList extends StatefulWidget {
   final String stop;
-  final NearbyStationsController controller;
 
-  const BusStopList(this.stop, {super.key, required this.controller});
+  const BusStopList(this.stop, {super.key});
 
   @override
   State<StatefulWidget> createState() => _BusStopListState();
@@ -1084,83 +1346,88 @@ class _BusStopListState extends State<BusStopList>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
   final StreamController<List<Map<String, dynamic>>> _streamController =
   StreamController.broadcast();
-  late TabController _tabController;
+  late final TabController _tabController;
 
-  NearbyStationsController get _ctrl => widget.controller;
-
-  String? _minuteUnit;
+  // 緩存整體的 Future
+  Future<List<Map<String, dynamic>>>? _dataFuture;
+  // 記錄上一次的站點群組 ID，用於判斷是否需要重新載入
+  String? _lastGroupID;
+  // 緩存每個 Tab 處理後的資料，避免滑動時閃爍 Loading
+  final Map<String, Future<List<Map<String, dynamic>>>> _tabDataCache = {};
 
   @override
   void initState() {
     super.initState();
 
-    final ids = _ctrl.stationIDs;
-    int initialIndex = ids.indexOf(_ctrl.selectStationID);
+    _lastGroupID = _selectStationGroupID.value;
+    _dataFuture = _loadData();
+
+    int initialIndex = _stationIDs.value.indexOf(_selectStationID.value);
     if (initialIndex == -1) initialIndex = 0;
 
     _tabController = TabController(
-      length: ids.isEmpty ? 1 : ids.length,
+      length: _stationIDs.value.length,
       vsync: this,
-      initialIndex:
-      initialIndex.clamp(0, ids.isEmpty ? 0 : ids.length - 1),
+      initialIndex: initialIndex,
     );
 
-    _ctrl.addListener(_onControllerChanged);
+    _selectStationID.addListener(_onSelectStationChanged);
+    _selectStationGroupID.addListener(_onGroupChanged);
     _tabController.addListener(_onTabChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _ctrl.stationIDs.isEmpty) return;
-      final currentIds = _ctrl.stationIDs;
-      if (!currentIds.contains(_ctrl.selectStationID)) {
-        _ctrl.setSelectStationID(currentIds[_tabController.index]);
+      if (!mounted || _stationIDs.value.isEmpty) return;
+      final ids = _stationIDs.value;
+      if (!ids.contains(_selectStationID.value)) {
+        _selectStationID.value = ids[_tabController.index];
       }
     });
   }
 
-  void _onControllerChanged() {
-    if (!mounted) return;
-    final ids = _ctrl.stationIDs;
-    if (ids.isNotEmpty && ids.length != _tabController.length) {
-      final old = _tabController;
-      final oldIndex = old.index;
-      old.removeListener(_onTabChanged);
-      old.dispose();
-      _tabController = TabController(
-        length: ids.length,
-        vsync: this,
-        initialIndex: oldIndex.clamp(0, ids.length - 1),
-      );
-      _tabController.addListener(_onTabChanged);
+  void _onGroupChanged() {
+    final currentGroupID = _selectStationGroupID.value;
+    // 只有當「站點群組 ID」改變時，才重新載入資料並清空 Tab 快取
+    if (_lastGroupID != currentGroupID) {
+      _lastGroupID = currentGroupID;
+      setState(() {
+        _tabDataCache.clear();
+        _dataFuture = _loadData();
+      });
     }
-    setState(() {});
   }
 
   void _onTabChanged() {
-    final ids = _ctrl.stationIDs;
+    final ids = _stationIDs.value;
     final index = _tabController.index;
     if (!mounted ||
         ids.length != _tabController.length ||
         index >= ids.length) {
       return;
     }
-    if (_ctrl.selectStationID != ids[index]) {
-      _ctrl.setSelectStationID(ids[index]);
+    if (_selectStationID.value != ids[index]) {
+      _selectStationID.value = ids[index];
+    }
+  }
+
+  void _onSelectStationChanged() {
+    if (!mounted || _stationIDs.value.isEmpty) return;
+
+    final index = _stationIDs.value.indexOf(_selectStationID.value);
+    if (index != -1 &&
+        index < _tabController.length &&
+        index != _tabController.index) {
+      _tabController.animateTo(index);
     }
   }
 
   @override
   void dispose() {
-    _ctrl.removeListener(_onControllerChanged);
+    _selectStationID.removeListener(_onSelectStationChanged);
+    _selectStationGroupID.removeListener(_onGroupChanged);
     _tabController.removeListener(_onTabChanged);
     _streamController.close();
     _tabController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _minuteUnit = AppLocalizations.of(context)!.text_332;
   }
 
   Future<List<Map<String, dynamic>>> _loadData() async {
@@ -1212,6 +1479,7 @@ class _BusStopListState extends State<BusStopList>
         } else if (routeNameObj is String) {
           routeName = routeNameObj;
         }
+
         if (routeName != null && routeName.isNotEmpty) {
           routeNames.add(routeName);
         }
@@ -1228,6 +1496,7 @@ class _BusStopListState extends State<BusStopList>
             WHERE City = 'Taichung'
               AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
           """;
+
           final results = await mysqlSelect(query);
 
           for (final result in results) {
@@ -1268,7 +1537,6 @@ class _BusStopListState extends State<BusStopList>
       }
 
       final List<Map<String, dynamic>> processedData = [];
-      final l10n = AppLocalizations.of(context)!;
 
       for (final item in stationData) {
         final routeNameObj = item["RouteName"];
@@ -1287,9 +1555,12 @@ class _BusStopListState extends State<BusStopList>
         final routeInfo = routeInfoCache[routeName];
         final hasValidInfo = routeInfo != null && routeInfo.isNotEmpty;
 
+        if (!mounted) return [];
+        final localizations = AppLocalizations.of(context)!;
+
         resultItem["RouteID"] = hasValidInfo
-            ? (routeInfo["RouteID"]?.toString() ?? l10n.text_321)
-            : l10n.text_321;
+            ? (routeInfo["RouteID"]?.toString() ?? localizations.text_321)
+            : localizations.text_321;
 
         String? departureName;
         String? destinationName;
@@ -1305,16 +1576,18 @@ class _BusStopListState extends State<BusStopList>
           destinationNameEn = routeInfo["DestinationStopNameEn"]?.toString();
         }
 
-        resultItem["DepartureStopName"] = departureName ?? l10n.text_325;
-        resultItem["DestinationStopName"] = destinationName ?? l10n.text_326;
+        resultItem["DepartureStopName"] =
+            departureName ?? localizations.text_325;
+        resultItem["DestinationStopName"] =
+            destinationName ?? localizations.text_326;
 
         final isDirection1 = direction == 1;
         resultItem["from"] = isDirection1
-            ? (destinationName ?? l10n.text_428)
-            : (departureName ?? l10n.text_429);
+            ? (destinationName ?? localizations.text_428)
+            : (departureName ?? localizations.text_429);
         resultItem["to"] = isDirection1
-            ? (departureName ?? l10n.text_429)
-            : (destinationName ?? l10n.text_428);
+            ? (departureName ?? localizations.text_429)
+            : (destinationName ?? localizations.text_428);
         final toEn = isDirection1 ? departureNameEn : destinationNameEn;
         resultItem["toEn"] =
         (toEn != null && toEn.trim().isNotEmpty) ? toEn : null;
@@ -1329,250 +1602,256 @@ class _BusStopListState extends State<BusStopList>
     }
   }
 
-  String _tabLabel(int index) {
-    if (index < 26) return String.fromCharCode(65 + index);
-    return '${index + 1}';
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final colors = context.appColors;
 
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        return FutureBuilder<List<Map<String, dynamic>>>(
-          future: _loadData(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: LoadingAnimationWidget.stretchedDots(
-                  color: colors.textPrimary,
-                  size: 40,
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _dataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: LoadingAnimationWidget.stretchedDots(
+              color: Theme.of(context).colorScheme.onSurface,
+              size: 40,
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+              child: Text(AppLocalizations.of(context)!
+                  .nearStopLoadError('${snapshot.error}')));
+        }
+
+        if (!snapshot.hasData || snapshot.data == null) {
+          return Center(child: Text(AppLocalizations.of(context)!.text_430));
+        }
+
+        if (_stationIDs.value.isEmpty) {
+          return const SizedBox();
+        }
+
+        return Column(
+          children: [
+            PreferredSize(
+              preferredSize: const Size.fromHeight(120),
+              child: Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+                  color: Theme.of(context).colorScheme.surface,
+                  boxShadow: [
+
+                  ],
                 ),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return Center(
-                child: Text(
-                  AppLocalizations.of(context)!
-                      .nearStopLoadError('${snapshot.error}'),
-                  style: TextStyle(color: colors.textSecondary),
-                ),
-              );
-            }
-
-            if (!snapshot.hasData || snapshot.data == null) {
-              return Center(
-                child: Text(
-                  AppLocalizations.of(context)!.text_430,
-                  style: TextStyle(color: colors.textSecondary),
-                ),
-              );
-            }
-
-            if (_ctrl.stationIDs.isEmpty) {
-              return const SizedBox();
-            }
-
-            return Column(
-              children: [
-                PreferredSize(
-                  preferredSize: const Size.fromHeight(120),
-                  child: Container(
-                    height: 120,
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16)),
-                      color: colors.cardBackground,
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.shadow,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                child: AppBar(
+                  automaticallyImplyLeading: false,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  title: Text(
+                    _localizedName(context,
+                        {'Zh_tw': _stopName.value, 'En': _stopNameEn}),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
-                    child: AppBar(
-                      automaticallyImplyLeading: false,
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      title: Text(
-                        _localizedName(context, {
-                          'Zh_tw': _ctrl.stopName,
-                          'En': _ctrl.stopNameEn,
-                        }),
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
+                  ),
+                  leading: IconButton(
+                    icon: Icon(Icons.close,
+                        color: Theme.of(context).colorScheme.onSurface),
+                    onPressed: () {
+                      if (_indexNotifier.value > 0) {
+                        _indexNotifier.value--;
+                        _NearbyStationsPageState._clearMarkerStyle();
+                        _stationIDs.value = [];
+                        _stopName.value = "";
+                        _selectStationID.value = "";
+                        _selectStationGroupID.value = "";
+                      }
+                    },
+                  ),
+                  actions: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color:
+                            Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.refresh_rounded, size: 20),
                         ),
-                      ),
-                      leading: IconButton(
-                        icon: Icon(Icons.close, color: colors.textPrimary),
                         onPressed: () {
-                          if (_ctrl.index > 0) {
-                            _ctrl.setIndex(_ctrl.index - 1);
-                            _ctrl.clearStationSelection();
+                          setState(() {
+                            _tabDataCache.clear();
+                            _dataFuture = _loadData();
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: PopupMenuButton<String>(
+                        icon: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color:
+                            Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.more_vert_rounded, size: 20),
+                        ),
+                        color: Theme.of(context).colorScheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                        ),
+                        itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                          _buildPopupMenuItem(
+                            icon: Icons.info_outline_rounded,
+                            title: AppLocalizations.of(context)!.text_333,
+                            value: 'info',
+                            color: const Color(0xFF1A73E8),
+                          ),
+                          _buildPopupMenuItem(
+                            icon: Icons.favorite_border_rounded,
+                            title: AppLocalizations.of(context)!.text_334,
+                            value: 'favorite',
+                            color: const Color(0xFFFF3B30),
+                          ),
+                          _buildPopupMenuItem(
+                            icon: Icons.sort_rounded,
+                            title: AppLocalizations.of(context)!.text_335,
+                            value: 'sort',
+                            color: const Color(0xFF34C759),
+                          ),
+                        ],
+                        onSelected: (String action) async {
+                          if (action == 'favorite') {
+                            favorite_feature dbHelper = favorite_feature();
+                            final output = await dbHelper.addFavoriteStop(
+                              stopName: widget.stop,
+                              city: "Taichung",
+                            );
+
+                            if (!mounted) return;
+
+                            if (output == 100) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.success,
+                                text: AppLocalizations.of(context)!
+                                    .nearStopSaved(widget.stop),
+                              );
+                            } else if (output == -1) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.warning,
+                                text: AppLocalizations.of(context)!
+                                    .nearStopAlreadySaved(widget.stop),
+                              );
+                            } else if (output == 200) {
+                              QuickAlert.show(
+                                context: context,
+                                type: QuickAlertType.error,
+                                title: 'Oops...',
+                                text: AppLocalizations.of(context)!.text_336,
+                              );
+                            }
+                          } else if (action == 'sort') {
+                            _showSortDialog(context);
                           }
                         },
                       ),
-                      actions: [
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          child: IconButton(
-                            icon: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: SurfaceDecoration.muted(
-                                context,
-                                radius: 10,
-                              ),
-                              child: Icon(
-                                Icons.refresh_rounded,
-                                size: 20,
-                                color: colors.info,
-                              ),
-                            ),
-                            onPressed: () => setState(() {}),
-                          ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          child: PopupMenuButton<String>(
-                            icon: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: SurfaceDecoration.muted(
-                                context,
-                                radius: 10,
-                              ),
-                              child: Icon(
-                                Icons.more_vert_rounded,
-                                size: 20,
-                                color: colors.info,
-                              ),
-                            ),
-                            color: colors.cardBackground,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: colors.border,
-                                width: 1,
-                              ),
-                            ),
-                            itemBuilder: (BuildContext context) =>
-                            <PopupMenuEntry<String>>[
-                              _buildPopupMenuItem(
-                                icon: Icons.info_outline_rounded,
-                                title: AppLocalizations.of(context)!.text_333,
-                                value: 'info',
-                                color: colors.info,
-                              ),
-                              _buildPopupMenuItem(
-                                icon: Icons.favorite_border_rounded,
-                                title: AppLocalizations.of(context)!.text_334,
-                                value: 'favorite',
-                                color: colors.danger,
-                              ),
-                              _buildPopupMenuItem(
-                                icon: Icons.sort_rounded,
-                                title: AppLocalizations.of(context)!.text_335,
-                                value: 'sort',
-                                color: colors.success,
-                              ),
-                            ],
-                            onSelected: (String action) async {
-                              if (action == 'favorite') {
-                                final dbHelper = favorite_feature();
-                                final output =
-                                await dbHelper.addFavoriteStop(
-                                  stopName: widget.stop,
-                                  city: "Taichung",
-                                );
-                                if (!mounted) return;
-
-                                if (output == 100) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.success,
-                                    text: AppLocalizations.of(context)!
-                                        .nearStopSaved(widget.stop),
-                                  );
-                                } else if (output == -1) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.warning,
-                                    text: AppLocalizations.of(context)!
-                                        .nearStopAlreadySaved(widget.stop),
-                                  );
-                                } else if (output == 200) {
-                                  QuickAlert.show(
-                                    context: context,
-                                    type: QuickAlertType.error,
-                                    title: 'Oops...',
-                                    text:
-                                    AppLocalizations.of(context)!.text_336,
-                                  );
-                                }
-                              } else if (action == 'sort') {
-                                _showSortDialog(context);
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                      bottom: _buildTabBar(snapshot.data!, _tabController),
                     ),
-                  ),
+                  ],
+                  bottom: _buildTabBar(snapshot.data!, _tabController),
                 ),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: List.generate(
-                      _ctrl.stationIDs.length,
-                          (index) {
-                        return FutureBuilder<Widget>(
-                          future: _buildTabContent(
-                            _ctrl.stationIDs[index],
-                            snapshot.data!,
-                          ),
-                          builder: (context, contentSnapshot) {
-                            if (contentSnapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(
-                                child: LoadingAnimationWidget.stretchedDots(
-                                  color: colors.textPrimary,
-                                  size: 40,
-                                ),
-                              );
-                            }
-                            if (contentSnapshot.hasError) {
-                              return Center(
-                                child: Text(
-                                  'Error: ${contentSnapshot.error}',
-                                  style:
-                                  TextStyle(color: colors.textSecondary),
-                                ),
-                              );
-                            }
-                            return contentSnapshot.data ??
-                                Center(
-                                  child: Text(
-                                    "No content available",
-                                    style: TextStyle(
-                                        color: colors.textSecondary),
-                                  ),
+              ),
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: List.generate(
+                  _stationIDs.value.length,
+                      (index) {
+                    final stationID = _stationIDs.value[index];
+
+                    _tabDataCache.putIfAbsent(
+                      stationID,
+                          () => _processData(stationID, snapshot.data!),
+                    );
+
+                    return FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _tabDataCache[stationID],
+                      builder: (context, contentSnapshot) {
+                        if (contentSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: LoadingAnimationWidget.stretchedDots(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              size: 40,
+                            ),
+                          );
+                        }
+
+                        if (contentSnapshot.hasError) {
+                          return Center(
+                            child: Text('Error: ${contentSnapshot.error}'),
+                          );
+                        }
+
+                        final finalList = contentSnapshot.data ?? [];
+
+                        return ValueListenableBuilder<SortType>(
+                          valueListenable: _sortNotifier,
+                          builder: (context, sortType, _) {
+                            final sortedList = [...finalList];
+
+                            switch (sortType) {
+                              case SortType.nameAsc:
+                                sortedList.sort(
+                                      (a, b) => getChineseName(
+                                      a['RouteName']["Zh_tw"])
+                                      .compareTo(getChineseName(
+                                      b['RouteName']["Zh_tw"])),
                                 );
+                                break;
+                              case SortType.nameDesc:
+                                sortedList.sort(
+                                      (a, b) => getChineseName(
+                                      b['RouteName']["Zh_tw"])
+                                      .compareTo(getChineseName(
+                                      a['RouteName']["Zh_tw"])),
+                                );
+                                break;
+                              case SortType.timeAsc:
+                                sortedList.sort(_timeAscComparator);
+                                break;
+                              case SortType.timeDesc:
+                                sortedList.sort(_timeDescComparator);
+                                break;
+                            }
+
+                            return _buildTabContentUI(sortedList);
                           },
                         );
                       },
-                    ),
-                  ),
+                    );
+                  },
                 ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1580,25 +1859,23 @@ class _BusStopListState extends State<BusStopList>
 
   PreferredSize _buildTabBar(
       List<Map<String, dynamic>> station, TabController tabController) {
-    final colors = context.appColors;
-    final ids = _ctrl.stationIDs;
     return PreferredSize(
       preferredSize: const Size.fromHeight(80),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(color: colors.cardBackground),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface),
         child: AnimatedBuilder(
           animation: tabController,
           builder: (context, child) {
             final currentIndex = tabController.index;
             return Row(
-              children: List.generate(ids.length, (index) {
-                final label = _tabLabel(index);
+              children: List.generate(_stationIDs.value.length, (index) {
+                final label = String.fromCharCode(65 + index);
                 final isSelected = currentIndex == index;
 
                 return Expanded(
                   child: Padding(
-                    padding: index < ids.length - 1
+                    padding: index < _stationIDs.value.length - 1
                         ? const EdgeInsets.only(right: 8)
                         : EdgeInsets.zero,
                     child: GestureDetector(
@@ -1608,11 +1885,15 @@ class _BusStopListState extends State<BusStopList>
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? colors.info.withOpacity(0.08)
-                              : colors.mutedBackground,
+                              ? const Color(0xFF1A73E8).withOpacity(0.08)
+                              : Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: isSelected ? colors.info : colors.border,
+                            color: isSelected
+                                ? const Color(0xFF1A73E8)
+                                : Theme.of(context).colorScheme.outlineVariant,
                             width: 1.2,
                           ),
                         ),
@@ -1626,32 +1907,35 @@ class _BusStopListState extends State<BusStopList>
                                   Icons.directions_bus,
                                   size: 14,
                                   color: isSelected
-                                      ? colors.info
-                                      : colors.textSecondary,
+                                      ? const Color(0xFF1A73E8)
+                                      : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                 ),
                                 const SizedBox(width: 4),
                                 Flexible(
-                                  child: Text(
-                                    AppLocalizations.of(context)!
-                                        .nearStopLabel(label),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.w500,
-                                      color: isSelected
-                                          ? colors.info
-                                          : colors.textSecondary,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
+                                    child: Text(
+                                      AppLocalizations.of(context)!
+                                          .nearStopLabel(label),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isSelected
+                                            ? const Color(0xFF1A73E8)
+                                            : Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    )),
                               ],
                             ),
                             const SizedBox(height: 1),
                             Text(
-                              ids[index],
+                              _stationIDs.value[index],
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -1660,8 +1944,10 @@ class _BusStopListState extends State<BusStopList>
                                     ? FontWeight.w500
                                     : FontWeight.normal,
                                 color: isSelected
-                                    ? colors.info.withOpacity(0.8)
-                                    : colors.textSecondary,
+                                    ? const Color(0xFF1A73E8).withOpacity(0.8)
+                                    : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -1678,102 +1964,56 @@ class _BusStopListState extends State<BusStopList>
     );
   }
 
-  Future<Widget> _buildTabContent(
-      String stationID,
-      List<Map<String, dynamic>> stopEstimatedTime,
-      ) async {
-    final finalList = await _processData(stationID, stopEstimatedTime);
-
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, _) {
-        final sortedList = [...finalList];
-
-        switch (_ctrl.sortType) {
-          case SortType.nameAsc:
-            sortedList.sort(
-                  (a, b) => getChineseName(a['RouteName']["Zh_tw"])
-                  .compareTo(getChineseName(b['RouteName']["Zh_tw"])),
-            );
-            break;
-          case SortType.nameDesc:
-            sortedList.sort(
-                  (a, b) => getChineseName(b['RouteName']["Zh_tw"])
-                  .compareTo(getChineseName(a['RouteName']["Zh_tw"])),
-            );
-            break;
-          case SortType.timeAsc:
-            sortedList.sort(_timeAscComparator);
-            break;
-          case SortType.timeDesc:
-            sortedList.sort(_timeDescComparator);
-            break;
-        }
-
-        return _buildTabContentUI(sortedList);
-      },
-    );
-  }
-
   int _timeAscComparator(Map<String, dynamic> a, Map<String, dynamic> b) {
-    final l10n = AppLocalizations.of(context)!;
-    final comingSoon = l10n.text_316;
-    final unknown = l10n.text_317;
-    if (a["time"] == comingSoon) return -1;
-    if (b["time"] == comingSoon) return 1;
-    if (a["time"] == unknown) return 1;
-    if (b["time"] == unknown) return -1;
+    final localizations = AppLocalizations.of(context)!;
+    if (a["time"] == localizations.text_316) return -1;
+    if (b["time"] == localizations.text_316) return 1;
+    if (a["time"] == localizations.text_317) return 1;
+    if (b["time"] == localizations.text_317) return -1;
     return _parseTimeToMinutes(a['time'])
         .compareTo(_parseTimeToMinutes(b['time']));
   }
 
   int _timeDescComparator(Map<String, dynamic> a, Map<String, dynamic> b) {
-    final l10n = AppLocalizations.of(context)!;
-    final comingSoon = l10n.text_316;
-    final unknown = l10n.text_317;
-    if (a["time"] == comingSoon) return 1;
-    if (b["time"] == comingSoon) return -1;
-    if (a["time"] == unknown) return -1;
-    if (b["time"] == unknown) return 1;
+    final localizations = AppLocalizations.of(context)!;
+    if (a["time"] == localizations.text_316) return 1;
+    if (b["time"] == localizations.text_316) return -1;
+    if (a["time"] == localizations.text_317) return -1;
+    if (b["time"] == localizations.text_317) return 1;
     return _parseTimeToMinutes(b['time'])
         .compareTo(_parseTimeToMinutes(a['time']));
   }
 
   Widget _buildTabContentUI(List<Map<String, dynamic>> finalList) {
-    final colors = context.appColors;
-    final l10n = AppLocalizations.of(context)!;
-
     return RefreshIndicator(
-      onRefresh: () async => setState(() {}),
+      onRefresh: () async {
+        setState(() {
+          _tabDataCache.clear();
+          _dataFuture = _loadData();
+        });
+        await _dataFuture;
+      },
       child: ImplicitlyAnimatedList<Map<String, dynamic>>(
-        key: const ValueKey('bus_stop_list'),
+        key: ValueKey(_sortNotifier.value),
         items: finalList,
         areItemsTheSame: (a, b) =>
-        a["RouteID"] == b["RouteID"] &&
-            a["Direction"] == b["Direction"],
+        a["RouteID"] == b["RouteID"] && a["Direction"] == b["Direction"],
         itemBuilder: (context, animation, stop, index) {
           final plateNumb = stop["PlateNumb"];
-          final colorKey = stop["color"]?.toString();
+          final localizations = AppLocalizations.of(context)!;
 
-          final Color pillBg = colorKey == '0'
-              ? colors.danger
-              : colorKey == '2'
-              ? colors.dangerContainer
-              : colorKey == l10n.text_317
-              ? colors.mutedBackground
-              : colorKey == 'min'
-              ? colors.infoContainer
-              : colors.mutedBackground;
-
-          final Color pillFg = colorKey == '0'
-              ? colors.cardBackground
-              : colorKey == '2'
-              ? colors.danger
-              : colorKey == l10n.text_317
-              ? colors.textHint
-              : colorKey == 'min'
-              ? colors.info
-              : colors.textPrimary;
+          final color = stop["color"] == '0'
+              ? const Color.fromRGBO(235, 15, 41, 0.85)
+              : (stop["color"] == '2'
+              ? const Color.fromRGBO(225, 85, 104, 0.1)
+              : (stop["color"] == localizations.text_317
+              ? Theme.of(context).colorScheme.onSurface.withOpacity(0.1)
+              : (stop["color"] == "min"
+              ? const Color.fromRGBO(13, 168, 255, 0.1)
+              : Theme.of(context)
+              .colorScheme
+              .onSurface
+              .withOpacity(0.1))));
 
           return SizeFadeTransition(
             animation: animation,
@@ -1785,7 +2025,7 @@ class _BusStopListState extends State<BusStopList>
                   height: 53.0,
                   child: ListTile(
                     onTap: () async {
-                      final tappedDirection = stop["Direction"] is int
+                      final int? tappedDirection = stop["Direction"] is int
                           ? stop["Direction"] as int
                           : int.tryParse("${stop["Direction"]}");
                       final rawData = await getBusRouteWithId(
@@ -1793,7 +2033,7 @@ class _BusStopListState extends State<BusStopList>
                         routeId: stop["RouteID"],
                       );
                       if (!context.mounted) return;
-                      final route = BusRoute.fromJson(rawData);
+                      BusRoute route = BusRoute.fromJson(rawData);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1818,14 +2058,25 @@ class _BusStopListState extends State<BusStopList>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: pillBg,
+                        color: color,
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Text(
-                        stop["time"] ?? l10n.text_321,
+                        stop["time"] ?? localizations.text_321,
                         style: TextStyle(
                           fontSize: 17,
-                          color: pillFg,
+                          color: stop["color"] == '0'
+                              ? Colors.white
+                              : (stop["color"] == '2'
+                              ? const Color.fromRGBO(255, 85, 104, 1)
+                              : (stop["color"] == localizations.text_317
+                              ? Theme.of(context).colorScheme.outline
+                              : (stop["color"] == "min"
+                              ? const Color.fromRGBO(
+                              13, 168, 255, 1)
+                              : Theme.of(context)
+                              .colorScheme
+                              .onSurface))),
                         ),
                       ),
                     ),
@@ -1833,30 +2084,30 @@ class _BusStopListState extends State<BusStopList>
                       children: [
                         Text(
                           _localizedName(context, stop["RouteName"],
-                              fallback: l10n.text_322),
+                              fallback: localizations.text_322),
                           style: TextStyle(
-                            fontFamily: colorKey == "0"
+                            fontFamily: stop["color"] == "0"
                                 ? 'MiSans-Semibold'
                                 : 'MiSans-normal',
                             fontSize: 17,
-                            color: colorKey == l10n.text_317
-                                ? colors.textSecondary
-                                : colors.textPrimary,
+                            color: stop["color"] == localizations.text_317
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          l10n.nearStopTo(
-                            Localizations.localeOf(context).languageCode ==
-                                'en' &&
-                                stop["toEn"] != null
-                                ? stop["toEn"]
-                                : (stop["to"] ?? l10n.text_323),
-                          ),
+                          localizations.nearStopTo(
+                              Localizations.localeOf(context).languageCode ==
+                                  'en' &&
+                                  stop["toEn"] != null
+                                  ? stop["toEn"]
+                                  : (stop["to"] ?? localizations.text_323)),
                           style: TextStyle(
                             fontFamily: 'MiSans-normal',
                             fontSize: 14,
-                            color: colors.textSecondary,
+                            color:
+                            Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -1866,7 +2117,7 @@ class _BusStopListState extends State<BusStopList>
                   ),
                 ),
                 Divider(
-                  color: colors.divider,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   height: 9,
                   thickness: 1,
                   indent: 20,
@@ -1882,24 +2133,27 @@ class _BusStopListState extends State<BusStopList>
 
   int _parseTimeToMinutes(String? time) {
     if (time == null || time.isEmpty) return -1;
+    final localizations = AppLocalizations.of(context)!;
 
-    final minuteUnit =
-        _minuteUnit ?? AppLocalizations.of(context)!.text_332;
-    if (time.contains(minuteUnit)) {
+    if (time.contains(localizations.text_332)) {
       return int.tryParse(time.split(" ").first) ?? -1;
     }
 
     if (time.contains(":")) {
       final parts = time.split(":");
       if (parts.length == 2) {
-        final hour = int.tryParse(parts[0]) ?? 0;
-        final minute = int.tryParse(parts[1]) ?? 0;
-        final now = DateTime.now();
-        var parsed = DateTime(now.year, now.month, now.day, hour, minute);
-        if (parsed.isBefore(now)) {
-          parsed = parsed.add(const Duration(days: 1));
+        int hour = int.tryParse(parts[0]) ?? 0;
+        int minute = int.tryParse(parts[1]) ?? 0;
+
+        DateTime now = DateTime.now();
+        DateTime parsedTime =
+        DateTime(now.year, now.month, now.day, hour, minute);
+
+        if (parsedTime.isBefore(now)) {
+          parsedTime = parsedTime.add(const Duration(days: 1));
         }
-        return parsed.difference(now).inMinutes;
+
+        return parsedTime.difference(now).inMinutes;
       }
     }
 
@@ -1907,25 +2161,27 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
-    final info = await StopInfoCache().getStopInfo(widget.stop, "Taichung");
-    if (info.isEmpty) return [];
+    List<dynamic> info =
+    await StopInfoCache().getStopInfo(widget.stop, "Taichung");
+    List<Map<String, dynamic>> tempData = [];
 
-    final stationInfo =
-    await fetchStationInfo(_ctrl.stationIDs, "Taichung");
-    if (stationInfo.isEmpty) return [];
-
-    for (final stop in stationInfo) {
-      final timeData = await getTimeList(stop);
-      stop["time"] = timeData["time"];
-      stop["isRed"] = timeData["isRed"];
-      stop["color"] = timeData["color"];
+    for (var _ in info) {
+      var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
+      for (var stop in stationInfo) {
+        var timeData = await getTimeList(stop);
+        stop["time"] = timeData["time"];
+        stop["isRed"] = timeData["isRed"];
+        stop["color"] = timeData["color"];
+      }
+      tempData.addAll(stationInfo);
     }
-    return stationInfo;
+
+    return tempData;
   }
 
   Future<Map<String, dynamic>> getTimeList(
       Map<String, dynamic> stopData) async {
-    final l10n = AppLocalizations.of(context)!;
+    final localizations = AppLocalizations.of(context)!;
 
     if (stopData["EstimateTime"] != null) {
       if (stopData["EstimateTime"] == 0) {
@@ -1937,7 +2193,7 @@ class _BusStopListState extends State<BusStopList>
         }
         return {
           "color": '0',
-          "time": l10n.text_316,
+          "time": localizations.text_316,
           "isRed": '0',
           "PlateNumb": plateNumb.toString()
         };
@@ -1949,11 +2205,12 @@ class _BusStopListState extends State<BusStopList>
             plateNumb.add(estimate["PlateNumb"]);
           }
         }
+
         return {
           "color": result < 3 ? "2" : "min",
           "time": result < 1
-              ? l10n.text_316
-              : l10n.nearStopMinutes(result.toString()),
+              ? localizations.text_316
+              : localizations.nearStopMinutes(result.toString()),
           "isRed": result < 3 ? "2" : "",
           "PlateNumb": result < 20 ? plateNumb.toString() : ""
         };
@@ -1964,51 +2221,51 @@ class _BusStopListState extends State<BusStopList>
       if (difference.inHours == 0) {
         return {
           "time": difference.inMinutes.remainder(60) <= 0
-              ? l10n.text_317
-              : l10n.nearStopMinutes(
+              ? localizations.text_317
+              : localizations.nearStopMinutes(
               difference.inMinutes.remainder(60).toString()),
           "isRed": '',
           "PlateNumb": "",
           "color": difference.inMinutes.remainder(60) <= 0
-              ? l10n.text_317
+              ? localizations.text_317
               : "min",
         };
       } else {
-        final nextBusTime = DateTime.now().add(Duration(
-          hours: difference.inHours,
-          minutes: difference.inMinutes.remainder(60),
-        ));
+        DateTime nextBusTime = DateTime.now().add(
+          Duration(
+              hours: difference.inHours,
+              minutes: difference.inMinutes.remainder(60)),
+        );
         return {
           'time':
           "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
           "isRed": '',
           "PlateNumb": "",
-          "color": l10n.text_317
+          "color": localizations.text_317
         };
       }
     } else {
       return {
-        "time": l10n.text_317,
+        "time": localizations.text_317,
         "isRed": '',
         "PlateNumb": "",
-        "color": l10n.text_317
+        "color": localizations.text_317
       };
     }
   }
 
   void _showSortDialog(BuildContext context) {
-    final colors = context.appColors;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: colors.cardBackground,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: colors.cardBackground,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -2020,28 +2277,27 @@ class _BusStopListState extends State<BusStopList>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: colors.infoContainer,
+                        color: const Color(0xFF1A73E8).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.sort_rounded,
                         size: 24,
-                        color: colors.info,
+                        color: Color(0xFF1A73E8),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Flexible(
-                      child: Text(
-                        AppLocalizations.of(context)!.text_318,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: colors.info,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
+                        child: Text(
+                          AppLocalizations.of(context)!.text_318,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1A73E8),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -2049,25 +2305,25 @@ class _BusStopListState extends State<BusStopList>
                   AppLocalizations.of(context)!.nearStopSortAsc,
                   SortType.nameAsc,
                   Icons.numbers_rounded,
-                  colors.info,
+                  const Color(0xFF1A73E8),
                 ),
                 _buildSortOption(
                   AppLocalizations.of(context)!.nearStopSortDesc,
                   SortType.nameDesc,
                   Icons.numbers_rounded,
-                  colors.info,
+                  const Color(0xFF1A73E8),
                 ),
                 _buildSortOption(
                   AppLocalizations.of(context)!.text_319,
                   SortType.timeAsc,
                   Icons.access_time_rounded,
-                  colors.success,
+                  const Color(0xFF34C759),
                 ),
                 _buildSortOption(
                   AppLocalizations.of(context)!.text_320,
                   SortType.timeDesc,
                   Icons.access_time_rounded,
-                  colors.warning,
+                  const Color(0xFFFF9500),
                 ),
               ],
             ),
@@ -2079,15 +2335,14 @@ class _BusStopListState extends State<BusStopList>
 
   Widget _buildSortOption(
       String title, SortType type, IconData icon, Color color) {
-    final colors = context.appColors;
-    final isSelected = _ctrl.sortType == type;
+    final isSelected = _sortNotifier.value == type;
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            _ctrl.setSortType(type);
+            _sortNotifier.value = type;
             Navigator.pop(context);
           },
           borderRadius: BorderRadius.circular(12),
@@ -2100,7 +2355,9 @@ class _BusStopListState extends State<BusStopList>
               borderRadius: BorderRadius.circular(12),
               border: isSelected
                   ? Border.all(color: color.withOpacity(0.3), width: 1.5)
-                  : Border.all(color: colors.border, width: 1),
+                  : Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1),
             ),
             child: Row(
               children: [
@@ -2113,7 +2370,7 @@ class _BusStopListState extends State<BusStopList>
                   child: Icon(
                     icon,
                     size: 18,
-                    color: isSelected ? colors.cardBackground : color,
+                    color: isSelected ? Colors.white : color,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2123,7 +2380,9 @@ class _BusStopListState extends State<BusStopList>
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? color : colors.textPrimary,
+                      color: isSelected
+                          ? color
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -2137,7 +2396,7 @@ class _BusStopListState extends State<BusStopList>
                     child: Icon(
                       Icons.check_rounded,
                       size: 14,
-                      color: colors.cardBackground,
+                      color: Theme.of(context).colorScheme.surface,
                     ),
                   ),
               ],
@@ -2154,7 +2413,6 @@ class _BusStopListState extends State<BusStopList>
     required String value,
     required Color color,
   }) {
-    final colors = context.appColors;
     return PopupMenuItem<String>(
       value: value,
       child: Row(
@@ -2169,17 +2427,16 @@ class _BusStopListState extends State<BusStopList>
           ),
           const SizedBox(width: 12),
           Flexible(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: colors.textPrimary,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )),
         ],
       ),
     );
@@ -2192,7 +2449,10 @@ class _BusStopListState extends State<BusStopList>
 class MRTStationList extends StatefulWidget {
   final String station;
 
-  const MRTStationList({super.key, required this.station});
+  const MRTStationList({
+    super.key,
+    required this.station,
+  });
 
   @override
   State<MRTStationList> createState() => _MRTStationListState();
@@ -2201,10 +2461,9 @@ class MRTStationList extends StatefulWidget {
 class _MRTStationListState extends State<MRTStationList> {
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     return Container(
       decoration: BoxDecoration(
-        color: colors.cardBackground,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       // child: SingleChildScrollView(
@@ -2214,16 +2473,12 @@ class _MRTStationListState extends State<MRTStationList> {
   }
 }
 
-// ─────────────────────────────────────────────────────
-// Caches
-// ─────────────────────────────────────────────────────
-
 class BusStopCache {
   static final BusStopCache _instance = BusStopCache._internal();
   factory BusStopCache() => _instance;
 
   final Map<String, CachedData<List<Map<String, dynamic>>>> _cache = {};
-  final Map<String, Future<List<Map<String, dynamic>>>> _inFlight = {};
+  final Lock _lock = Lock();
   int _maxSize = 10;
   String _currentCity = 'Taichung';
   final List<String> _accessRecords = [];
@@ -2232,82 +2487,86 @@ class BusStopCache {
   BusStopCache._internal();
 
   void config({int? maxSize, String? city}) {
-    if (maxSize != null && maxSize > 0) {
-      _maxSize = maxSize;
-      _cleanup();
-    }
-    if (city != null) _currentCity = city;
-  }
-
-  Future<List<Map<String, dynamic>>> getBusStopInfo(String stationName) {
-    final key = '${_currentCity}_$stationName';
-
-    final cached = _cache[key];
-    if (cached != null && cached.expiry.isAfter(DateTime.now())) {
-      _recordAccess(key);
-      return Future.value(cached.data);
-    }
-    if (cached != null) {
-      _cache.remove(key);
-      _accessRecords.remove(key);
-    }
-
-    final pending = _inFlight[key];
-    if (pending != null) return pending;
-
-    final future = _fetchAndCache(key, stationName);
-    _inFlight[key] = future;
-    future.whenComplete(() {
-      if (identical(_inFlight[key], future)) _inFlight.remove(key);
+    _lock.synchronized(() {
+      if (maxSize != null && maxSize > 0) {
+        _maxSize = maxSize;
+        _cleanup();
+      }
+      if (city != null) {
+        _currentCity = city;
+      }
     });
-    return future;
   }
 
-  Future<List<Map<String, dynamic>>> _fetchAndCache(
-      String key, String stationName) async {
-    final data = await _fetchData(stationName);
-    _updateCache(key, data);
-    return data;
+  Future<List<Map<String, dynamic>>> getBusStopInfo(String stationName) async {
+    final cacheKey = _generateKey(stationName);
+
+    return await _lock.synchronized(() async {
+      if (_cache.containsKey(cacheKey)) {
+        final cached = _cache[cacheKey]!;
+        if (cached.expiry.isAfter(DateTime.now())) {
+          _recordAccess(cacheKey);
+          return cached.data;
+        } else {
+          _cache.remove(cacheKey);
+          _accessRecords.removeWhere((k) => k == cacheKey);
+        }
+      }
+
+      final data = await _fetchData(stationName);
+      _updateCache(cacheKey, data);
+      return data;
+    });
   }
 
-  Future<List<Map<String, dynamic>>> _fetchData(String stationName) {
-    return GetBusStopInfo(stopName: stationName, city: _currentCity);
+  String _generateKey(String stationName) => '${_currentCity}_$stationName';
+
+  Future<List<Map<String, dynamic>>> _fetchData(String stationName) async {
+    return await GetBusStopInfo(stopName: stationName, city: _currentCity);
   }
 
   void _updateCache(String key, List<Map<String, dynamic>> data) {
-    if (_cache.containsKey(key)) {
-      _accessRecords.remove(key);
-    }
-    _cache[key] = CachedData<List<Map<String, dynamic>>>(
-      data: data,
-      expiry: DateTime.now().add(_defaultExpiry),
-    );
-    _accessRecords.add(key);
-    _cleanup();
+    _lock.synchronized(() {
+      if (_cache.containsKey(key)) {
+        _accessRecords.removeWhere((k) => k == key);
+      }
+      _cache[key] = CachedData<List<Map<String, dynamic>>>(
+        data: data,
+        expiry: DateTime.now().add(_defaultExpiry),
+      );
+      _accessRecords.add(key);
+      _cleanup();
+    });
   }
 
   void _cleanup() {
-    while (_cache.length > _maxSize && _accessRecords.isNotEmpty) {
-      final oldestKey = _accessRecords.removeAt(0);
+    while (_cache.length > _maxSize) {
+      final oldestKey = _accessRecords.first;
       _cache.remove(oldestKey);
+      _accessRecords.removeAt(0);
     }
   }
 
   void _recordAccess(String key) {
-    _accessRecords.remove(key);
-    _accessRecords.add(key);
+    _lock.synchronized(() {
+      _accessRecords.removeWhere((k) => k == key);
+      _accessRecords.add(key);
+    });
   }
 
   void clear() {
-    _cache.clear();
-    _accessRecords.clear();
-    _inFlight.clear();
+    _lock.synchronized(() {
+      _cache.clear();
+      _accessRecords.clear();
+    });
   }
 
   void remove(String stationName) {
-    final key = '${_currentCity}_$stationName';
-    _cache.remove(key);
-    _accessRecords.remove(key);
+    final key = _generateKey(stationName);
+    _lock.synchronized(() {
+      _cache.remove(key);
+      _accessRecords.removeWhere((k) => k == key);
+    });
   }
 }
 
@@ -2322,40 +2581,27 @@ class StopInfoCache {
   factory StopInfoCache() => _instance;
 
   final Map<String, CachedData<List<dynamic>>> _cache = {};
-  final Map<String, Future<List<dynamic>>> _inFlight = {};
   final List<String> _recentKeys = [];
   final int _maxCacheSize = 10;
-  static const Duration _cacheExpiry = Duration(minutes: 5);
+  final Duration _cacheExpiry = const Duration(minutes: 5);
 
   StopInfoCache._internal();
 
-  Future<List<dynamic>> getStopInfo(String stop, String city) {
+  Future<List<dynamic>> getStopInfo(String stop, String city) async {
     final key = '$city-$stop';
 
-    final cached = _cache[key];
-    if (cached != null && cached.expiry.isAfter(DateTime.now())) {
-      _recordAccess(key);
-      return Future.value(cached.data);
+    if (_cache.containsKey(key)) {
+      final cachedData = _cache[key]!;
+      if (cachedData.expiry.isAfter(DateTime.now())) {
+        _recordAccess(key);
+        return cachedData.data;
+      } else {
+        _cache.remove(key);
+        _recentKeys.remove(key);
+      }
     }
-    if (cached != null) {
-      _cache.remove(key);
-      _recentKeys.remove(key);
-    }
 
-    final pending = _inFlight[key];
-    if (pending != null) return pending;
-
-    final future = _fetchAndCache(key, stop, city);
-    _inFlight[key] = future;
-    future.whenComplete(() {
-      if (identical(_inFlight[key], future)) _inFlight.remove(key);
-    });
-    return future;
-  }
-
-  Future<List<dynamic>> _fetchAndCache(
-      String key, String stop, String city) async {
-    final info = await GetBusStopInfo(stopName: stop, city: city);
+    List<dynamic> info = await GetBusStopInfo(stopName: stop, city: city);
     _updateCache(key, info);
     return info;
   }
@@ -2369,6 +2615,7 @@ class StopInfoCache {
       expiry: DateTime.now().add(_cacheExpiry),
     );
     _recentKeys.add(key);
+
     if (_recentKeys.length > _maxCacheSize) {
       final oldestKey = _recentKeys.removeAt(0);
       _cache.remove(oldestKey);
@@ -2383,6 +2630,5 @@ class StopInfoCache {
   void clear() {
     _cache.clear();
     _recentKeys.clear();
-    _inFlight.clear();
   }
 }

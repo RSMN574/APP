@@ -21,6 +21,7 @@ import 'package:com.rsmn574.app/widget/error.dart';
 
 import '../../../database/get_data.dart';
 import '../../../widget/AppLoading.dart';
+import '../../../widget/app_custom_bar.dart';
 
 enum SortType { nameAsc, nameDesc, timeAsc, timeDesc }
 
@@ -826,188 +827,109 @@ class _BusStopInfoState extends State<BusStopInfo>
         }
 
         final tabBar = _buildTabBar(data);
-        const appBarHeight = 200.0;
+
         return Scaffold(
           backgroundColor: colorScheme.surface,
 
-          appBar: PreferredSize(
-            preferredSize: Size.fromHeight(appBarHeight),
-            child: Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(16),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+          appBar: AppCustomBar(
+            title: widget.stop,
+            bottom: tabBar,
+            actions: [
+              // 重新整理按鈕
+              appBarActionButton(
+                context: context,
+                icon: Icons.refresh_rounded,
+                tooltip: '重新整理',
+                onPressed: () async {
+                  await _loadData();
+                },
               ),
-              child: SizedBox(
-                height: appBarHeight,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: AppBar(
-                        backgroundColor: colorScheme.surface,
-                        surfaceTintColor: Colors.transparent,
-                        elevation: 0,
-                        leading: Container(
-                          margin: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back_ios_rounded,
-                              size: 20,
-                            ),
-                            color: colorScheme.primary,
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                        title: Text(
-                          widget.stop,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.primary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        centerTitle: true,
-                        actions: [
-                          Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.refresh_rounded,
-                                size: 20,
-                              ),
-                              color: colorScheme.primary,
-                              onPressed: _loadData,
-                            ),
-                          ),
-                          Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert_rounded,
-                                size: 20,
-                              ),
-                              iconColor: colorScheme.primary,
-                              color: colorScheme.surfaceContainer,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: colorScheme.outlineVariant,
-                                  width: 1,
-                                ),
-                              ),
-                              itemBuilder: (BuildContext context) =>
-                              <PopupMenuEntry<String>>[
-                                _buildPopupMenuItem(
-                                  icon: Icons.info_outline_rounded,
-                                  title: AppLocalizations.of(context)!.text_333,
-                                  value: 'info',
-                                  color: colorScheme.primary,
-                                ),
-                                _buildPopupMenuItem(
-                                  icon: Icons.favorite_border_rounded,
-                                  title: AppLocalizations.of(context)!.text_334,
-                                  value: 'favorite',
-                                  color: context.appColors.danger,
-                                ),
-                                _buildPopupMenuItem(
-                                  icon: Icons.sort_rounded,
-                                  title: AppLocalizations.of(context)!.text_335,
-                                  value: 'sort',
-                                  color: context.appColors.success,
-                                ),
-                              ],
-                              onSelected: (String action) async {
-                                if (action == 'favorite') {
-                                  final dbHelper = favorite_feature();
 
-                                  final output =
-                                  await dbHelper.addFavoriteStop(
-                                    stopName: widget.stop,
-                                    city: widget.city,
-                                  );
-
-                                  if (!context.mounted) return;
-
-                                  if (output == 100) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.success,
-                                      text: '${widget.stop}已儲存項目',
-                                    );
-                                  } else if (output == -1) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.warning,
-                                      text: '${widget.stop}已存在於列表中，不會重複添加',
-                                    );
-                                  } else if (output == 200) {
-                                    QuickAlert.show(
-                                      context: context,
-                                      type: QuickAlertType.error,
-                                      title: 'Oops...',
-                                      text: AppLocalizations.of(context)!.text_336,
-                                    );
-                                  }
-                                } else if (action == 'sort') {
-                                  _showSortDialog(context);
-                                } else if (action == 'info') {
-                                  _showStopInfo(context);
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                        bottom: tabBar,
-                      ),
+              // 更多選項
+              Container(
+                margin: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: PopupMenuButton<String>(
+                  tooltip: '更多選項',
+                  icon: const Icon(
+                    Icons.more_vert_rounded,
+                    size: 20,
+                  ),
+                  iconColor: colorScheme.primary,
+                  color: colorScheme.surfaceContainer,
+                  elevation: 8,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: colorScheme.outlineVariant,
+                      width: 1,
                     ),
-
-                    // 頂部裝飾橫條。
-                    Positioned(
-                      top: 8,
-                      left: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: Center(
-                          child: Container(
-                            width: 40,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: colorScheme.onSurfaceVariant
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(2.5),
-                            ),
-                          ),
-                        ),
-                      ),
+                  ),
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    _buildPopupMenuItem(
+                      icon: Icons.info_outline_rounded,
+                      title: AppLocalizations.of(context)!.text_333,
+                      value: 'info',
+                      color: colorScheme.primary,
+                    ),
+                    _buildPopupMenuItem(
+                      icon: Icons.favorite_border_rounded,
+                      title: AppLocalizations.of(context)!.text_334,
+                      value: 'favorite',
+                      color: context.appColors.danger,
+                    ),
+                    _buildPopupMenuItem(
+                      icon: Icons.sort_rounded,
+                      title: AppLocalizations.of(context)!.text_335,
+                      value: 'sort',
+                      color: context.appColors.success,
                     ),
                   ],
+                  onSelected: (String action) async {
+                    if (action == 'favorite') {
+                      final dbHelper = favorite_feature();
+
+                      final output = await dbHelper.addFavoriteStop(
+                        stopName: widget.stop,
+                        city: widget.city,
+                      );
+
+                      if (!context.mounted) return;
+
+                      if (output == 100) {
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.success,
+                          text: '${widget.stop}已儲存項目',
+                        );
+                      } else if (output == -1) {
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.warning,
+                          text: '${widget.stop}已存在於列表中，不會重複添加',
+                        );
+                      } else if (output == 200) {
+                        QuickAlert.show(
+                          context: context,
+                          type: QuickAlertType.error,
+                          title: 'Oops...',
+                          text: AppLocalizations.of(context)!.text_336,
+                        );
+                      }
+                    } else if (action == 'sort') {
+                      _showSortDialog(context);
+                    } else if (action == 'info') {
+                      _showStopInfo(context);
+                    }
+                  },
                 ),
               ),
-            ),
+            ],
           ),
+
 
           body: Stack(
             children: [
@@ -1165,63 +1087,72 @@ class _BusStopInfoState extends State<BusStopInfo>
     final isScrollable = tabCount > 3;
     final colorScheme = Theme.of(context).colorScheme;
 
+    // 固定 TabBar 高度
+    const double tabBarHeight = 80;
+
     return PreferredSize(
-      preferredSize: const Size.fromHeight(80),
-      child: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, _) {
-          final List<Widget> buttons = List.generate(tabCount, (index) {
-            final isSelected = _tabController.index == index;
-            return _buildTabButton(
-              icon: Icons.directions_bus,
-              label: String.fromCharCode(65 + index),
-              stationId: ids[index],
-              isSelected: isSelected,
-              onTap: () {
-                if (index < _tabController.length) {
-                  _tabController.animateTo(index);
-                }
-              },
-            );
-          });
+      preferredSize: const Size.fromHeight(tabBarHeight),
+      child: SizedBox(
+        height: tabBarHeight, // 關鍵：強制內部填滿高度
+        child: ListenableBuilder(
+          listenable: _tabController,
+          builder: (context, _) {
+            final List<Widget> buttons = List.generate(tabCount, (index) {
+              final isSelected = _tabController.index == index;
+              return _buildTabButton(
+                icon: Icons.directions_bus,
+                label: String.fromCharCode(65 + index),
+                stationId: ids[index],
+                isSelected: isSelected,
+                onTap: () {
+                  if (index < _tabController.length) {
+                    _tabController.animateTo(index);
+                  }
+                },
+              );
+            });
 
-          final List<Widget> spacedButtons = [];
-          for (var i = 0; i < buttons.length; i++) {
-            if (i > 0) spacedButtons.add(const SizedBox(width: 12));
-            spacedButtons.add(buttons[i]);
-          }
+            final List<Widget> spacedButtons = [];
+            for (var i = 0; i < buttons.length; i++) {
+              if (i > 0) spacedButtons.add(const SizedBox(width: 12));
+              spacedButtons.add(buttons[i]);
+            }
 
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withOpacity(0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: isScrollable
-                ? SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: spacedButtons),
-            )
-                : Row(
-              children: List.generate(buttons.length, (i) {
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: i == buttons.length - 1 ? 0 : 12,
-                    ),
-                    child: buttons[i],
+            return Container(
+              // 移除 vertical padding，因為高度已由 SizedBox 固定
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.05),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
-                );
-              }),
-            ),
-          );
-        },
+                ],
+              ),
+              child: isScrollable
+                  ? SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: spacedButtons,
+                ),
+              )
+                  : Row(
+                children: List.generate(buttons.length, (i) {
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: i == buttons.length - 1 ? 0 : 12,
+                      ),
+                      child: buttons[i],
+                    ),
+                  );
+                }),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -1234,6 +1165,7 @@ class _BusStopInfoState extends State<BusStopInfo>
     required VoidCallback onTap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1241,7 +1173,9 @@ class _BusStopInfoState extends State<BusStopInfo>
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          // 固定高度 64，與 TabBar 可用高度對齊
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected
                 ? colorScheme.primaryContainer
@@ -1255,46 +1189,49 @@ class _BusStopInfoState extends State<BusStopInfo>
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min, // 關鍵：避免撐開
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // 縮小 Icon 容器高度：32 → 24
               Container(
-                width: 32,
-                height: 32,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   icon,
-                  size: 18,
+                  size: 16,
                   color: colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
+              // 標籤文字
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  height: 1.1,
+                  height: 1.0,
                   color: isSelected
                       ? colorScheme.primary
                       : colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 2),
+              // 站牌 ID（縮小字體）
               SizedBox(
-                width: 70,
+                width: 60,
                 child: Text(
                   stationId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurfaceVariant,
-                    height: 1.2,
+                    height: 1.0,
                   ),
                 ),
               ),
@@ -1304,4 +1241,5 @@ class _BusStopInfoState extends State<BusStopInfo>
       ),
     );
   }
+
 }

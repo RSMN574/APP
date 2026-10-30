@@ -34,6 +34,7 @@ import '../../../const/regular_const.dart' as colorScheme;
 import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/AppLoading.dart';
+import '../../../widget/app_custom_bar.dart';
 
 class Mark {
   final List<dynamic>? highlight;
@@ -1111,86 +1112,55 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                       child: DefaultTabController(
                         length: _tabController.length,
                         child: Scaffold(
-                          appBar: AppBar(
-                            elevation: 0,
-                            leading: Container(
-                              height: 150,
-                              margin: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: AppThemes.getCardColor(context),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(
-                                    Icons.arrow_back_ios_rounded,
-                                    size: 20),
-                                color: const Color(0xFF1A73E8),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ),
-                            toolbarHeight: kToolbarHeight,
-                            title: Text(
-                              routeInfo[0],
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.primary,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            centerTitle: true,
+                          appBar: AppCustomBar(
+                            title: routeInfo[0],
+                            bottom: _buildTabBar(routeInfo),
+
                             actions: [
                               Container(
                                 margin: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                      ? const Color(0xFF2C2C2C)
-                                      : const Color(0xFFEEF3FB),
+                                  color: colorScheme.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert_rounded,
-                                      size: 20, color: Color(0xFF1A73E8)),
-                                  color: AppThemes.getSurface(context),
+                                  icon: const Icon(
+                                    Icons.more_vert_rounded,
+                                    size: 20,
+                                  ),
+                                  iconColor: colorScheme.primary,
+                                  color: colorScheme.surfaceContainer,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: colorScheme.outlineVariant,
+                                      width: 1,
+                                    ),
                                   ),
                                   elevation: 8,
-                                  itemBuilder: (BuildContext context) =>
-                                  <PopupMenuItem<String>>[
+                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
                                     _buildPopupMenuItem(
                                       icon: Icons.info_outline_rounded,
-                                      title: AppLocalizations.of(context)!
-                                          .text_16,
-                                      subtitle: AppLocalizations.of(context)!
-                                          .text_344,
+                                      title: AppLocalizations.of(context)!.text_16,
+                                      subtitle: AppLocalizations.of(context)!.text_344,
                                       value: 'A',
                                     ),
                                     _buildPopupMenuItem(
                                       icon: Icons.favorite_outline_rounded,
-                                      title: AppLocalizations.of(context)!
-                                          .text_334,
-                                      subtitle: AppLocalizations.of(context)!
-                                          .text_345,
+                                      title: AppLocalizations.of(context)!.text_334,
+                                      subtitle: AppLocalizations.of(context)!.text_345,
                                       value: 'B',
                                     ),
                                     _buildPopupMenuItem(
                                       icon: Icons.map_rounded,
-                                      title: AppLocalizations.of(context)!
-                                          .text_227,
-                                      subtitle: AppLocalizations.of(context)!
-                                          .text_346,
+                                      title: AppLocalizations.of(context)!.text_227,
+                                      subtitle: AppLocalizations.of(context)!.text_346,
                                       value: 'C',
                                     ),
                                     _buildPopupMenuItem(
                                       icon: Icons.history_rounded,
-                                      title: AppLocalizations.of(context)!
-                                          .text_347,
-                                      subtitle: AppLocalizations.of(context)!
-                                          .text_348,
+                                      title: AppLocalizations.of(context)!.text_347,
+                                      subtitle: AppLocalizations.of(context)!.text_348,
                                       value: 'D',
                                     ),
                                   ],
@@ -1198,8 +1168,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                     switch (action) {
                                       case 'A':
                                         _showDevelopmentDialog(
-                                            AppLocalizations.of(context)!
-                                                .text_16);
+                                            AppLocalizations.of(context)!.text_16);
                                         break;
                                       case 'B':
                                         await _addRouteToFavorites(routeInfo);
@@ -1215,7 +1184,6 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                 ),
                               ),
                             ],
-                            bottom: _buildTabBar(routeInfo),
                           ),
                           body: Stack(
                             children: [
@@ -1243,40 +1211,37 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                       borderRadius: BorderRadius.circular(12),
                                       child: BackdropFilter(
                                         filter: ImageFilter.blur(
-                                            sigmaX: 8, sigmaY: 8),
+                                          sigmaX: 8,
+                                          sigmaY: 8,
+                                        ),
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 16, vertical: 10),
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey[700]!
-                                                .withOpacity(0.7),
-                                            borderRadius:
-                                            BorderRadius.circular(12),
+                                            color: Colors.grey[700]!.withOpacity(0.7),
+                                            borderRadius: BorderRadius.circular(12),
                                             border: Border.all(
-                                              color: Colors.white
-                                                  .withOpacity(0.1),
+                                              color: Colors.white.withOpacity(0.1),
                                               width: 1,
                                             ),
                                           ),
                                           child: Row(
-                                            mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               const Icon(
-                                                Icons
-                                                    .pause_circle_filled_rounded,
+                                                Icons.pause_circle_filled_rounded,
                                                 color: Colors.white,
                                                 size: 16,
                                               ),
                                               const SizedBox(width: 6),
                                               Flexible(
                                                 child: Text(
-                                                  AppLocalizations.of(context)!
-                                                      .text_349,
+                                                  AppLocalizations.of(context)!.text_349,
                                                   maxLines: 1,
-                                                  overflow:
-                                                  TextOverflow.ellipsis,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     fontWeight: FontWeight.w600,
@@ -1298,10 +1263,8 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                   right: 16,
                                   child: Center(
                                     child: ValueListenableBuilder<int>(
-                                      valueListenable:
-                                      remainingSecondsNotifier,
-                                      builder:
-                                          (context, remainingTime, child) {
+                                      valueListenable: remainingSecondsNotifier,
+                                      builder: (context, remainingTime, child) {
                                         final isWarning = remainingTime <= 10;
 
                                         return GestureDetector(
@@ -1309,44 +1272,36 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                             _loadData();
                                           },
                                           child: ClipRRect(
-                                            borderRadius:
-                                            BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(12),
                                             child: BackdropFilter(
                                               filter: ImageFilter.blur(
-                                                  sigmaX: 8, sigmaY: 8),
+                                                sigmaX: 8,
+                                                sigmaY: 8,
+                                              ),
                                               child: Container(
-                                                padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 10),
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                  vertical: 10,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: (isWarning
-                                                      ? const Color(
-                                                      0xFFFF9500)
-                                                      : const Color(
-                                                      0xFF1A73E8))
+                                                      ? const Color(0xFFFF9500)
+                                                      : const Color(0xFF1A73E8))
                                                       .withOpacity(0.7),
-                                                  borderRadius:
-                                                  BorderRadius.circular(
-                                                      12),
+                                                  borderRadius: BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: Colors.white
-                                                        .withOpacity(0.1),
+                                                    color: Colors.white.withOpacity(0.1),
                                                     width: 1,
                                                   ),
                                                 ),
                                                 child: Row(
-                                                  mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                                  mainAxisSize:
-                                                  MainAxisSize.min,
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisSize: MainAxisSize.min,
                                                   children: [
                                                     Icon(
                                                       isWarning
-                                                          ? Icons
-                                                          .warning_amber_rounded
-                                                          : Icons
-                                                          .autorenew_rounded,
+                                                          ? Icons.warning_amber_rounded
+                                                          : Icons.autorenew_rounded,
                                                       color: Colors.white,
                                                       size: 16,
                                                     ),
@@ -1355,8 +1310,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                                       "$remainingTime 秒",
                                                       style: const TextStyle(
                                                         fontSize: 13,
-                                                        fontWeight:
-                                                        FontWeight.w600,
+                                                        fontWeight: FontWeight.w600,
                                                         color: Colors.white,
                                                       ),
                                                     ),
@@ -1375,7 +1329,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  );
+                  );;
                 },
               ),
             ],
@@ -1434,42 +1388,45 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
     return PreferredSize(
       preferredSize: const Size.fromHeight(80),
-      child: AnimatedBuilder(
-        animation: _tabController,
-        builder: (context, _) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppThemes.getSurface(context),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              if (stopNamesWithTime1.isNotEmpty)
-                Expanded(
-                  child: _buildTabButton(
-                    icon: Icons.directions_bus,
-                    text: tab0Text,
-                    isSelected: _tabController.index == 0,
-                    onTap: () => _tabController.animateTo(0),
-                  ),
+      child: SizedBox(
+        height: 80, // 強制內部高度 = 80
+        child: AnimatedBuilder(
+          animation: _tabController,
+          builder: (context, _) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16), // 移除 vertical
+            decoration: BoxDecoration(
+              color: AppThemes.getSurface(context),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-              const SizedBox(width: 12),
-              if (widget.hasSubRoutes && stopNamesWithTime2.isNotEmpty)
-                Expanded(
-                  child: _buildTabButton(
-                    icon: Icons.swap_horiz,
-                    text: tab1Text,
-                    isSelected: _tabController.index == 1,
-                    onTap: () => _tabController.animateTo(1),
+              ],
+            ),
+            child: Row(
+              children: [
+                if (stopNamesWithTime1.isNotEmpty)
+                  Expanded(
+                    child: _buildTabButton(
+                      icon: Icons.directions_bus,
+                      text: tab0Text,
+                      isSelected: _tabController.index == 0,
+                      onTap: () => _tabController.animateTo(0),
+                    ),
                   ),
-                ),
-            ],
+                const SizedBox(width: 12),
+                if (widget.hasSubRoutes && stopNamesWithTime2.isNotEmpty)
+                  Expanded(
+                    child: _buildTabButton(
+                      icon: Icons.swap_horiz,
+                      text: tab1Text,
+                      isSelected: _tabController.index == 1,
+                      onTap: () => _tabController.animateTo(1),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1483,6 +1440,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     required VoidCallback onTap,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1490,7 +1448,8 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          height: 64, // 固定高度，避免溢出
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected
                 ? colorScheme.primaryContainer
@@ -1498,56 +1457,55 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? colorScheme.primary.withOpacity(0.3)
+                  ? colorScheme.primary.withValues(alpha: 0.3)
                   : colorScheme.outlineVariant,
               width: isSelected ? 1.5 : 1,
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min, // 關鍵：避免撐開
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 24,
+                height: 24,
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(8),
+                  color: colorScheme.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   icon,
-                  size: 18,
+                  size: 16,
                   color: colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Text(
                 text,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  height: 1.1,
+                  height: 1.0,
                   color: isSelected
                       ? colorScheme.primary
                       : colorScheme.onSurface,
                 ),
               ),
-              const SizedBox(height: 2),
               SizedBox(
                 width: 70,
                 child: Text(
-                  // 原本是 `text`（tab 標題，例如起站名 / 終點站名）
                   text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: colorScheme.onSurfaceVariant,
-                    height: 1.2,
+                    height: 1.0,
                   ),
                 ),
               ),
@@ -1557,7 +1515,6 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
       ),
     );
   }
-
   Widget _buildTabContent(List stopNamesWithTime) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;

@@ -18,6 +18,7 @@ import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import '../../../const/app_colors.dart';
 import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
+import '../../../widget/app_custom_bar.dart';
 
 
 String _localizedRailName(dynamic names, {required bool isEnglish}) {
@@ -103,13 +104,10 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: colors.cardBackground,
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        backgroundColor: colors.cardBackground,
-        foregroundColor: colors.info,
-        iconTheme: IconThemeData(color: colors.info),
-        title: Row(
+      appBar: AppCustomBar(
+        title: l10n.text_826,
+        titleWidget: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(6),
@@ -120,17 +118,21 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
               child: Icon(Icons.directions_bus, color: colors.info, size: 20),
             ),
             const SizedBox(width: 10),
-            Text(
-              l10n.text_826,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: colors.info,
+            Flexible(
+              child: Text(
+                l10n.text_826,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  color: colors.info,
+                  letterSpacing: -0.35,
+                ),
               ),
             ),
           ],
         ),
-        centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -147,165 +149,7 @@ class _TrainState extends State<Train> with SingleTickerProviderStateMixin {
           overlayColor: WidgetStatePropertyAll(colors.info.withOpacity(0.06)),
         ),
         actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_rounded, color: colors.info),
-            iconColor: colors.info,
-            color: colors.cardBackground,
-            surfaceTintColor: Colors.transparent,
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: colors.border),
-            ),
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'line',
-                child: Row(
-                  children: [
-                    Icon(Icons.train, color: colors.info, size: 20),
-                    const SizedBox(width: 12),
-                    Text(l10n.text_827,
-                        style: TextStyle(color: colors.textPrimary)),
-                  ],
-                ),
-              ),
-            ],
-            onSelected: (String action) async {
-              switch (action) {
-                case "line":
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Scaffold(
-                        backgroundColor: colors.cardBackground,
-                        appBar: AppBar(
-                          elevation: 0,
-                          scrolledUnderElevation: 0,
-                          backgroundColor: colors.cardBackground,
-                          foregroundColor: colors.info,
-                          iconTheme: IconThemeData(color: colors.info),
-                          title: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: colors.infoContainer,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(Icons.train,
-                                    color: colors.info, size: 20),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(l10n.text_827,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w600,
-                                    color: colors.info,
-                                  )),
-                            ],
-                          ),
-                          centerTitle: true,
-                        ),
-                        body: FutureBuilder(
-                          future: mysqlSelect(
-                              "SELECT * FROM Train.Train_Line;"),
-                          builder: (BuildContext context,
-                              AsyncSnapshot snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Center(
-                                child: CircularProgressIndicator(
-                                    color: colors.info),
-                              );
-                            }
-                            if (snapshot.hasError) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Text(
-                                    // TODO: i18n
-                                    "載入失敗: ${snapshot.error}",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        color: colors.danger,
-                                        fontSize: 16),
-                                  ),
-                                ),
-                              );
-                            }
-                            if (!snapshot.hasData ||
-                                (snapshot.data as List).isEmpty) {
-                              return Center(
-                                child: Text(
-                                  l10n.text_828,
-                                  style: TextStyle(
-                                      color: colors.textSecondary,
-                                      fontSize: 16),
-                                ),
-                              );
-                            }
-                            final lineData = snapshot.data as List;
-                            return Container(
-                              color: colors.cardBackground,
-                              child: ListView.builder(
-                                padding:
-                                const EdgeInsets.symmetric(vertical: 8),
-                                itemCount: lineData.length,
-                                itemBuilder: (context, index) {
-                                  final line = lineData[index];
-                                  final lineNameZh = line['LineNameZh'] ??
-                                      l10n.text_321;
-                                  final lineNameEn =
-                                      line['LineNameEn'] ?? 'Unknown';
-                                  final sectionNameZh =
-                                      line['LineSectionNameZh'] ??
-                                          l10n.text_829;
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 6, horizontal: 16),
-                                    decoration: SurfaceDecoration.cardShadow(
-                                        context,
-                                        radius: 16),
-                                    child: ListTile(
-                                      contentPadding:
-                                      const EdgeInsets.symmetric(
-                                          horizontal: 18, vertical: 6),
-                                      title: Text(
-                                        lineNameZh.toString(),
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: colors.textPrimary,
-                                        ),
-                                      ),
-                                      subtitle: Padding(
-                                        padding:
-                                        const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          // TODO: i18n（區間：）
-                                          "$lineNameEn\n區間：$sectionNameZh",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            height: 1.5,
-                                            color: colors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                      isThreeLine: true,
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                  break;
-              }
-            },
-          ),
+        
         ],
       ),
       body: TabBarView(

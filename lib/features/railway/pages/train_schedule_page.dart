@@ -13,7 +13,9 @@ import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:com.rsmn574.app/features/railway/widgets/route_planner.dart';
 
+import '../../../const/app_colors.dart';
 import '../../../widget/AppLoading.dart';
+import '../../../widget/app_custom_bar.dart';
 
 // E500 電力機車 (PP自強號牽引)
 const List<int> E500 = [
@@ -248,7 +250,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
     if (mounted) {
       setState(() {});
     }
-    fetchLiveBoardIfToday();
+    loadLiveBoardIfToday();
     _getTrainModel();
     return trainData;
   }
@@ -346,7 +348,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Future<void> fetchLiveBoardIfToday() async {
+  Future<void> loadLiveBoardIfToday() async {
     final now = DateTime.now();
 
     if (!isSameDay(widget.time, now)) {
@@ -459,25 +461,18 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
           builder: (BuildContext context, ScrollController scrollController) {
             return Scaffold(
               backgroundColor: Colors.white,
-              appBar: AppBar(
-                backgroundColor: Colors.white,
-                elevation: 0,
-                title: Text(
-                  AppLocalizations.of(context)!.text_654,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: primaryBlue,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                centerTitle: true,
-                iconTheme: const IconThemeData(color: primaryBlue),
+              appBar: AppCustomBar(
+                title: AppLocalizations.of(context)!.text_654,
                 actions: [
                   // 加入行程按鈕
                   Container(
                     margin: const EdgeInsets.only(right: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: IconButton(
+                      tooltip: '加入行程',
                       onPressed: () async {
                         List<dynamic> stationNames = trainData["StopTimes"]
                             .map((stop) => stop["StationName"] as Map)
@@ -486,8 +481,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                         final result = await showDialog(
                           context: context,
                           builder: (context) {
-                            return StationSelectionDialog(
-                                stationNames: stationNames);
+                            return StationSelectionDialog(stationNames: stationNames);
                           },
                         );
 
@@ -508,10 +502,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                             type: 'train',
                             route: trainData['DailyTrainInfo']['TrainNo'],
                             startingStopName: trainData['DailyTrainInfo']
-                                ['StartingStationName']['Zh_tw'],
+                            ['StartingStationName']['Zh_tw'],
                             userStartingStopName: result['departure'],
                             finalStopName: trainData['DailyTrainInfo']
-                                ['EndingStationName']['Zh_tw'],
+                            ['EndingStationName']['Zh_tw'],
                             userDestinationStopName: result['destination'],
                             time: widget.time.toString(),
                             category: getCategory(result['category']),
@@ -519,7 +513,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                             other: {
                               "DateTime": widget.time.toString(),
                               "trainType": trainData['DailyTrainInfo']
-                                  ['TrainTypeName']['Zh_tw'],
+                              ['TrainTypeName']['Zh_tw'],
                               "category": getCategory(result['category']),
                               "seatNumber": result["seatNumber"],
                               "startDeparture": timeMap["startDeparture"],
@@ -530,12 +524,14 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                           final output = await ScheduleService.instance
                               .addSchedule(schedule);
 
+                          if (!context.mounted) return;
+
                           if (output == -1) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
                                     AppLocalizations.of(context)!.text_395),
-                                backgroundColor: warningOrange,
+                                backgroundColor: context.appColors.warning,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -547,7 +543,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                               SnackBar(
                                 content: Text(
                                     AppLocalizations.of(context)!.text_396),
-                                backgroundColor: successGreen,
+                                backgroundColor: context.appColors.success,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -559,7 +555,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                               SnackBar(
                                 content: Text(
                                     AppLocalizations.of(context)!.text_397),
-                                backgroundColor: errorRed,
+                                backgroundColor: context.appColors.danger,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -569,27 +565,29 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                           }
                         }
                       },
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.add_rounded,
-                            size: 20, color: primaryBlue),
+                      icon: Icon(
+                        Icons.add_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
+
                   // 列車資訊按鈕
                   Container(
                     margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: IconButton(
+                      tooltip: '列車資訊',
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (BuildContext context) {
                             return Dialog(
-                              backgroundColor: Colors.white,
+                              backgroundColor: Theme.of(context).colorScheme.surface,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -604,94 +602,83 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: primaryBlue.withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.info_rounded,
-                                            color: primaryBlue,
+                                            color: Theme.of(context).colorScheme.primary,
                                             size: 24,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-                                        Flexible(child: Text(
-                                          AppLocalizations.of(context)!
-                                              .text_655,
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: primaryBlue,
-                                          ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                                        )),
+                                        Flexible(
+                                          child: Text(
+                                            AppLocalizations.of(context)!.text_655,
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: Theme.of(context).colorScheme.primary,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                     const SizedBox(height: 20),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_405,
-                                      trainData['DailyTrainInfo']
-                                              ['WheelchairFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['WheelchairFlag'] == 1,
                                       Icons.accessible_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_656,
-                                      trainData['DailyTrainInfo']
-                                              ['PackageServiceFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['PackageServiceFlag'] == 1,
                                       Icons.luggage_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_657,
-                                      trainData['DailyTrainInfo']
-                                              ['DiningFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['DiningFlag'] == 1,
                                       Icons.restaurant_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_658,
-                                      trainData['DailyTrainInfo']['BikeFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['BikeFlag'] == 1,
                                       Icons.directions_bike_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_659,
-                                      trainData['DailyTrainInfo']
-                                              ['BreastFeedingFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['BreastFeedingFlag'] == 1,
                                       Icons.child_care_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_660,
-                                      trainData['DailyTrainInfo']
-                                              ['DailyFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['DailyFlag'] == 1,
                                       Icons.calendar_today_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_661,
-                                      trainData['DailyTrainInfo']
-                                              ['ServiceAddedFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['ServiceAddedFlag'] == 1,
                                       Icons.add_alert_rounded,
                                     ),
                                     _buildServiceItem(
                                       AppLocalizations.of(context)!.text_662,
-                                      trainData['DailyTrainInfo']
-                                              ['SuspendedFlag'] ==
-                                          1,
+                                      trainData['DailyTrainInfo']['SuspendedFlag'] == 1,
                                       Icons.block_rounded,
                                       isError: true,
                                     ),
                                     const SizedBox(height: 20),
                                     Center(
                                       child: TextButton(
-                                        onPressed: () =>
-                                            Navigator.of(context).pop(),
+                                        onPressed: () => Navigator.of(context).pop(),
                                         child: Text(
                                           AppLocalizations.of(context)!.text_44,
                                           style: TextStyle(
-                                            color: primaryBlue,
+                                            color: Theme.of(context).colorScheme.primary,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -704,14 +691,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                           },
                         );
                       },
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.info_outline_rounded,
-                            size: 20, color: primaryBlue),
+                      icon: Icon(
+                        Icons.info_outline_rounded,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),

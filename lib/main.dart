@@ -50,7 +50,6 @@ import 'features/taxi/pages/taxi_page.dart';
 import 'features/taxi/state/taxi_provider.dart';
 import 'features/youbike/pages/bike_page.dart';
 import 'database/sql/schedule.dart';
-import 'database/sql/sqlite.dart';
 import 'database/get_data.dart';
 import 'database/token_manager.dart';
 import 'firebase/fcm.dart';
@@ -58,8 +57,7 @@ import 'firebase/firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/geolocator.dart';
 import 'pages.dart';
-import 'home.dart';
-import 'pages/near_stop.dart';
+import 'features/home/pages/home.dart';
 import 'features/bus/state/bus_provider.dart';
 import 'package:logging/logging.dart';
 import 'features/metro/state/metro_provider.dart';
@@ -311,7 +309,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
             AppRoutes.train: (BuildContext context) => (Train()),
             AppRoutes.metro: (BuildContext context) => ChangeNotifierProvider(
                   create: (_) => MetroProvider(),
-                  child: const Metro(),
+                  child:  Metro(),
                 ),
             AppRoutes.bus: (BuildContext context) => (const Bus()),
             AppRoutes.notification: (BuildContext context) =>
