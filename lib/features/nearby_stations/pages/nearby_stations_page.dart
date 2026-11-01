@@ -9,25 +9,22 @@ import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
-import 'package:synchronized/synchronized.dart';
 
 import '../../../const/regular_class.dart';
 import '../../../database/get_data.dart';
-import '../../../database/mrt/get_mrt_info.dart';
-import '../../../database/sql/favorite_feature.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/mrt_station.dart';
-import '../../../utils/convert.dart';
+import '../../../core/utils/convert.dart';
 import '../../../widget/map.dart';
 import '../../../widget/tab.dart';
-import '../../bus/data/get_bus_time.dart';
-import '../../bus/data/get_station_info.dart';
 import '../../bus/model/bus_route_model.dart';
 import '../../bus/model/bus_station_model.dart';
 import '../../bus/pages/bus_stop_info_page.dart';
 import '../../bus/pages/bus_time_page.dart';
 import '../../bus/widgets/bubble.dart';
 import '../../railway/pages/train_page.dart';
+import '../models/nearby_station_result.dart';
+import '../state/nearby_stations_provider.dart';
 
 // Top-level / State shared Notifiers
 final ValueNotifier<List<String>> _stationIDs = ValueNotifier<List<String>>([]);
@@ -67,19 +64,23 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   DraggableScrollableController();
   MarkerProvider? _markerProvider;
 
+  /// 附近站點資料入口（Page → Provider → Repository → Services）。
+  final NearbyStationsProvider _nearby = NearbyStationsProvider();
+
   GoogleMapController? get mapController => _mapController;
 
   void setMapController(GoogleMapController controller) {
     _mapController = controller;
   }
 
-  Future<void> _updateFutureNearStations() async {
+  Future<void> _updateFutureNearStations({bool force = false}) async {
     final locationProvider =
     Provider.of<LocationProvider>(context, listen: false);
     setState(() {
-      _futureNearStations = getNearStation(
-        Uri.encodeComponent(
-            "${locationProvider.latitude},${locationProvider.longitude}"),
+      _futureNearStations = _nearby.busStations(
+        locationProvider.latitude,
+        locationProvider.longitude,
+        force: force,
       );
     });
   }
@@ -95,71 +96,44 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
   void _busInit() async {
     final locationProvider =
     Provider.of<LocationProvider>(context, listen: false);
-    _futureNearStations = getNearStation(
-      Uri.encodeComponent(
-          "${locationProvider.latitude},${locationProvider.longitude}"),
+    _futureNearStations = _nearby.busStations(
+      locationProvider.latitude,
+      locationProvider.longitude,
     );
-    final stations = await _futureNearStations;
-    if (mounted) {
+    final stations = await _nearby.loadBusMarkerStations(
+      locationProvider.latitude,
+      locationProvider.longitude,
+    );
+    if (mounted && stations != null) {
       _loadBusMarkers(stations);
     }
   }
 
-  List<Map<String, dynamic>> _convertStations(
-      String type, List<dynamic> stations) {
-    if (type == "metro") {
-      return stations.map((station) {
-        return {
-          "stationID": station["StationID"].toString(),
-          "stationNameZh": (station["StationName"])["Zh_tw"] ?? "Unknown",
-          "stationNameEn": (station["StationName"])["En"] ?? "",
-          "positionLat": (station["StationPosition"])["PositionLat"],
-          "positionLon": (station["StationPosition"])["PositionLon"],
-        };
-      }).toList();
-    } else if (type == "train") {
-      return stations.map((station) {
-        final nameMap = json.decode(station["StationName"]);
-        final posMap = json.decode(station["StationPosition"]);
-        return {
-          "stationID": station["StationID"].toString(),
-          "stationNameZh": nameMap["Zh_tw"] ?? "Unknown",
-          "stationNameEn": nameMap["En"] ?? "",
-          "positionLat": posMap["PositionLat"],
-          "positionLon": posMap["PositionLon"],
-        };
-      }).toList();
-    } else {
-      return [];
-    }
-  }
-
-  void _handleTabSelectChange() async {
+  void _handleTabSelectChange({bool force = false}) async {
     final locationProvider =
     Provider.of<LocationProvider>(context, listen: false);
+    final lat = locationProvider.latitude;
+    final lon = locationProvider.longitude;
     if (_tabSelect.value == "bus") {
-      await _updateFutureNearStations();
-      final stations = await _futureNearStations;
-      if (mounted) {
+      await _updateFutureNearStations(force: force);
+      final stations =
+      await _nearby.loadBusMarkerStations(lat, lon, force: force);
+      if (mounted && stations != null) {
         _loadBusMarkers(stations);
       }
     } else if (_tabSelect.value == "metro") {
-      final stations = await getNearMRTStation(
-        Uri.encodeComponent(
-            "${locationProvider.latitude},${locationProvider.longitude}"),
-      );
-      if (mounted) {
-        _loadMarkers(
-          _convertStations("metro", stations.map((s) => s.toJson()).toList()),
-        );
+      final stations = await _nearby.loadMarkerStations(
+          NearbyStationType.metro, lat, lon,
+          force: force);
+      if (mounted && stations != null) {
+        _loadMarkers(stations);
       }
     } else if (_tabSelect.value == "train") {
-      final stations = await getNearTrainStation(
-        locationProvider.latitude,
-        locationProvider.longitude,
-      );
-      if (mounted) {
-        _loadMarkers(_convertStations("train", stations));
+      final stations = await _nearby.loadMarkerStations(
+          NearbyStationType.train, lat, lon,
+          force: force);
+      if (mounted && stations != null) {
+        _loadMarkers(stations);
       }
     }
   }
@@ -176,6 +150,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     _selectStationID.removeListener(_updateMarkerStyle);
     _scrollController.dispose();
     _markerProvider?.setMarkers({});
+    _nearby.dispose();
     super.dispose();
   }
 
@@ -207,7 +182,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           final tapSeq = ++_markerTapSeq;
 
           try {
-            final data = await BusStopCache().getBusStopInfo(stopName);
+            final data = await _nearby.busStopGroup(stopName, 'Taichung');
             if (tapSeq != _markerTapSeq) return;
             final stationIDs = data
                 .map((item) => item['StationID']?.toString())
@@ -222,6 +197,14 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
             if (_isSameStationGroup(_stationIDs.value, stationIDs)) {
               _selectStationID.value = stopID;
             } else {
+              if (_indexNotifier.value > 0) {
+                _indexNotifier.value--;
+                _NearbyStationsPageState._clearMarkerStyle();
+                _stationIDs.value = [];
+                _stopName.value = "";
+                _selectStationID.value = "";
+                _selectStationGroupID.value = "";
+              }
               _stopName.value = stopName;
               _stopNameEn = station.stationNameZh;
               _selectStationGroupID.value = stationGroupID;
@@ -272,7 +255,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
     return true;
   }
 
-  Future<void> _loadMarkers(List<dynamic>? stations) async {
+  Future<void> _loadMarkers(List<NearbyStationResult>? stations) async {
     if (stations == null || stations.isEmpty) {
       debugPrint('Stations data is empty.');
       return;
@@ -280,29 +263,15 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
     final Set<Marker> markers = {};
 
-    for (var station in stations) {
-      if (station is! Map<String, dynamic>) continue;
-
-      final stationID = station["stationID"]?.toString();
-      final stationName = _localizedName(context, {
-        "Zh_tw": station["stationNameZh"] ?? "Unknown",
-        "En": station["stationNameEn"],
-      });
-      final positionLat = station["positionLat"];
-      final positionLon = station["positionLon"];
-
-      if (stationID == null || positionLat == null || positionLon == null)
-        continue;
-
-      final marker = Marker(
-        markerId: MarkerId(stationID),
-        position: LatLng(positionLat, positionLon),
+    for (final station in stations) {
+      markers.add(Marker(
+        markerId: MarkerId(station.id),
+        position: LatLng(station.latitude, station.longitude),
         infoWindow: InfoWindow(
-          title: stationName,
-          snippet: stationID,
+          title: _localizedName(context, station.names),
+          snippet: station.id,
         ),
-      );
-      markers.add(marker);
+      ));
     }
 
     _markers.value = markers;
@@ -332,6 +301,13 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider<NearbyStationsProvider>.value(
+      value: _nearby,
+      child: Builder(builder: _buildPage),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
     final locationProvider = Provider.of<LocationProvider>(context);
     final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
@@ -501,7 +477,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                                             height: 16),
                                                         ElevatedButton.icon(
                                                           onPressed: () {
-                                                            _updateFutureNearStations();
+                                                            _updateFutureNearStations(force: true);
                                                           },
                                                           icon: Icon(
                                                               Icons.refresh,
@@ -646,11 +622,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                             controller: scrollController,
                                             child:
                                             FutureBuilder<List<MRTStation>>(
-                                              future: getNearMRTStation(
-                                                Uri.encodeComponent(
-                                                  "${locationProvider.latitude},${locationProvider.longitude}",
-                                                ),
-                                              ),
+                                              future: _nearby.metroStations(
+ locationProvider.latitude,
+ locationProvider.longitude,
+ ),
                                               builder: (context, snapshot) {
                                                 if (snapshot.connectionState ==
                                                     ConnectionState.waiting) {
@@ -763,10 +738,10 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                                           return SingleChildScrollView(
                                             controller: scrollController,
                                             child: FutureBuilder<List<dynamic>>(
-                                              future: getNearTrainStation(
-                                                locationProvider.latitude,
-                                                locationProvider.longitude,
-                                              ),
+                                              future: _nearby.trainStations(
+ locationProvider.latitude,
+ locationProvider.longitude,
+ ),
                                               builder: (context, snapshot) {
                                                 if (snapshot.connectionState ==
                                                     ConnectionState.waiting) {
@@ -1022,7 +997,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    _handleTabSelectChange();
+                    _handleTabSelectChange(force: true);
                   },
                   borderRadius: BorderRadius.circular(50),
                   splashColor: const Color(0xFF1A73E8).withOpacity(0.2),
@@ -1352,6 +1327,7 @@ class _BusStopListState extends State<BusStopList>
   Future<List<Map<String, dynamic>>>? _dataFuture;
   // 記錄上一次的站點群組 ID，用於判斷是否需要重新載入
   String? _lastGroupID;
+  late final NearbyStationsProvider _nearby;
   // 緩存每個 Tab 處理後的資料，避免滑動時閃爍 Loading
   final Map<String, Future<List<Map<String, dynamic>>>> _tabDataCache = {};
 
@@ -1359,6 +1335,7 @@ class _BusStopListState extends State<BusStopList>
   void initState() {
     super.initState();
 
+    _nearby = context.read<NearbyStationsProvider>();
     _lastGroupID = _selectStationGroupID.value;
     _dataFuture = _loadData();
 
@@ -1485,56 +1462,8 @@ class _BusStopListState extends State<BusStopList>
         }
       }
 
-      final Map<String, Map<String, dynamic>> routeInfoCache = {};
-
-      if (routeNames.isNotEmpty) {
-        try {
-          final nameList = routeNames.map((name) => "'$name'").join(',');
-          final query = """
-            SELECT *
-            FROM Bus.bus_route
-            WHERE City = 'Taichung'
-              AND JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
-          """;
-
-          final results = await mysqlSelect(query);
-
-          for (final result in results) {
-            final routeNameField = result["RouteName"];
-            String? routeName;
-
-            if (routeNameField is Map) {
-              routeName = routeNameField["Zh_tw"] as String?;
-            } else if (routeNameField is String) {
-              try {
-                final parsed =
-                json.decode(routeNameField) as Map<String, dynamic>;
-                routeName = parsed["Zh_tw"] as String?;
-              } catch (_) {
-                routeName = routeNameField;
-              }
-            }
-
-            if (routeName != null && routeName.isNotEmpty) {
-              routeInfoCache[routeName] = result;
-            }
-          }
-        } catch (_) {
-          for (final routeName in routeNames) {
-            try {
-              final query = """
-                SELECT * FROM Bus.Bus_Taichung_Route 
-                WHERE RouteName LIKE '%"Zh_tw": "$routeName"%'
-                OR JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName'
-              """;
-              final results = await mysqlSelect(query);
-              if (results.isNotEmpty) {
-                routeInfoCache[routeName] = results.first;
-              }
-            } catch (_) {}
-          }
-        }
-      }
+      final Map<String, Map<String, dynamic>> routeInfoCache =
+      await _nearby.routeInfoByNames(routeNames);
 
       final List<Map<String, dynamic>> processedData = [];
 
@@ -1737,8 +1666,7 @@ class _BusStopListState extends State<BusStopList>
                         ],
                         onSelected: (String action) async {
                           if (action == 'favorite') {
-                            favorite_feature dbHelper = favorite_feature();
-                            final output = await dbHelper.addFavoriteStop(
+                            final output = await _nearby.addFavoriteStop(
                               stopName: widget.stop,
                               city: "Taichung",
                             );
@@ -2028,12 +1956,11 @@ class _BusStopListState extends State<BusStopList>
                       final int? tappedDirection = stop["Direction"] is int
                           ? stop["Direction"] as int
                           : int.tryParse("${stop["Direction"]}");
-                      final rawData = await getBusRouteWithId(
+                      final BusRoute route = await _nearby.routeById(
                         city: "Taichung",
                         routeId: stop["RouteID"],
                       );
                       if (!context.mounted) return;
-                      BusRoute route = BusRoute.fromJson(rawData);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -2161,22 +2088,20 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
-    List<dynamic> info =
-    await StopInfoCache().getStopInfo(widget.stop, "Taichung");
-    List<Map<String, dynamic>> tempData = [];
+    final info = await _nearby.busStopGroup(widget.stop, "Taichung");
+    if (info.isEmpty) return [];
 
-    for (var _ in info) {
-      var stationInfo = await fetchStationInfo(_stationIDs.value, "Taichung");
-      for (var stop in stationInfo) {
-        var timeData = await getTimeList(stop);
-        stop["time"] = timeData["time"];
-        stop["isRed"] = timeData["isRed"];
-        stop["color"] = timeData["color"];
-      }
-      tempData.addAll(stationInfo);
+    // 原本對每個站位各抓一次相同的到站資料（結果相同，後續依路線去重），改為只抓一次。
+    final stationInfo =
+    await _nearby.stationArrivals(_stationIDs.value, "Taichung");
+    for (var stop in stationInfo) {
+      var timeData = await getTimeList(stop);
+      stop["time"] = timeData["time"];
+      stop["isRed"] = timeData["isRed"];
+      stop["color"] = timeData["color"];
     }
 
-    return tempData;
+    return stationInfo;
   }
 
   Future<Map<String, dynamic>> getTimeList(
@@ -2470,165 +2395,5 @@ class _MRTStationListState extends State<MRTStationList> {
       //   child: buildStationInfo(widget.station),
       // ),
     );
-  }
-}
-
-class BusStopCache {
-  static final BusStopCache _instance = BusStopCache._internal();
-  factory BusStopCache() => _instance;
-
-  final Map<String, CachedData<List<Map<String, dynamic>>>> _cache = {};
-  final Lock _lock = Lock();
-  int _maxSize = 10;
-  String _currentCity = 'Taichung';
-  final List<String> _accessRecords = [];
-  static const Duration _defaultExpiry = Duration(minutes: 5);
-
-  BusStopCache._internal();
-
-  void config({int? maxSize, String? city}) {
-    _lock.synchronized(() {
-      if (maxSize != null && maxSize > 0) {
-        _maxSize = maxSize;
-        _cleanup();
-      }
-      if (city != null) {
-        _currentCity = city;
-      }
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> getBusStopInfo(String stationName) async {
-    final cacheKey = _generateKey(stationName);
-
-    return await _lock.synchronized(() async {
-      if (_cache.containsKey(cacheKey)) {
-        final cached = _cache[cacheKey]!;
-        if (cached.expiry.isAfter(DateTime.now())) {
-          _recordAccess(cacheKey);
-          return cached.data;
-        } else {
-          _cache.remove(cacheKey);
-          _accessRecords.removeWhere((k) => k == cacheKey);
-        }
-      }
-
-      final data = await _fetchData(stationName);
-      _updateCache(cacheKey, data);
-      return data;
-    });
-  }
-
-  String _generateKey(String stationName) => '${_currentCity}_$stationName';
-
-  Future<List<Map<String, dynamic>>> _fetchData(String stationName) async {
-    return await GetBusStopInfo(stopName: stationName, city: _currentCity);
-  }
-
-  void _updateCache(String key, List<Map<String, dynamic>> data) {
-    _lock.synchronized(() {
-      if (_cache.containsKey(key)) {
-        _accessRecords.removeWhere((k) => k == key);
-      }
-      _cache[key] = CachedData<List<Map<String, dynamic>>>(
-        data: data,
-        expiry: DateTime.now().add(_defaultExpiry),
-      );
-      _accessRecords.add(key);
-      _cleanup();
-    });
-  }
-
-  void _cleanup() {
-    while (_cache.length > _maxSize) {
-      final oldestKey = _accessRecords.first;
-      _cache.remove(oldestKey);
-      _accessRecords.removeAt(0);
-    }
-  }
-
-  void _recordAccess(String key) {
-    _lock.synchronized(() {
-      _accessRecords.removeWhere((k) => k == key);
-      _accessRecords.add(key);
-    });
-  }
-
-  void clear() {
-    _lock.synchronized(() {
-      _cache.clear();
-      _accessRecords.clear();
-    });
-  }
-
-  void remove(String stationName) {
-    final key = _generateKey(stationName);
-    _lock.synchronized(() {
-      _cache.remove(key);
-      _accessRecords.removeWhere((k) => k == key);
-    });
-  }
-}
-
-class CachedData<T> {
-  final T data;
-  final DateTime expiry;
-  CachedData({required this.data, required this.expiry});
-}
-
-class StopInfoCache {
-  static final StopInfoCache _instance = StopInfoCache._internal();
-  factory StopInfoCache() => _instance;
-
-  final Map<String, CachedData<List<dynamic>>> _cache = {};
-  final List<String> _recentKeys = [];
-  final int _maxCacheSize = 10;
-  final Duration _cacheExpiry = const Duration(minutes: 5);
-
-  StopInfoCache._internal();
-
-  Future<List<dynamic>> getStopInfo(String stop, String city) async {
-    final key = '$city-$stop';
-
-    if (_cache.containsKey(key)) {
-      final cachedData = _cache[key]!;
-      if (cachedData.expiry.isAfter(DateTime.now())) {
-        _recordAccess(key);
-        return cachedData.data;
-      } else {
-        _cache.remove(key);
-        _recentKeys.remove(key);
-      }
-    }
-
-    List<dynamic> info = await GetBusStopInfo(stopName: stop, city: city);
-    _updateCache(key, info);
-    return info;
-  }
-
-  void _updateCache(String key, List<dynamic> data) {
-    if (_cache.containsKey(key)) {
-      _recentKeys.remove(key);
-    }
-    _cache[key] = CachedData<List<dynamic>>(
-      data: data,
-      expiry: DateTime.now().add(_cacheExpiry),
-    );
-    _recentKeys.add(key);
-
-    if (_recentKeys.length > _maxCacheSize) {
-      final oldestKey = _recentKeys.removeAt(0);
-      _cache.remove(oldestKey);
-    }
-  }
-
-  void _recordAccess(String key) {
-    _recentKeys.remove(key);
-    _recentKeys.add(key);
-  }
-
-  void clear() {
-    _cache.clear();
-    _recentKeys.clear();
   }
 }

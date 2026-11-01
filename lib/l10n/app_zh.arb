@@ -1222,7 +1222,32 @@
       "placeholders": {
         "id": { "type": "String" }
       }
-    }
+    },"traMainStation": "TRA MAIN STATION",
+  "departureBoard": "現場發車看板",
+  "liveSync": "即時同步",
+  "northboundTrains": "北上列車 ({count})",
+  "@northboundTrains": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "southboundTrains": "南下列車 ({count})",
+  "@southboundTrains": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "noNorthboundTrains": "目前無北上列車",
+  "noSouthboundTrains": "目前無南下列車",
+  "invalidTrainNo": "車次號碼無效：{trainNo}",
+  "@invalidTrainNo": {
+    "placeholders": { "trainNo": { "type": "String" } }
+  },
+  "toStation": "往 {station}",
+  "@toStation": {
+    "placeholders": { "station": { "type": "String" } }
+  },
+  "onTime": "準點 ON TIME",
+  "delayMinutes": "延遲 {minutes} 分",
+  "@delayMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  }
 
 
 }

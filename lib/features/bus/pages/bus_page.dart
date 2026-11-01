@@ -24,7 +24,6 @@ import 'package:com.rsmn574.app/features/bus/services/bus_search_service.dart';
 
 import '../../../const/surface_decoration.dart';
 import '../../../database/bootstrap_service.dart';
-import '../../../database/sql/app_database.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/app_custom_bar.dart';
 
@@ -129,7 +128,8 @@ class BusState extends State<Bus> {
 
   void _onDbUpdated() {
     if (!mounted) return;
-    unawaited(_loadForCurrentCity());
+    // 本地資料庫已更新，略過 Provider 的 TTL 記憶體快取。
+    unawaited(_loadForCurrentCity(force: true));
     unawaited(_reloadFavorites(force: true));
   }
 
@@ -159,46 +159,20 @@ class BusState extends State<Bus> {
   // 路線資料
   // ---------------------------------------------------------------------------
 
-  Future<void> _loadForCurrentCity() async {
+  Future<void> _loadForCurrentCity({bool force = false}) async {
     final city = correspondingIDNotifier.value;
     busCurrentCity = city;
-    final data = await _fetchRoutes(city);
+    final data = await _fetchRoutes(city, force: force);
     if (!mounted || correspondingIDNotifier.value != city) return;
     setState(() => busData = data);
   }
 
-  Future<List<BusRoute>> _fetchRoutes(String city) async {
+  /// 路線資料一律透過 Provider → Repository 取得（本地快取優先、遠端回源）。
+  Future<List<BusRoute>> _fetchRoutes(String city, {bool force = false}) async {
+    if (!mounted) return busData;
+    final provider = context.read<BusProvider>();
     try {
-      final db = await AppDatabase.instance.database;
-      if (kDebugMode) {
-        final stats = await db.rawQuery(
-          'SELECT city, COUNT(*) AS n FROM bus_route GROUP BY city',
-        );
-        debugPrint('[db] city stats: $stats');
-      }
-
-      List<BusRoute> local;
-      if (city == 'all') {
-        const allCities = [
-          'Taichung', 'Taipei', 'NewTaipei', 'Taoyuan',
-          'Tainan', 'Kaohsiung', 'Keelung', 'Hsinchu', 'InterCity',
-        ];
-        final results = await Future.wait(
-          allCities.map((c) => BusRouteDb.instance.getByCity(c)),
-        );
-        final seen = <String>{};
-        local = results
-            .expand((e) => e)
-            .where((r) => seen.add('${r.city}|${r.routeID}'))
-            .toList();
-      } else {
-        local = await BusRouteDb.instance.getByCity(city);
-      }
-
-      if (local.isNotEmpty) return local;
-
-      if (!mounted) return local;
-      return await context.read<BusProvider>().loadRoutes(city);
+      return await provider.loadRoutes(city, force: force);
     } catch (error, st) {
       debugPrint('load routes failed for $city: $error\n$st');
       return busData;
@@ -321,16 +295,17 @@ class BusState extends State<Bus> {
 
     final languageCode = Localizations.localeOf(context).languageCode;
     final city = correspondingIDNotifier.value;
+    final provider = context.read<BusProvider>();
 
     if (id == 'route') {
-      return BusSearchService.searchRoutes(
+      return provider.searchRoutes(
         city: city,
         keyword: input,
         languageCode: languageCode,
         memoryRoutes: busData,
       );
     }
-    return BusSearchService.searchStops(
+    return provider.searchStops(
       cityId: city,
       keyword: input,
       languageCode: languageCode,
@@ -1555,7 +1530,7 @@ class BusState extends State<Bus> {
 
     unawaited(AppAnalytics.logFeatureOpened('bus_time_page'));
 
-    final detail = await BusSearchService.fetchRouteDetail(
+    final detail = await context.read<BusProvider>().fetchRouteDetail(
       cityId: cityId,
       routeName: routeName,
       jsonField: jsonField,

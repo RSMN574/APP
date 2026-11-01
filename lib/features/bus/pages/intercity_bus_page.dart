@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/route_planning_page.dart';
+import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/features/bus/widgets/bus_list.dart';
 import 'package:provider/provider.dart';
@@ -99,7 +99,7 @@ class IntercityBusState extends State<IntercityBus> {
 
   Future<List> _getData() async {
     busCurrentCity = correspondingIDNotifier.value;
-    busData = await getBusRoute(city: "TaiwanTrip");
+    busData = await context.read<BusProvider>().fetchRawRoutes("TaiwanTrip");
     return [];
   }
 
@@ -125,22 +125,9 @@ class IntercityBusState extends State<IntercityBus> {
       return suggestionsForRoute;
     } else if (id == "stop") {
       final String input = busIdController.text;
-      final rawData = await mysqlSelect(
-          "SELECT StationName FROM Bus.Bus_TaiwanTrip_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE '%$input%'");
-
-      final seen = <String>{};
-      for (var item in rawData) {
-        final name = json.decode(item["StationName"])["Zh_tw"];
-        if (seen.contains(name)) continue;
-        seen.add(name);
-
-        if (input == name) {
-          suggestions.value.insert(0, name);
-        } else {
-          suggestions.value.add(name);
-        }
-      }
+      final names =
+          await context.read<BusProvider>().searchTaiwanTripStops(input);
+      suggestions.value.addAll(names);
       return suggestions.value;
     }
     return suggestions.value;
@@ -1032,8 +1019,10 @@ class IntercityBusState extends State<IntercityBus> {
   }
 
   void _navigateToRouteDetails(Map<String, dynamic> route) async {
-    List baseData = await mysqlSelect(
-        "SELECT * FROM Bus.Bus_TaiwanTrip_Route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw'))='${route["routeName"]}'");
+    // ignore: unused_local_variable
+    final baseData = await context
+        .read<BusProvider>()
+        .fetchTaiwanTripRouteDetail('${route["routeName"]}');
     //
     // Navigator.push(
     //   context,

@@ -10,12 +10,13 @@ import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/features/ev_charging/state/ev_station_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
-import 'package:com.rsmn574.app/utils/share.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
+
 import 'package:com.rsmn574.app/widget/map.dart';
 
 import '../../../const/app_colors.dart';
 import '../../../const/surface_decoration.dart';
+import '../../../core/utils/share.dart';
 import '../../../widget/AppLoading.dart';
 
 class EVStation extends StatefulWidget {

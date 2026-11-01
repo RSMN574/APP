@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../config/app_config.dart';
 import '../const/regular_class.dart';
-import '../utils/convert.dart';
+import '../core/utils/convert.dart';
 
 class PlaceRequestCancelledException implements Exception {
   const PlaceRequestCancelledException();

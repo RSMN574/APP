@@ -2,34 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
-import 'package:com.rsmn574.app/features/bus/data/get_station_info.dart';
-import 'package:com.rsmn574.app/features/bus/services/bus_stop_time_formatter.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
-/// 一次載入的完整結果。
-class BusStopInfoResult {
-  final List<String> stationIds;
-  final Map<String, List<Map<String, dynamic>>> stopsByStation;
-  final DateTime fetchedAt;
-
-  const BusStopInfoResult({
-    required this.stationIds,
-    required this.stopsByStation,
-    required this.fetchedAt,
-  });
-
-  bool get isEmpty => stationIds.isEmpty || stopsByStation.isEmpty;
-
-  bool get hasLiveData {
-    for (final list in stopsByStation.values) {
-      for (final s in list) {
-        if (s['hasLiveData'] == true) return true;
-      }
-    }
-    return false;
-  }
-}
+import '../model/bus_stop_info_result.dart';
+import 'bus_arrival_service.dart';
+import 'bus_route_service.dart';
+import 'bus_station_service.dart';
+import 'bus_stop_time_formatter.dart';
 
 /// 站牌資訊服務：純資料流程，無 UI 依賴（僅需 l10n 產生顯示字串）。
 ///
@@ -42,7 +21,17 @@ class BusStopInfoResult {
 /// ✅ P3：到站時間格式化統一由 `BusStopTimeFormatter` 負責，
 ///         移除原本重複的 `_formatArrival`。
 class BusStopInfoService {
-  const BusStopInfoService();
+  const BusStopInfoService({
+    BusStationService stations = const BusStationService(),
+    BusArrivalService arrivals = const BusArrivalService(),
+    BusRouteService routes = const BusRouteService(),
+  })  : _stations = stations,
+        _arrivals = arrivals,
+        _routes = routes;
+
+  final BusStationService _stations;
+  final BusArrivalService _arrivals;
+  final BusRouteService _routes;
 
   Future<BusStopInfoResult> load({
     required String stopName,
@@ -52,7 +41,7 @@ class BusStopInfoService {
   }) async {
     final effectiveNow = now ?? DateTime.now();
 
-    final info = await GetBusStopInfo(stopName: stopName, city: city);
+    final info = await _stations.fetchStopInfo(stopName: stopName, city: city);
     final stationIds = info
         .map((e) => (e is Map ? e["StationID"] : null)?.toString())
         .whereType<String>()
@@ -69,7 +58,10 @@ class BusStopInfoService {
     }
 
     // 一次取回所有站位的路線資料（原版每輪迴圈都重新撈）
-    final rawStops = await fetchStationInfo(stationIds, city);
+    final rawStops = await _arrivals.fetchStationArrivals(
+      stationIds: stationIds,
+      city: city,
+    );
 
     // 補 RouteID / Departure / Destination 等路線資訊
     final enriched = await _enrichRouteInfo(rawStops, city, l10n);
@@ -116,23 +108,14 @@ class BusStopInfoService {
     final routeInfoCache = <String, Map<String, dynamic>>{};
     if (routeNames.isNotEmpty) {
       try {
-        final nameList =
-        routeNames.map(_escapeSql).map((n) => "'$n'").join(',');
-        final cityFilter = (city.isEmpty || city == 'all')
-            ? ''
-            : "AND City = '${_escapeSql(city)}'";
-        final query = """
-SELECT *
-FROM Bus.bus_route
-WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) IN ($nameList)
-$cityFilter
-""";
-        final results = await mysqlSelect(query);
+        final results = await _routes.fetchRoutesByNames(
+          names: routeNames,
+          city: city,
+        );
         for (final r in results) {
-          if (r is! Map) continue;
-          final name = _routeNameOf(Map<String, dynamic>.from(r));
+          final name = _routeNameOf(r);
           if (name != null) {
-            routeInfoCache[name] = Map<String, dynamic>.from(r);
+            routeInfoCache[name] = r;
           }
         }
       } catch (e) {
@@ -140,22 +123,11 @@ $cityFilter
         // Fallback：逐個查（保持可用性，不再硬編碼城市）
         for (final name in routeNames) {
           try {
-            final escaped = _escapeSql(name);
-            final cityFilter = (city.isEmpty || city == 'all')
-                ? ''
-                : "AND City = '${_escapeSql(city)}'";
-            final query = """
-SELECT *
-FROM Bus.bus_route
-WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$escaped'
-$cityFilter
-LIMIT 1
-""";
-            final results = await mysqlSelect(query);
-            if (results.isNotEmpty && results.first is Map) {
-              routeInfoCache[name] =
-              Map<String, dynamic>.from(results.first as Map);
-            }
+            final info = await _routes.fetchRouteByName(
+              name: name,
+              city: city,
+            );
+            if (info != null) routeInfoCache[name] = info;
           } catch (e2) {
             debugPrint('BusStopInfoService: fallback route query failed: $e2');
           }
@@ -267,10 +239,4 @@ LIMIT 1
     }
     return value.toString();
   }
-
-  String _escapeSql(String input) => input
-      .replaceAll(r'\', r'\\')
-      .replaceAll("'", r"\'")
-      .replaceAll('%', r'\%')
-      .replaceAll('_', r'\_');
 }

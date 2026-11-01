@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -62,6 +64,7 @@ class HSRSchedulePage extends StatelessWidget {
             margin: const EdgeInsets.only(right: 4),
             child: IconButton(
               onPressed: () async {
+                final railway = context.read<RailwayProvider>();
                 List<dynamic> stationNames = trainData["StopTimes"]
                     .map((stop) => stop["StationName"] as Map)
                     .toList();
@@ -104,8 +107,7 @@ class HSRSchedulePage extends StatelessWidget {
                     },
                   );
 
-                  final output =
-                      await ScheduleService.instance.addSchedule(schedule);
+                  final output = await railway.addSchedule(schedule);
 
                   if (output == -1) {
                     ScaffoldMessenger.of(context).showSnackBar(

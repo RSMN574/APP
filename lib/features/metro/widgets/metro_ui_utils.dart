@@ -46,3 +46,32 @@ class MetroTag extends StatelessWidget {
     );
   }
 }
+
+String metroLineName(MetroLine? l, Locale locale) {
+  if (l == null) return '';
+  final n = l.name.resolve(locale);
+  return n.isEmpty ? l.id : n;
+}
+
+/// 實體站內各路線的色點（最多 3 個），用於清單與建議項目。
+class MetroLineDots extends StatelessWidget {
+  const MetroLineDots({super.key, required this.lines});
+  final List<MetroLine?> lines;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = lines.take(3).toList(growable: false);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final l in shown)
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+            decoration: BoxDecoration(color: metroLineColor(l), shape: BoxShape.circle),
+          ),
+      ],
+    );
+  }
+}

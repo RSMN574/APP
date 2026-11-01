@@ -9,6 +9,8 @@ import 'package:com.rsmn574.app/features/airport/state/airport_provider.dart';
 import 'package:com.rsmn574.app/features/airport/model/airport_model.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
+import '../../../widget/app_custom_bar.dart';
+
 final PageController pageController = PageController();
 
 class Plane extends StatefulWidget {
@@ -168,10 +170,10 @@ class _PlaneState extends State<Plane> {
       length: tabs.length,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFD),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Text(
+        appBar: AppCustomBar(
+          // backgroundColor / elevation / iconTheme 無對應參數，
+          // 交由 AppCustomBar 內部 colorScheme.surface 統一控制（預期為白底）
+          titleWidget: Text(
             '${_localizedAirportNameByCode(selectedAirport)} ${AppLocalizations.of(context)!.text_762}',
             style: const TextStyle(
               fontSize: 20,
@@ -181,7 +183,6 @@ class _PlaneState extends State<Plane> {
             ),
           ),
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
           actions: [
             Container(
               decoration: BoxDecoration(
@@ -210,23 +211,110 @@ class _PlaneState extends State<Plane> {
                         color: const Color(0xFF1A73E8).withOpacity(0.2),
                       ),
                     ),
-                    child: DropdownButton<String>(
-                      value: selectedAirport,
-                      underline: const SizedBox(),
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFF1A73E8)),
-                      dropdownColor: Colors.white,
-                      style: const TextStyle(
-                        color: Color(0xFF1A73E8),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedAirport,
+                        hint: Row(
+                          children: [
+                            const Icon(Icons.location_on_rounded,
+                                size: 18, color: Color(0xFF1A73E8)),
+                            const SizedBox(width: 8),
+                            Text(
+                              AppLocalizations.of(context)!.text_221,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        icon: const Icon(Icons.arrow_drop_down_rounded,
+                            size: 22, color: Color(0xFF1A73E8)),
+                        dropdownColor: Colors.white,
+                        elevation: 8,
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        menuMaxHeight: 300,
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() => selectedAirport = newValue);
+                          }
+                        },
+                        selectedItemBuilder: (BuildContext context) {
+                          return _buildAirportDropdownItems(provider)
+                              .map<Widget>((DropdownMenuItem<String> item) {
+                            return Container(
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_on_rounded,
+                                      size: 16, color: Color(0xFF1A73E8)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _localizedAirportNameByCode(item.value!), // ← 用 value 反查名稱
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+                        items: _buildAirportDropdownItems(provider)
+                            .map<DropdownMenuItem<String>>((DropdownMenuItem<String> item) {
+                          final isSelected = selectedAirport == item.value;
+                          return DropdownMenuItem<String>(
+                            value: item.value,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      _localizedAirportNameByCode(item.value!), // ← 同樣用 value 反查
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                        color: isSelected
+                                            ? const Color(0xFF1A73E8)
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                      color: Color(0xFF1A73E8),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                      items: _buildAirportDropdownItems(provider),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => selectedAirport = value);
-                        }
-                      },
                     ),
                   ),
                 ),
@@ -248,7 +336,7 @@ class _PlaneState extends State<Plane> {
               ),
               child: _buildTabBar(),
             ),
-          ),
+          ), title: '',
         ),
         body: Container(
           decoration: const BoxDecoration(color: Color(0xFFF8FAFD)),

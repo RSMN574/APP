@@ -5,17 +5,18 @@ import 'dart:ui';
 import 'package:animated_list_plus/animated_list_plus.dart';
 import 'package:animated_list_plus/transitions.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 import 'package:com.rsmn574.app/const/app_colors.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
-import 'package:com.rsmn574.app/features/bus/services/bus_stop_info_service.dart';
+import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:com.rsmn574.app/features/bus/widgets/bubble.dart';
 import 'package:com.rsmn574.app/widget/error.dart';
 
@@ -49,8 +50,7 @@ class _BusStopInfoState extends State<BusStopInfo>
 
   ValueNotifier<bool> isTimerOn = ValueNotifier(false);
 
-  // P0：改由 BusStopInfoService 負責資料取得與 enrichment。
-  final BusStopInfoService _stopInfoService = const BusStopInfoService();
+  // 資料取得與 enrichment 由 BusProvider → BusRepository 負責。
 
   // P0：保留原 _processData 的去重語義（同 RouteName+Direction 保留最近時間）。
   final Map<String, List<Map<String, dynamic>>> _dedupedByStation = {};
@@ -146,7 +146,7 @@ class _BusStopInfoState extends State<BusStopInfo>
     final reqId = ++_requestId;
 
     try {
-      final result = await _stopInfoService.load(
+      final result = await context.read<BusProvider>().loadStopInfo(
         stopName: widget.stop,
         city: widget.city,
         l10n: AppLocalizations.of(context)!,
@@ -510,9 +510,11 @@ class _BusStopInfoState extends State<BusStopInfo>
                       final city = widget.city.isNotEmpty
                           ? widget.city
                           : busCurrentCity;
-                      BusRoute route = BusRoute.fromJson(
-                          await getBusRouteWithId(
-                              city: city, routeId: stop["RouteID"]));
+                      final BusRoute route =
+                          await context.read<BusProvider>().fetchRouteById(
+                                city: city,
+                                routeId: stop["RouteID"].toString(),
+                              );
                       final int? tappedDirection = stop["Direction"] is int
                           ? stop["Direction"] as int
                           : int.tryParse("${stop["Direction"]}");

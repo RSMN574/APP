@@ -3494,4 +3494,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String evChargingPointId(String id) {
     return 'Charging point ID: $id';
   }
+
+  @override
+  String get traMainStation => 'TRA MAIN STATION';
+
+  @override
+  String get departureBoard => 'Departure Board';
+
+  @override
+  String get liveSync => 'Live';
+
+  @override
+  String northboundTrains(int count) {
+    return 'Northbound ($count)';
+  }
+
+  @override
+  String southboundTrains(int count) {
+    return 'Southbound ($count)';
+  }
+
+  @override
+  String get noNorthboundTrains => 'No northbound trains';
+
+  @override
+  String get noSouthboundTrains => 'No southbound trains';
+
+  @override
+  String invalidTrainNo(String trainNo) {
+    return 'Invalid Train No: $trainNo';
+  }
+
+  @override
+  String toStation(String station) {
+    return 'To $station';
+  }
+
+  @override
+  String get onTime => 'ON TIME';
+
+  @override
+  String delayMinutes(int minutes) {
+    return 'Delay $minutes min';
+  }
 }

@@ -4,12 +4,12 @@ import 'package:com.rsmn574.app/features/railway/pages/hsr_schedule_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 import 'package:com.rsmn574.app/features/railway/pages/train_schedule_page.dart';
 import 'package:com.rsmn574.app/task/task.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
-import 'package:com.rsmn574.app/features/railway/data/get_hsr.dart';
-import 'package:com.rsmn574.app/features/railway/data/get_train.dart';
+import 'package:provider/provider.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -113,8 +113,7 @@ class _CommuteState extends State<Commute> {
   }
 
   Future<void> fetchScheduleData() async {
-    await ScheduleService.instance.deleteExpiredSchedules();
-    final data = await ScheduleService.instance.getSchedules();
+    final data = await context.read<RailwayProvider>().loadSchedules();
 
     setState(() {
       scheduleData = data;
@@ -355,7 +354,7 @@ class _CommuteState extends State<Commute> {
           print(other?['type']);
           print(other?['Route']);
           final result =
-              await ScheduleService.instance.removeSchedule(model: schedule);
+              await context.read<RailwayProvider>().removeSchedule(schedule);
 
           if (result == -1) {
             // 如果已经存在相同的记录，提示用户
@@ -832,7 +831,8 @@ class _CommuteState extends State<Commute> {
                                 );
 
 // 调用 updateSchedule 来更新现有的排程
-                            final output = await ScheduleService.instance
+                            final output = await context
+                                .read<RailwayProvider>()
                                 .updateSchedule(schedule);
 
                             // 根据 updateSchedule 方法返回的结果进行处理
@@ -913,12 +913,12 @@ class _CommuteState extends State<Commute> {
             onLongPress: () => _dialogBuilder(context, data),
             onTap: () async {
               // ... 原有的跳轉邏輯保持不變 ...
-              var trainData = await fetchHSR(
-                int.parse(data['Route'].replaceAll(RegExp(r'[^0-9]'), ''))
-                    .toString()
-                    .padLeft(4, '0'),
-                (DateTime.parse((data["time"]))),
-              );
+              var trainData = await context.read<RailwayProvider>().thsrTrain(
+                    int.parse(data['Route'].replaceAll(RegExp(r'[^0-9]'), ''))
+                        .toString()
+                        .padLeft(4, '0'),
+                    (DateTime.parse((data["time"]))),
+                  );
               if (data['type'] == "train") {
                 Navigator.push(
                   context,

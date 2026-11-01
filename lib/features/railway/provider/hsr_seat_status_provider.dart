@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 
 
+import '../data/railway_repository.dart';
 import '../model/hsr_seat_status_model.dart';
 import '../services/hsr_seat_status_service.dart';
 
@@ -11,11 +12,16 @@ import '../services/hsr_seat_status_service.dart';
 /// - 讓多個 widget 共用同一份座位資料
 /// - 提供 loading / error 狀態給 UI
 class HsrSeatStatusProvider extends ChangeNotifier {
+  /// 資料一律經由 [RailwayRepository] 取得。
+  ///
+  /// [service] 為測試注入點，會交給預設 Repository 使用。
   HsrSeatStatusProvider({
+    RailwayRepository? repository,
     HsrSeatStatusService? service,
-  }) : _service = service ?? HsrSeatStatusService.instance;
+  }) : _repository =
+            repository ?? RailwayRepository(hsrSeatStatusService: service);
 
-  final HsrSeatStatusService _service;
+  final RailwayRepository _repository;
 
   final Map<String, HsrOdSeatStatus> _byKey = {};
   final Map<String, bool> _loading = {};
@@ -56,7 +62,7 @@ class HsrSeatStatusProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final data = await _service.fetch(
+      final data = await _repository.hsrSeatStatus(
         originStationId: originStationId,
         destinationStationId: destinationStationId,
         date: date,

@@ -25,15 +25,22 @@ class MetroDetailState {
   final MetroErrorKind? error;
 }
 
-/// 清單頁用：一條路線與其（已套用搜尋條件的）車站，順序依路線站序。
-class MetroLineSection {
-  const MetroLineSection(this.line, this.stations);
-  final MetroLine line;
-  final List<MetroStation> stations;
+enum MetroFocusKind { group, line, route }
+
+/// 給地圖的一次性指令（聚焦某站、某線或目前路徑）。每個指令是新物件，地圖用 ValueListenable 接收，
+/// 不經過 notifyListeners，因此不會造成整頁重建。
+class MetroMapFocus {
+  MetroMapFocus(this.kind, {this.id}) : seq = _next++;
+  static int _next = 0;
+  final MetroFocusKind kind;
+  final String? id;
+  final int seq;
 }
 
-/// 取代舊的 MetroProvider（類別名稱與檔名不變，既有的 Provider 註冊可沿用）。
-/// 所有 HTTP、快取與路徑計算都在 Repository / Planner，這裡只維護 UI 狀態。
+/// 狀態管理。HTTP、快取、路徑計算都在 Repository / Planner，這裡只維護 UI 狀態。
+/// 類別名稱與檔名沿用舊版，既有的 Provider 註冊可直接使用。
+/// 所有「站」的選取、搜尋、顯示都以「實體站」(MetroStationGroup) 為單位，
+/// 因此同一個轉乘站（如台北車站 R10/BL12）只會出現一次。
 class MetroProvider extends ChangeNotifier {
   MetroProvider({MetroDataRepository? repository}) : _repo = repository ?? MetroDataRepository();
 
@@ -51,22 +58,24 @@ class MetroProvider extends ChangeNotifier {
   MetroLoadStatus get status => _status;
   MetroCatalog? get catalog => _catalog;
   MetroErrorKind? get error => _error;
-
-  /// 網路失敗、目前顯示本機快取。
   bool get isStale => _isStale;
 
-  // ---- 篩選 ----
+  // ---- 篩選與搜尋 ----
   String? _systemCode;
   String? _lineUid;
   String _query = '';
-  List<MetroStation> _visibleStations = const [];
-  List<MetroLineSection> _sections = const [];
+  List<MetroStationGroup> _searchResults = const [];
+  Set<String>? _highlightGroupIds;
 
   String? get selectedSystemCode => _systemCode;
   String? get selectedLineUid => _lineUid;
   String get query => _query;
-  List<MetroStation> get visibleStations => _visibleStations;
-  List<MetroLineSection> get sections => _sections;
+
+  /// 目前系統（與路線篩選）內符合搜尋的實體站，最多 40 筆，供建議清單使用。
+  List<MetroStationGroup> get searchResults => _searchResults;
+
+  /// 地圖要強調的實體站；null 表示不篩選。有搜尋字串時是符合者，否則若選了路線則是該路線上的站。
+  Set<String>? get highlightGroupIds => _highlightGroupIds;
 
   MetroSystem? get selectedSystem {
     final c = _catalog;
@@ -82,18 +91,33 @@ class MetroProvider extends ChangeNotifier {
     return s.lineUids.map((u) => c.lineByUid[u]).whereType<MetroLine>().toList(growable: false);
   }
 
-  // ---- 路徑 ----
-  String? _startUid;
-  String? _endUid;
+  // ---- 路徑（起訖點為實體站）----
+  String? _startGroupId;
+  String? _endGroupId;
   RoutePlan? _plan;
   bool _noRoute = false;
 
-  MetroStation? get startStation => _startUid == null ? null : _catalog?.stationByUid[_startUid];
-  MetroStation? get endStation => _endUid == null ? null : _catalog?.stationByUid[_endUid];
+  MetroStationGroup? get startGroup => _startGroupId == null ? null : _catalog?.groupById[_startGroupId];
+  MetroStationGroup? get endGroup => _endGroupId == null ? null : _catalog?.groupById[_endGroupId];
   RoutePlan? get plan => _plan;
-
-  /// 已選好起訖點，但資料中找不到相連路徑。
   bool get noRoute => _noRoute;
+
+  /// 路徑經過的實體站 id（供地圖強調）。
+  Set<String> get planGroupIds {
+    final p = _plan;
+    final c = _catalog;
+    if (p == null || c == null) return const {};
+    return {
+      for (final u in p.stationUids)
+        if (c.groupOfStation(u) != null) c.groupOfStation(u)!.id,
+    };
+  }
+
+  // ---- 地圖指令 ----
+  final ValueNotifier<MetroMapFocus?> mapFocus = ValueNotifier<MetroMapFocus?>(null);
+  void requestFocusGroup(String groupId) => mapFocus.value = MetroMapFocus(MetroFocusKind.group, id: groupId);
+  void requestFocusLine(String lineUid) => mapFocus.value = MetroMapFocus(MetroFocusKind.line, id: lineUid);
+  void requestFitRoute() => mapFocus.value = MetroMapFocus(MetroFocusKind.route);
 
   // ---- Shape / 詳情 ----
   final Map<String, MetroShapesState> _shapes = {};
@@ -107,7 +131,6 @@ class MetroProvider extends ChangeNotifier {
   // 載入
   // =========================================================
 
-  /// 載入（或重試）目錄。同時間只會有一個進行中的請求。
   Future<void> load() async {
     if (_loading) return;
     _loading = true;
@@ -142,7 +165,7 @@ class MetroProvider extends ChangeNotifier {
     }
   }
 
-  /// 舊程式碼相容：原本 App 啟動時會呼叫 loadCities()。
+  /// 舊程式碼相容。
   Future<void> loadCities() => load();
 
   Future<void> ensureShapes(String operatorCode, {bool retry = false}) async {
@@ -178,7 +201,7 @@ class MetroProvider extends ChangeNotifier {
   }
 
   // =========================================================
-  // 篩選
+  // 篩選與搜尋
   // =========================================================
 
   void selectSystem(String code) {
@@ -207,81 +230,117 @@ class MetroProvider extends ChangeNotifier {
 
   static String _norm(String s) => s.trim().toLowerCase().replaceAll('臺', '台');
 
-  bool _matches(MetroStation s, String q) {
-    if (q.isEmpty) return true;
-    return _norm(s.name.zh ?? '').contains(q) ||
-        (s.name.en ?? '').toLowerCase().contains(q) ||
-        s.code.toLowerCase().contains(q);
+  /// 搜尋實體站：站名（臺/台視為相同）、英文名、任一站碼。結果依相符程度排序，每個實體站只出現一次。
+  /// systemCode 為 null 時搜尋所有系統（起訖點選擇器使用）。
+  List<MetroStationGroup> searchGroups(String raw, {String? systemCode, String? lineUid, int limit = 40}) {
+    final c = _catalog;
+    final q = _norm(raw);
+    if (c == null || q.isEmpty) return const [];
+    final hits = <_Hit>[];
+    for (final g in c.groups) {
+      if (systemCode != null && g.operator != systemCode) continue;
+      if (lineUid != null && !g.lineUids.contains(lineUid)) continue;
+      final zh = _norm(g.name.zh ?? '');
+      final en = (g.name.en ?? '').toLowerCase();
+      var score = 99;
+      for (final code in g.codes) {
+        final cl = code.toLowerCase();
+        if (cl == q) {
+          score = 0;
+        } else if (cl.startsWith(q) && score > 1) {
+          score = 1;
+        }
+      }
+      if (zh == q || en == q) {
+        score = 0;
+      } else if ((zh.startsWith(q) || en.startsWith(q)) && score > 1) {
+        score = 1;
+      } else if ((zh.contains(q) || en.contains(q)) && score > 2) {
+        score = 2;
+      }
+      if (score < 99) hits.add(_Hit(score, g));
+    }
+    hits.sort((a, b) {
+      final d = a.score - b.score;
+      return d != 0 ? d : (a.group.name.zh ?? '').compareTo(b.group.name.zh ?? '');
+    });
+    return hits.take(limit).map((h) => h.group).toList(growable: false);
+  }
+
+  /// 某系統的轉乘站（起訖點選擇器的快速選項）。
+  List<MetroStationGroup> interchangeGroups(String? systemCode) {
+    final c = _catalog;
+    if (c == null) return const [];
+    return c.groups
+        .where((g) => g.isInterchange && (systemCode == null || g.operator == systemCode))
+        .toList(growable: false);
   }
 
   void _recompute() {
     final c = _catalog;
     final code = _systemCode;
     if (c == null || code == null) {
-      _visibleStations = const [];
-      _sections = const [];
+      _searchResults = const [];
+      _highlightGroupIds = null;
       return;
     }
-    final q = _norm(_query);
-    _visibleStations = c.stations
-        .where((s) => s.operator == code && (_lineUid == null || s.lineUids.contains(_lineUid)) && _matches(s, q))
-        .toList(growable: false);
-
-    final out = <MetroLineSection>[];
-    for (final line in systemLines) {
-      if (_lineUid != null && line.uid != _lineUid) continue;
-      final list = <MetroStation>[];
-      for (final u in line.stationUids) {
-        final s = c.stationByUid[u];
-        if (s != null && _matches(s, q)) list.add(s);
-      }
-      if (list.isNotEmpty) out.add(MetroLineSection(line, list));
+    if (_query.trim().isNotEmpty) {
+      final all = searchGroups(_query, systemCode: code, lineUid: _lineUid, limit: 100000);
+      _searchResults = all.take(40).toList(growable: false);
+      _highlightGroupIds = {for (final g in all) g.id};
+    } else {
+      _searchResults = const [];
+      _highlightGroupIds = _lineUid == null
+          ? null
+          : {
+              for (final g in c.groups)
+                if (g.operator == code && g.lineUids.contains(_lineUid)) g.id,
+            };
     }
-    _sections = out;
   }
 
   // =========================================================
   // 起訖點與路徑
   // =========================================================
 
-  void setStart(String uid) {
-    _startUid = uid;
-    if (_endUid == uid) _endUid = null;
+  void setStartGroup(String groupId) {
+    _startGroupId = groupId;
+    if (_endGroupId == groupId) _endGroupId = null;
     _replan();
     _notify();
   }
 
-  void setEnd(String uid) {
-    _endUid = uid;
-    if (_startUid == uid) _startUid = null;
+  void setEndGroup(String groupId) {
+    _endGroupId = groupId;
+    if (_startGroupId == groupId) _startGroupId = null;
     _replan();
     _notify();
   }
 
   void swapEndpoints() {
-    final s = _startUid;
-    _startUid = _endUid;
-    _endUid = s;
+    final s = _startGroupId;
+    _startGroupId = _endGroupId;
+    _endGroupId = s;
     _replan();
     _notify();
   }
 
   void clearRoute() {
-    _startUid = null;
-    _endUid = null;
+    _startGroupId = null;
+    _endGroupId = null;
     _replan();
     _notify();
   }
 
   void _replan() {
-    final s = _startUid;
-    final e = _endUid;
+    final s = startGroup;
+    final e = endGroup;
     if (s == null || e == null || _planner == null) {
       _plan = null;
       _noRoute = false;
       return;
     }
-    _plan = _planner!.plan(s, e);
+    _plan = _planner!.planBetween(s.stationUids, e.stationUids);
     _noRoute = _plan == null;
   }
 
@@ -292,7 +351,14 @@ class MetroProvider extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    mapFocus.dispose();
     _repo.dispose();
     super.dispose();
   }
+}
+
+class _Hit {
+  const _Hit(this.score, this.group);
+  final int score;
+  final MetroStationGroup group;
 }

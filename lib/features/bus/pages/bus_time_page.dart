@@ -16,7 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
-import 'package:com.rsmn574.app/features/bus/data/get_bus_time.dart';
+import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/features/bus/data/bus_position_estimator.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -25,7 +25,7 @@ import 'package:com.rsmn574.app/features/bus/services/bus_direction_resolver.dar
 import 'package:com.rsmn574.app/features/bus/services/bus_estimates_parser.dart';
 import 'package:com.rsmn574.app/features/bus/services/bus_stop_time_formatter.dart';
 import 'package:com.rsmn574.app/task/task.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
 
@@ -222,12 +222,14 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   }
 
   Future<Set<Polyline>> _loadShape(int direction) async {
+    if (!mounted) return {};
     final requestId = ++_shapeRequestId;
+    final provider = context.read<BusProvider>();
     try {
-      final data = await getShape(
-        widget.city,
-        _tdxRouteName(widget.data, widget.routeName),
-        widget.routeID,
+      final data = await provider.fetchRouteShape(
+        city: widget.city,
+        routeName: _tdxRouteName(widget.data, widget.routeName),
+        routeID: widget.routeID,
       );
 
       if (!mounted || requestId != _shapeRequestId) return {};
@@ -330,10 +332,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     final requestId = ++_busPositionRequestId;
     print(widget.routeName);
     try {
-      final response = await fetchBusRealtimePosition(
-        _tdxRouteName(widget.data, widget.routeName),
-        widget.city,
-        widget.routeID,
+      final response = await context.read<BusProvider>().fetchRealtimePositions(
+        routeName: _tdxRouteName(widget.data, widget.routeName),
+        city: widget.city,
+        routeID: widget.routeID,
       );
 
       if (!mounted || requestId != _busPositionRequestId) return;
@@ -477,16 +479,18 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
   Future<void> _loadData() async {
     final int requestId = ++_loadRequestId;
+    final provider = context.read<BusProvider>();
 
     try {
-      final List<Map<String, dynamic>> routeStopsData = await getBusStopOfRoute(
+      final List<Map<String, dynamic>> routeStopsData =
+          await provider.fetchRouteStops(
         city: widget.city,
         routeId: widget.routeID,
       );
-      final busTimeData = await fetchBusTime(
-        _tdxRouteName(widget.data, widget.routeName),
-        widget.city,
-        widget.routeID,
+      final busTimeData = await provider.fetchEstimatedArrivals(
+        routeName: _tdxRouteName(widget.data, widget.routeName),
+        city: widget.city,
+        routeID: widget.routeID,
       );
 
       if (requestId != _loadRequestId || !mounted) return;
@@ -2148,8 +2152,12 @@ class _BusDetailPageState extends State<BusDetailPage> {
 
   Future<void> _fetchData() async {
     try {
-      List<Map<String, dynamic>> data =
-          await getHistoryData(widget.city, widget.routeId, sum!) ?? [];
+      final List<Map<String, dynamic>> data =
+          await context.read<BusProvider>().fetchHistory(
+                city: widget.city,
+                routeId: widget.routeId,
+                count: sum!,
+              );
       if (!mounted) return;
       setState(() {
         allBuses = data;

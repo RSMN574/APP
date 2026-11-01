@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:provider/provider.dart';
-import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import 'package:com.rsmn574.app/features/railway/pages/hsr_schedule_page.dart';
@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:com.rsmn574.app/features/railway/data/get_hsr.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -319,12 +318,13 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                       onTap: _isInputValid
                           ? () async {
                         try {
-                          final trainData = await fetchHSR(
-                            int.parse(widget.controller.text)
-                                .toString()
-                                .padLeft(4, '0'),
-                            selectedDate,
-                          );
+                          final trainData =
+                              await context.read<RailwayProvider>().thsrTrain(
+                                    int.parse(widget.controller.text)
+                                        .toString()
+                                        .padLeft(4, '0'),
+                                    selectedDate,
+                                  );
                           if (!context.mounted) return;
                           if (trainData == null) {
                             _showSnack(context, l10n.text_151,
@@ -917,43 +917,6 @@ class _RoutePageState extends State<RoutePage> {
     super.dispose();
   }
 
-  // 只保留原始 API 作為備用，主流程走 _seatProvider
-  Future<Map<String, dynamic>> _fetchSeatStatus(
-      Map<String, dynamic> train) async {
-    try {
-      final origin = train["OriginStopTime"];
-      final dest = train["DestinationStopTime"];
-      final trainNo = train["DailyTrainInfo"]["TrainNo"];
-
-      final d = await mysqlSelect(
-          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${origin["StationName"]["Zh_tw"]}';");
-      final a = await mysqlSelect(
-          "SELECT * FROM HSR.HSR_Station WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = '${dest["StationName"]["Zh_tw"]}';");
-
-      if (d.isEmpty || a.isEmpty) {
-        return {
-          "AvailableSeats": [
-            {"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}
-          ]
-        };
-      }
-
-      return await fetchAvailableSeatStatus(
-        d[0]["StationID"],
-        a[0]["StationID"],
-        trainNo.replaceAll(RegExp(r'[^0-9]'), '').padLeft(4, '0'),
-        DateFormat('yyyy-MM-dd').format(DateTime.parse(train["TrainDate"])),
-      );
-    } catch (e) {
-      debugPrint('fetchSeatStatus failed: $e');
-      return {
-        "AvailableSeats": [
-          {"StandardSeatStatus": "N", "BusinessSeatStatus": "N"}
-        ]
-      };
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
@@ -1324,10 +1287,10 @@ class _RoutePageState extends State<RoutePage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () async {
-            final trainData = await fetchHSR(
-              trainNo,
-              DateTime.parse(train["TrainDate"]),
-            );
+            final trainData = await context.read<RailwayProvider>().thsrTrain(
+                  trainNo,
+                  DateTime.parse(train["TrainDate"]),
+                );
             if (!context.mounted) return;
             Navigator.push(
               context,

@@ -1215,7 +1215,33 @@
 
     "evConnectorCount": "{count} connectors",
     "evChargingPointId": "Charging point ID: {id}"
-
+,
+  "traMainStation": "TRA MAIN STATION",
+  "departureBoard": "Departure Board",
+  "liveSync": "Live",
+  "northboundTrains": "Northbound ({count})",
+  "@northboundTrains": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "southboundTrains": "Southbound ({count})",
+  "@southboundTrains": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "noNorthboundTrains": "No northbound trains",
+  "noSouthboundTrains": "No southbound trains",
+  "invalidTrainNo": "Invalid Train No: {trainNo}",
+  "@invalidTrainNo": {
+    "placeholders": { "trainNo": { "type": "String" } }
+  },
+  "toStation": "To {station}",
+  "@toStation": {
+    "placeholders": { "station": { "type": "String" } }
+  },
+  "onTime": "ON TIME",
+  "delayMinutes": "Delay {minutes} min",
+  "@delayMinutes": {
+    "placeholders": { "minutes": { "type": "int" } }
+  }
 }
 
 

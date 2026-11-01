@@ -1,5 +1,5 @@
 import 'package:provider/provider.dart';
-import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,7 +7,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
-import 'package:com.rsmn574.app/features/railway/data/get_train.dart';
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
@@ -242,10 +241,10 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   }
 
   Future<Map<String, dynamic>> _fetchTrain() async {
-    trainData = await fetchTrain(
-      widget.trainNo,
-      widget.time,
-    );
+    trainData = await context.read<RailwayProvider>().traTrain(
+          widget.trainNo,
+          widget.time,
+        );
 
     if (mounted) {
       setState(() {});
@@ -349,6 +348,8 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
   }
 
   Future<void> loadLiveBoardIfToday() async {
+    if (!mounted) return;
+    final railway = context.read<RailwayProvider>();
     final now = DateTime.now();
 
     if (!isSameDay(widget.time, now)) {
@@ -361,7 +362,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
     }
 
     try {
-      final result = await fetchTrainStationByTrainNo(
+      final result = await railway.traTrainLiveBoard(
         trainData['DailyTrainInfo']['TrainNo'],
       );
 
@@ -474,6 +475,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                     child: IconButton(
                       tooltip: '加入行程',
                       onPressed: () async {
+                        final railway = context.read<RailwayProvider>();
                         List<dynamic> stationNames = trainData["StopTimes"]
                             .map((stop) => stop["StationName"] as Map)
                             .toList();
@@ -521,8 +523,7 @@ class _TrainSchedulePageState extends State<TrainSchedulePage> {
                             },
                           );
 
-                          final output = await ScheduleService.instance
-                              .addSchedule(schedule);
+                          final output = await railway.addSchedule(schedule);
 
                           if (!context.mounted) return;
 

@@ -1,33 +1,17 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import 'package:com.rsmn574.app/const/app_colors.dart';
 import 'package:com.rsmn574.app/const/surface_decoration.dart';
-import 'package:com.rsmn574.app/database/get_data.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 class StationDialog {
   static Future<Map<String, dynamic>?> showStationDialog(
       BuildContext context) async {
     // ── 資料取得與轉換（邏輯不動）────────────────────────
-    final List stationData = await mysqlSelect(
-        "SELECT StationID,StationClass,StationName,StationPosition,LocationCity FROM Train.Train_Station;");
-
     final List<Map<String, dynamic>> stationDataMap =
-    stationData.map((item) {
-      final stationName = json.decode(item["StationName"]);
-      return {
-        'StationName': {
-          'Zh_tw': stationName['Zh_tw'],
-          'En': stationName['En'],
-        },
-        'LocationCity': item['LocationCity'],
-        'StationClass': item['StationClass'],
-        'StationID': item['StationID'],
-        'StationPosition': item['StationPosition'],
-      };
-    }).toList();
+        await context.read<RailwayProvider>().traStations();
 
     final Map<String, List<String>> stationsList = {};
     for (var entry in stationDataMap) {

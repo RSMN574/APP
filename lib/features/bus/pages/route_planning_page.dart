@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
+import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
@@ -83,20 +85,9 @@ class _RoutePlannerState extends State<RoutePlanner>
 
   Future<void> fetchBusRoutes() async {
     try {
-      List result = await mysqlSelect(
-          "SELECT RouteName,RouteID FROM Bus.bus_route WHERE City = '${selectedCityIDNotifier.value}'");
-
-      List<Map<String, dynamic>> routes = [];
-      for (var a in result) {
-        // 新增一个元素到列表中
-        routes.add({
-          "route": json.decode(a["RouteName"])["Zh_tw"],
-          "id": a["RouteID"]
-        });
-      }
-
-      // 使用 map 提取 "route" 部分
-      // List<String> routeNames = routes.map((item) => item['route'] as String).toList();
+      final routes = await context
+          .read<BusProvider>()
+          .fetchRouteNames('${selectedCityIDNotifier.value}');
 
       busRoutesNotifier.value = routes;
     } catch (e) {
@@ -521,13 +512,10 @@ class _RoutePlannerState extends State<RoutePlanner>
 
   // 獲取路線基本資訊與所有停靠站
   Future<Map<String, dynamic>> _fetchBusRouteData(String routeName) async {
-    var routeQuery = await mysqlSelect(
-      "SELECT * FROM Bus.bus_route WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND City = 'Taichung';",
-    );
-    var stopsQuery = await mysqlSelect(
-      "SELECT Stops FROM Bus.stopOfRoute WHERE JSON_UNQUOTE(JSON_EXTRACT(RouteName, '\$.Zh_tw')) = '$routeName' AND City = 'Taichung' ;",
-    );
-    return {'route': routeQuery[0], 'stops': stopsQuery};
+    return context.read<BusProvider>().fetchRouteWithStops(
+          routeName: routeName,
+          city: 'Taichung',
+        );
   }
 
   void showStationPicker(String type) async {

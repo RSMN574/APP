@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:com.rsmn574.app/features/youbike/data/get_bike.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/models/bike.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 
 /// Owns YouBike data access and converts database rows into typed models.
 class BikeRepository {

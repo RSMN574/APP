@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../../database/get_data.dart';
+import 'package:provider/provider.dart';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 class StationDialog {
@@ -16,22 +16,8 @@ class StationDialog {
   static Future<Map<String, dynamic>?> showStationDialog(
       BuildContext context) async {
     // 獲取高鐵車站數據
-    List stationData = await mysqlSelect(
-        "SELECT StationID, StationName, StationPosition, URL FROM HSR.HSR_Station ORDER BY StationID;");
-
-    // 轉換數據格式
-    List<Map<String, dynamic>> stationDataMap = stationData.map((item) {
-      final stationName = json.decode(item["StationName"]);
-      return {
-        'StationName': {
-          'Zh_tw': stationName['Zh_tw'],
-          'En': stationName['En'],
-        },
-        'StationID': item['StationID'],
-        'StationPosition': item['StationPosition'],
-        'URL': item['URL']
-      };
-    }).toList();
+    final List<Map<String, dynamic>> stationDataMap =
+        await context.read<RailwayProvider>().thsrStations();
 
     String? _selectedStation;
     Map<String, dynamic>? selectedStationData;

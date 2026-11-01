@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 
 import '../model/bus_station_model.dart';
 

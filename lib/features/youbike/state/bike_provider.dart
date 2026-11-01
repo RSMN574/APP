@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../../../const/regular_class.dart';
-import '../../../utils/convert.dart';
+import '../../../core/utils/convert.dart';
 
 /// The single source of truth for the YouBike sheet and map.
 class BikeProvider extends ChangeNotifier {

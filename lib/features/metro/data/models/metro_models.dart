@@ -133,6 +133,7 @@ class MetroStation {
     required this.lon,
     required this.address,
     required this.lineUids,
+    this.groupId,
   });
   final String uid;
   final String operator;
@@ -142,6 +143,9 @@ class MetroStation {
   final double? lon;
   final String? address;
   final List<String> lineUids;
+
+  /// 實體站 id（同一個實體站的多個站碼共用，如台北車站 R10 與 BL12）。舊版後端沒有此欄位時為 null。
+  final String? groupId;
 
   bool get hasPosition => lat != null && lon != null;
 
@@ -154,6 +158,72 @@ class MetroStation {
         lon: (j['lon'] as num?)?.toDouble(),
         address: _str(j['address']),
         lineUids: _strings(j['lineUids']),
+        groupId: _str(j['groupId']),
+      );
+}
+
+/// 實體站：把「同一個實體站的多個站碼」合併成一個。只合併同營運商、由轉乘連結確認的站，
+/// 跨營運商（如機捷 A1 與北捷 R10）不合併。
+class MetroStationGroup {
+  const MetroStationGroup({
+    required this.id,
+    required this.operator,
+    required this.name,
+    required this.lat,
+    required this.lon,
+    required this.stationUids,
+    required this.codes,
+    required this.lineUids,
+  });
+  final String id;
+  final String operator;
+  final LocalizedText name;
+  final double? lat;
+  final double? lon;
+  final List<String> stationUids;
+  final List<String> codes;
+  final List<String> lineUids;
+
+  bool get hasPosition => lat != null && lon != null;
+
+  /// 同一實體站內可換線（站碼不只一個，或屬於多條路線）。
+  bool get isInterchange => stationUids.length > 1 || lineUids.length > 1;
+
+  factory MetroStationGroup.fromJson(Map<String, dynamic> j) => MetroStationGroup(
+        id: j['id'] as String,
+        operator: j['operator'] as String,
+        name: LocalizedText.fromJson(j['name']),
+        lat: (j['lat'] as num?)?.toDouble(),
+        lon: (j['lon'] as num?)?.toDouble(),
+        stationUids: _strings(j['stationUids']),
+        codes: _strings(j['codes']),
+        lineUids: _strings(j['lineUids']),
+      );
+}
+
+/// 一條營運交路（含方向）。名稱如「頂埔－南港展覽館」；用來顯示「往 ○○ 方向」。
+class MetroRoute {
+  const MetroRoute({
+    required this.id,
+    required this.lineUid,
+    required this.direction,
+    required this.name,
+    required this.stationUids,
+  });
+  final String id;
+  final String lineUid;
+  final int direction;
+  final LocalizedText name;
+  final List<String> stationUids;
+
+  String get terminalUid => stationUids.last;
+
+  factory MetroRoute.fromJson(Map<String, dynamic> j) => MetroRoute(
+        id: j['id'] as String,
+        lineUid: j['lineUid'] as String,
+        direction: (j['direction'] as num?)?.toInt() ?? 0,
+        name: LocalizedText.fromJson(j['name']),
+        stationUids: _strings(j['stationUids']),
       );
 }
 
@@ -195,28 +265,80 @@ class StationLink {
 }
 
 class MetroCatalog {
-  MetroCatalog({
-    required this.version,
-    required this.systems,
-    required this.lines,
-    required this.stations,
-    required this.links,
-  })  : stationByUid = {for (final s in stations) s.uid: s},
+  factory MetroCatalog({
+    required String version,
+    required List<MetroSystem> systems,
+    required List<MetroLine> lines,
+    required List<MetroStation> stations,
+    required List<StationLink> links,
+    List<MetroStationGroup> groups = const [],
+    List<MetroRoute> routes = const [],
+    List<StationLink> candidateLinks = const [],
+  }) {
+    // 舊版後端沒有 groups 時，每個站碼各自成為一個實體站（行為與舊版相同）
+    final g = groups.isNotEmpty ? groups : _singletonGroups(stations);
+    return MetroCatalog._(version, systems, lines, stations, links, g, routes, candidateLinks);
+  }
+
+  MetroCatalog._(
+    this.version,
+    this.systems,
+    this.lines,
+    this.stations,
+    this.links,
+    this.groups,
+    this.routes,
+    this.candidateLinks,
+  )   : stationByUid = {for (final s in stations) s.uid: s},
         lineByUid = {for (final l in lines) l.uid: l},
         systemByCode = {for (final s in systems) s.code: s},
-        _linksByStation = _indexLinks(links);
+        groupById = {for (final g in groups) g.id: g},
+        _groupOfStation = {
+          for (final g in groups)
+            for (final u in g.stationUids) u: g,
+        },
+        _linksByStation = _indexLinks(links),
+        _candidatesByStation = _indexLinks(candidateLinks),
+        routesByLine = _indexRoutes(routes);
 
   final String version;
   final List<MetroSystem> systems;
   final List<MetroLine> lines;
   final List<MetroStation> stations;
   final List<StationLink> links;
+  final List<MetroStationGroup> groups;
+  final List<MetroRoute> routes;
+
+  /// 資料沒有明列、僅依距離推導的候選轉乘（跨營運商）。只供提示，不參與路徑規劃。
+  final List<StationLink> candidateLinks;
+
   final Map<String, MetroStation> stationByUid;
   final Map<String, MetroLine> lineByUid;
   final Map<String, MetroSystem> systemByCode;
+  final Map<String, MetroStationGroup> groupById;
+  final Map<String, List<MetroRoute>> routesByLine;
+  final Map<String, MetroStationGroup> _groupOfStation;
   final Map<String, List<StationLink>> _linksByStation;
+  final Map<String, List<StationLink>> _candidatesByStation;
 
+  MetroStationGroup? groupOfStation(String stationUid) => _groupOfStation[stationUid];
   List<StationLink> linksOf(String uid) => _linksByStation[uid] ?? const <StationLink>[];
+  List<StationLink> candidatesOf(String uid) => _candidatesByStation[uid] ?? const <StationLink>[];
+  List<MetroRoute> routesOfLine(String lineUid) => routesByLine[lineUid] ?? const <MetroRoute>[];
+
+  static List<MetroStationGroup> _singletonGroups(List<MetroStation> stations) => [
+        for (final s in stations)
+          MetroStationGroup(
+            id: 'g:${s.uid}',
+            operator: s.operator,
+            name: s.name,
+            lat: s.lat,
+            lon: s.lon,
+            stationUids: [s.uid],
+            codes: [s.code],
+            lineUids: s.lineUids,
+          ),
+      ];
 
   static Map<String, List<StationLink>> _indexLinks(List<StationLink> links) {
     final m = <String, List<StationLink>>{};
@@ -227,12 +349,23 @@ class MetroCatalog {
     return m;
   }
 
+  static Map<String, List<MetroRoute>> _indexRoutes(List<MetroRoute> routes) {
+    final m = <String, List<MetroRoute>>{};
+    for (final r in routes) {
+      m.putIfAbsent(r.lineUid, () => []).add(r);
+    }
+    return m;
+  }
+
   factory MetroCatalog.fromJson(Map<String, dynamic> j) => MetroCatalog(
         version: (j['version'] as String?) ?? '',
         systems: _list(j['systems'], MetroSystem.fromJson),
         lines: _list(j['lines'], MetroLine.fromJson),
         stations: _list(j['stations'], MetroStation.fromJson),
         links: _list(j['links'], StationLink.fromJson),
+        groups: _list(j['groups'], MetroStationGroup.fromJson),
+        routes: _list(j['routes'], MetroRoute.fromJson),
+        candidateLinks: _list(j['candidateLinks'], StationLink.fromJson),
       );
 }
 

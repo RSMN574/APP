@@ -6848,6 +6848,72 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'充電點 ID: {id}'**
   String evChargingPointId(String id);
+
+  /// No description provided for @traMainStation.
+  ///
+  /// In zh, this message translates to:
+  /// **'TRA MAIN STATION'**
+  String get traMainStation;
+
+  /// No description provided for @departureBoard.
+  ///
+  /// In zh, this message translates to:
+  /// **'現場發車看板'**
+  String get departureBoard;
+
+  /// No description provided for @liveSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'即時同步'**
+  String get liveSync;
+
+  /// No description provided for @northboundTrains.
+  ///
+  /// In zh, this message translates to:
+  /// **'北上列車 ({count})'**
+  String northboundTrains(int count);
+
+  /// No description provided for @southboundTrains.
+  ///
+  /// In zh, this message translates to:
+  /// **'南下列車 ({count})'**
+  String southboundTrains(int count);
+
+  /// No description provided for @noNorthboundTrains.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前無北上列車'**
+  String get noNorthboundTrains;
+
+  /// No description provided for @noSouthboundTrains.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前無南下列車'**
+  String get noSouthboundTrains;
+
+  /// No description provided for @invalidTrainNo.
+  ///
+  /// In zh, this message translates to:
+  /// **'車次號碼無效：{trainNo}'**
+  String invalidTrainNo(String trainNo);
+
+  /// No description provided for @toStation.
+  ///
+  /// In zh, this message translates to:
+  /// **'往 {station}'**
+  String toStation(String station);
+
+  /// No description provided for @onTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'準點 ON TIME'**
+  String get onTime;
+
+  /// No description provided for @delayMinutes.
+  ///
+  /// In zh, this message translates to:
+  /// **'延遲 {minutes} 分'**
+  String delayMinutes(int minutes);
 }
 
 class _AppLocalizationsDelegate

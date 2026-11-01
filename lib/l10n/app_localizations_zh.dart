@@ -3417,4 +3417,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String evChargingPointId(String id) {
     return '充電點 ID: $id';
   }
+
+  @override
+  String get traMainStation => 'TRA MAIN STATION';
+
+  @override
+  String get departureBoard => '現場發車看板';
+
+  @override
+  String get liveSync => '即時同步';
+
+  @override
+  String northboundTrains(int count) {
+    return '北上列車 ($count)';
+  }
+
+  @override
+  String southboundTrains(int count) {
+    return '南下列車 ($count)';
+  }
+
+  @override
+  String get noNorthboundTrains => '目前無北上列車';
+
+  @override
+  String get noSouthboundTrains => '目前無南下列車';
+
+  @override
+  String invalidTrainNo(String trainNo) {
+    return '車次號碼無效：$trainNo';
+  }
+
+  @override
+  String toStation(String station) {
+    return '往 $station';
+  }
+
+  @override
+  String get onTime => '準點 ON TIME';
+
+  @override
+  String delayMinutes(int minutes) {
+    return '延遲 $minutes 分';
+  }
 }

@@ -1,21 +1,19 @@
 import 'dart:async';
 
 import 'package:provider/provider.dart';
-import 'package:com.rsmn574.app/features/railway/state/railway_provider.dart';
-import 'dart:convert';
+import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:com.rsmn574.app/features/railway/pages/train_schedule_page.dart';
-import 'package:com.rsmn574.app/utils/convert.dart';
+import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/select_view.dart';
 import 'package:com.rsmn574.app/features/railway/widgets/train_station_dialog.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
-import 'package:com.rsmn574.app/features/railway/data/get_train.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 import '../../../const/app_colors.dart';
+import '../../../const/app_design_tokens.dart';
 import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/app_custom_bar.dart';
@@ -401,8 +399,9 @@ class _TripNumberSearchPageState extends State<TripNumberSearchPage> {
                                 return;
                               }
                               try {
-                                trainData =
-                                await fetchTrain(trainNo, selectedDate);
+                                trainData = await context
+                                    .read<RailwayProvider>()
+                                    .traTrain(trainNo, selectedDate);
                                 if (trainData == null || trainData.isEmpty) {
                                   if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -1622,14 +1621,20 @@ class StationPage extends StatefulWidget {
   @override
   _StationPageState createState() => _StationPageState();
 }
-
 class _StationPageState extends State<StationPage>
     with SingleTickerProviderStateMixin {
   late String displayedStationName;
   late TabController _tabController;
-  final ScrollController _trainListScrollController = ScrollController();
-  final Map<int, GlobalKey> _trainItemKeys = {};
-  String? _lastScrolledSig;
+
+  // 🌟 獨立控制北上與南下的滾動
+  final ItemScrollController _northScrollController = ItemScrollController();
+  final ItemScrollController _southScrollController = ItemScrollController();
+
+  // 儲存最近班次的索引，供切換 Tab 時使用
+  int _closestNorthIdx = 0;
+  int _closestSouthIdx = 0;
+  bool _hasNorthData = false;
+  bool _hasSouthData = false;
 
   @override
   void initState() {
@@ -1637,6 +1642,14 @@ class _StationPageState extends State<StationPage>
     unawaited(AppAnalytics.logFeatureOpened('railway'));
     displayedStationName = widget.stationName;
     _tabController = TabController(length: 2, vsync: this);
+
+    // 🌟 監聽外層 Tab 切換（車站資訊 / 列車資訊）
+    _tabController.addListener(() {
+      if (_tabController.index == 1) {
+        _scrollToClosest(
+            isNorth: true, delayMs: 300); // 稍作延遲，確保 TabBarView 渲染完成
+      }
+    });
   }
 
   @override
@@ -1644,48 +1657,39 @@ class _StationPageState extends State<StationPage>
     super.didUpdateWidget(oldWidget);
     if (widget.datetime != oldWidget.datetime ||
         widget.stationID != oldWidget.stationID) {
-      _lastScrolledSig = null;
-      _trainItemKeys.clear();
+      // 當日期或車站改變時，重置資料狀態
+      _hasNorthData = false;
+      _hasSouthData = false;
     }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _trainListScrollController.dispose();
     super.dispose();
   }
 
-  String _trainSig(List<dynamic> trains) {
-    if (trains.isEmpty) return 'empty';
-    final first = trains.first['DepartureTime']?.toString() ?? '';
-    final last = trains.last['DepartureTime']?.toString() ?? '';
-    return '${trains.length}|$first|$last'
-        '|${widget.datetime.millisecondsSinceEpoch}';
-  }
+  // 🌟 滾動到最近的班次（帶有動畫）
+  void _scrollToClosest({required bool isNorth, int delayMs = 100}) {
+    final controller = isNorth
+        ? _northScrollController
+        : _southScrollController;
+    final index = isNorth ? _closestNorthIdx : _closestSouthIdx;
+    final hasData = isNorth ? _hasNorthData : _hasSouthData;
 
-  void _scrollToNearestTrain(List<dynamic> trains) {
-    if (trains.isEmpty) return;
-    final base = widget.datetime.hour * 60 + widget.datetime.minute;
-    int? targetIdx;
-    for (int i = 0; i < trains.length; i++) {
-      final depMin =
-      _timeToMinutesSafe(trains[i]['DepartureTime']?.toString());
-      final effectiveDep = depMin >= base ? depMin : depMin + 1440;
-      if (effectiveDep >= base) {
-        targetIdx = i;
-        break;
+    if (!hasData) return;
+
+    Future.delayed(Duration(milliseconds: delayMs), () {
+      if (!mounted) return;
+      if (controller.isAttached) {
+        controller.scrollTo(
+          index: index,
+          duration: const Duration(milliseconds: 600), // 滾動動畫時間
+          curve: Curves.easeInOutCubic, // 平滑的動畫曲線
+          alignment: 0.05, // 定位後距離頂部的比例 (0.0 是貼齊頂部)
+        );
       }
-    }
-    targetIdx ??= trains.length - 1;
-    final key = _trainItemKeys[targetIdx];
-    final ctx = key?.currentContext;
-    if (ctx != null) {
-      Scrollable.ensureVisible(ctx,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-          alignment: 0.2);
-    }
+    });
   }
 
   void updateStationName(String newStationName) {
@@ -1696,35 +1700,28 @@ class _StationPageState extends State<StationPage>
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final isEnglish = Localizations
+        .localeOf(context)
+        .languageCode == 'en';
 
     return Scaffold(
       backgroundColor: colors.cardBackground,
-      appBar: AppBar(
-        backgroundColor: colors.cardBackground,
-        elevation: 0,
-        title: Text(
-          isEnglish
-              ? '${widget.stationNameEn.trim().isNotEmpty ? widget.stationNameEn : widget.stationName} Station'
-          // TODO: i18n（車站）
-              : '${widget.stationName} 車站',
-          style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: colors.info,
-              letterSpacing: -0.5),
-        ),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: colors.info),
+      // 🌟 替換為 AppCustomBar
+      appBar: AppCustomBar(
+        title: isEnglish
+            ? '${widget.stationNameEn
+            .trim()
+            .isNotEmpty ? widget.stationNameEn : widget.stationName} Station'
+            : '${widget.stationName} 車站',
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: colors.info,
           labelColor: colors.info,
           unselectedLabelColor: colors.textSecondary,
-          labelStyle:
-          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          unselectedLabelStyle:
-          const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500, fontSize: 14),
           tabs: [
             Tab(text: l10n.text_856),
             Tab(text: l10n.text_655),
@@ -1741,6 +1738,7 @@ class _StationPageState extends State<StationPage>
     );
   }
 
+  // --- 車站資訊頁面 (保留原本邏輯，支援深色模式) ---
   Widget _buildHomePage() {
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
@@ -1758,14 +1756,15 @@ class _StationPageState extends State<StationPage>
     }
 
     return FutureBuilder<List<dynamic>>(
-      future: fetchTrainStationFacility(widget.stationID),
+      future: context
+          .read<RailwayProvider>()
+          .traStationFacility(widget.stationID),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
             child: Container(
               padding: const EdgeInsets.all(20),
-              decoration:
-              SurfaceDecoration.cardShadow(context, radius: 20),
+              decoration: SurfaceDecoration.cardShadow(context, radius: 20),
               child: CircularProgressIndicator(
                   color: colors.info, strokeWidth: 3),
             ),
@@ -1775,8 +1774,7 @@ class _StationPageState extends State<StationPage>
             child: Container(
               padding: const EdgeInsets.all(24),
               margin: const EdgeInsets.all(20),
-              decoration:
-              SurfaceDecoration.cardShadow(context, radius: 20),
+              decoration: SurfaceDecoration.cardShadow(context, radius: 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1847,8 +1845,7 @@ class _StationPageState extends State<StationPage>
               children: [
                 Container(
                   margin: const EdgeInsets.all(20),
-                  decoration:
-                  SurfaceDecoration.cardShadow(context, radius: 20),
+                  decoration: SurfaceDecoration.cardShadow(context, radius: 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1871,8 +1868,7 @@ class _StationPageState extends State<StationPage>
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(8),
-                                  decoration:
-                                  SurfaceDecoration.muted(context,
+                                  decoration: SurfaceDecoration.muted(context,
                                       radius: 12),
                                   child: Icon(Icons.train_rounded,
                                       size: 20, color: colors.info),
@@ -1883,7 +1879,8 @@ class _StationPageState extends State<StationPage>
                                     _localizedRailField(data[0],
                                         englishKey: 'StationNameEn',
                                         chineseKey: 'StationNameZh_tw',
-                                        isEnglish: Localizations.localeOf(
+                                        isEnglish: Localizations
+                                            .localeOf(
                                             context)
                                             .languageCode ==
                                             'en',
@@ -1900,20 +1897,17 @@ class _StationPageState extends State<StationPage>
                             _buildInfoItem(
                               icon: Icons.location_on_rounded,
                               label: l10n.text_866,
-                              value: data[1]['StationAddress'] ??
-                                  l10n.text_867,
+                              value: data[1]['StationAddress'] ?? l10n.text_867,
                             ),
                             _buildInfoItem(
                               icon: Icons.grade_rounded,
                               label: l10n.text_868,
-                              value:
-                              _getStationClass(data[1]['StationClass']),
+                              value: _getStationClass(data[1]['StationClass']),
                             ),
                             _buildInfoItem(
                               icon: Icons.phone_rounded,
                               label: l10n.text_869,
-                              value: data[1]['StationPhone'] ??
-                                  l10n.text_870,
+                              value: data[1]['StationPhone'] ?? l10n.text_870,
                             ),
                             _buildInfoItem(
                               icon: Icons.qr_code_rounded,
@@ -1930,20 +1924,19 @@ class _StationPageState extends State<StationPage>
                   final facilityMaps = <Map<String, String>>[];
                   for (int i = 0; i < 5; i++) {
                     final isEnglish =
-                        Localizations.localeOf(context).languageCode == 'en';
+                        Localizations
+                            .localeOf(context)
+                            .languageCode == 'en';
                     final mapName = _localizedRailField(station,
                         englishKey: 'FacilityMapURLs${i}MapNameEn',
                         chineseKey: 'FacilityMapURLs${i}MapNameZh_tw',
                         isEnglish: isEnglish);
-                    final mapURL =
-                    station['FacilityMapURLs${i}MapURL'] as String?;
+                    final mapURL = station['FacilityMapURLs${i}MapURL'] as String?;
                     if (mapURL != null) {
-                      facilityMaps.add(
-                          {'mapName': mapName, 'mapURL': mapURL});
+                      facilityMaps.add({'mapName': mapName, 'mapURL': mapURL});
                     }
                   }
-                  final elevatorInfo =
-                  station['Elevators0Description'] as String?;
+                  final elevatorInfo = station['Elevators0Description'] as String?;
                   return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
@@ -1951,8 +1944,7 @@ class _StationPageState extends State<StationPage>
                         ...facilityMaps.map((facility) {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 16),
-                            decoration: SurfaceDecoration.cardShadow(
-                                context,
+                            decoration: SurfaceDecoration.cardShadow(context,
                                 radius: 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1963,8 +1955,8 @@ class _StationPageState extends State<StationPage>
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.all(6),
-                                        decoration:
-                                        SurfaceDecoration.muted(context,
+                                        decoration: SurfaceDecoration.muted(
+                                            context,
                                             radius: 10),
                                         child: Icon(Icons.map_rounded,
                                             size: 18, color: colors.info),
@@ -1977,8 +1969,7 @@ class _StationPageState extends State<StationPage>
                                                 fontWeight: FontWeight.w600,
                                                 color: colors.textPrimary),
                                             maxLines: 1,
-                                            overflow:
-                                            TextOverflow.ellipsis),
+                                            overflow: TextOverflow.ellipsis),
                                       ),
                                     ],
                                   ),
@@ -1991,8 +1982,7 @@ class _StationPageState extends State<StationPage>
                                   child: Image.network(
                                     facility['mapURL']!,
                                     fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) {
+                                    errorBuilder: (context, error, stackTrace) {
                                       return Container(
                                         height: 120,
                                         color: colors.mutedBackground,
@@ -2000,10 +1990,8 @@ class _StationPageState extends State<StationPage>
                                           child: Text(l10n.text_873,
                                               style: TextStyle(
                                                   fontSize: 14,
-                                                  color: colors
-                                                      .textSecondary,
-                                                  fontWeight:
-                                                  FontWeight.w500)),
+                                                  color: colors.textSecondary,
+                                                  fontWeight: FontWeight.w500)),
                                         ),
                                       );
                                     },
@@ -2017,8 +2005,7 @@ class _StationPageState extends State<StationPage>
                           Container(
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(16),
-                            decoration: SurfaceDecoration.cardShadow(
-                                context,
+                            decoration: SurfaceDecoration.cardShadow(context,
                                 radius: 16),
                             child: Row(
                               children: [
@@ -2026,8 +2013,7 @@ class _StationPageState extends State<StationPage>
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
                                     color: colors.successContainer,
-                                    borderRadius:
-                                    BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(Icons.elevator_rounded,
                                       size: 20, color: colors.success),
@@ -2035,7 +2021,6 @@ class _StationPageState extends State<StationPage>
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    // TODO: i18n（電梯資訊:）
                                     "電梯資訊: $elevatorInfo",
                                     style: TextStyle(
                                         fontSize: 14,
@@ -2098,13 +2083,13 @@ class _StationPageState extends State<StationPage>
     );
   }
 
+  // --- 列車資訊頁面 ---
   Widget _buildTrainInfoPage() {
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
 
     return Container(
-      color: colors.cardBackground,
-      padding: const EdgeInsets.all(16),
+      color: colors.mutedBackground,
       child: FutureBuilder<List<dynamic>>(
         future: context
             .read<RailwayProvider>()
@@ -2189,403 +2174,478 @@ class _StationPageState extends State<StationPage>
           }
 
           final trainData = snapshot.data!;
-          final sig = _trainSig(trainData);
 
-          if (_lastScrolledSig != sig) {
-            _lastScrolledSig = sig;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              _scrollToNearestTrain(trainData);
-            });
+          // 分類北上與南下
+          final northboundTrains = <dynamic>[];
+          final southboundTrains = <dynamic>[];
+          for (var train in trainData) {
+            final trainNoStr = train['TrainNo']?.toString() ?? '';
+            if (_isNorthbound(trainNoStr)) {
+              northboundTrains.add(train);
+            } else {
+              southboundTrains.add(train);
+            }
           }
 
-          return Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  controller: _trainListScrollController,
-                  itemCount: trainData.length,
-                  itemBuilder: (context, index) {
-                    final train = trainData[index];
-                    final itemKey =
-                    _trainItemKeys.putIfAbsent(index, () => GlobalKey());
+          // 計算最近班次索引
+          _closestNorthIdx = _findClosestIndex(northboundTrains);
+          _closestSouthIdx = _findClosestIndex(southboundTrains);
+          _hasNorthData = northboundTrains.isNotEmpty;
+          _hasSouthData = southboundTrains.isNotEmpty;
 
-                    final trainNo = (train['TrainNo'])?.toString() ??
-                        l10n.text_321;
-                    final trainTypeName = _localizedRailName(
-                      train['TrainTypeName'],
-                      isEnglish: Localizations.localeOf(context)
-                          .languageCode ==
-                          'en',
-                    );
-                    final trainType = Localizations.localeOf(context)
-                        .languageCode ==
-                        'en'
-                        ? trainTypeName
-                        : convertTrainType(trainTypeName);
-                    final departureTime =
-                    _formatTime(train['DepartureTime'] ?? l10n.text_321);
-                    final delayTime = train['DelayTime'];
-                    var endingStation = _localizedRailName(
-                      train['EndingStationName'],
-                      isEnglish: Localizations.localeOf(context)
-                          .languageCode ==
-                          'en',
-                    );
-                    if (endingStation.isEmpty) endingStation = l10n.text_321;
+          // 初次載入資料後，若目前在外層列車 Tab，則觸發滾動
+          if (_tabController.index == 1) {
+            _scrollToClosest(isNorth: true, delayMs: 300);
+          }
 
-                    final isDelayed = delayTime != null && delayTime > 0;
-                    final isExpress = trainType.contains(l10n.text_877) ||
-                        trainType.contains(l10n.text_878) ||
-                        trainType.contains(l10n.text_879);
-
-                    return KeyedSubtree(
-                      key: itemKey,
-                      child: Transform.translate(
-                        offset: Offset(0, index * 0.3),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () async {
-                              final trainNoInt =
-                              _parseTrainNoDigits(trainNo);
-                              if (trainNoInt == null) {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(SnackBar(
-                                  // TODO: i18n（車次號碼無效：）
-                                  content: Text('車次號碼無效：$trainNo'),
-                                  backgroundColor: colors.danger,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                      BorderRadius.circular(12)),
-                                ));
-                                return;
-                              }
-                              if (!context.mounted) return;
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TrainSchedulePage(
-                                    type: 'trainNo',
-                                    time: widget.datetime,
-                                    trainNo: trainNoInt,
-                                  ),
-                                ),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            splashColor: colors.info.withOpacity(0.1),
-                            highlightColor:
-                            colors.mutedBackground.withOpacity(0.5),
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 6, horizontal: 20),
-                              padding: EdgeInsets.zero,
-                              decoration: BoxDecoration(
-                                color: colors.cardBackground,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colors.shadow,
-                                    blurRadius: isDelayed ? 20 : 12,
-                                    offset: Offset(
-                                        0, isDelayed ? 6 : 3),
-                                  ),
-                                ],
-                                border: isDelayed
-                                    ? Border.all(
-                                    color: colors.danger
-                                        .withOpacity(0.2),
-                                    width: 1.5)
-                                    : isExpress
-                                    ? Border.all(
-                                    color:
-                                    colors.info.withOpacity(0.1),
-                                    width: 1)
-                                    : null,
-                              ),
-                              child: Stack(
-                                children: [
-                                  if (isDelayed)
-                                    Positioned(
-                                      left: 0,
-                                      top: 0,
-                                      bottom: 0,
-                                      child: Container(
-                                        width: 4,
-                                        decoration: BoxDecoration(
-                                          color: colors.danger,
-                                          borderRadius:
-                                          const BorderRadius.only(
-                                            topLeft: Radius.circular(20),
-                                            bottomLeft:
-                                            Radius.circular(20),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      left: isDelayed ? 20 : 24,
-                                      right: 24,
-                                      top: 20,
-                                      bottom: 20,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: _getTrainTypeColor(
-                                                trainType),
-                                            borderRadius:
-                                            BorderRadius.circular(14),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: _getTrainTypeColor(
-                                                    trainType)
-                                                    .withOpacity(0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Icon(
-                                            _getTrainTypeIcon(trainType),
-                                            size: 24,
-                                            color: colors.cardBackground,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                crossAxisAlignment:
-                                                CrossAxisAlignment
-                                                    .start,
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      // TODO: i18n（車次）
-                                                      '車次 $trainNo',
-                                                      style: TextStyle(
-                                                        fontSize: 17,
-                                                        fontWeight:
-                                                        FontWeight.w700,
-                                                        color: isDelayed
-                                                            ? colors
-                                                            .textPrimary
-                                                            : colors
-                                                            .textPrimary,
-                                                        height: 1.3,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 12),
-                                                  Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 6),
-                                                    decoration:
-                                                    BoxDecoration(
-                                                      color: isDelayed
-                                                          ? colors
-                                                          .dangerContainer
-                                                          : colors
-                                                          .infoContainer,
-                                                      borderRadius:
-                                                      BorderRadius
-                                                          .circular(10),
-                                                    ),
-                                                    child: Text(
-                                                      departureTime,
-                                                      style: TextStyle(
-                                                        fontSize: 15,
-                                                        fontWeight:
-                                                        FontWeight.w700,
-                                                        color: isDelayed
-                                                            ? colors.danger
-                                                            : colors.info,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      // TODO: i18n（往）
-                                                      '往 $endingStation',
-                                                      style: TextStyle(
-                                                        fontSize: 15,
-                                                        color: colors
-                                                            .textSecondary,
-                                                        fontWeight:
-                                                        FontWeight.w500,
-                                                        height: 1.4,
-                                                      ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                      TextOverflow
-                                                          .ellipsis,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  if (isDelayed)
-                                                    _buildStatusBadge(
-                                                      // TODO: i18n（延誤 X分）
-                                                        '延誤 ${delayTime}分',
-                                                        colors.danger),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 12),
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    padding:
-                                                    const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 4),
-                                                    decoration:
-                                                    BoxDecoration(
-                                                      color: _getTrainTypeColor(
-                                                          trainType)
-                                                          .withOpacity(0.1),
-                                                      borderRadius:
-                                                      BorderRadius
-                                                          .circular(8),
-                                                      border: Border.all(
-                                                        color: _getTrainTypeColor(
-                                                            trainType)
-                                                            .withOpacity(0.3),
-                                                      ),
-                                                    ),
-                                                    child: Text(
-                                                      trainType,
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: _getTrainTypeColor(
-                                                            trainType),
-                                                        fontWeight:
-                                                        FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const Spacer(),
-                                                  Container(
-                                                    padding:
-                                                    const EdgeInsets
-                                                        .all(6),
-                                                    decoration:
-                                                    BoxDecoration(
-                                                      color: colors
-                                                          .mutedBackground,
-                                                      borderRadius:
-                                                      BorderRadius
-                                                          .circular(10),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons
-                                                          .arrow_forward_ios_rounded,
-                                                      size: 14,
-                                                      color: colors
-                                                          .textSecondary,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+          return DefaultTabController(
+            length: 2,
+            child: Column(
+              children: [
+                _buildStationHeaderCard(),
+                _buildBoardHeader(northboundTrains, southboundTrains),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildTrainList(
+                          northboundTrains, _northScrollController, true),
+                      _buildTrainList(
+                          southboundTrains, _southScrollController, false),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildStatusBadge(String text, Color color) {
+  bool _isNorthbound(String trainNo) {
+    final digits = trainNo.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) return true;
+    final num = int.tryParse(digits);
+    if (num == null) return true;
+    return num % 2 == 0;
+  }
+
+  Widget _buildStationHeaderCard() {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    final isEnglish = Localizations
+        .localeOf(context)
+        .languageCode == 'en';
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: SurfaceDecoration.cardShadow(context, radius: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.successContainer,
+                  borderRadius: AppRadius.roundedSm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: colors.success),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.traMainStation,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: colors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.infoContainer,
+                  borderRadius: AppRadius.roundedSm,
+                ),
+                child: Text(
+                  DateFormat('HH:mm:ss').format(DateTime.now()),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: colors.info,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isEnglish ? widget.stationNameEn : widget.stationName,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: colors.textPrimary,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isEnglish
+                ? widget.stationName
+                : (widget.stationNameEn.isNotEmpty ? widget.stationNameEn : ''),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: colors.textSecondary,
+            ),
+          ),
+        ],
       ),
-      child: Text(text,
-          style: TextStyle(
-              fontSize: 12, color: color, fontWeight: FontWeight.w600)),
     );
   }
 
-  Color _getTrainTypeColor(String trainType) {
-    final colors = context.appColors;
-    final l10n = AppLocalizations.of(context)!;
-    if (trainType.contains(l10n.text_877) ||
-        trainType.contains(l10n.text_878) ||
-        trainType.contains(l10n.text_879)) {
-      return colors.info;
-    } else if (trainType.contains(l10n.text_882)) {
-      return colors.success;
-    } else if (trainType.contains(l10n.text_883) ||
-        trainType.contains(l10n.text_884)) {
-      return colors.warning;
-    } else {
-      return colors.info;
+  int _findClosestIndex(List<dynamic> trains) {
+    if (trains.isEmpty) return 0;
+
+    int closestIndex = 0;
+    Duration minDiff = const Duration(days: 99);
+    final targetTime = widget.datetime;
+
+    for (int i = 0; i < trains.length; i++) {
+      final timeStr = trains[i]['DepartureTime']?.toString() ?? '';
+      try {
+        final parts = timeStr.split(':');
+        if (parts.length == 2) {
+          final hour = int.tryParse(parts[0]) ?? 0;
+          final minute = int.tryParse(parts[1]) ?? 0;
+
+          final parsedTime = DateTime(
+            targetTime.year,
+            targetTime.month,
+            targetTime.day,
+            hour,
+            minute,
+          );
+
+          final diff = parsedTime.difference(targetTime).abs();
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIndex = i;
+          }
+        }
+      } catch (_) {}
     }
+
+    return closestIndex;
   }
 
-  IconData _getTrainTypeIcon(String trainType) {
+  Widget _buildBoardHeader(List<dynamic> north, List<dynamic> south) {
+    final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
-    if (trainType.contains(l10n.text_877) ||
-        trainType.contains(l10n.text_878) ||
-        trainType.contains(l10n.text_879)) {
-      return Icons.directions_railway_filled_rounded;
-    } else if (trainType.contains(l10n.text_882)) {
-      return Icons.train_rounded;
-    } else if (trainType.contains(l10n.text_883) ||
-        trainType.contains(l10n.text_884)) {
-      return Icons.directions_subway_rounded;
-    } else {
-      return Icons.directions_transit_rounded;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Icon(Icons.train_rounded, size: 20, color: colors.success),
+              const SizedBox(width: 8),
+              Text(
+                l10n.departureBoard,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: colors.mutedBackground,
+                  borderRadius: AppRadius.roundedSm,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: colors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.liveSync,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.success,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: colors.mutedBackground,
+            borderRadius: AppRadius.roundedLg,
+          ),
+          child: TabBar(
+            // 🌟 點擊北上/南下切換時，自動帶動畫定位
+            onTap: (index) {
+              _scrollToClosest(isNorth: index == 0, delayMs: 200);
+            },
+            indicator: BoxDecoration(
+              color: colors.cardBackground,
+              borderRadius: AppRadius.roundedMd,
+              boxShadow: [
+                BoxShadow(
+                  color: colors.shadow,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                )
+              ],
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            dividerColor: Colors.transparent,
+            labelColor: colors.info,
+            unselectedLabelColor: colors.textSecondary,
+            labelStyle: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14),
+            unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500, fontSize: 14),
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.arrow_upward, size: 16),
+                    const SizedBox(width: 4),
+                    Text(l10n.northboundTrains(north.length)),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.arrow_downward, size: 16),
+                    const SizedBox(width: 4),
+                    Text(l10n.southboundTrains(south.length)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildTrainList(List<dynamic> trains,
+      ItemScrollController scrollController, bool isNorth) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+
+    if (trains.isEmpty) {
+      return Center(
+        child: Text(
+          isNorth ? l10n.noNorthboundTrains : l10n.noSouthboundTrains,
+          style: TextStyle(color: colors.textSecondary),
+        ),
+      );
     }
+
+    return ScrollablePositionedList.builder(
+      itemScrollController: scrollController,
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: trains.length,
+      itemBuilder: (context, index) {
+        return _buildTrainCard(trains[index], index);
+      },
+    );
+  }
+
+  Widget _buildTrainCard(dynamic train, int index) {
+    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context)!;
+    final isEnglish = Localizations
+        .localeOf(context)
+        .languageCode == 'en';
+
+    final trainNo = (train['TrainNo'])?.toString() ?? l10n.text_321;
+    final trainTypeName = _localizedRailName(
+      train['TrainTypeName'],
+      isEnglish: isEnglish,
+    );
+    final trainType = isEnglish ? trainTypeName : convertTrainType(
+        trainTypeName);
+    final departureTime = _formatTime(train['DepartureTime'] ?? l10n.text_321);
+    final delayTime = train['DelayTime'];
+    var endingStation = _localizedRailName(
+      train['EndingStationName'],
+      isEnglish: isEnglish,
+    );
+    if (endingStation.isEmpty) endingStation = l10n.text_321;
+
+    final isDelayed = delayTime != null && delayTime > 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            final trainNoInt = _parseTrainNoDigits(trainNo);
+            if (trainNoInt == null) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(l10n.invalidTrainNo(trainNo)),
+                backgroundColor: colors.danger,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ));
+              return;
+            }
+            if (!context.mounted) return;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    TrainSchedulePage(
+                      type: 'trainNo',
+                      time: widget.datetime,
+                      trainNo: trainNoInt,
+                    ),
+              ),
+            );
+          },
+          borderRadius: AppRadius.roundedXl,
+          splashColor: colors.info.withOpacity(0.1),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: SurfaceDecoration.cardShadow(context, radius: 20),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  departureTime,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: isDelayed ? colors.danger : colors.textPrimary,
+                    letterSpacing: -1.0,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: colors.textPrimary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              trainType,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: colors.cardBackground,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            trainNo,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: colors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        l10n.toStation(endingStation),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isDelayed ? colors.danger : colors.success,
+                        borderRadius: AppRadius.roundedMd,
+                      ),
+                      child: Text(
+                        isDelayed
+                            ? l10n.delayMinutes(delayTime)
+                            : l10n.onTime,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: colors.cardBackground,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   String _formatTime(String time) {
     try {
       final parsedTime = DateTime.parse('1970-01-01 $time');
-      return DateFormat('hh:mm a').format(parsedTime);
+      return DateFormat('HH:mm').format(parsedTime);
     } catch (e) {
       return time;
     }
   }
 }
-
-// ─────────────────────────────────────────────────────
 // RoutePage（路線結果）
 // ─────────────────────────────────────────────────────
 
@@ -2643,15 +2703,11 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   Future<Map<String, dynamic>> queryTrainList() async {
-    final weekday = widget.date.weekday % 7;
-    final url = 'http://hidden.rsmn574.com:3920/api/train'
-        '?from=${widget.departure["StationID"]}'
-        '&to=${widget.destination["StationID"]}'
-        '&day=$weekday';
-    final res =
-    await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
-    if (res.statusCode != 200) throw Exception('API ${res.statusCode}');
-    return jsonDecode(res.body);
+    return context.read<RailwayProvider>().traOdTimetable(
+          fromStationId: '${widget.departure["StationID"]}',
+          toStationId: '${widget.destination["StationID"]}',
+          date: widget.date,
+        );
   }
 
   int _timeToMinutes(String? hhmm) => _timeToMinutesSafe(hhmm);
