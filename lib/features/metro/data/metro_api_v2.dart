@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../../config/app_config.dart';
+
 enum MetroErrorKind { timeout, network, server, format }
 
 /// 資料層只回報錯誤「種類」，不含任何顯示文字，文字由 UI 依語系決定。
@@ -29,7 +31,7 @@ class MetroApiV2 {
   MetroApiV2({http.Client? client, String? baseUrl})
       : _client = client ?? http.Client(),
         _base = Uri.parse(baseUrl ??
-            const String.fromEnvironment('METRO_API_BASE', defaultValue: 'http://hidden.rsmn574.com:3920'));
+            const String.fromEnvironment('METRO_API_BASE', defaultValue: AppConfig.serviceUrl));
 
   final http.Client _client;
   final Uri _base;

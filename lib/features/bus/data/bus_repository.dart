@@ -214,7 +214,7 @@ class BusRepository {
     required String languageCode,
   }) {
     return _stations.searchStopNames(
-      cityId: cityId,
+      city: cityId,
       keyword: keyword,
       languageCode: languageCode,
     );

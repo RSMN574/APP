@@ -277,46 +277,7 @@ Future<List<BusRoute>> getBusRoute({
   }
 }
 
-Future<List<Map<String, dynamic>>> getBusStop(
-    {required String city, required String input}) async {
-  try {
-    final safeCity = _validatedBusCity(city);
-    String query;
-    List<dynamic> parameters = [];
 
-// 選擇基礎資料表
-    if (city == 'all') {
-      query = ("SELECT StationName FROM Bus.Bus_${safeCity}_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
-      parameters.add('%$input%');
-    } else if (city == 'InterCity') {
-      query = ("SELECT StationName FROM Bus.Bus_InterCity_Route_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
-      parameters.add('%$input%');
-    } else {
-      query = ("SELECT StationName FROM Bus.Bus_${safeCity}_Stop "
-          "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) LIKE ?");
-      parameters.add('%$input%');
-    }
-
-    final result = await executeQueryWithRetry(query, params: parameters);
-
-    return result.rows.map<Map<String, dynamic>>((row) => row.assoc()).toList();
-  } catch (e, stack) {
-    debugPrint('GetBus error: $e');
-    debugPrintStack(stackTrace: stack);
-
-    Fluttertoast.showToast(
-      msg: "獲取公車資料失敗，請稍後再試",
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.red,
-      textColor: Colors.white,
-    );
-
-    return [];
-  }
-}
 
 Future<IResultSet> executeQueryWithRetry(
   String query, {
@@ -400,7 +361,7 @@ Future<List<Map<String, dynamic>>> GetBusStopInfo({
 
   final safeCity = _validatedBusCity(city);
   final query =
-      "SELECT StationID,StationPosition FROM Bus.Bus_${safeCity}_Stop "
+      "SELECT StationID, StationPosition FROM Bus.bus_station "
       "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) = ?";
   List<Map<String, dynamic>> stopInfo = [];
 

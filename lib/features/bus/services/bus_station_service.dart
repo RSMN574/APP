@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:com.rsmn574.app/database/get_data.dart';
 
+import '../../../core/utils/convert.dart';
 import 'bus_route_service.dart';
 
 /// 站牌資料服務（MySQL / 後端）。
@@ -12,22 +13,40 @@ class BusStationService {
 
   /// 站牌名稱搜尋：表名白名單 + LIKE 轉義（在 mysqlSelect 尚未支援參數化前的緩解）。
   Future<List<String>> searchStopNames({
-    required String cityId,
+    required String city,
     required String keyword,
     required String languageCode,
   }) async {
-    if (keyword.isEmpty || !BusRouteService.allowedCityIds.contains(cityId)) {
+    if (keyword.isEmpty || !BusRouteService.allowedCityIds.contains(city)) {
       return const [];
     }
 
-    final jsonPath = languageCode == 'en' ? r'$.En' : r'$.Zh_tw';
-    final escaped = _escapeLikeInput(keyword);
 
-    final rawData = await mysqlSelect(
-      "SELECT StationName FROM Bus.Bus_${cityId}_Stop "
-      "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '$jsonPath')) "
-      "LIKE '%$escaped%'",
-    );
+    final escaped = _escapeLikeInput(keyword);
+// 1. city 轉小寫
+    final cityLower = city.toLowerCase();
+
+// 2. 從 kCityAuthorityCodes() 取得對應的 LocationCityCode
+//    假設 kCityAuthorityCodes() 回傳 Map<String, List<String>> 或 Map<String, String>
+    final cityCode = kCityAuthorityCodes[cityLower];
+    final rawData;
+    print(city);
+if(city=="InterCity"){
+  rawData = await mysqlSelect(
+    "SELECT * FROM Bus.Bus_InterCity_Station "
+        "WHERE JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) "
+        "LIKE '%$escaped%'",
+  );
+}else{
+  // 3. 套進 LocationCityCode 做搜尋
+  rawData = await mysqlSelect(
+    "SELECT StationName FROM Bus.bus_station "
+        "WHERE LocationCityCode='$cityCode' "
+        "AND JSON_UNQUOTE(JSON_EXTRACT(StationName, '\$.Zh_tw')) "
+        "LIKE '%$escaped%'",
+  );
+
+}
 
     return _collectStopNames(rawData, keyword, languageCode);
   }

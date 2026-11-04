@@ -34,7 +34,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.stationNames);
+
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     List<String> stationNames = widget.stationNames.map((stop) {
       final preferred = stop[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
@@ -42,7 +42,7 @@ class _StationSelectionDialogState extends State<StationSelectionDialog> {
       return stop[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
     }).toList();
     stations = stationNames;
-    print(stationNames);
+
 
     return AlertDialog(
       title: Text(AppLocalizations.of(context)!.text_925),

@@ -665,6 +665,43 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
       ) async {
     final result = <Map<String, dynamic>>[];
 
+    // 解析 estimatesJson：支援 List / Map / 合法 JSON / 伪 JSON
+    List<Map<String, dynamic>> parseEstimates(dynamic raw) {
+      if (raw is List) {
+        return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+      if (raw is Map) return [Map<String, dynamic>.from(raw)];
+      if (raw is String) {
+        final s = raw.trim();
+        if (s.isEmpty) return [];
+        try {
+          final d = json.decode(s);
+          if (d is List) {
+            return d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+          }
+        } catch (_) {}
+        // 宽鬆解析伪 JSON：{PlateNumb: 739-U5, EstimateTime: 60, ...}
+        final out = <Map<String, dynamic>>[];
+        final itemReg = RegExp(r'\{([^{}]*)\}');
+        final kvReg = RegExp(r'(\w+)\s*:\s*([^,}]+)');
+        for (final m in itemReg.allMatches(s)) {
+          final map = <String, dynamic>{};
+          for (final kv in kvReg.allMatches(m.group(1)!)) {
+            final k = kv.group(1)!.trim();
+            final v = kv.group(2)!.trim();
+            map[k] = v == 'null'
+                ? null
+                : (v == 'true'
+                ? true
+                : (v == 'false' ? false : (num.tryParse(v) ?? v)));
+          }
+          if (map.isNotEmpty) out.add(map);
+        }
+        return out;
+      }
+      return [];
+    }
+
     Map<String, dynamic>? targetRouteStop;
     for (final item in routeStopsData) {
       final d = item['Direction'];
@@ -696,16 +733,18 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     final isEnglish = _isEnglishLocale(context);
     final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
-    String lastPlate = '';
+
+    // 預格式化每個站台的 arrival
+    final Map<String, dynamic> stopArrivals = {};
+    // PlateNumb -> (該車最快到達的 stopUID, 最小 EstimateTime 秒)
+    final Map<String, MapEntry<String, num>> bestByPlate = {};
 
     for (final stop in stopData) {
-      final stopName = _localizedBusText(stop["StopName"], isEnglish: false);
-      final displayStopName =
-      _localizedBusText(stop["StopName"], isEnglish: isEnglish);
-      final stopUID = stop["StopUID"] ?? '';
+      final stopUID = stop["StopUID"]?.toString() ?? '';
+      if (stopUID.isEmpty) continue;
 
       final match = dirBusTimeData.firstWhere(
-            (s) => s['StopUID'] == stopUID,
+            (s) => s['StopUID']?.toString() == stopUID,
         orElse: () => null,
       );
       final arrival = BusStopTimeFormatter.format(
@@ -713,6 +752,29 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
         l10n: l10n,
         now: now,
       );
+      stopArrivals[stopUID] = arrival;
+
+      for (final e in parseEstimates(arrival.estimatesJson)) {
+        final plate = e['PlateNumb']?.toString().trim() ?? '';
+        final sec = num.tryParse(e['EstimateTime']?.toString() ?? '');
+        if (plate.isEmpty || sec == null || sec < 0) continue;
+
+        final prev = bestByPlate[plate];
+        if (prev == null || sec < prev.value) {
+          bestByPlate[plate] = MapEntry(stopUID, sec);
+        }
+      }
+    }
+
+    // 輸出，只在「該車最靠站的站台」且 < 180 秒時顯示車牌
+    for (final stop in stopData) {
+      final stopName = _localizedBusText(stop["StopName"], isEnglish: false);
+      final displayStopName =
+      _localizedBusText(stop["StopName"], isEnglish: isEnglish);
+      final stopUID = stop["StopUID"]?.toString() ?? '';
+
+      final arrival = stopArrivals[stopUID];
+      if (arrival == null) continue;
 
       bool isHighlighted = false;
       final mark = widget.mark;
@@ -721,10 +783,15 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
       }
 
       String displayPlate = '';
-      if (arrival.plateNumb.isNotEmpty && arrival.plateNumb != lastPlate) {
-        lastPlate = arrival.plateNumb;
-        displayPlate = arrival.plateNumb;
-      }
+      num? bestSec;
+      bestByPlate.forEach((plate, entry) {
+        if (entry.key == stopUID && entry.value < 180) {
+          if (bestSec == null || entry.value < bestSec!) {
+            bestSec = entry.value;
+            displayPlate = plate;
+          }
+        }
+      });
 
       result.add({
         "stopName": stopName,

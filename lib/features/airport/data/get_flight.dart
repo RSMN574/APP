@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
+import '../../../config/app_config.dart';
 import '../model/airport_model.dart';
 
 //取得指定[國內機場]氣象資訊觀測資料
@@ -118,12 +119,11 @@ Future<List<dynamic>> getFlight(String airlineId, String flightNumber) async {
 }
 
 class AirportService {
-  static const String apiUrl =
-      "http://hidden.rsmn574.com:3920/api/airports";
+
 
   /// 取得所有機場（key 為 IATA 代碼）
   static Future<Map<String, AirportData>> loadAllAirports() async {
-    final response = await http.get(Uri.parse(apiUrl));
+    final response = await http.get(  Uri.parse("${AppConfig.serviceUrl}/api/airports"));
 
     if (response.statusCode != 200) {
       throw Exception("Failed to load airport data");

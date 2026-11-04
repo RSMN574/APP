@@ -407,17 +407,20 @@ String direction,
 ) async {
 try {
 await connMysql();
+final uri;
 
-final uri = Uri.https(
-_tdxHost,
-'/api/basic/v2/Bus/EstimatedTimeOfArrival/'
-'${_busScope(city)}/${routeName.trim()}',
-<String, String>{
-r'$filter':
-"StopID eq '${_odataString(stopID)}' and Direction eq $direction",
-r'$format': 'JSON',
-},
-);
+  uri = Uri.https(
+    _tdxHost,
+    '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
+        '${_busScope(city)}/${routeName.trim()}',
+    <String, String>{
+      r'$filter':
+      "StopID eq '${_odataString(stopID)}' and Direction eq $direction",
+      r'$format': 'JSON',
+    },
+  );
+
+
 
 final response = await TdxApiClient()
     .getRaw(

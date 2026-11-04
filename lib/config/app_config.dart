@@ -14,6 +14,7 @@ class AppConfig {
   );
   static const weatherApiKey = String.fromEnvironment('WEATHER_API_KEY');
   static const placesApiKey = String.fromEnvironment('PLACES_API_KEY');
+  static const serviceUrl = String.fromEnvironment('SERVICE_URL');
 
   static void requireDatabaseConfig() {
     _require('DATABASE_HOST', databaseHost);

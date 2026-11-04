@@ -5,6 +5,7 @@ import 'package:com.rsmn574.app/database/sql/app_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import '../config/app_config.dart';
 import '../features/bus/model/bus_route_model.dart';
 import 'meta_db.dart';
 
@@ -12,7 +13,7 @@ class BootstrapService {
   BootstrapService._();
   static final BootstrapService instance = BootstrapService._();
 
-  static const _baseUrl = 'http://hidden.rsmn574.com:3920';
+  static const _baseUrl = AppConfig.serviceUrl;
   static const _etagKey = 'bootstrap_etag';
   static const _timeout = Duration(seconds: 20);
 

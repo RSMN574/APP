@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
 
+import '../../../../config/app_config.dart';
 import '../common/railway_date_utils.dart';
 import 'tra_liveboard_service.dart';
 
@@ -98,14 +99,13 @@ class TraScheduleService {
     required DateTime date,
   }) async {
     final weekday = date.weekday % 7;
-    final url = 'http://hidden.rsmn574.com:3920/api/train'
-        '?from=$fromStationId'
-        '&to=$toStationId'
-        '&day=$weekday';
-    final res =
-        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
-    if (res.statusCode != 200) throw Exception('API ${res.statusCode}');
-    return jsonDecode(res.body);
+    final response = await http.get(
+      Uri.parse(
+        "${AppConfig.serviceUrl}/api/train?from=$fromStationId&to=$toStationId&day=$weekday",
+      ),
+    ).timeout(const Duration(seconds: 20));
+    if (response.statusCode != 200) throw Exception('API ${response.statusCode}');
+    return jsonDecode(response.body);
   }
 
   /// MaaS 轉乘路線規劃（起訖座標 / 名稱 + 出發時間）。

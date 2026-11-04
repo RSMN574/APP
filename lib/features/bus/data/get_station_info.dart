@@ -13,8 +13,17 @@ Future<List<Map<String, dynamic>>> fetchStationInfo(
     // Generate all requests for each station ID
     List<Future<List<Map<String, dynamic>>>> requests =
         stationIds.map((stationId) async {
-      final String url =
-          "https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/City/$city/PassThrough/Station/$stationId?\$t&\$format=JSON";
+          final String url;
+          if (city == 'InterCity') {
+            // InterCity
+            url= 'https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/InterCity/PassThrough/Station/$stationId\$t&\$format=JSON'
+                '?\$&\$format=JSON';
+          }else{
+            url =
+            "https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/City/$city/PassThrough/Station/$stationId?\$t&\$format=JSON";
+
+          }
+          print(stationId);
 
       // Fetch data for the specific station ID
       final response = await TdxApiClient().getRaw(

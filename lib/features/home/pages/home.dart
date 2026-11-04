@@ -26,8 +26,11 @@ class Home extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => BikeProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => BikeProvider()),
+        ChangeNotifierProvider(create: (_) => MarkerProvider()), // ← Home 專屬
+      ],
       child: const _HomeContent(),
     );
   }
