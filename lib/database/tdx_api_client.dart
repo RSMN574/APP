@@ -38,27 +38,27 @@ class TdxApiClient {
   final Duration _timeout;
 
   Future<dynamic> get(
-    String path, {
-    Map<String, String>? queryParams,
-    Future<void>? abortTrigger,
-  }) async {
+      String path, {
+        Map<String, String>? queryParams,
+        Future<void>? abortTrigger,
+      }) async {
     final uri = Uri.https(_baseUrl, path, queryParams);
     final response = await getResponse(uri, abortTrigger: abortTrigger);
     return jsonDecode(response.body);
   }
 
   Future<http.Response> getResponse(
-    Uri uri, {
-    Future<void>? abortTrigger,
-  }) {
+      Uri uri, {
+        Future<void>? abortTrigger,
+      }) {
     return getRaw(uri, abortTrigger: abortTrigger);
   }
 
   Future<http.Response> getRaw(
-    Uri uri, {
-    Map<String, String>? headers,
-    Future<void>? abortTrigger,
-  }) async {
+      Uri uri, {
+        Map<String, String>? headers,
+        Future<void>? abortTrigger,
+      }) async {
     if (uri.scheme != 'https' || uri.host != _baseUrl) {
       throw ArgumentError.value(uri, 'uri', 'A secure TDX API URI is required');
     }
@@ -79,7 +79,7 @@ class TdxApiClient {
                 if (entry.key.toLowerCase() != 'authorization' &&
                     entry.key.toLowerCase() != 'accept')
                   entry.key: entry.value,
-            'Authorization': 'Bearer $token',
+            HttpHeaders.authorizationHeader: 'Bearer $token',
             'accept': 'application/json',
           });
         final response = await _send(
@@ -109,12 +109,12 @@ class TdxApiClient {
   }
 
   Future<http.Response> _send(
-    http.Client client,
-    http.Request request, {
-    Future<void>? abortTrigger,
-  }) async {
+      http.Client client,
+      http.Request request, {
+        Future<void>? abortTrigger,
+      }) async {
     final responseFuture =
-        client.send(request).then<http.Response>(http.Response.fromStream);
+    client.send(request).then<http.Response>(http.Response.fromStream);
     final futures = <Future<http.Response>>[responseFuture];
     if (abortTrigger != null) {
       futures.add(

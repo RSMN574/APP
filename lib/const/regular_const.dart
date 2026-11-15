@@ -127,6 +127,21 @@ class AppThemes {
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
           elevation: isDark ? 0 : 1,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -194,6 +209,7 @@ class AppThemes {
         iconColor: colorScheme.onSurfaceVariant,
         textColor: colorScheme.onSurface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        minVerticalPadding: 8,
       ),
       dividerTheme: DividerThemeData(
         color: colorScheme.outlineVariant,

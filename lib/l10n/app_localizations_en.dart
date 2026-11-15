@@ -3537,4 +3537,148 @@ class AppLocalizationsEn extends AppLocalizations {
   String delayMinutes(int minutes) {
     return 'Delay $minutes min';
   }
+
+  @override
+  String get transitAlertCenterTitle => 'Transit Alerts';
+
+  @override
+  String get transitAlertRefreshTooltip => 'Refresh alerts';
+
+  @override
+  String get transitAlertViewAll => 'View all';
+
+  @override
+  String get transitAlertNoNew => 'No new alerts';
+
+  @override
+  String transitAlertCount(int count) {
+    return '$count new alerts';
+  }
+
+  @override
+  String transitAlertCountSuffix(int count) {
+    return '$count alerts';
+  }
+
+  @override
+  String get transitAlertLoading => 'Loading alerts...';
+
+  @override
+  String get transitAlertEmptyTitle => 'No alerts';
+
+  @override
+  String get transitAlertEmptyMessage =>
+      'No transit alerts are available yet; alert sources are not connected.';
+
+  @override
+  String get transitAlertPartialSourceError =>
+      'Some alert sources are temporarily unavailable; available data is still shown.';
+
+  @override
+  String transitAlertLastUpdated(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String get transitAlertAllTitle => 'All Transit Alerts';
+
+  @override
+  String get transitAlertDetailImpact => 'Impact';
+
+  @override
+  String get transitAlertDetailLocation => 'Location';
+
+  @override
+  String get transitAlertDetailSource => 'Source';
+
+  @override
+  String get transitAlertDetailPublishedAt => 'Published at';
+
+  @override
+  String get transitAlertDetailUpdatedAt => 'Last updated';
+
+  @override
+  String get transitAlertViewOriginal => 'View original';
+
+  @override
+  String get transitAlertClose => 'Close';
+
+  @override
+  String get transitAlertOpenLinkFailed =>
+      'Unable to open the original alert link';
+
+  @override
+  String get transitAlertUnknown => 'Unknown';
+
+  @override
+  String get transitAlertNotProvided => 'Not provided';
+
+  @override
+  String get transitAlertFilterAll => 'All';
+
+  @override
+  String get transportBus => 'Bus';
+
+  @override
+  String get transportMetro => 'Metro';
+
+  @override
+  String get transportTra => 'TRA';
+
+  @override
+  String get transportThsr => 'HSR';
+
+  @override
+  String get transportAviation => 'Aviation';
+
+  @override
+  String get transportYoubike => 'YouBike';
+
+  @override
+  String get transportOther => 'Other';
+
+  @override
+  String get alertTypeServiceDisruption => 'Service disruption';
+
+  @override
+  String get alertTypeRouteDetour => 'Route detour';
+
+  @override
+  String get alertTypeSuspension => 'Suspension';
+
+  @override
+  String get alertTypeDelay => 'Delay';
+
+  @override
+  String get alertTypeScheduleChange => 'Schedule change';
+
+  @override
+  String get alertTypeStationNotice => 'Station notice';
+
+  @override
+  String get alertTypeFacilityNotice => 'Facility issue';
+
+  @override
+  String get alertTypeWeatherImpact => 'Weather impact';
+
+  @override
+  String get alertTypeGeneralNotice => 'General notice';
+
+  @override
+  String get alertSeverityInfo => 'Info';
+
+  @override
+  String get alertSeverityMinor => 'Minor';
+
+  @override
+  String get alertSeverityModerate => 'Moderate';
+
+  @override
+  String get alertSeverityMajor => 'Major';
+
+  @override
+  String get alertSeverityCritical => 'Critical';
+
+  @override
+  String get alertSeverityUnknown => 'Unknown';
 }

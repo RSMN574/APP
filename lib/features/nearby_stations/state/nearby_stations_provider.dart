@@ -83,6 +83,7 @@ class NearbyStationsProvider extends ChangeNotifier {
     return _track(_metro.get(
       _key(latitude, longitude),
       () => _repository.fetchNearbyMetroStations(
+
         latitude: latitude,
         longitude: longitude,
       ),

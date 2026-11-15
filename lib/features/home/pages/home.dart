@@ -13,7 +13,9 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/bike.dart';
 import '../../youbike/state/bike_provider.dart';
 import '../../youbike/widgets/bike_default_content.dart';
+import '../../transit_alerts/state/transit_alert_provider.dart';
 
+import '../../youbike/widgets/bike_prediction_card.dart';
 import '../widgets/home_bottom_sheet.dart';
 import '../widgets/home_map.dart';
 
@@ -30,6 +32,7 @@ class Home extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => BikeProvider()),
         ChangeNotifierProvider(create: (_) => MarkerProvider()), // ← Home 專屬
+        ChangeNotifierProvider(create: (_) => TransitAlertProvider()),
       ],
       child: const _HomeContent(),
     );
@@ -659,7 +662,13 @@ class _HomeState extends State<_HomeContent> with AutomaticKeepAliveClientMixin 
             ],
           ),
         ),
+        const SizedBox(height: 16),
+
+        // ─── 到站預測（新增）───
+        BikePredictionCard(stationUID: station.stationUID),
+
         const SizedBox(height: 24),
+
 
         // 周邊其他站點
         if (nearbyStations.isNotEmpty) ...[

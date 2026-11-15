@@ -4,6 +4,16 @@ import 'package:flutter/material.dart';
 /// 交通路線色、品牌識別色、地圖標記色等具固定語意的顏色不放在此處。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
+  static const Color primaryBlue = Color(0xFF1A73E8);
+  static const Color successGreen = Color(0xFF34C759);
+  static const Color warningOrange = Color(0xFFFF9500);
+  static const Color errorRed = Color(0xFFFF3B30);
+  static const Color purple = Color(0xFFAF52DE);
+  static const Color backgroundLight = Color(0xFFF8FAFD);
+  static const Color surfaceColor = Color(0xFFEEF3FB);
+  static const Color textPrimaryColor = Color(0xFF2D3748);
+  static const Color textSecondaryColor = Color(0xFF718096);
+
   const AppColors({
     required this.cardBackground,
     required this.mutedBackground,
@@ -138,10 +148,10 @@ class AppColors extends ThemeExtension<AppColors> {
       scrim: Color.lerp(scrim, other.scrim, t)!,
       success: Color.lerp(success, other.success, t)!,
       successContainer:
-      Color.lerp(successContainer, other.successContainer, t)!,
+          Color.lerp(successContainer, other.successContainer, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       warningContainer:
-      Color.lerp(warningContainer, other.warningContainer, t)!,
+          Color.lerp(warningContainer, other.warningContainer, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
       info: Color.lerp(info, other.info, t)!,
@@ -153,7 +163,7 @@ class AppColors extends ThemeExtension<AppColors> {
 extension AppColorsContext on BuildContext {
   AppColors get appColors =>
       Theme.of(this).extension<AppColors>() ??
-          (Theme.of(this).brightness == Brightness.dark
-              ? AppColors.dark
-              : AppColors.light);
+      (Theme.of(this).brightness == Brightness.dark
+          ? AppColors.dark
+          : AppColors.light);
 }

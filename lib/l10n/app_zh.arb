@@ -1247,7 +1247,66 @@
   "delayMinutes": "延遲 {minutes} 分",
   "@delayMinutes": {
     "placeholders": { "minutes": { "type": "int" } }
+  },
+
+    "transitAlertCenterTitle": "交通公告中心",
+    "transitAlertRefreshTooltip": "重新整理公告",
+    "transitAlertViewAll": "查看全部",
+    "transitAlertNoNew": "目前無新公告",
+    "transitAlertCount": "{count} 則最新公告",
+    "@transitAlertCount": {
+      "placeholders": { "count": { "type": "int" } }
+    },
+    "transitAlertCountSuffix": "{count} 則",
+    "@transitAlertCountSuffix": {
+      "placeholders": { "count": { "type": "int" } }
+    },
+    "transitAlertLoading": "載入公告中...",
+    "transitAlertEmptyTitle": "暫無公告",
+    "transitAlertEmptyMessage": "目前尚無可顯示的交通公告；公告來源尚未串接",
+    "transitAlertPartialSourceError": "部分公告來源暫時無法取得，將保留可用資料",
+    "transitAlertLastUpdated": "資料更新 {time}",
+    "@transitAlertLastUpdated": {
+      "placeholders": { "time": { "type": "String" } }
+    },
+    "transitAlertAllTitle": "全部交通公告",
+    "transitAlertDetailImpact": "影響範圍",
+    "transitAlertDetailLocation": "地點",
+    "transitAlertDetailSource": "來源",
+    "transitAlertDetailPublishedAt": "發布時間",
+    "transitAlertDetailUpdatedAt": "最後更新",
+    "transitAlertViewOriginal": "查看原始公告",
+    "transitAlertClose": "關閉",
+    "transitAlertOpenLinkFailed": "無法開啟原始公告連結",
+    "transitAlertUnknown": "未知",
+    "transitAlertNotProvided": "未提供",
+    "transitAlertFilterAll": "全部",
+
+    "transportBus": "公車",
+    "transportMetro": "捷運",
+    "transportTra": "台鐵",
+    "transportThsr": "高鐵",
+    "transportAviation": "航空",
+    "transportYoubike": "YouBike",
+    "transportOther": "其他",
+
+    "alertTypeServiceDisruption": "營運異常",
+    "alertTypeRouteDetour": "路線改道",
+    "alertTypeSuspension": "停駛或停運",
+    "alertTypeDelay": "延誤",
+    "alertTypeScheduleChange": "班次異動",
+    "alertTypeStationNotice": "車站公告",
+    "alertTypeFacilityNotice": "設施異常",
+    "alertTypeWeatherImpact": "天候影響",
+    "alertTypeGeneralNotice": "一般公告",
+
+    "alertSeverityInfo": "資訊",
+    "alertSeverityMinor": "輕微",
+    "alertSeverityModerate": "中度",
+    "alertSeverityMajor": "重大",
+    "alertSeverityCritical": "緊急",
+    "alertSeverityUnknown": "未知"
   }
 
 
-}
+

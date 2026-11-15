@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import '../const/regular_class.dart';
-import '../l10n/app_localizations.dart';
 
 class map extends StatefulWidget {
   final Set<Marker>? markers;
@@ -44,17 +43,14 @@ class map extends StatefulWidget {
   State<map> createState() => _MapWidgetState();
 }
 
-class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
+class _MapWidgetState extends State<map>
+    with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   @override
   bool get wantKeepAlive => true;
 
   GoogleMapController? _mapController;
-  Timer? _locationTimer;
   bool _isMapReady = false;
-
-  // 使用快取避免頻繁重建
-  Set<Marker>? _cachedMarkers;
-  Set<Polyline>? _cachedPolylines;
+  bool _locationPermissionGranted = false;
 
   static const LatLng _defaultPosition = LatLng(25.0330, 121.5654);
   static const CameraPosition _initialCameraPosition = CameraPosition(
@@ -67,7 +63,6 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
 
   // 防抖用的 Timer
   Timer? _cameraMoveTimer;
-  CameraPosition? _lastCameraPosition;
 
   final String _mapStyle = '''
 [
@@ -105,7 +100,15 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _getCurrentLocation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _getCurrentLocation();
+    }
   }
 
   @override
@@ -151,10 +154,30 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
   }
 
   Future<void> _getCurrentLocation() async {
+    if (!widget.myLocationEnabled) return;
+
     try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        if (mounted) setState(() => _locationPermissionGranted = false);
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _locationPermissionGranted = false);
+        return;
+      }
+
+      if (mounted) {
+        setState(() => _locationPermissionGranted = true);
+      }
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
+          accuracy: LocationAccuracy.medium,
           timeLimit: Duration(seconds: 5),
         ),
       );
@@ -169,15 +192,15 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
         );
         _hasAnimatedToCurrent = true;
       }
+    } on TimeoutException {
+      debugPrint('Location request timed out');
     } catch (e) {
-      debugPrint(AppLocalizations.of(context)!.text_923);
+      debugPrint('Location unavailable: $e');
     }
   }
 
   /// 處理相機移動（加入防抖）
   void _onCameraMove(CameraPosition position) {
-    _lastCameraPosition = position;
-
     // 防抖：避免頻繁觸發
     if (_cameraMoveTimer?.isActive ?? false) {
       _cameraMoveTimer?.cancel();
@@ -220,14 +243,17 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
         compassEnabled: widget.compassEnabled,
         trafficEnabled: widget.trafficEnabled,
         indoorViewEnabled: widget.indoorViewEnabled,
+        style: _mapStyle,
 
         // 地圖元素
         markers: markers,
         polylines: polylines,
         clusterManagers: widget.clusterManagers ?? const {},
         // 定位功能
-        myLocationEnabled: widget.myLocationEnabled,
-        myLocationButtonEnabled: widget.myLocationEnabled,
+        myLocationEnabled:
+            widget.myLocationEnabled && _locationPermissionGranted,
+        myLocationButtonEnabled:
+            widget.myLocationEnabled && _locationPermissionGranted,
 
         // 手勢識別
         gestureRecognizers: {
@@ -240,7 +266,6 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
         onMapCreated: (controller) {
           if (!_isMapReady) {
             _mapController = controller;
-            controller.setMapStyle(_mapStyle);
             _isMapReady = true;
             widget.onMapCreated?.call(controller);
 
@@ -259,8 +284,8 @@ class _MapWidgetState extends State<map> with AutomaticKeepAliveClientMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _cameraMoveTimer?.cancel();
-    _locationTimer?.cancel();
     _mapController?.dispose();
     super.dispose();
   }

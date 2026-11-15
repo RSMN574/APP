@@ -53,10 +53,25 @@ android {
         versionName = flutterVersionName
     }
 
+    def releaseKeyPropertiesFile = rootProject.file("key.properties")
+    if (!releaseKeyPropertiesFile.exists()) {
+        throw new GradleException("Missing android/key.properties for release signing")
+    }
+    def releaseKeyProperties = new Properties()
+    releaseKeyProperties.load(new FileInputStream(releaseKeyPropertiesFile))
+
+    signingConfigs {
+        release {
+            keyAlias releaseKeyProperties['keyAlias']
+            keyPassword releaseKeyProperties['keyPassword']
+            storeFile file(releaseKeyProperties['storeFile'])
+            storePassword releaseKeyProperties['storePassword']
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
-            // ✅ 開啟混淆（可選）
+            signingConfig = signingConfigs.release
             minifyEnabled true
             shrinkResources true
 

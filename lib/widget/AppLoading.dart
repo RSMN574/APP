@@ -14,16 +14,25 @@ class AppLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     // 未指定顏色時，預設在深色模式顯示白色，淺色模式顯示黑色
-    final effectiveColor = color ?? (isDark ? Colors.white : Colors.black);
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
     return Center(
-      child: LoadingAnimationWidget.stretchedDots(
-        color: effectiveColor,
-        size: size,
-      ),
+      child: reducedMotion
+          ? SizedBox(
+              width: size,
+              height: size,
+              child: CircularProgressIndicator(
+                color: effectiveColor,
+                strokeWidth: 3,
+              ),
+            )
+          : LoadingAnimationWidget.stretchedDots(
+              color: effectiveColor,
+              size: size,
+            ),
     );
   }
 }

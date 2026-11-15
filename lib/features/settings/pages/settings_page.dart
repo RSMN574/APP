@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,7 +5,8 @@ import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/features/settings/state/settings_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/auth/widgets/auth_account_section.dart';
-
+import 'package:com.rsmn574.app/features/startup/pages/startup_gate.dart';
+import 'legal_page.dart';
 
 import '../widget/app_update_section.dart';
 
@@ -55,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
       setState(() {
         _selectedLanguageCode =
-        language == 'en' || language == 'english' ? 'en' : 'zh';
+            language == 'en' || language == 'english' ? 'en' : 'zh';
 
         if (info != null) {
           _appVersion = info.version;
@@ -75,6 +75,42 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _languageDisplayName(AppLocalizations l10n) {
     return _selectedLanguageCode == 'en' ? 'English' : l10n.text_72;
+  }
+
+  String _themeModeDisplayName(ThemeMode mode) {
+    return switch (mode) {
+      ThemeMode.light => '淺色模式',
+      ThemeMode.dark => '深色模式',
+      ThemeMode.system => '跟隨系統',
+    };
+  }
+
+  Future<void> _showThemeModeDialog(AppProvider appProvider) async {
+    final selected = await showDialog<ThemeMode>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('主題模式'),
+        children: [
+          for (final option in ThemeMode.values)
+            Semantics(
+              selected: appProvider.themeMode == option,
+              button: true,
+              child: ListTile(
+                leading: Icon(
+                  appProvider.themeMode == option
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
+                ),
+                title: Text(_themeModeDisplayName(option)),
+                onTap: () => Navigator.of(context).pop(option),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (selected != null && mounted) {
+      await appProvider.setThemeMode(selected);
+    }
   }
 
   @override
@@ -120,14 +156,17 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             Consumer<AppProvider>(
               builder: (context, appProvider, child) {
-                return SwitchListTile(
-                  secondary: Icon(
-                    Icons.dark_mode_outlined,
+                return ListTile(
+                  leading: Icon(
+                    appProvider.themeMode == ThemeMode.dark
+                        ? Icons.dark_mode_outlined
+                        : Icons.brightness_6_outlined,
                     color: colorScheme.tertiary,
                   ),
                   title: Text(l10n.text_450),
-                  value: appProvider.isDarkTheme,
-                  onChanged: appProvider.toggleTheme,
+                  subtitle: Text(_themeModeDisplayName(appProvider.themeMode)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showThemeModeDialog(appProvider),
                 );
               },
             ),
@@ -148,11 +187,44 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSettingCard([
             ListTile(
               leading: Icon(
+                Icons.explore_outlined,
+                color: colorScheme.primary,
+              ),
+              title: const Text('重新查看導覽'),
+              subtitle: const Text('再次了解台灣通的主要功能'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => OnboardingLauncher.open(context),
+            ),
+            ListTile(
+              leading: Icon(
                 Icons.info_outline,
                 color: colorScheme.primary,
               ),
               title: Text(l10n.text_453),
               onTap: () => _showInfoDialog(context),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.privacy_tip_outlined, color: colorScheme.primary),
+              title: const Text('隱私權政策'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const LegalPage(section: LegalSection.privacy),
+                ),
+              ),
+            ),
+            ListTile(
+              leading:
+                  Icon(Icons.description_outlined, color: colorScheme.primary),
+              title: const Text('服務條款'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const LegalPage(section: LegalSection.terms),
+                ),
+              ),
             ),
             ListTile(
               leading: Icon(
@@ -416,9 +488,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ScaffoldMessenger.of(pageContext).showSnackBar(
                     SnackBar(
                       content: Text(
-                        Localizations.localeOf(pageContext)
-                            .languageCode ==
-                            'en'
+                        Localizations.localeOf(pageContext).languageCode == 'en'
                             ? 'Unable to clear schedules. Please try again.'
                             : '清除行程失敗，請稍後再試。',
                       ),

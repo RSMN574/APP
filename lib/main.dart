@@ -61,6 +61,7 @@ import 'features/home/pages/home.dart';
 import 'features/bus/state/bus_provider.dart';
 import 'package:logging/logging.dart';
 import 'features/metro/state/metro_provider.dart';
+import 'features/startup/pages/startup_gate.dart';
 
 final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('zh'));
@@ -121,7 +122,6 @@ class AppInitializer {
       );
 
       if (firebaseInitialized) {
-
         unawaited(
           FirebaseCrashlytics.instance.recordFlutterFatalError(
             details,
@@ -309,7 +309,7 @@ class _NavigationBarAppState extends State<NavigationBarApp>
             AppRoutes.train: (BuildContext context) => (Train()),
             AppRoutes.metro: (BuildContext context) => ChangeNotifierProvider(
                   create: (_) => MetroProvider(),
-                  child:  Metro(),
+                  child: Metro(),
                 ),
             AppRoutes.bus: (BuildContext context) => (const Bus()),
             AppRoutes.notification: (BuildContext context) =>
@@ -333,12 +333,12 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           },
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,
-          themeMode: appProvider.isDarkTheme ? ThemeMode.dark : ThemeMode.light,
+          themeMode: appProvider.themeMode,
           // --- 重點：套用語言 ---
           locale: appProvider.locale,
 
           // themeMode: ThemeMode.system,
-          home: const TaiwanPass(),
+          home: const StartupGate(home: TaiwanPass()),
         ));
   }
 }
@@ -466,6 +466,7 @@ class _TaiwanPassState extends State<TaiwanPass>
   Widget build(BuildContext context) {
     final cityProvider =
         Provider.of<CityProvider>(context); // 获取 CityProvider 实例
+    final colorScheme = Theme.of(context).colorScheme;
     final regionItems = regions;
     final selectedCity =
         regionItems.any((region) => region.id == cityProvider.city)
@@ -477,10 +478,10 @@ class _TaiwanPassState extends State<TaiwanPass>
         elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.text_220,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: primary,
+            color: colorScheme.primary,
             letterSpacing: -0.5,
           ),
         ),
@@ -489,11 +490,11 @@ class _TaiwanPassState extends State<TaiwanPass>
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: colorScheme.shadow.withValues(alpha: 0.1),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -516,7 +517,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                           AppLocalizations.of(context)!.text_221,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -524,10 +525,10 @@ class _TaiwanPassState extends State<TaiwanPass>
                     ),
                     icon: const Icon(Icons.arrow_drop_down_rounded,
                         size: 22, color: Color(0xFF1A73E8)),
-                    dropdownColor: Colors.white,
+                    dropdownColor: colorScheme.surfaceContainer,
                     elevation: 8,
-                    style: const TextStyle(
-                      color: Colors.black87,
+                    style: TextStyle(
+                      color: colorScheme.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
@@ -549,10 +550,10 @@ class _TaiwanPassState extends State<TaiwanPass>
                               const SizedBox(width: 6),
                               Text(
                                 region.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1A73E8),
+                                  color: colorScheme.primary,
                                 ),
                               ),
                             ],
@@ -571,7 +572,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                               horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? const Color(0xFFEEF3FB)
+                                ? colorScheme.primaryContainer
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -583,7 +584,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                                 decoration: BoxDecoration(
                                   color: isSelected
                                       ? const Color(0xFF1A73E8)
-                                      : Colors.grey[400],
+                                      : colorScheme.outline,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -598,15 +599,15 @@ class _TaiwanPassState extends State<TaiwanPass>
                                         : FontWeight.w500,
                                     color: isSelected
                                         ? const Color(0xFF1A73E8)
-                                        : Colors.black87,
+                                        : colorScheme.onSurface,
                                   ),
                                 ),
                               ),
                               if (isSelected)
-                                const Icon(
+                                Icon(
                                   Icons.check_rounded,
                                   size: 16,
-                                  color: Color(0xFF1A73E8),
+                                  color: colorScheme.primary,
                                 ),
                             ],
                           ),
@@ -622,11 +623,11 @@ class _TaiwanPassState extends State<TaiwanPass>
           Container(
             margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: colorScheme.shadow.withValues(alpha: 0.1),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -645,7 +646,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                     SvgAssets.notifications,
                     width: 20,
                     height: 20,
-                    color: const Color(0xFF1A73E8),
+                    color: colorScheme.primary,
                   ),
                 ),
               ),
@@ -672,11 +673,14 @@ class _TaiwanPassState extends State<TaiwanPass>
   }
 
   Widget _buildNavigationBar() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return Container(
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: colorScheme.shadow.withValues(alpha: 0.1),
             blurRadius: 16,
             offset: const Offset(0, -4),
           )
@@ -690,14 +694,20 @@ class _TaiwanPassState extends State<TaiwanPass>
             data: AppThemes.getNavigationBarTheme(context),
             child: NavigationBar(
               selectedIndex: currentPageIndex,
-              animationDuration: const Duration(milliseconds: 800),
+              animationDuration: reducedMotion
+                  ? Duration.zero
+                  : const Duration(milliseconds: 800),
               onDestinationSelected: (int index) {
-                _navIconController
-                    .forward()
-                    .then((_) => _navIconController.reverse());
+                if (!reducedMotion) {
+                  _navIconController
+                      .forward()
+                      .then((_) => _navIconController.reverse());
+                }
                 _pageController.animateToPage(
                   index,
-                  duration: const Duration(milliseconds: 500),
+                  duration: reducedMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 500),
                   curve: Curves.easeInOutCubic,
                 );
               },
@@ -739,19 +749,23 @@ class _TaiwanPassState extends State<TaiwanPass>
       label: label,
       icon: TweenAnimationBuilder<double>(
         tween: Tween(begin: _inactiveIconSize, end: _inactiveIconSize),
-        duration: const Duration(milliseconds: 300),
+        duration: (MediaQuery.maybeOf(context)?.disableAnimations ?? false)
+            ? Duration.zero
+            : const Duration(milliseconds: 300),
         builder: (context, size, _) {
           return SvgPicture.asset(
             iconPath,
             width: size,
             height: size,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           );
         },
       ),
       selectedIcon: TweenAnimationBuilder<double>(
         tween: Tween(begin: _inactiveIconSize, end: _activeIconSize),
-        duration: const Duration(milliseconds: 300),
+        duration: (MediaQuery.maybeOf(context)?.disableAnimations ?? false)
+            ? Duration.zero
+            : const Duration(milliseconds: 300),
         curve: Curves.elasticOut,
         builder: (context, size, _) {
           return ShaderMask(

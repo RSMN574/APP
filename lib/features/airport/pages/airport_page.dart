@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-
 import 'package:com.rsmn574.app/features/airport/state/airport_provider.dart';
 import 'package:com.rsmn574.app/features/airport/model/airport_model.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
+import '../../../const/app_colors.dart';
 import '../../../widget/app_custom_bar.dart';
 
 final PageController pageController = PageController();
@@ -112,7 +112,6 @@ class _PlaneState extends State<Plane> {
       '24小時排班服務': l10n.airport_transport_taxi_24h,
       '租車服務': l10n.airport_transport_car_rental,
       '各大租車公司進駐': l10n.airport_transport_major_rental,
-
       '捷運文湖線': l10n.airport_transport_airport_mrt,
       '松山機場站，直達市區': l10n.airport_transport_direct_taipei,
       '公車': l10n.airport_transport_intercity_bus,
@@ -135,7 +134,6 @@ class _PlaneState extends State<Plane> {
       '鄉內路線可達': l10n.airport_transport_multiple_routes,
       '連接澎湖本島各地': l10n.airport_transport_multiple_routes,
       '機場外可搭': l10n.airport_transport_taxi_24h,
-
       '免稅商店': l10n.airport_service_duty_free,
       '貴賓室': l10n.airport_service_lounge,
       '餐飲服務': l10n.airport_service_dining,
@@ -149,7 +147,6 @@ class _PlaneState extends State<Plane> {
       '哺乳室': l10n.airport_service_nursing_room,
       '便利商店': l10n.airport_service_convenience_store,
       '觀景台': l10n.airport_service_observation_deck,
-
       '機場警察': l10n.airport_emergency_airport_police,
       '醫療中心': l10n.airport_emergency_medical_center,
       '遺失物協尋': l10n.airport_emergency_lost_and_found,
@@ -165,20 +162,19 @@ class _PlaneState extends State<Plane> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AirportProvider>();
+    final colors = context.appColors;
 
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFD),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppCustomBar(
-          // backgroundColor / elevation / iconTheme 無對應參數，
-          // 交由 AppCustomBar 內部 colorScheme.surface 統一控制（預期為白底）
           titleWidget: Text(
             '${_localizedAirportNameByCode(selectedAirport)} ${AppLocalizations.of(context)!.text_762}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1A73E8),
+              color: colors.info,
               letterSpacing: -0.5,
             ),
           ),
@@ -186,11 +182,11 @@ class _PlaneState extends State<Plane> {
           actions: [
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colors.cardBackground,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: colors.shadow,
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -205,10 +201,10 @@ class _PlaneState extends State<Plane> {
                     margin: const EdgeInsets.only(right: 16),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF3FB),
+                      color: colors.mutedBackground,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: const Color(0xFF1A73E8).withOpacity(0.2),
+                        color: colors.info.withValues(alpha: 0.2),
                       ),
                     ),
                     child: DropdownButtonHideUnderline(
@@ -216,25 +212,25 @@ class _PlaneState extends State<Plane> {
                         value: selectedAirport,
                         hint: Row(
                           children: [
-                            const Icon(Icons.location_on_rounded,
-                                size: 18, color: Color(0xFF1A73E8)),
+                            Icon(Icons.location_on_rounded,
+                                size: 18, color: colors.info),
                             const SizedBox(width: 8),
                             Text(
                               AppLocalizations.of(context)!.text_221,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: colors.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
-                        icon: const Icon(Icons.arrow_drop_down_rounded,
-                            size: 22, color: Color(0xFF1A73E8)),
-                        dropdownColor: Colors.white,
+                        icon: Icon(Icons.arrow_drop_down_rounded,
+                            size: 22, color: colors.info),
+                        dropdownColor: colors.cardBackground,
                         elevation: 8,
-                        style: const TextStyle(
-                          color: Colors.black87,
+                        style: TextStyle(
+                          color: colors.textPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -252,15 +248,15 @@ class _PlaneState extends State<Plane> {
                               alignment: Alignment.centerLeft,
                               child: Row(
                                 children: [
-                                  const Icon(Icons.location_on_rounded,
-                                      size: 16, color: Color(0xFF1A73E8)),
+                                  Icon(Icons.location_on_rounded,
+                                      size: 16, color: colors.info),
                                   const SizedBox(width: 6),
                                   Text(
-                                    _localizedAirportNameByCode(item.value!), // ← 用 value 反查名稱
-                                    style: const TextStyle(
+                                    _localizedAirportNameByCode(item.value!),
+                                    style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF1A73E8),
+                                      color: colors.info,
                                     ),
                                   ),
                                 ],
@@ -277,7 +273,7 @@ class _PlaneState extends State<Plane> {
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+                                color: isSelected ? colors.mutedBackground : Colors.transparent,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Row(
@@ -286,28 +282,28 @@ class _PlaneState extends State<Plane> {
                                     width: 8,
                                     height: 8,
                                     decoration: BoxDecoration(
-                                      color: isSelected ? const Color(0xFF1A73E8) : Colors.grey[400],
+                                      color: isSelected ? colors.info : colors.textHint,
                                       shape: BoxShape.circle,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      _localizedAirportNameByCode(item.value!), // ← 同樣用 value 反查
+                                      _localizedAirportNameByCode(item.value!),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                                         color: isSelected
-                                            ? const Color(0xFF1A73E8)
-                                            : Colors.black87,
+                                            ? colors.info
+                                            : colors.textPrimary,
                                       ),
                                     ),
                                   ),
                                   if (isSelected)
-                                    const Icon(
+                                    Icon(
                                       Icons.check_rounded,
                                       size: 16,
-                                      color: Color(0xFF1A73E8),
+                                      color: colors.info,
                                     ),
                                 ],
                               ),
@@ -325,21 +321,21 @@ class _PlaneState extends State<Plane> {
             preferredSize: const Size.fromHeight(100),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colors.cardBackground,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: colors.shadow,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: _buildTabBar(),
+              child: _buildTabBar(context),
             ),
           ), title: '',
         ),
         body: Container(
-          decoration: const BoxDecoration(color: Color(0xFFF8FAFD)),
+          decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
           child: Column(
             children: [
               Expanded(child: _buildPageView()),
@@ -352,6 +348,7 @@ class _PlaneState extends State<Plane> {
 
   List<DropdownMenuItem<String>> _buildAirportDropdownItems(
       AirportProvider provider) {
+    final colors = context.appColors;
     final codes = <String>[
       'TPE', 'TSA', 'KHH', 'RMQ',
       'TNN', 'HUN', 'TTT', 'CYI',
@@ -367,7 +364,7 @@ class _PlaneState extends State<Plane> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFEEF3FB) : Colors.transparent,
+            color: isSelected ? colors.mutedBackground : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -375,7 +372,7 @@ class _PlaneState extends State<Plane> {
               Icon(
                 Icons.flight_takeoff_rounded,
                 size: 16,
-                color: const Color(0xFF1A73E8).withOpacity(0.7),
+                color: colors.info.withValues(alpha: 0.7),
               ),
               const SizedBox(width: 8),
               Text(_localizedAirportNameByCode(code)),
@@ -386,24 +383,26 @@ class _PlaneState extends State<Plane> {
     }).toList();
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(BuildContext context) {
+    final colors = context.appColors;
     return Container(
       height: 70,
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: colors.cardBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: ListView.builder(
         physics: const BouncingScrollPhysics(),
         itemCount: tabs.length,
         scrollDirection: Axis.horizontal,
-        itemBuilder: (ctx, index) => _buildTabItem(index),
+        itemBuilder: (ctx, index) => _buildTabItem(context, index),
       ),
     );
   }
 
-  Widget _buildTabItem(int index) {
+  Widget _buildTabItem(BuildContext context, int index) {
+    final colors = context.appColors;
     final bool isSelected = _current == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -422,13 +421,13 @@ class _PlaneState extends State<Plane> {
           height: 76,
           decoration: BoxDecoration(
             gradient: isSelected
-                ? const LinearGradient(
-              colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                ? LinearGradient(
+              colors: [colors.info, colors.info.withValues(alpha: 0.8)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             )
                 : LinearGradient(
-              colors: [Colors.white, Colors.grey[50]!],
+              colors: [colors.cardBackground, colors.mutedBackground],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -436,24 +435,24 @@ class _PlaneState extends State<Plane> {
             boxShadow: isSelected
                 ? [
               BoxShadow(
-                color: const Color(0xFF1A73E8).withOpacity(0.3),
+                color: colors.info.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
             ]
                 : [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: colors.shadow,
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
             ],
             border: isSelected
                 ? Border.all(
-              color: const Color(0xFF1A73E8).withOpacity(0.2),
+              color: colors.info.withValues(alpha: 0.2),
               width: 1.5,
             )
-                : Border.all(color: Colors.grey[200]!, width: 1),
+                : Border.all(color: colors.divider, width: 1),
           ),
           child: Center(
             child: Text(
@@ -461,7 +460,7 @@ class _PlaneState extends State<Plane> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                color: isSelected ? Colors.white : colors.info,
               ),
               textAlign: TextAlign.center,
             ),
@@ -501,10 +500,8 @@ class _PlaneState extends State<Plane> {
     );
   }
 
-  // ==========================================
-  // 機場資訊 Tab（使用 API 資料）
-  // ==========================================
   Widget _buildAirportInfoTab() {
+    final colors = context.appColors;
     final provider = context.watch<AirportProvider>();
 
     if (provider.isLoading) {
@@ -516,11 +513,12 @@ class _PlaneState extends State<Plane> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            Icon(Icons.error_outline, color: colors.danger, size: 48),
             const SizedBox(height: 12),
             Text(
               '${AppLocalizations.of(context)!.airport_load_failed}：${provider.error}',
               textAlign: TextAlign.center,
+              style: TextStyle(color: colors.textPrimary),
             ),
             const SizedBox(height: 12),
             ElevatedButton(
@@ -573,13 +571,14 @@ class _PlaneState extends State<Plane> {
     required String content,
     required Color color,
   }) {
+    final colors = context.appColors;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -597,7 +596,7 @@ class _PlaneState extends State<Plane> {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.8)],
+                      colors: [color, color.withValues(alpha: 0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -609,10 +608,10 @@ class _PlaneState extends State<Plane> {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -626,7 +625,7 @@ class _PlaneState extends State<Plane> {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  color.withOpacity(0.2),
+                  color.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -639,7 +638,7 @@ class _PlaneState extends State<Plane> {
               style: TextStyle(
                 fontSize: 15,
                 height: 1.6,
-                color: Colors.grey[700],
+                color: colors.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -650,13 +649,14 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildTransportationCard(AirportData airport) {
+    final colors = context.appColors;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -674,7 +674,7 @@ class _PlaneState extends State<Plane> {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [airport.primaryColor, airport.primaryColor],
+                      colors: [airport.primaryColor, airport.primaryColor.withValues(alpha: 0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -690,10 +690,10 @@ class _PlaneState extends State<Plane> {
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context)!.text_767,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -707,7 +707,7 @@ class _PlaneState extends State<Plane> {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  airport.primaryColor.withOpacity(0.2),
+                  airport.primaryColor.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -740,25 +740,26 @@ class _PlaneState extends State<Plane> {
 
   Widget _buildTransportItem(
       String title, String subtitle, IconData icon, Color color) {
+    final colors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {},
         borderRadius: BorderRadius.circular(12),
-        splashColor: color.withOpacity(0.1),
+        splashColor: color.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: colors.mutedBackground,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!, width: 1),
+            border: Border.all(color: colors.divider, width: 1),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: color),
@@ -770,10 +771,10 @@ class _PlaneState extends State<Plane> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -781,17 +782,17 @@ class _PlaneState extends State<Plane> {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
                 size: 16,
-                color: Colors.grey,
+                color: colors.textHint,
               ),
             ],
           ),
@@ -801,13 +802,14 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildServicesCard(AirportData airport) {
+    final colors = context.appColors;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -825,7 +827,7 @@ class _PlaneState extends State<Plane> {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [airport.primaryColor, airport.primaryColor],
+                      colors: [airport.primaryColor, airport.primaryColor.withValues(alpha: 0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -841,10 +843,10 @@ class _PlaneState extends State<Plane> {
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context)!.text_769,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -858,7 +860,7 @@ class _PlaneState extends State<Plane> {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  airport.primaryColor.withOpacity(0.2),
+                  airport.primaryColor.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -887,9 +889,9 @@ class _PlaneState extends State<Plane> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -914,14 +916,15 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildEmergencyCard(AirportData airport) {
+    final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -939,7 +942,7 @@ class _PlaneState extends State<Plane> {
                   height: 40,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [airport.primaryColor, airport.primaryColor],
+                      colors: [airport.primaryColor, airport.primaryColor.withValues(alpha: 0.8)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -955,10 +958,10 @@ class _PlaneState extends State<Plane> {
                 Expanded(
                   child: Text(
                     l10n.text_770,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -972,7 +975,7 @@ class _PlaneState extends State<Plane> {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  airport.primaryColor.withOpacity(0.2),
+                  airport.primaryColor.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -1000,18 +1003,18 @@ class _PlaneState extends State<Plane> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: airport.primaryColor.withOpacity(0.05),
+                    color: airport.primaryColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: airport.primaryColor.withOpacity(0.2),
+                      color: airport.primaryColor.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Text(
                     l10n.airport_emergency_info(airport.phone),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                       height: 1.5,
                     ),
                   ),
@@ -1026,25 +1029,26 @@ class _PlaneState extends State<Plane> {
 
   Widget _buildEmergencyItem(
       String title, String phone, IconData icon, Color color) {
+    final colors = context.appColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {},
         borderRadius: BorderRadius.circular(12),
-        splashColor: color.withOpacity(0.1),
+        splashColor: color.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: colors.mutedBackground,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!, width: 1),
+            border: Border.all(color: colors.divider, width: 1),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: color),
@@ -1056,10 +1060,10 @@ class _PlaneState extends State<Plane> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -1067,7 +1071,7 @@ class _PlaneState extends State<Plane> {
                       phone,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1092,6 +1096,7 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildFlightList(AsyncSnapshot<List<dynamic>> snapshot, String type) {
+    final colors = context.appColors;
     if (snapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -1101,6 +1106,7 @@ class _PlaneState extends State<Plane> {
           _isEnglish
               ? 'Unable to load flight information. Please try again later.'
               : '資料載入失敗，請稍後再試。',
+          style: TextStyle(color: colors.textPrimary),
         ),
       );
     }
@@ -1122,14 +1128,15 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildSearchField() {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1140,16 +1147,15 @@ class _PlaneState extends State<Plane> {
         children: [
           Row(
             children: [
-              const Icon(Icons.search_rounded,
-                  color: Color(0xFF1A73E8), size: 20),
+              Icon(Icons.search_rounded, color: colors.info, size: 20),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
                   AppLocalizations.of(context)!.text_771,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A73E8),
+                    color: colors.info,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1163,25 +1169,25 @@ class _PlaneState extends State<Plane> {
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFD),
+                    color: colors.mutedBackground,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFF1A73E8).withOpacity(0.2),
+                      color: colors.info.withValues(alpha: 0.2),
                     ),
                   ),
                   child: TextField(
                     controller: _flightNumberController,
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.text_772,
-                      hintStyle: const TextStyle(color: Colors.grey),
+                      hintStyle: TextStyle(color: colors.textHint),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 14),
                     ),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+                      color: colors.textPrimary,
                     ),
                     onSubmitted: (value) => _searchFlight(value),
                   ),
@@ -1190,15 +1196,15 @@ class _PlaneState extends State<Plane> {
               const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                  gradient: LinearGradient(
+                    colors: [colors.info, colors.info.withValues(alpha: 0.8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1A73E8).withOpacity(0.3),
+                      color: colors.info.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -1209,7 +1215,7 @@ class _PlaneState extends State<Plane> {
                   child: InkWell(
                     onTap: () => _searchFlight(_flightNumberController.text),
                     borderRadius: BorderRadius.circular(12),
-                    splashColor: Colors.white.withOpacity(0.2),
+                    splashColor: Colors.white.withValues(alpha: 0.2),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 14),
@@ -1255,6 +1261,7 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildSearchResults() {
+    final colors = context.appColors;
     return ValueListenableBuilder<String>(
       valueListenable: _searchQuery,
       builder: (context, input, _) {
@@ -1273,7 +1280,7 @@ class _PlaneState extends State<Plane> {
                 content: Text(_isEnglish
                     ? 'Formatted automatically: $formattedFlightNumber'
                     : '已自動格式化: $formattedFlightNumber'),
-                backgroundColor: const Color(0xFF1A73E8),
+                backgroundColor: colors.info,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1306,6 +1313,7 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildEmptySearchState() {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -1317,24 +1325,24 @@ class _PlaneState extends State<Plane> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color(0xFF1A73E8).withOpacity(0.1),
-                  const Color(0xFF1A73E8).withOpacity(0.05),
+                  colors.info.withValues(alpha: 0.1),
+                  colors.info.withValues(alpha: 0.05),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.airplane_ticket_rounded,
-                size: 50, color: Color(0xFF1A73E8)),
+            child: Icon(Icons.airplane_ticket_rounded,
+                size: 50, color: colors.info),
           ),
           const SizedBox(height: 24),
           Text(
             AppLocalizations.of(context)!.text_774,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1A73E8),
+              color: colors.info,
             ),
           ),
           const SizedBox(height: 8),
@@ -1342,7 +1350,7 @@ class _PlaneState extends State<Plane> {
             AppLocalizations.of(context)!.text_775,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -1351,16 +1359,16 @@ class _PlaneState extends State<Plane> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A73E8).withOpacity(0.1),
+              color: colors.info.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               _isEnglish
                   ? 'Examples: CI123, BR196, JL809'
                   : '範例：CI123, BR196, JL809',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFF1A73E8),
+                color: colors.info,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1371,14 +1379,15 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildLoadingIndicator() {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1387,14 +1396,14 @@ class _PlaneState extends State<Plane> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(),
+          CircularProgressIndicator(color: colors.info),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_776,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1A73E8),
+              color: colors.info,
             ),
           ),
         ],
@@ -1403,14 +1412,15 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildErrorView(String error) {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1419,15 +1429,15 @@ class _PlaneState extends State<Plane> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              size: 40, color: Color(0xFFFF3B30)),
+          Icon(Icons.error_outline_rounded,
+              size: 40, color: colors.danger),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_777,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFFF3B30),
+              color: colors.danger,
             ),
           ),
           const SizedBox(height: 8),
@@ -1435,7 +1445,7 @@ class _PlaneState extends State<Plane> {
             error,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -1446,14 +1456,15 @@ class _PlaneState extends State<Plane> {
   }
 
   Widget _buildEmptyView() {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -1462,15 +1473,15 @@ class _PlaneState extends State<Plane> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.airline_stops_rounded,
-              size: 40, color: Color(0xFFFF9500)),
+          Icon(Icons.airline_stops_rounded,
+              size: 40, color: colors.warning),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.text_778,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFFF9500),
+              color: colors.warning,
             ),
           ),
           const SizedBox(height: 8),
@@ -1478,7 +1489,7 @@ class _PlaneState extends State<Plane> {
             AppLocalizations.of(context)!.text_779,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -1490,7 +1501,7 @@ class _PlaneState extends State<Plane> {
 }
 
 // ==========================================
-// FlightDashboard
+// FlightDashboard（深色模式適配）
 // ==========================================
 class FlightDashboard extends StatefulWidget {
   final String type;
@@ -1511,6 +1522,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final totalPages = (widget.flights.length / 10).ceil();
     final pageFlights =
     widget.flights.skip(_currentPage * 10).take(10).toList();
@@ -1531,7 +1543,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
                     child: Text(
                       AppLocalizations.of(context)!.text_780,
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: colors.textSecondary,
                         fontSize: 16,
                       ),
                     ),
@@ -1546,13 +1558,14 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildPaginationControls(int totalPages) {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colors.shadow,
             blurRadius: 4,
             offset: const Offset(0, -2),
           ),
@@ -1563,7 +1576,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            color: _currentPage > 0 ? const Color(0xFF1A73E8) : Colors.grey,
+            color: _currentPage > 0 ? colors.info : colors.textHint,
             onPressed: _currentPage > 0
                 ? () => setState(() => _currentPage--)
                 : null,
@@ -1571,25 +1584,25 @@ class _FlightDashboardState extends State<FlightDashboard> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
+              color: colors.mutedBackground,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               Localizations.localeOf(context).languageCode == 'en'
                   ? 'Page ${_currentPage + 1} of $totalPages'
                   : '第 ${_currentPage + 1} 頁 / 共 $totalPages 頁',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Color(0xFF1A73E8),
+                color: colors.info,
               ),
             ),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             color: _currentPage < totalPages - 1
-                ? const Color(0xFF1A73E8)
-                : Colors.grey,
+                ? colors.info
+                : colors.textHint,
             onPressed: _currentPage < totalPages - 1
                 ? () => setState(() => _currentPage++)
                 : null,
@@ -1600,13 +1613,14 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildHeader() {
+    final colors = context.appColors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colors.shadow,
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -1618,7 +1632,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
             widget.type == "Departure"
                 ? Icons.flight_takeoff
                 : Icons.flight_land,
-            color: const Color(0xFF1A73E8),
+            color: colors.info,
             size: 16,
           ),
           const SizedBox(width: 6),
@@ -1627,10 +1641,10 @@ class _FlightDashboardState extends State<FlightDashboard> {
               widget.type == "Departure"
                   ? AppLocalizations.of(context)!.text_749
                   : AppLocalizations.of(context)!.text_748,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A73E8),
+                color: colors.info,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1642,16 +1656,17 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildFlightCard(Map<String, dynamic> flight) {
+    final colors = context.appColors;
     final delayMinutes = _calculateDelayMinutes(flight);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colors.shadow,
             blurRadius: 4,
             offset: const Offset(0, 1),
           ),
@@ -1663,7 +1678,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildFlightHeader(flight),
-            const Divider(height: 12, thickness: 0.8),
+            Divider(height: 12, thickness: 0.8, color: colors.divider),
             _buildFlightDetails(flight, delayMinutes),
           ],
         ),
@@ -1672,17 +1687,18 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildFlightHeader(Map<String, dynamic> flight) {
+    final colors = context.appColors;
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFFEEF3FB),
+            color: colors.mutedBackground,
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.airplanemode_active,
-            color: Color(0xFF1A73E8),
+            color: colors.info,
             size: 16,
           ),
         ),
@@ -1692,17 +1708,18 @@ class _FlightDashboardState extends State<FlightDashboard> {
           children: [
             Text(
               '${flight['AirlineID'] ?? ''}${flight['FlightNumber'] ?? ''}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
+                color: colors.textPrimary,
               ),
             ),
             Text(
               flight['IsCargo'] == 'true'
                   ? AppLocalizations.of(context)!.text_781
                   : AppLocalizations.of(context)!.text_782,
-              style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              style: TextStyle(color: colors.textSecondary, fontSize: 11),
             ),
           ],
         ),
@@ -1755,16 +1772,17 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildTimeItem(String label, String? time, {bool isDelayed = false}) {
+    final colors = context.appColors;
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 10, color: colors.textSecondary)),
         const SizedBox(height: 3),
         Text(
           _formatTime(time),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDelayed ? Colors.red : Colors.black87,
+            color: isDelayed ? colors.danger : colors.textPrimary,
           ),
         ),
       ],
@@ -1772,23 +1790,24 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildDelayItem(int minutes) {
+    final colors = context.appColors;
     final Color textColor = minutes > 0
-        ? Colors.red
+        ? colors.danger
         : minutes < 0
-        ? Colors.green
-        : Colors.grey[700]!;
+        ? colors.success
+        : colors.textSecondary;
 
     return Column(
       children: [
         Text(
           AppLocalizations.of(context)!.text_788,
-          style: const TextStyle(fontSize: 10, color: Colors.grey),
+          style: TextStyle(fontSize: 10, color: colors.textHint),
         ),
         const SizedBox(height: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: textColor.withOpacity(0.1),
+            color: textColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -1805,19 +1824,24 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Widget _buildInfoItem(String label, String value) {
+    final colors = context.appColors;
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+        Text(label, style: TextStyle(fontSize: 10, color: colors.textSecondary)),
         const SizedBox(height: 3),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
+            color: colors.mutedBackground,
             borderRadius: BorderRadius.circular(4),
           ),
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
+            ),
           ),
         ),
       ],
@@ -1862,43 +1886,44 @@ class _FlightDashboardState extends State<FlightDashboard> {
   }
 
   Map<String, dynamic> _getStatusStyle(String status) {
+    final colors = context.appColors;
     if (status.contains('DEPARTED') || status.contains('出發')) {
       return {
         'icon': Icons.flight_takeoff,
-        'backgroundColor': Colors.blue.withOpacity(0.1),
-        'borderColor': Colors.blue.withOpacity(0.3),
-        'textColor': Colors.blue,
+        'backgroundColor': colors.info.withValues(alpha: 0.1),
+        'borderColor': colors.info.withValues(alpha: 0.3),
+        'textColor': colors.info,
       };
     }
     if (status.contains('ARRIVED') || status.contains('到達')) {
       return {
         'icon': Icons.flight_land,
-        'backgroundColor': Colors.green.withOpacity(0.1),
-        'borderColor': Colors.green.withOpacity(0.3),
-        'textColor': Colors.green,
+        'backgroundColor': colors.success.withValues(alpha: 0.1),
+        'borderColor': colors.success.withValues(alpha: 0.3),
+        'textColor': colors.success,
       };
     }
     if (status.contains('CANCELLED') || status.contains('取消')) {
       return {
         'icon': Icons.cancel,
-        'backgroundColor': Colors.red.withOpacity(0.1),
-        'borderColor': Colors.red.withOpacity(0.3),
-        'textColor': Colors.red,
+        'backgroundColor': colors.danger.withValues(alpha: 0.1),
+        'borderColor': colors.danger.withValues(alpha: 0.3),
+        'textColor': colors.danger,
       };
     }
     if (status.contains('延誤') || status.contains('Delayed')) {
       return {
         'icon': Icons.access_time,
-        'backgroundColor': Colors.orange.withOpacity(0.1),
-        'borderColor': Colors.orange.withOpacity(0.3),
-        'textColor': Colors.orange,
+        'backgroundColor': colors.warning.withValues(alpha: 0.1),
+        'borderColor': colors.warning.withValues(alpha: 0.3),
+        'textColor': colors.warning,
       };
     }
     return {
       'icon': Icons.airplanemode_active,
-      'backgroundColor': Colors.grey.withOpacity(0.1),
-      'borderColor': Colors.grey.withOpacity(0.3),
-      'textColor': Colors.black87,
+      'backgroundColor': colors.mutedBackground,
+      'borderColor': colors.border,
+      'textColor': colors.textPrimary,
     };
   }
 
@@ -1924,7 +1949,7 @@ class _FlightDashboardState extends State<FlightDashboard> {
 }
 
 // ==========================================
-// FlightInfoCard
+// FlightInfoCard（深色模式適配）
 // ==========================================
 enum FlightStatus { onTime, delayed, canceled, landed }
 
@@ -1969,17 +1994,18 @@ class _FlightInfoCardState extends State<FlightInfoCard>
     }
   }
 
-  Color _getStatusColor() {
+  Color _getStatusColor(BuildContext context) {
+    final colors = context.appColors;
     final remark = (isDeparture
         ? widget.flight['DepartureRemark']
         : widget.flight['ArrivalRemark']) ??
         '';
 
     final l10n = AppLocalizations.of(context)!;
-    if (remark.contains(l10n.text_788)) return Colors.orange;
-    if (remark.contains(l10n.text_789)) return Colors.green;
-    if (remark.contains(l10n.text_36)) return Colors.red;
-    return Colors.blue.shade600;
+    if (remark.contains(l10n.text_788)) return colors.warning;
+    if (remark.contains(l10n.text_789)) return colors.success;
+    if (remark.contains(l10n.text_36)) return colors.danger;
+    return colors.info;
   }
 
   bool get isArrival =>
@@ -2002,12 +2028,13 @@ class _FlightInfoCardState extends State<FlightInfoCard>
       ? widget.flight['DepartureGate'] ?? '--'
       : widget.flight['ArrivalGate'] ?? '--';
 
-  Widget _buildAirlineBadge() {
+  Widget _buildAirlineBadge(BuildContext context) {
+    final colors = context.appColors;
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: colors.mutedBackground,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -2016,14 +2043,15 @@ class _FlightInfoCardState extends State<FlightInfoCard>
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.blue.shade800,
+            color: colors.info,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTimeComparison() {
+  Widget _buildTimeComparison(BuildContext context) {
+    final colors = context.appColors;
     final scheduledTime = isDeparture
         ? widget.flight['ScheduleDepartureTime']
         : widget.flight['ScheduleArrivalTime'];
@@ -2042,49 +2070,52 @@ class _FlightInfoCardState extends State<FlightInfoCard>
       children: [
         Text(
           '預定時間：${_formatTime(scheduledTime)}',
-          style: TextStyle(color: Colors.grey.shade600),
+          style: TextStyle(color: colors.textSecondary),
         ),
         if (actualTime != null)
           Text(
             '實際時間：${_formatTime(actualTime)}',
             style: TextStyle(
-              color: _getStatusColor(),
+              color: _getStatusColor(context),
               fontWeight: FontWeight.w600,
             ),
           )
         else if (estimatedTime != null)
-          const Text(
+          Text(
             '預估時間：',
             style: TextStyle(
-              color: Colors.orange,
+              color: colors.warning,
               fontWeight: FontWeight.w600,
             ),
           ),
         if (remark != null && remark.toString().trim().isNotEmpty)
           Text(
             '備註：$remark',
-            style: TextStyle(color: Colors.red.shade600),
+            style: TextStyle(color: colors.danger),
           ),
       ],
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String title, String value) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String title, String value) {
+    final colors = context.appColors;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
+          Icon(icon, size: 20, color: colors.textSecondary),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  style: TextStyle(fontSize: 12, color: colors.textHint)),
               Text(
                 value,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textPrimary),
               ),
             ],
           ),
@@ -2096,12 +2127,15 @@ class _FlightInfoCardState extends State<FlightInfoCard>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
     final l10n = AppLocalizations.of(context)!;
+    final statusColor = _getStatusColor(context);
 
     return Card(
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: colors.cardBackground,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {
@@ -2121,7 +2155,7 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildAirlineBadge(),
+                    _buildAirlineBadge(context),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -2134,7 +2168,10 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                                 child: Text(
                                   '${widget.flight['AirlineID']} ${widget.flight['FlightNumber']}',
                                   style: theme.textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.textPrimary,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -2144,8 +2181,7 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color:
-                                  _getStatusColor().withOpacity(0.1),
+                                  color: statusColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -2153,7 +2189,7 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                                       ? l10n.text_67
                                       : l10n.text_68,
                                   style: TextStyle(
-                                    color: _getStatusColor(),
+                                    color: statusColor,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -2164,7 +2200,7 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                           Text(
                             '$airportCode 第$terminal航廈',
                             style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey.shade600),
+                                ?.copyWith(color: colors.textSecondary),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2178,11 +2214,11 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(child: _buildTimeComparison()),
+                    Flexible(child: _buildTimeComparison(context)),
                     Icon(
                       isDeparture ? Icons.flight_takeoff : Icons.flight_land,
                       size: 32,
-                      color: theme.primaryColor,
+                      color: colors.info,
                     ),
                   ],
                 ),
@@ -2198,24 +2234,28 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Divider(height: 24),
+                            Divider(height: 24, color: colors.divider),
                             _buildDetailRow(
+                              context,
                               Icons.departure_board,
                               l10n.text_787,
                               gate,
                             ),
                             if (isArrival)
                               _buildDetailRow(
+                                context,
                                 Icons.luggage,
                                 l10n.text_790,
                                 widget.flight['BaggageClaim'] ?? '--',
                               ),
                             _buildDetailRow(
+                              context,
                               Icons.assignment_ind,
                               l10n.text_791,
                               widget.flight['CheckCounter'] ?? '--',
                             ),
                             _buildDetailRow(
+                              context,
                               Icons.update,
                               l10n.text_792,
                               _formatTime(widget.flight['UpdateTime']),
@@ -2229,12 +2269,12 @@ class _FlightInfoCardState extends State<FlightInfoCard>
                   duration: const Duration(milliseconds: 300),
                   child: _expanded
                       ? Icon(Icons.expand_less,
-                      color: Colors.grey.shade500,
+                      color: colors.textSecondary,
                       key: const ValueKey(1))
                       : RotationTransition(
                     turns: _rotationAnimation,
                     child: Icon(Icons.expand_more,
-                        color: Colors.grey.shade500,
+                        color: colors.textSecondary,
                         key: const ValueKey(2)),
                   ),
                 ),

@@ -1,3 +1,6 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../const/regular_class.dart';
 import '../tdx_api_client.dart';
 import 'dart:convert';
 
@@ -11,8 +14,9 @@ Future<List<MRTStation>> getNearMRTStation(String location) async {
   final latitude = double.tryParse(coordinates[0]);
   final longitude = double.tryParse(coordinates[1]);
   if (latitude == null || longitude == null) return [];
-
-  final rows = await mysqlSelect("SELECT * FROM MRT.MRT_Taichung_station;");
+  // final cityProvider = Provider.of<CityProvider>(context, listen: false);
+  // final city = cityProvider.city;
+  final rows = await mysqlSelect("SELECT * FROM Metro.metro_station;");
   final stations = <MRTStation>[];
 
   for (final row in rows ?? []) {

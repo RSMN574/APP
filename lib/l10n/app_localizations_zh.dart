@@ -3460,4 +3460,145 @@ class AppLocalizationsZh extends AppLocalizations {
   String delayMinutes(int minutes) {
     return '延遲 $minutes 分';
   }
+
+  @override
+  String get transitAlertCenterTitle => '交通公告中心';
+
+  @override
+  String get transitAlertRefreshTooltip => '重新整理公告';
+
+  @override
+  String get transitAlertViewAll => '查看全部';
+
+  @override
+  String get transitAlertNoNew => '目前無新公告';
+
+  @override
+  String transitAlertCount(int count) {
+    return '$count 則最新公告';
+  }
+
+  @override
+  String transitAlertCountSuffix(int count) {
+    return '$count 則';
+  }
+
+  @override
+  String get transitAlertLoading => '載入公告中...';
+
+  @override
+  String get transitAlertEmptyTitle => '暫無公告';
+
+  @override
+  String get transitAlertEmptyMessage => '目前尚無可顯示的交通公告；公告來源尚未串接';
+
+  @override
+  String get transitAlertPartialSourceError => '部分公告來源暫時無法取得，將保留可用資料';
+
+  @override
+  String transitAlertLastUpdated(String time) {
+    return '資料更新 $time';
+  }
+
+  @override
+  String get transitAlertAllTitle => '全部交通公告';
+
+  @override
+  String get transitAlertDetailImpact => '影響範圍';
+
+  @override
+  String get transitAlertDetailLocation => '地點';
+
+  @override
+  String get transitAlertDetailSource => '來源';
+
+  @override
+  String get transitAlertDetailPublishedAt => '發布時間';
+
+  @override
+  String get transitAlertDetailUpdatedAt => '最後更新';
+
+  @override
+  String get transitAlertViewOriginal => '查看原始公告';
+
+  @override
+  String get transitAlertClose => '關閉';
+
+  @override
+  String get transitAlertOpenLinkFailed => '無法開啟原始公告連結';
+
+  @override
+  String get transitAlertUnknown => '未知';
+
+  @override
+  String get transitAlertNotProvided => '未提供';
+
+  @override
+  String get transitAlertFilterAll => '全部';
+
+  @override
+  String get transportBus => '公車';
+
+  @override
+  String get transportMetro => '捷運';
+
+  @override
+  String get transportTra => '台鐵';
+
+  @override
+  String get transportThsr => '高鐵';
+
+  @override
+  String get transportAviation => '航空';
+
+  @override
+  String get transportYoubike => 'YouBike';
+
+  @override
+  String get transportOther => '其他';
+
+  @override
+  String get alertTypeServiceDisruption => '營運異常';
+
+  @override
+  String get alertTypeRouteDetour => '路線改道';
+
+  @override
+  String get alertTypeSuspension => '停駛或停運';
+
+  @override
+  String get alertTypeDelay => '延誤';
+
+  @override
+  String get alertTypeScheduleChange => '班次異動';
+
+  @override
+  String get alertTypeStationNotice => '車站公告';
+
+  @override
+  String get alertTypeFacilityNotice => '設施異常';
+
+  @override
+  String get alertTypeWeatherImpact => '天候影響';
+
+  @override
+  String get alertTypeGeneralNotice => '一般公告';
+
+  @override
+  String get alertSeverityInfo => '資訊';
+
+  @override
+  String get alertSeverityMinor => '輕微';
+
+  @override
+  String get alertSeverityModerate => '中度';
+
+  @override
+  String get alertSeverityMajor => '重大';
+
+  @override
+  String get alertSeverityCritical => '緊急';
+
+  @override
+  String get alertSeverityUnknown => '未知';
 }

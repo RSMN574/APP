@@ -44,7 +44,7 @@ class TraLiveboardService {
       String trainNo) async {
     final url =
         'https://tdx.transportdata.tw/api/basic/v3/Rail/TRA/TrainLiveBoard/TrainNo/$trainNo'
-        '?%24top=30&%24format=JSON';
+        '?%24format=JSON';
 
     try {
       final response = await TdxApiClient().getRaw(

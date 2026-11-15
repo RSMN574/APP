@@ -6914,6 +6914,276 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'延遲 {minutes} 分'**
   String delayMinutes(int minutes);
+
+  /// No description provided for @transitAlertCenterTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'交通公告中心'**
+  String get transitAlertCenterTitle;
+
+  /// No description provided for @transitAlertRefreshTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新整理公告'**
+  String get transitAlertRefreshTooltip;
+
+  /// No description provided for @transitAlertViewAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部'**
+  String get transitAlertViewAll;
+
+  /// No description provided for @transitAlertNoNew.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前無新公告'**
+  String get transitAlertNoNew;
+
+  /// No description provided for @transitAlertCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 則最新公告'**
+  String transitAlertCount(int count);
+
+  /// No description provided for @transitAlertCountSuffix.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 則'**
+  String transitAlertCountSuffix(int count);
+
+  /// No description provided for @transitAlertLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'載入公告中...'**
+  String get transitAlertLoading;
+
+  /// No description provided for @transitAlertEmptyTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'暫無公告'**
+  String get transitAlertEmptyTitle;
+
+  /// No description provided for @transitAlertEmptyMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前尚無可顯示的交通公告；公告來源尚未串接'**
+  String get transitAlertEmptyMessage;
+
+  /// No description provided for @transitAlertPartialSourceError.
+  ///
+  /// In zh, this message translates to:
+  /// **'部分公告來源暫時無法取得，將保留可用資料'**
+  String get transitAlertPartialSourceError;
+
+  /// No description provided for @transitAlertLastUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'資料更新 {time}'**
+  String transitAlertLastUpdated(String time);
+
+  /// No description provided for @transitAlertAllTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部交通公告'**
+  String get transitAlertAllTitle;
+
+  /// No description provided for @transitAlertDetailImpact.
+  ///
+  /// In zh, this message translates to:
+  /// **'影響範圍'**
+  String get transitAlertDetailImpact;
+
+  /// No description provided for @transitAlertDetailLocation.
+  ///
+  /// In zh, this message translates to:
+  /// **'地點'**
+  String get transitAlertDetailLocation;
+
+  /// No description provided for @transitAlertDetailSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'來源'**
+  String get transitAlertDetailSource;
+
+  /// No description provided for @transitAlertDetailPublishedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'發布時間'**
+  String get transitAlertDetailPublishedAt;
+
+  /// No description provided for @transitAlertDetailUpdatedAt.
+  ///
+  /// In zh, this message translates to:
+  /// **'最後更新'**
+  String get transitAlertDetailUpdatedAt;
+
+  /// No description provided for @transitAlertViewOriginal.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看原始公告'**
+  String get transitAlertViewOriginal;
+
+  /// No description provided for @transitAlertClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'關閉'**
+  String get transitAlertClose;
+
+  /// No description provided for @transitAlertOpenLinkFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法開啟原始公告連結'**
+  String get transitAlertOpenLinkFailed;
+
+  /// No description provided for @transitAlertUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get transitAlertUnknown;
+
+  /// No description provided for @transitAlertNotProvided.
+  ///
+  /// In zh, this message translates to:
+  /// **'未提供'**
+  String get transitAlertNotProvided;
+
+  /// No description provided for @transitAlertFilterAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get transitAlertFilterAll;
+
+  /// No description provided for @transportBus.
+  ///
+  /// In zh, this message translates to:
+  /// **'公車'**
+  String get transportBus;
+
+  /// No description provided for @transportMetro.
+  ///
+  /// In zh, this message translates to:
+  /// **'捷運'**
+  String get transportMetro;
+
+  /// No description provided for @transportTra.
+  ///
+  /// In zh, this message translates to:
+  /// **'台鐵'**
+  String get transportTra;
+
+  /// No description provided for @transportThsr.
+  ///
+  /// In zh, this message translates to:
+  /// **'高鐵'**
+  String get transportThsr;
+
+  /// No description provided for @transportAviation.
+  ///
+  /// In zh, this message translates to:
+  /// **'航空'**
+  String get transportAviation;
+
+  /// No description provided for @transportYoubike.
+  ///
+  /// In zh, this message translates to:
+  /// **'YouBike'**
+  String get transportYoubike;
+
+  /// No description provided for @transportOther.
+  ///
+  /// In zh, this message translates to:
+  /// **'其他'**
+  String get transportOther;
+
+  /// No description provided for @alertTypeServiceDisruption.
+  ///
+  /// In zh, this message translates to:
+  /// **'營運異常'**
+  String get alertTypeServiceDisruption;
+
+  /// No description provided for @alertTypeRouteDetour.
+  ///
+  /// In zh, this message translates to:
+  /// **'路線改道'**
+  String get alertTypeRouteDetour;
+
+  /// No description provided for @alertTypeSuspension.
+  ///
+  /// In zh, this message translates to:
+  /// **'停駛或停運'**
+  String get alertTypeSuspension;
+
+  /// No description provided for @alertTypeDelay.
+  ///
+  /// In zh, this message translates to:
+  /// **'延誤'**
+  String get alertTypeDelay;
+
+  /// No description provided for @alertTypeScheduleChange.
+  ///
+  /// In zh, this message translates to:
+  /// **'班次異動'**
+  String get alertTypeScheduleChange;
+
+  /// No description provided for @alertTypeStationNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'車站公告'**
+  String get alertTypeStationNotice;
+
+  /// No description provided for @alertTypeFacilityNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'設施異常'**
+  String get alertTypeFacilityNotice;
+
+  /// No description provided for @alertTypeWeatherImpact.
+  ///
+  /// In zh, this message translates to:
+  /// **'天候影響'**
+  String get alertTypeWeatherImpact;
+
+  /// No description provided for @alertTypeGeneralNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'一般公告'**
+  String get alertTypeGeneralNotice;
+
+  /// No description provided for @alertSeverityInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'資訊'**
+  String get alertSeverityInfo;
+
+  /// No description provided for @alertSeverityMinor.
+  ///
+  /// In zh, this message translates to:
+  /// **'輕微'**
+  String get alertSeverityMinor;
+
+  /// No description provided for @alertSeverityModerate.
+  ///
+  /// In zh, this message translates to:
+  /// **'中度'**
+  String get alertSeverityModerate;
+
+  /// No description provided for @alertSeverityMajor.
+  ///
+  /// In zh, this message translates to:
+  /// **'重大'**
+  String get alertSeverityMajor;
+
+  /// No description provided for @alertSeverityCritical.
+  ///
+  /// In zh, this message translates to:
+  /// **'緊急'**
+  String get alertSeverityCritical;
+
+  /// No description provided for @alertSeverityUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知'**
+  String get alertSeverityUnknown;
 }
 
 class _AppLocalizationsDelegate

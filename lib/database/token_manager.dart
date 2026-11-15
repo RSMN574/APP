@@ -68,7 +68,8 @@ class TokenManager {
       final response = await http.post(
         Uri.parse(AppConfig.tokenServiceUrl),
         headers: {
-          "Authorization": "Bearer ${AppConfig.tokenServiceApiKey}",
+          HttpHeaders.authorizationHeader:
+              "Bearer ${AppConfig.tokenServiceApiKey}",
           "X-Timestamp": now,
         },
       ).timeout(const Duration(seconds: 20));

@@ -14,6 +14,7 @@ import 'pages/city.dart';
 import 'pages/mileage/mileage_page.dart';
 import 'features/auth/state/auth_provider.dart';
 import 'features/settings/pages/settings_page.dart';
+import 'const/app_colors.dart';
 
 class InfoPages extends StatelessWidget {
   @override
@@ -21,25 +22,28 @@ class InfoPages extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
     final l10n = AppLocalizations.of(context)!;
+    final colors = context.appColors;
+
     final displayName = user == null
         ? l10n.authGuestAccount
         : (user.displayName?.trim().isNotEmpty ?? false)
-            ? user.displayName!
-            : (user.email ?? l10n.profileUnknown);
+        ? user.displayName!
+        : (user.email ?? l10n.profileUnknown);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // 用戶資料卡片
+          // ==================== 用戶資料卡片 ====================
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colors.cardBackground,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: colors.shadow,
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -64,24 +68,31 @@ class InfoPages extends StatelessWidget {
                               height: 60,
                               clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1A73E8),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    colors.info,
+                                    colors.info.withValues(alpha: 0.8),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: user?.photoURL == null
                                   ? const Icon(
-                                      Icons.person_rounded,
-                                      size: 30,
-                                      color: Colors.white,
-                                    )
+                                Icons.person_rounded,
+                                size: 30,
+                                color: Colors.white,
+                              )
                                   : Image.network(
-                                      user!.photoURL!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.person_rounded,
-                                        size: 30,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                user!.photoURL!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(
+                                  Icons.person_rounded,
+                                  size: 30,
+                                  color: Colors.white,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -92,10 +103,10 @@ class InfoPages extends StatelessWidget {
                                     displayName,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1A73E8),
+                                      color: colors.info,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -107,7 +118,7 @@ class InfoPages extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[600],
+                                      color: colors.textSecondary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -121,19 +132,21 @@ class InfoPages extends StatelessWidget {
                     // 設定按鈕
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF3FB),
+                        color: colors.mutedBackground,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.settings_rounded,
-                          color: Color(0xFF1A73E8),
+                          color: colors.info,
                           size: 20,
                         ),
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => SettingsPage()),
+                            MaterialPageRoute(
+                              builder: (context) => SettingsPage(),
+                            ),
                           );
                         },
                       ),
@@ -150,21 +163,21 @@ class InfoPages extends StatelessWidget {
                       Icons.history_rounded,
                       AppLocalizations.of(context)!.text_677,
                       'history',
-                      const Color(0xFF1A73E8),
+                      colors.info,
                     ),
                     _buildFeatureButton(
                       context,
                       Icons.location_city_rounded,
                       AppLocalizations.of(context)!.text_54,
                       'city',
-                      const Color(0xFF34C759),
+                      colors.success,
                     ),
                     _buildFeatureButton(
                       context,
                       Icons.airline_stops_rounded,
                       AppLocalizations.of(context)!.text_678,
                       'mile',
-                      const Color(0xFFFF9500),
+                      colors.warning,
                     ),
                   ],
                 ),
@@ -174,28 +187,32 @@ class InfoPages extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          // 功能卡片區域
+          // ==================== 功能卡片區域 ====================
           Column(
             children: [
-              _buildActionCard(
+              _buildActionCard(context,
                 icon: Icons.bug_report_rounded,
                 title: AppLocalizations.of(context)!.text_679,
                 subtitle: AppLocalizations.of(context)!.text_680,
-                color: const Color(0xFF1A73E8),
+                color: colors.info,
                 onTap: () async {
                   final packageInfo = await PackageInfo.fromPlatform();
                   QuickAlert.show(
                     context: context,
                     type: QuickAlertType.info,
-                    text: "版本號: ${packageInfo.version}\n建構號: ${packageInfo.buildNumber}",
+                    text:
+                    "版本號: ${packageInfo.version}\n建構號: ${packageInfo.buildNumber}",
                     confirmBtnText: "複製 token",
                     onConfirmBtnTap: () {
-                      Clipboard.setData(ClipboardData(text: FCMtoken ?? "無效的 token"))
-                          .then((_) {
+                      Clipboard.setData(
+                        ClipboardData(text: FCMtoken ?? "無效的 token"),
+                      ).then((_) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(AppLocalizations.of(context)!.text_681),
-                            backgroundColor: const Color(0xFF1A73E8),
+                            content: Text(
+                              AppLocalizations.of(context)!.text_681,
+                            ),
+                            backgroundColor: colors.info,
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -209,11 +226,11 @@ class InfoPages extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 12),
-              _buildActionCard(
+              _buildActionCard(context,
                 icon: Icons.feedback_rounded,
                 title: AppLocalizations.of(context)!.text_682,
                 subtitle: AppLocalizations.of(context)!.text_683,
-                color: const Color(0xFF34C759),
+                color: colors.success,
                 onTap: () async {
                   const url = 'https://forms.gle/CfjfDBkFe1vxeAH17';
                   final Uri uri = Uri.parse(url);
@@ -222,13 +239,13 @@ class InfoPages extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _buildActionCard(
+                context,
                 icon: Icons.notifications_active_rounded,
                 title: AppLocalizations.of(context)!.text_684,
                 subtitle: AppLocalizations.of(context)!.text_685,
-                color: const Color(0xFFFF9500),
+                color: colors.warning,
                 onTap: testTask,
               ),
-
             ],
           ),
         ],
@@ -236,7 +253,13 @@ class InfoPages extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureButton(BuildContext context, IconData icon, String text, String id, Color color) {
+  Widget _buildFeatureButton(
+      BuildContext context,
+      IconData icon,
+      String text,
+      String id,
+      Color color,
+      ) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -254,7 +277,7 @@ class InfoPages extends StatelessWidget {
           }
         },
         borderRadius: BorderRadius.circular(12),
-        splashColor: color.withOpacity(0.1),
+        splashColor: color.withValues(alpha: 0.1),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Column(
@@ -263,7 +286,7 @@ class InfoPages extends StatelessWidget {
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
@@ -288,28 +311,30 @@ class InfoPages extends StatelessWidget {
     );
   }
 
-  Widget _buildActionCard({
+  Widget _buildActionCard(BuildContext context, {
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
+    final colors = context.appColors;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        splashColor: color.withOpacity(0.1),
-        highlightColor: color.withOpacity(0.05),
+        splashColor: color.withValues(alpha: 0.1),
+        highlightColor: color.withValues(alpha: 0.05),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.cardBackground,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: colors.shadow,
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -323,7 +348,7 @@ class InfoPages extends StatelessWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [color, color.withOpacity(0.8)],
+                    colors: [color, color.withValues(alpha: 0.8)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -343,10 +368,10 @@ class InfoPages extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -354,7 +379,7 @@ class InfoPages extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -365,13 +390,13 @@ class InfoPages extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: colors.mutedBackground,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   Icons.arrow_forward_ios_rounded,
                   size: 14,
-                  color: Colors.grey[600],
+                  color: colors.textSecondary,
                 ),
               ),
             ],

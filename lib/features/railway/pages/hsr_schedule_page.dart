@@ -5,6 +5,7 @@ import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart'
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/railway/widgets/route_planner.dart';
+import 'package:com.rsmn574.app/const/app_colors.dart';
 
 String _localizedHsrName(dynamic names, BuildContext context) {
   if (names is! Map) return names?.toString() ?? '';
@@ -17,15 +18,8 @@ String _localizedHsrName(dynamic names, BuildContext context) {
 }
 
 class HSRSchedulePage extends StatelessWidget {
-  // 高鐵主題色 - 保留高鐵橘
-  static const Color primaryHSR = Color(0xFFDC5321); // 高鐵標準橘
-  static const Color backgroundLight = Color(0xFFF8FAFD); // 通知中心背景色
-  static const Color surfaceColor = Color(0xFFEEF3FB); // 通知中心表面色
-  static const Color textPrimary = Color(0xFF2D3748); // 主要文字
-  static const Color textSecondary = Color(0xFF718096); // 次要文字
-  static const Color successGreen = Color(0xFF34C759); // 成功綠色
-  static const Color errorRed = Color(0xFFFF3B30); // 錯誤紅色
-  static const Color warningOrange = Color(0xFFFF9500); // 警告橘色
+  // 高鐵品牌橘（保留靜態常數供品牌識別）
+  static const Color primaryHSR = Color(0xFFDC5321);
 
   final Map<String, dynamic> trainData;
   final String type;
@@ -40,16 +34,17 @@ class HSRSchedulePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final trainNo = trainData['DailyTrainInfo']['TrainNo'];
 
     return Scaffold(
-      backgroundColor: backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.cardBackground,
         elevation: 0,
         title: Text(
           AppLocalizations.of(context)!.text_393,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: primaryHSR,
@@ -59,7 +54,7 @@ class HSRSchedulePage extends StatelessWidget {
         centerTitle: true,
         iconTheme: const IconThemeData(color: primaryHSR),
         actions: [
-          // 加入行程按鈕
+          // 加入行程
           Container(
             margin: const EdgeInsets.only(right: 4),
             child: IconButton(
@@ -92,9 +87,9 @@ class HSRSchedulePage extends StatelessWidget {
                     userStartingStopName: result['departure'],
                     userDestinationStopName: result['destination'],
                     startingStopName: trainData['DailyTrainInfo']
-                        ['StartingStationName']['Zh_tw'],
+                    ['StartingStationName']['Zh_tw'],
                     finalStopName: trainData['DailyTrainInfo']
-                        ['EndingStationName']['Zh_tw'],
+                    ['EndingStationName']['Zh_tw'],
                     route: trainData['DailyTrainInfo']['TrainNo'],
                     type: 'HSR',
                     category: getCategory(result['category']),
@@ -109,11 +104,13 @@ class HSRSchedulePage extends StatelessWidget {
 
                   final output = await railway.addSchedule(schedule);
 
+                  if (!context.mounted) return;
+
                   if (output == -1) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(AppLocalizations.of(context)!.text_395),
-                        backgroundColor: warningOrange,
+                        backgroundColor: colors.warning,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -124,7 +121,7 @@ class HSRSchedulePage extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(AppLocalizations.of(context)!.text_396),
-                        backgroundColor: successGreen,
+                        backgroundColor: colors.success,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -135,7 +132,7 @@ class HSRSchedulePage extends StatelessWidget {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(AppLocalizations.of(context)!.text_397),
-                        backgroundColor: errorRed,
+                        backgroundColor: colors.danger,
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -148,7 +145,7 @@ class HSRSchedulePage extends StatelessWidget {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
+                  color: colors.mutedBackground,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -159,7 +156,7 @@ class HSRSchedulePage extends StatelessWidget {
               ),
             ),
           ),
-          // 列車資訊按鈕
+          // 列車資訊
           Container(
             margin: const EdgeInsets.only(right: 8),
             child: IconButton(
@@ -169,7 +166,7 @@ class HSRSchedulePage extends StatelessWidget {
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
+                  color: colors.mutedBackground,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -196,21 +193,23 @@ class HSRSchedulePage extends StatelessWidget {
                   const Icon(Icons.timeline_rounded,
                       size: 20, color: primaryHSR),
                   const SizedBox(width: 8),
-                  Flexible(child: Text(
-                    AppLocalizations.of(context)!.text_398,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: primaryHSR,
-                    ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                  )),
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context)!.text_398,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: primaryHSR,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            _buildStopTimesList(),
-
-            // 高鐵列車介紹卡片
+            _buildStopTimesList(context),
             _buildHSRInfoCard(context),
           ],
         ),
@@ -218,84 +217,113 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  // 顯示列車資訊對話框
+  // ==================== 列車資訊對話框 ====================
   void _showTrainInfoDialog(BuildContext context) {
+    final colors = context.appColors;
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return Dialog(
-          backgroundColor: Colors.white,
+          backgroundColor: colors.cardBackground,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
           child: Container(
             padding: const EdgeInsets.all(24),
             constraints: const BoxConstraints(maxWidth: 320),
-            child: SingleChildScrollView(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryHSR.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: primaryHSR.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.train_rounded,
+                          color: primaryHSR,
+                          size: 24,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.train_rounded,
-                        color: primaryHSR,
-                        size: 24,
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context)!.text_394,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: primaryHSR,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Flexible(child: Text(
-                      AppLocalizations.of(context)!.text_394,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: primaryHSR,
-                      ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                    )),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _buildInfoRow(
-                    AppLocalizations.of(context)!.text_399, '12節車廂（9M3T）'),
-                _buildInfoRow(AppLocalizations.of(context)!.text_400, '304.2m'),
-                _buildInfoRow(
-                    AppLocalizations.of(context)!.text_401, '300km/h'),
-                _buildInfoRow(
-                    AppLocalizations.of(context)!.text_402, '295km/h'),
-                _buildInfoRow(AppLocalizations.of(context)!.text_403,
-                    AppLocalizations.of(context)!.text_404),
-                _buildInfoRow(AppLocalizations.of(context)!.text_405,
-                    AppLocalizations.of(context)!.text_406),
-                _buildInfoRow(AppLocalizations.of(context)!.text_407,
-                    AppLocalizations.of(context)!.text_406),
-                const SizedBox(height: 20),
-                Center(
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      AppLocalizations.of(context)!.text_44,
-                      style: TextStyle(
-                        color: primaryHSR,
-                        fontWeight: FontWeight.w600,
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_399,
+                    '12節車廂（9M3T）',
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_400,
+                    '304.2m',
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_401,
+                    '300km/h',
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_402,
+                    '295km/h',
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_403,
+                    AppLocalizations.of(context)!.text_404,
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_405,
+                    AppLocalizations.of(context)!.text_406,
+                    colors,
+                  ),
+                  _buildInfoRow(
+                    AppLocalizations.of(context)!.text_407,
+                    AppLocalizations.of(context)!.text_406,
+                    colors,
+                  ),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text(
+                        '關閉',
+                        style: TextStyle(
+                          color: primaryHSR,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            )),
+                ],
+              ),
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -305,34 +333,38 @@ class HSRSchedulePage extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 14,
-              color: textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(
-            value,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: textPrimary,
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: colors.textPrimary,
+              ),
             ),
-          )),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTrainInfoCard(context) {
+  // ==================== 車次資訊卡片 ====================
+  Widget _buildTrainInfoCard(BuildContext context) {
+    final colors = context.appColors;
     final trainNo = trainData['DailyTrainInfo']['TrainNo'];
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -350,7 +382,10 @@ class HSRSchedulePage extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryHSR, primaryHSR.withOpacity(0.8)],
+                      colors: [
+                        primaryHSR,
+                        primaryHSR.withValues(alpha: 0.8),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -375,7 +410,7 @@ class HSRSchedulePage extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: textPrimary,
+                          color: colors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -383,7 +418,7 @@ class HSRSchedulePage extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: primaryHSR.withOpacity(0.1),
+                          color: primaryHSR.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Text(
@@ -406,7 +441,7 @@ class HSRSchedulePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: surfaceColor,
+                color: colors.mutedBackground,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -420,7 +455,7 @@ class HSRSchedulePage extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: primaryHSR.withOpacity(0.1),
+                                color: primaryHSR.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
@@ -430,13 +465,17 @@ class HSRSchedulePage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Flexible(child: Text(
-                              AppLocalizations.of(context)!.text_409,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textSecondary,
-                              ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                            )),
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.of(context)!.text_409,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -445,10 +484,10 @@ class HSRSchedulePage extends StatelessWidget {
                             trainData['DailyTrainInfo']['StartingStationName'],
                             context,
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: textPrimary,
+                            color: colors.textPrimary,
                           ),
                         ),
                       ],
@@ -456,9 +495,9 @@ class HSRSchedulePage extends StatelessWidget {
                   ),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Icon(
@@ -474,24 +513,28 @@ class HSRSchedulePage extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Flexible(child: Text(
-                              AppLocalizations.of(context)!.text_410,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: textSecondary,
-                              ), maxLines: 1, overflow: TextOverflow.ellipsis,
-                            )),
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.of(context)!.text_410,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: successGreen.withOpacity(0.1),
+                                color: colors.success.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
                                 Icons.flag_rounded,
                                 size: 16,
-                                color: successGreen,
+                                color: colors.success,
                               ),
                             ),
                           ],
@@ -502,10 +545,10 @@ class HSRSchedulePage extends StatelessWidget {
                             trainData['DailyTrainInfo']['EndingStationName'],
                             context,
                           ),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: textPrimary,
+                            color: colors.textPrimary,
                           ),
                           textAlign: TextAlign.end,
                         ),
@@ -525,15 +568,15 @@ class HSRSchedulePage extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
+                  color: colors.mutedBackground,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline_rounded,
                       size: 18,
-                      color: textSecondary,
+                      color: colors.textSecondary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -544,7 +587,7 @@ class HSRSchedulePage extends StatelessWidget {
                         ),
                         style: TextStyle(
                           fontSize: 14,
-                          color: textPrimary,
+                          color: colors.textPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -558,7 +601,9 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStopTimesList() {
+  // ==================== 停靠站列表 ====================
+  Widget _buildStopTimesList(BuildContext context) {
+    final colors = context.appColors;
     final stopTimes = trainData['StopTimes'] as List<dynamic>;
 
     return ListView.builder(
@@ -584,7 +629,7 @@ class HSRSchedulePage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: surfaceColor,
+                        color: colors.mutedBackground,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -602,7 +647,7 @@ class HSRSchedulePage extends StatelessWidget {
                             stop['DepartureTime'] ?? '--:--',
                             style: TextStyle(
                               fontSize: 13,
-                              color: textSecondary,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
@@ -620,21 +665,24 @@ class HSRSchedulePage extends StatelessWidget {
                     Container(
                       width: 2,
                       height: 24,
-                      color: primaryHSR.withOpacity(0.3),
+                      color: primaryHSR.withValues(alpha: 0.3),
                     ),
                   Container(
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [primaryHSR, primaryHSR.withOpacity(0.8)],
+                        colors: [
+                          primaryHSR,
+                          primaryHSR.withValues(alpha: 0.8),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: primaryHSR.withOpacity(0.3),
+                          color: primaryHSR.withValues(alpha: 0.3),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -645,7 +693,7 @@ class HSRSchedulePage extends StatelessWidget {
                     Container(
                       width: 2,
                       height: 24,
-                      color: primaryHSR.withOpacity(0.3),
+                      color: primaryHSR.withValues(alpha: 0.3),
                     ),
                 ],
               ),
@@ -660,10 +708,10 @@ class HSRSchedulePage extends StatelessWidget {
                       _localizedHsrName(stop['StationName'], context).isNotEmpty
                           ? _localizedHsrName(stop['StationName'], context)
                           : AppLocalizations.of(context)!.text_160,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: textPrimary,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -671,14 +719,14 @@ class HSRSchedulePage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: successGreen.withOpacity(0.1),
+                        color: colors.success.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         AppLocalizations.of(context)!.text_411,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: successGreen,
+                          color: colors.success,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -687,20 +735,20 @@ class HSRSchedulePage extends StatelessWidget {
                 ),
               ),
 
-              // 里程（高鐵特有）
+              // 里程
               if (stop['Distance'] != null)
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: surfaceColor,
+                    color: colors.mutedBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${stop['Distance']}km',
                     style: TextStyle(
                       fontSize: 12,
-                      color: textSecondary,
+                      color: colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -712,16 +760,19 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHSRInfoCard(context) {
+  // ==================== 高鐵列車介紹卡片 ====================
+  Widget _buildHSRInfoCard(BuildContext context) {
+    final colors = context.appColors;
+
     return Container(
       margin: const EdgeInsets.only(top: 32, bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: colors.shadow,
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -735,7 +786,7 @@ class HSRSchedulePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
+                  color: colors.mutedBackground,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -745,14 +796,18 @@ class HSRSchedulePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Flexible(child: Text(
-                AppLocalizations.of(context)!.text_394,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: primaryHSR,
-                ), maxLines: 1, overflow: TextOverflow.ellipsis,
-              )),
+              Flexible(
+                child: Text(
+                  AppLocalizations.of(context)!.text_394,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: primaryHSR,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           Container(
@@ -762,7 +817,7 @@ class HSRSchedulePage extends StatelessWidget {
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  primaryHSR.withOpacity(0.2),
+                  primaryHSR.withValues(alpha: 0.2),
                   Colors.transparent,
                 ],
               ),
@@ -771,16 +826,19 @@ class HSRSchedulePage extends StatelessWidget {
           Row(
             children: [
               _buildHSRFeature(
+                context,
                 icon: Icons.speed_rounded,
                 title: AppLocalizations.of(context)!.text_401,
                 value: '300 km/h',
               ),
               _buildHSRFeature(
+                context,
                 icon: Icons.timer_rounded,
                 title: AppLocalizations.of(context)!.text_412,
                 value: '90 分鐘',
               ),
               _buildHSRFeature(
+                context,
                 icon: Icons.event_seat_rounded,
                 title: AppLocalizations.of(context)!.text_413,
                 value: '989 席',
@@ -792,11 +850,13 @@ class HSRSchedulePage extends StatelessWidget {
     );
   }
 
-  Widget _buildHSRFeature({
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
+  Widget _buildHSRFeature(
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        required String value,
+      }) {
+    final colors = context.appColors;
     return Expanded(
       child: Column(
         children: [
@@ -804,10 +864,10 @@ class HSRSchedulePage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: textPrimary,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -815,68 +875,11 @@ class HSRSchedulePage extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 12,
-              color: textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStationInfoRow({
-    required IconData icon,
-    required String label,
-    required String stationName,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: primaryHSR, size: 20),
-        const SizedBox(width: 12),
-        Text(
-          '$label：',
-          style: TextStyle(
-            fontSize: 15,
-            color: textSecondary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            stationName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: textPrimary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            color: textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            color: textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }

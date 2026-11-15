@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,31 +28,47 @@ class CityProvider with ChangeNotifier {
 }
 
 class AppProvider with ChangeNotifier {
-  bool _isDarkTheme;
+  ThemeMode _themeMode;
   String _language;
 
-  bool get isDarkTheme => _isDarkTheme;
+  ThemeMode get themeMode => _themeMode;
+  bool get isDarkTheme => _themeMode == ThemeMode.dark;
   String get language => _language;
 
   AppProvider({
     bool isDarkTheme = false,
+    ThemeMode? themeMode,
     String language = 'zh',
-  })  : _isDarkTheme = isDarkTheme,
+  })  : _themeMode =
+            themeMode ?? (isDarkTheme ? ThemeMode.dark : ThemeMode.light),
         _language = language;
 
   static Future<AppProvider> load() async {
     final prefs = await SharedPreferences.getInstance();
     final savedLanguage = prefs.getString('language') ?? 'zh';
+    final savedThemeMode = prefs.getString('themeMode');
+    final themeMode = switch (savedThemeMode) {
+      'dark' => ThemeMode.dark,
+      'system' => ThemeMode.system,
+      'light' => ThemeMode.light,
+      _ =>
+        prefs.getBool('darkTheme') == true ? ThemeMode.dark : ThemeMode.system,
+    };
     return AppProvider(
-      isDarkTheme: prefs.getBool('darkTheme') ?? false,
+      themeMode: themeMode,
       language: savedLanguage == 'en' ? 'en' : 'zh',
     );
   }
 
   Future<void> toggleTheme(bool value) async {
+    await setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('darkTheme', value);
-    _isDarkTheme = value;
+    await prefs.setString('themeMode', mode.name);
+    await prefs.setBool('darkTheme', mode == ThemeMode.dark);
+    _themeMode = mode;
     notifyListeners();
   }
 

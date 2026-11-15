@@ -25,8 +25,8 @@ class AppCustomBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize => Size.fromHeight(
-    kToolbarHeight + (bottom?.preferredSize.height ?? 0),
-  );
+        kToolbarHeight + (bottom?.preferredSize.height ?? 0),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -62,43 +62,16 @@ class AppCustomBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     // 關鍵：用 Size.fromHeight 限制外層 Container 高度，避免被 Stack 撐開
-    return SizedBox(
-      height: 200,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(16),
-          ),
-
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(child: appBar),
-            Positioned(
-              top: 8,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.45,
-                      ),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+    return Material(
+      color: colorScheme.surface,
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(16),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: appBar,
     );
   }
+
   Widget _defaultLeadingButton(BuildContext context, ColorScheme colorScheme) {
     return Container(
       margin: const EdgeInsets.all(4),

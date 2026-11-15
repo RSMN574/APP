@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 // 請替換為你專案的實際路徑
 import '../../weather/widgets/weather_card.dart';
+import '../../transit_alerts/widgets/transit_alert_center.dart';
 
 
 class HomeBottomSheet extends StatefulWidget {
@@ -117,43 +118,9 @@ class _HomeBottomSheetState extends State<HomeBottomSheet> {
                     child: Divider(height: 1, thickness: 1),
                   ),
                   // 常用路線
+
                   const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        '常用路線',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 附近站牌
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        '附近站牌',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 交通公告
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text(
-                        '交通公告',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+                    child: TransitAlertCenter(),
                   ),
                 ],
               ],

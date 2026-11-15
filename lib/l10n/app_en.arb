@@ -1241,7 +1241,66 @@
   "delayMinutes": "Delay {minutes} min",
   "@delayMinutes": {
     "placeholders": { "minutes": { "type": "int" } }
-  }
+  },
+
+    "transitAlertCenterTitle": "Transit Alerts",
+    "transitAlertRefreshTooltip": "Refresh alerts",
+    "transitAlertViewAll": "View all",
+    "transitAlertNoNew": "No new alerts",
+    "transitAlertCount": "{count} new alerts",
+    "@transitAlertCount": {
+      "placeholders": { "count": { "type": "int" } }
+    },
+    "transitAlertCountSuffix": "{count} alerts",
+    "@transitAlertCountSuffix": {
+      "placeholders": { "count": { "type": "int" } }
+    },
+    "transitAlertLoading": "Loading alerts...",
+    "transitAlertEmptyTitle": "No alerts",
+    "transitAlertEmptyMessage": "No transit alerts are available yet; alert sources are not connected.",
+    "transitAlertPartialSourceError": "Some alert sources are temporarily unavailable; available data is still shown.",
+    "transitAlertLastUpdated": "Updated {time}",
+    "@transitAlertLastUpdated": {
+      "placeholders": { "time": { "type": "String" } }
+    },
+    "transitAlertAllTitle": "All Transit Alerts",
+    "transitAlertDetailImpact": "Impact",
+    "transitAlertDetailLocation": "Location",
+    "transitAlertDetailSource": "Source",
+    "transitAlertDetailPublishedAt": "Published at",
+    "transitAlertDetailUpdatedAt": "Last updated",
+    "transitAlertViewOriginal": "View original",
+    "transitAlertClose": "Close",
+    "transitAlertOpenLinkFailed": "Unable to open the original alert link",
+    "transitAlertUnknown": "Unknown",
+    "transitAlertNotProvided": "Not provided",
+    "transitAlertFilterAll": "All",
+
+    "transportBus": "Bus",
+    "transportMetro": "Metro",
+    "transportTra": "TRA",
+    "transportThsr": "HSR",
+    "transportAviation": "Aviation",
+    "transportYoubike": "YouBike",
+    "transportOther": "Other",
+
+    "alertTypeServiceDisruption": "Service disruption",
+    "alertTypeRouteDetour": "Route detour",
+    "alertTypeSuspension": "Suspension",
+    "alertTypeDelay": "Delay",
+    "alertTypeScheduleChange": "Schedule change",
+    "alertTypeStationNotice": "Station notice",
+    "alertTypeFacilityNotice": "Facility issue",
+    "alertTypeWeatherImpact": "Weather impact",
+    "alertTypeGeneralNotice": "General notice",
+
+    "alertSeverityInfo": "Info",
+    "alertSeverityMinor": "Minor",
+    "alertSeverityModerate": "Moderate",
+    "alertSeverityMajor": "Major",
+    "alertSeverityCritical": "Critical",
+    "alertSeverityUnknown": "Unknown"
+
 }
 
 
