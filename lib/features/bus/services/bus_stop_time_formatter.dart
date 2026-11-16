@@ -48,7 +48,7 @@ class BusStopTimeFormatter {
     // ✅ P3：統一從 `Estimates` 收集車牌（原本只在 bus_stop_info_service 有）。
     final plateList = _collectPlateNumbers(stopTime);
     final plate = plateList.isNotEmpty
-        ? plateList.toString()
+        ? plateList.first
         : (stopTime['PlateNumb'] ?? '').toString();
 
     final estimates = (stopTime['Estimates'] ?? '').toString();
@@ -191,13 +191,20 @@ class BusStopTimeFormatter {
 
     if (decoded is! List) return const [];
 
-    final out = <String>[];
+    // 只保留「當前進站」的車牌：EstimateTime 最小者（無時間資訊者排最後）。
+    String? bestPlate;
+    num? bestSec;
     for (final e in decoded) {
-      if (e is Map && e['PlateNumb'] != null) {
-        final plate = e['PlateNumb'].toString();
-        if (plate.isNotEmpty) out.add(plate);
+      if (e is! Map || e['PlateNumb'] == null) continue;
+      final plate = e['PlateNumb'].toString().trim();
+      if (plate.isEmpty || plate == '-1') continue;
+      final sec = num.tryParse(e['EstimateTime']?.toString() ?? '');
+      if (bestPlate == null ||
+          (sec != null && (bestSec == null || sec < bestSec))) {
+        bestPlate = plate;
+        bestSec = sec;
       }
     }
-    return out;
+    return bestPlate == null ? const [] : [bestPlate];
   }
 }
