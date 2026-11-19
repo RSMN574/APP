@@ -44,3 +44,6 @@ app.*.map.json
 
 # Local build-time secrets
 dart_defines.json
+
+# QA 產物
+/coverage/

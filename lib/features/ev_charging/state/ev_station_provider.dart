@@ -1,4 +1,4 @@
-﻿import 'package:com.rsmn574.app/features/common/state/request_cache.dart';
+import 'package:com.rsmn574.app/features/common/state/request_cache.dart';
 import 'package:com.rsmn574.app/features/ev_charging/data/ev_station_repository.dart';
 import 'package:flutter/foundation.dart';
 
@@ -16,6 +16,15 @@ class EvStationProvider extends ChangeNotifier {
           {bool force = false}) =>
       _cache.get('connector:$stationId',
           () => _repository.connectorLiveStatus(stationId),
+          force: force);
+
+  Future<List<Map<String, dynamic>>> stations({bool force = false}) =>
+      _cache.get('stations', _repository.stations, force: force);
+
+  Future<List<Map<String, dynamic>>> chargingPoints(String stationId,
+          {bool force = false}) =>
+      _cache.get(
+          'points:$stationId', () => _repository.chargingPoints(stationId),
           force: force);
 
   void refresh() {

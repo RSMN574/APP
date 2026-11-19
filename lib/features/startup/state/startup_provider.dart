@@ -3,8 +3,12 @@ import 'package:flutter/foundation.dart';
 import '../data/onboarding_repository.dart';
 
 class StartupProvider extends ChangeNotifier {
-  StartupProvider({OnboardingRepository? repository})
-      : _repository = repository ?? const OnboardingRepository();
+  StartupProvider({
+    OnboardingRepository? repository,
+    this.minimumSplashDuration = const Duration(milliseconds: 450),
+  }) : _repository = repository ?? const OnboardingRepository();
+
+  final Duration minimumSplashDuration;
 
   final OnboardingRepository _repository;
 
@@ -21,7 +25,9 @@ class StartupProvider extends ChangeNotifier {
 
     final results = await Future.wait<dynamic>([
       _repository.hasCompletedOnboarding(),
-      Future<void>.delayed(const Duration(milliseconds: 1100)),
+      // QA B21：原本強制等待 1100ms。原生 Splash 已涵蓋引擎啟動，
+      // Flutter Splash 只需短暫顯示品牌動畫，避免額外延遲進入首頁。
+      Future<void>.delayed(minimumSplashDuration),
     ]);
 
     _shouldShowOnboarding = !(results.first as bool);

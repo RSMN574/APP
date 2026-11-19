@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import '../../features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 
 class AppDatabase {
   AppDatabase._();

@@ -54,7 +54,8 @@ class TransitAlertProvider extends ChangeNotifier {
       final severity =
           _severityRank(b.severity).compareTo(_severityRank(a.severity));
       if (severity != 0) return severity;
-      final status = _statusRank(a.status).compareTo(_statusRank(b.status));
+      // rank 越高越優先（active > upcoming > resolved > expired）。
+      final status = _statusRank(b.status).compareTo(_statusRank(a.status));
       if (status != 0) return status;
       final aTime = a.updatedAt ??
           a.publishedAt ??

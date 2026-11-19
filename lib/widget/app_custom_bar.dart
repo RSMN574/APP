@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../const/app_design_tokens.dart';
+
 /// 全專案統一的自訂 AppBar 樣式。
 class AppCustomBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -47,7 +49,7 @@ class AppCustomBar extends StatelessWidget implements PreferredSizeWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 19,
+              fontSize: AppTypography.titleLarge,
               fontWeight: FontWeight.w700,
               color: colorScheme.primary,
               letterSpacing: -0.35,

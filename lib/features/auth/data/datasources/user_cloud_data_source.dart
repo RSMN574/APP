@@ -1,4 +1,4 @@
-import 'dart:convert';
+import '../../../sync/data/schedule_cloud_store.dart';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -17,10 +17,10 @@ class UserCloudDataSource {
   final FirebaseStorage _storage;
 
   DocumentReference<Map<String, dynamic>> _userDoc(String uid) =>
-      _firestore.collection('users').doc(uid);
+      _firestore.collection(ScheduleCloudStore.usersCollection).doc(uid);
 
   CollectionReference<Map<String, dynamic>> schedules(String uid) =>
-      _userDoc(uid).collection('schedules');
+      _userDoc(uid).collection(ScheduleCloudStore.schedulesCollection);
 
   Reference _avatarRef(String uid) => _storage.ref('avatars/$uid.jpg');
 
@@ -63,6 +63,5 @@ class UserCloudDataSource {
     }
   }
 
-  static String documentId(String key) =>
-      base64Url.encode(utf8.encode(key)).replaceAll('=', '');
+  static String documentId(String key) => ScheduleCloudStore.documentId(key);
 }

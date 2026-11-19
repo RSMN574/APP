@@ -1,5 +1,9 @@
+import 'package:com.rsmn574.app/features/bus/pages/bus_history_page.dart';
+import 'package:com.rsmn574.app/features/bus/state/bus_route_view_model.dart';
+import 'package:com.rsmn574.app/const/arrival_status_colors.dart';
+import 'package:com.rsmn574.app/widget/arrival_chip.dart';
 import 'dart:async';
-import 'dart:convert';
+import 'package:com.rsmn574.app/features/bus/pages/bus_schedule_page.dart';
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/features/bus/widgets/bubble.dart';
@@ -7,8 +11,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:intl/intl.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,19 +20,16 @@ import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/features/bus/data/bus_position_estimator.dart';
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
-import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
-import 'package:com.rsmn574.app/features/bus/services/bus_direction_resolver.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'package:com.rsmn574.app/features/bus/services/bus_estimates_parser.dart';
 import 'package:com.rsmn574.app/features/bus/services/bus_stop_time_formatter.dart';
-import 'package:com.rsmn574.app/task/task.dart';
+import 'package:com.rsmn574.app/features/notification/services/arrival_reminder_task.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:com.rsmn574.app/widget/map.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
 
 import '../../../const/app_colors.dart';
-import '../../../const/regular_const.dart' as colorScheme;
 import '../../../const/surface_decoration.dart';
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/AppLoading.dart';
@@ -54,15 +53,6 @@ class Mark {
 
 bool _isEnglishLocale(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'en';
-
-String _localizedBusText(dynamic value, {required bool isEnglish}) {
-  if (value is! Map) return value?.toString() ?? '';
-
-  final preferred = value[isEnglish ? 'En' : 'Zh_tw']?.toString() ?? '';
-  if (preferred.isNotEmpty) return preferred;
-
-  return value[isEnglish ? 'Zh_tw' : 'En']?.toString() ?? '';
-}
 
 String _localizedBusRouteName(BusRoute route, {required bool isEnglish}) {
   if (isEnglish && route.routeEn.isNotEmpty) return route.routeEn;
@@ -122,24 +112,24 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   static const double _stopItemHeight = 54.5;
   static const double _stopSeparatorHeight = 9.0;
 
-  ValueNotifier<int> remainingSecondsNotifier = ValueNotifier(40);
+  // QA B1：載入、方向判定、站序組合與自動更新倒數交給 ViewModel。
+  late final BusRouteViewModel _vm;
+  ValueNotifier<int> get remainingSecondsNotifier => _vm.remainingSeconds;
+  ValueNotifier<bool> get isTimerOn => _vm.autoReloadOn;
   final ScrollController _scrollController = ScrollController();
   List<dynamic> stopNamesWithTime1 = [];
   List<dynamic> stopNamesWithTime2 = [];
   late final TabController _tabController;
   final Set<Marker> _stopMarkers = {};
   final Set<Marker> _busMarkers = {};
-  Timer? _timer;
   Timer? _busPositionTimer;
   final BusPositionEstimator _busPositionEstimator =
   const BusPositionEstimator();
   final Map<int, List<LatLng>> _routePointsByDirection = {};
   int _busPositionRequestId = 0;
-  bool _initialDirectionApplied = false;
   final ValueNotifier<String> _directionNotifier = ValueNotifier("");
   final ValueNotifier<Map<String, dynamic>?> _dataNotifier =
   ValueNotifier(null);
-  ValueNotifier<bool> isTimerOn = ValueNotifier(false);
 
   // ✅ P0：原本 top-level 可變變數改為 State 成員，避免跨頁共用。
   String? _nearestStop;
@@ -147,8 +137,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
   // 儲存 Tab 索引與實際 TDX Direction 的對應關係
   List<int> _tabDirections = [0];
 
-  // 避免 Async Race Condition 的請求世代計數器
-  int _loadRequestId = 0;
+  // 避免 Async Race Condition 的請求世代計數器（資料載入由 ViewModel 處理）
   int _shapeRequestId = 0;
 
   // 供 _scrollToHighlightOrNearest 使用的最近站點索引
@@ -169,8 +158,22 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
     _tabController.addListener(_handleTabChange);
 
-    // 初次載入
-    _loadData();
+    _vm = BusRouteViewModel(
+      dataSource: context.read<BusProvider>(),
+      city: widget.city?.toString() ?? '',
+      routeId: widget.routeID,
+      tdxRouteName: _tdxRouteName(widget.data, widget.routeName),
+      hasSubRoutes: widget.hasSubRoutes,
+      tabCount: _tabController.length,
+      preferredDirection: widget.mark?.direction,
+      highlightStops: widget.mark?.highlight,
+    )..onAutoReload = _loadData;
+
+    // 初次載入：_loadData 需要讀取 Localizations（InheritedWidget），
+    // 不能在 initState 內同步呼叫，改到第一個 frame 之後。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadData();
+    });
 
     // 車輛位置獨立更新
     _busPositionTimer = Timer.periodic(
@@ -447,160 +450,88 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     }
   }
 
-  void _startAutoReload() {
-    _timer?.cancel();
-    remainingSecondsNotifier.value = 40;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (remainingSecondsNotifier.value > 1) {
-        remainingSecondsNotifier.value = remainingSecondsNotifier.value - 1;
-      } else {
-        remainingSecondsNotifier.value = 40;
-        _loadData();
-      }
-    });
-  }
-
   @override
   void dispose() {
-    _timer?.cancel();
+    _vm.dispose();
     _busPositionTimer?.cancel();
-    _loadRequestId++;
     _busPositionRequestId++;
     _shapeRequestId++;
     _tabController.removeListener(_handleTabChange);
     _scrollController.dispose();
     _directionNotifier.dispose();
     _dataNotifier.dispose();
-    remainingSecondsNotifier.dispose();
-    isTimerOn.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
-    final int requestId = ++_loadRequestId;
-    final provider = context.read<BusProvider>();
-
+    final l10n = AppLocalizations.of(context)!;
+    final isEnglish = _isEnglishLocale(context);
     try {
-      final List<Map<String, dynamic>> routeStopsData =
-          await provider.fetchRouteStops(
-        city: widget.city,
-        routeId: widget.routeID,
-      );
-      final busTimeData = await provider.fetchEstimatedArrivals(
-        routeName: _tdxRouteName(widget.data, widget.routeName),
-        city: widget.city,
-        routeID: widget.routeID,
-      );
-
-      if (requestId != _loadRequestId || !mounted) return;
-
-      final resolution = BusDirectionResolver.resolve(
-        hasSubRoutes: widget.hasSubRoutes,
-        tabCount: _tabController.length,
-        routeStopsData: routeStopsData,
-        preferredDirection: widget.mark?.direction,
-      );
-      _tabDirections = resolution.directions;
-
-      if (!_initialDirectionApplied) {
-        final target = resolution.preferredTabIndex;
-        if (target != null && target < _tabController.length) {
-          _tabController.animateTo(target);
-        }
-        _initialDirectionApplied = true;
-      }
-
-      stopNamesWithTime1 = await fetchStopNamesWithTime(
-        _tabDirections[0],
-        busTimeData,
-        routeStopsData,
-      );
-      if (requestId != _loadRequestId || !mounted) return;
-
-      if (_tabDirections.length > 1) {
-        stopNamesWithTime2 = await fetchStopNamesWithTime(
-          _tabDirections[1],
-          busTimeData,
-          routeStopsData,
-        );
-        if (requestId != _loadRequestId || !mounted) return;
-      } else {
-        stopNamesWithTime2 = [];
-      }
-
-      final hasLive =
-          _hasLiveData(stopNamesWithTime1) || _hasLiveData(stopNamesWithTime2);
-      isTimerOn.value = hasLive;
-
-      final tabIndex =
-      _tabController.index.clamp(0, _tabDirections.length - 1);
-      final currentDirection = _tabDirections[tabIndex];
-      final currentStops =
-      tabIndex == 0 ? stopNamesWithTime1 : stopNamesWithTime2;
-
-      _updateNearestStop(currentStops);
-      _scrollToHighlightOrNearest(currentStops);
-
-      _loadMarkers(currentStops);
-      _loadShape(currentDirection);
-      _loadBusPositions(currentDirection);
-
-      if (isTimerOn.value) _startAutoReload();
-
-      final isEnglish = _isEnglishLocale(context);
-      final displayRouteName =
-      _localizedBusRouteName(widget.data, isEnglish: isEnglish);
-      final displayDeparture =
-      _localizedDepartureName(widget.data, isEnglish: isEnglish);
-      final displayDestination =
-      _localizedDestinationName(widget.data, isEnglish: isEnglish);
-
-      _dataNotifier.value = {
-        'routeInfo': [
-          displayRouteName.isNotEmpty ? displayRouteName : widget.routeName,
-          displayDeparture.isNotEmpty
-              ? displayDeparture
-              : widget.departureStopName,
-          displayDestination.isNotEmpty
-              ? displayDestination
-              : widget.destinationStopName,
-        ],
-        'stopNamesWithTime1': stopNamesWithTime1,
-        'stopNamesWithTime2': stopNamesWithTime2,
-        'error': null,
-      };
-    } catch (e, s) {
-      if (requestId != _loadRequestId || !mounted) return;
-      debugPrint('❌ _loadData 發生重大錯誤: $e\n$s');
-
-      final hasData = _dataNotifier.value != null;
-      if (!hasData) {
-        _dataNotifier.value = {
-          'routeInfo': [
-            widget.routeName?.toString() ?? '',
-            widget.departureStopName?.toString() ?? '',
-            widget.destinationStopName?.toString() ?? '',
-          ],
-          'stopNamesWithTime1': const [],
-          'stopNamesWithTime2': const [],
-          'error': e.toString(),
-        };
-      } else {
+      await _vm.load(l10n: l10n, isEnglish: isEnglish);
+    } catch (_) {
+      // 已有資料時保留舊資料，只提示更新失敗（錯誤已由 ViewModel 上報）。
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.text_338),
-          ),
+          SnackBar(content: Text(l10n.text_338)),
         );
       }
+      return;
     }
-  }
+    if (!mounted) return;
 
-  bool _hasLiveData(List stops) {
-    for (final s in stops) {
-      if (s is Map && s['hasLiveData'] == true) return true;
+    if (_vm.status == BusRouteLoadStatus.error) {
+      _dataNotifier.value ??= {
+        'routeInfo': [
+          widget.routeName?.toString() ?? '',
+          widget.departureStopName?.toString() ?? '',
+          widget.destinationStopName?.toString() ?? '',
+        ],
+        'stopNamesWithTime1': const [],
+        'stopNamesWithTime2': const [],
+        'error': _vm.error.toString(),
+      };
+      return;
     }
-    return false;
+
+    _tabDirections = _vm.directions;
+    final initialTab = _vm.takeInitialTabIndex();
+    if (initialTab != null) _tabController.animateTo(initialTab);
+    stopNamesWithTime1 = _vm.stopsForTab(0);
+    stopNamesWithTime2 = _vm.stopsForTab(1);
+
+    final tabIndex = _tabController.index.clamp(0, _tabDirections.length - 1);
+    final currentDirection = _tabDirections[tabIndex];
+    final currentStops =
+        tabIndex == 0 ? stopNamesWithTime1 : stopNamesWithTime2;
+
+    _updateNearestStop(currentStops);
+    _scrollToHighlightOrNearest(currentStops);
+    _loadMarkers(currentStops);
+    _loadShape(currentDirection);
+    _loadBusPositions(currentDirection);
+
+    final displayRouteName =
+        _localizedBusRouteName(widget.data, isEnglish: isEnglish);
+    final displayDeparture =
+        _localizedDepartureName(widget.data, isEnglish: isEnglish);
+    final displayDestination =
+        _localizedDestinationName(widget.data, isEnglish: isEnglish);
+
+    _dataNotifier.value = {
+      'routeInfo': [
+        displayRouteName.isNotEmpty ? displayRouteName : widget.routeName,
+        displayDeparture.isNotEmpty
+            ? displayDeparture
+            : widget.departureStopName,
+        displayDestination.isNotEmpty
+            ? displayDestination
+            : widget.destinationStopName,
+      ],
+      'stopNamesWithTime1': stopNamesWithTime1,
+      'stopNamesWithTime2': stopNamesWithTime2,
+      'error': null,
+    };
   }
 
   void _updateNearestStop(List<dynamic> stops) {
@@ -658,165 +589,14 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchStopNamesWithTime(
-      int direction,
-      List<dynamic> busTimeData,
-      List<Map<String, dynamic>> routeStopsData,
-      ) async {
-    final result = <Map<String, dynamic>>[];
-
-    // 解析 estimatesJson：支援 List / Map / 合法 JSON / 伪 JSON
-    List<Map<String, dynamic>> parseEstimates(dynamic raw) {
-      if (raw is List) {
-        return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-      }
-      if (raw is Map) return [Map<String, dynamic>.from(raw)];
-      if (raw is String) {
-        final s = raw.trim();
-        if (s.isEmpty) return [];
-        try {
-          final d = json.decode(s);
-          if (d is List) {
-            return d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          }
-        } catch (_) {}
-        // 宽鬆解析伪 JSON：{PlateNumb: 739-U5, EstimateTime: 60, ...}
-        final out = <Map<String, dynamic>>[];
-        final itemReg = RegExp(r'\{([^{}]*)\}');
-        final kvReg = RegExp(r'(\w+)\s*:\s*([^,}]+)');
-        for (final m in itemReg.allMatches(s)) {
-          final map = <String, dynamic>{};
-          for (final kv in kvReg.allMatches(m.group(1)!)) {
-            final k = kv.group(1)!.trim();
-            final v = kv.group(2)!.trim();
-            map[k] = v == 'null'
-                ? null
-                : (v == 'true'
-                ? true
-                : (v == 'false' ? false : (num.tryParse(v) ?? v)));
-          }
-          if (map.isNotEmpty) out.add(map);
-        }
-        return out;
-      }
-      return [];
-    }
-
-    Map<String, dynamic>? targetRouteStop;
-    for (final item in routeStopsData) {
-      final d = item['Direction'];
-      final parsedDir = (d is int) ? d : int.tryParse(d?.toString() ?? '');
-      if (parsedDir == direction) {
-        targetRouteStop = item;
-        break;
-      }
-    }
-
-    if (targetRouteStop == null || targetRouteStop["Stops"] == null) {
-      return result;
-    }
-
-    List<dynamic> stopData;
-    try {
-      stopData = json.decode(targetRouteStop["Stops"]);
-    } catch (e) {
-      debugPrint("Decode Stops Error: $e");
-      return result;
-    }
-
-    final dirBusTimeData = busTimeData.where((s) {
-      final d = s['Direction'];
-      final parsedDir = (d is int) ? d : int.tryParse(d?.toString() ?? '');
-      return parsedDir == direction;
-    }).toList();
-
-    final isEnglish = _isEnglishLocale(context);
-    final l10n = AppLocalizations.of(context)!;
-    final now = DateTime.now();
-
-    // 預格式化每個站台的 arrival
-    final Map<String, dynamic> stopArrivals = {};
-    // PlateNumb -> (該車最快到達的 stopUID, 最小 EstimateTime 秒)
-    final Map<String, MapEntry<String, num>> bestByPlate = {};
-
-    for (final stop in stopData) {
-      final stopUID = stop["StopUID"]?.toString() ?? '';
-      if (stopUID.isEmpty) continue;
-
-      final match = dirBusTimeData.firstWhere(
-            (s) => s['StopUID']?.toString() == stopUID,
-        orElse: () => null,
-      );
-      final arrival = BusStopTimeFormatter.format(
-        stopTime: match is Map ? Map<String, dynamic>.from(match) : null,
-        l10n: l10n,
-        now: now,
-      );
-      stopArrivals[stopUID] = arrival;
-
-      for (final e in parseEstimates(arrival.estimatesJson)) {
-        final plate = e['PlateNumb']?.toString().trim() ?? '';
-        final sec = num.tryParse(e['EstimateTime']?.toString() ?? '');
-        if (plate.isEmpty || sec == null || sec < 0) continue;
-
-        final prev = bestByPlate[plate];
-        if (prev == null || sec < prev.value) {
-          bestByPlate[plate] = MapEntry(stopUID, sec);
-        }
-      }
-    }
-
-    // 輸出，只在「該車最靠站的站台」且 < 180 秒時顯示車牌
-    for (final stop in stopData) {
-      final stopName = _localizedBusText(stop["StopName"], isEnglish: false);
-      final displayStopName =
-      _localizedBusText(stop["StopName"], isEnglish: isEnglish);
-      final stopUID = stop["StopUID"]?.toString() ?? '';
-
-      final arrival = stopArrivals[stopUID];
-      if (arrival == null) continue;
-
-      bool isHighlighted = false;
-      final mark = widget.mark;
-      if (mark?.highlight != null && mark?.direction == direction) {
-        isHighlighted = mark!.highlight!.contains(stopName);
-      }
-
-      String displayPlate = '';
-      num? bestSec;
-      bestByPlate.forEach((plate, entry) {
-        if (entry.key == stopUID && entry.value < 180) {
-          if (bestSec == null || entry.value < bestSec!) {
-            bestSec = entry.value;
-            displayPlate = plate;
-          }
-        }
-      });
-
-      result.add({
-        "stopName": stopName,
-        "displayStopName": displayStopName,
-        "nextBusTime": arrival.displayTime,
-        'color': arrival.colorKey,
-        "PlateNumb": displayPlate,
-        "Estimates": arrival.estimatesJson,
-        "StopPosition": stop["StopPosition"],
-        "StopID": stop['StopID'],
-        "StopUID": stopUID,
-        "hasLiveData": arrival.hasLiveData,
-        "isHighlighted": isHighlighted,
-      });
-    }
-
-    return result;
-  }
-
   PopupMenuItem<String> _buildPopupMenuItem({
     required IconData icon,
     required String title,
     required String subtitle,
     required String value,
   }) {
+    final colors = context.appColors;
+
     return PopupMenuItem<String>(
       value: value,
       height: 70,
@@ -826,10 +606,14 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFEEF3FB),
+              color: colors.mutedBackground,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 20, color: const Color(0xFF1A73E8)),
+            child: Icon(
+              icon,
+              size: 20,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -839,10 +623,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -850,7 +634,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                   subtitle,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey[600],
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -903,10 +687,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                 const SizedBox(height: 16),
                 Text(
                   '$featureName',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A73E8),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -929,10 +713,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF3FB),
+                          color: context.appColors.mutedBackground,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF1A73E8).withOpacity(0.3),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                           ),
                         ),
                         child: Text(
@@ -940,7 +724,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A73E8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -969,7 +753,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
         type: QuickAlertType.success,
         title: AppLocalizations.of(context)!.text_341,
         text: '${routeInfo[0]} 已加入收藏',
-        confirmBtnColor: const Color(0xFF1A73E8),
+        confirmBtnColor: Theme.of(context).colorScheme.primary,
         animType: QuickAlertAnimType.slideInUp,
       );
     } else if (result == -1) {
@@ -1021,13 +805,13 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A73E8).withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.map_rounded,
                     size: 30,
-                    color: Color(0xFF1A73E8),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1036,14 +820,14 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A73E8),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEF3FB),
+                    color: context.appColors.mutedBackground,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Linkify(
@@ -1053,13 +837,13 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                       }
                     },
                     text: widget.routeMapImageUrl,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: Color(0xFF1A73E8),
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w500,
                     ),
-                    linkStyle: const TextStyle(
-                      color: Color(0xFF1A73E8),
+                    linkStyle: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w600,
                       decoration: TextDecoration.underline,
                     ),
@@ -1076,10 +860,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFEEF3FB),
+                          color: context.appColors.mutedBackground,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF1A73E8).withOpacity(0.3),
+                            color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                           ),
                         ),
                         child: Text(
@@ -1087,7 +871,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF1A73E8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -1100,6 +884,20 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
           ),
         );
       },
+    );
+  }
+
+  /// 每日預定班表（TDX DailyStopTimeTable）。與本頁的預估到站時間分開顯示。
+  void _navigateToSchedule() {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => BusSchedulePage(
+          city: widget.city?.toString() ?? '',
+          routeName: widget.routeName?.toString() ?? '',
+          routeId: widget.routeID,
+        ),
+      ),
     );
   }
 
@@ -1234,6 +1032,12 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                       subtitle: AppLocalizations.of(context)!.text_348,
                                       value: 'D',
                                     ),
+                                    _buildPopupMenuItem(
+                                      icon: Icons.schedule_rounded,
+                                      title: AppLocalizations.of(context)!.busScheduleMenuTitle,
+                                      subtitle: AppLocalizations.of(context)!.busScheduleMenuSubtitle,
+                                      value: 'E',
+                                    ),
                                   ],
                                   onSelected: (String action) async {
                                     switch (action) {
@@ -1249,6 +1053,9 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                         break;
                                       case 'D':
                                         _navigateToBusDetail();
+                                        break;
+                                      case 'E':
+                                        _navigateToSchedule();
                                         break;
                                     }
                                   },
@@ -1357,7 +1164,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                                                 decoration: BoxDecoration(
                                                   color: (isWarning
                                                       ? const Color(0xFFFF9500)
-                                                      : const Color(0xFF1A73E8))
+                                                      : Theme.of(context).colorScheme.primary)
                                                       .withOpacity(0.7),
                                                   borderRadius: BorderRadius.circular(12),
                                                   border: Border.all(
@@ -1428,21 +1235,27 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 12,
-                color:
-                Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            // 原始例外（含 API URL）只在 Debug 顯示，不給一般使用者看。
+            if (kDebugMode) ...[
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
+            ],
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: _loadData,
               icon: const Icon(Icons.refresh),
-              label: Text(AppLocalizations.of(context)!.text_44),
+              // 原本誤用 text_44（「關閉」），按鈕實際動作是重新載入。
+              label: Text(AppLocalizations.of(context)!.text_420),
             ),
           ],
         ),
@@ -1593,7 +1406,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
     return RefreshIndicator(
       onRefresh: () async {
         await _loadData();
-        if (isTimerOn.value) _startAutoReload();
+        _vm.restartCountdownIfLive();
       },
       child: ListView.separated(
         padding: const EdgeInsets.only(bottom: 40),
@@ -1603,15 +1416,11 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
           final stop = stopNamesWithTime[index];
           final PlateNumb = stop["PlateNumb"];
 
-          final color =stop["color"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["color"] == '2'
-              ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == l10n.text_317
-              ? const Color.fromRGBO(69, 69, 69, 0.1)
-              : (stop["color"] == "min"
-              ? const Color.fromRGBO(13, 168, 255, 0.1)
-              : const Color.fromRGBO(68, 68, 68, 0.1))));
+          final ArrivalStatus status =
+
+              stop['arrivalStatus'] as ArrivalStatus? ?? ArrivalStatus.ended;
+
+          final arrivalColors = context.arrivalColors;
 
           return Container(
             key: ValueKey(stop['StopUID'] ?? index.toString()),
@@ -1629,33 +1438,9 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                 _dialogBuilder(context, PlateNumb, stop["stopName"],
                     stop["Estimates"], stop);
               },
-              leading: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Text(
-                  stop["nextBusTime"]!,
-                  maxLines: 1,
-                  style: TextStyle(
-
-                    fontSize: 17,
-                    color: stop["color"] == '0'
-                        ? colorScheme.onPrimary
-                        : (stop["color"] == '2'
-                        ? const Color.fromRGBO(255, 85, 104, 1)
-                        : (stop["color"] == l10n.text_317
-                        ? const Color.fromRGBO(
-                        149, 149, 149, 1.0)
-                        : (stop["color"] == "min"
-                        ? const Color.fromRGBO(
-                        13, 168, 255, 1)
-                        : const Color.fromRGBO(
-                        68, 68, 68, 1)))),
-                  ),
-                ),
+              leading: ArrivalChip(
+                status: status,
+                label: stop["nextBusTime"] ?? '',
               ),
               title: Row(
                 children: [
@@ -1669,14 +1454,15 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                         fontSize: stop["isHighlighted"] == true ? 18 : 17,
                         fontWeight: stop["isHighlighted"] == true
                             ? FontWeight.w900
-                            : (stop["color"] == "0"
+                            : (status == ArrivalStatus.arriving
                             ? FontWeight.w600
                             : FontWeight.normal),
+                        // 高亮站使用 Token（深色模式 #1565C0 對近黑底只有 3.42:1）
                         color: stop["isHighlighted"] == true
-                            ? Colors.blue[800]                      // 高亮站：固定深藍
-                            : (stop["color"] == l10n.text_317
-                            ? colorScheme.onSurfaceVariant      // 無資料站：跟隨主題的次要文字色
-                            : colorScheme.onSurface),           // 一般站：跟隨主題的主要文字色
+                            ? arrivalColors.highlight
+                            : (status.isInactive
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface),
                         letterSpacing:
                         stop["isHighlighted"] == true ? 1.0 : 0.5,
                         shadows: stop["isHighlighted"] == true
@@ -1684,7 +1470,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                           Shadow(
                             offset: const Offset(1, 1),
                             blurRadius: 2.0,
-                            color: Colors.blue.withOpacity(0.5),
+                            color: arrivalColors.highlight.withValues(alpha: 0.4),
                           )
                         ]
                             : [],
@@ -1992,7 +1778,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             elevation: 2,
             title: Text(
               AppLocalizations.of(context)!.text_352,
@@ -2001,10 +1787,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
-            iconTheme: const IconThemeData(color: Colors.black),
+            iconTheme: IconThemeData(color: Theme.of(context).colorScheme.onSurface),
           ),
           body: estimatesList.isNotEmpty
               ? ListView.builder(
@@ -2015,7 +1801,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                 margin: const EdgeInsets.symmetric(
                     vertical: 8, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -2038,10 +1824,10 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
                   ),
                   title: Text(
                     '公車 ${bus["PlateNumb"] ?? AppLocalizations.of(context)!.text_321}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Colors.black,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   subtitle: Text(
@@ -2156,7 +1942,7 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
           type: QuickAlertType.success,
           title: AppLocalizations.of(context)!.text_341,
           text: '$stopName 已加入收藏',
-          confirmBtnColor: const Color(0xFF1A73E8),
+          confirmBtnColor: Theme.of(context).colorScheme.primary,
         );
       } else if (result == -1) {
         QuickAlert.show(
@@ -2189,211 +1975,5 @@ class _BusTimeState extends State<BusTime> with SingleTickerProviderStateMixin {
 
   void _navigateToRoutePlanning(BuildContext context) {
     Navigator.of(context).pop();
-  }
-}
-
-class BusDetailPage extends StatefulWidget {
-  final String routeId;
-  final String city;
-
-  const BusDetailPage({
-    super.key,
-    required this.routeId,
-    required this.city,
-  });
-
-  @override
-  State<BusDetailPage> createState() => _BusDetailPageState();
-}
-
-class _BusDetailPageState extends State<BusDetailPage> {
-  List<Map<String, dynamic>>? allBuses;
-  List<Map<String, dynamic>>? filteredBuses;
-  final TextEditingController searchController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      final List<Map<String, dynamic>> data =
-          await context.read<BusProvider>().fetchHistory(
-                city: widget.city,
-                routeId: widget.routeId,
-                count: sum!,
-              );
-      if (!mounted) return;
-      setState(() {
-        allBuses = data;
-        filteredBuses = List.from(data);
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        allBuses = [];
-        filteredBuses = [];
-      });
-    }
-  }
-
-  void search(String query) {
-    if (allBuses == null) return;
-
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    setState(() {
-      filteredBuses = allBuses!
-          .where((bus) => _localizedBusText(
-        bus['StopName'],
-        isEnglish: isEnglish,
-      ).toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
-  }
-
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  String formatTime(String gpsTime) {
-    try {
-      DateTime dateTime = DateTime.parse(gpsTime).toLocal();
-      return DateFormat('yyyy/MM/dd HH:mm:ss').format(dateTime);
-    } catch (e) {
-      return AppLocalizations.of(context)!.text_362;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.text_363,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context)!.text_364,
-                prefixIcon: const Icon(Icons.search, color: Colors.black54),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey.withOpacity(0.1),
-              ),
-              onChanged: search,
-            ),
-          ),
-          Expanded(
-            child: filteredBuses == null
-                ? const Center(
-                child: CircularProgressIndicator(color: Colors.blue))
-                : filteredBuses!.isEmpty
-                ? Center(
-              child: Text(
-                AppLocalizations.of(context)!.text_365,
-                style:
-                TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            )
-                : ListView.builder(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: filteredBuses!.length,
-              itemBuilder: (context, index) {
-                final bus = filteredBuses![index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 6.0,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '公車號碼: ${bus['PlateNumb']}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8.0),
-                        Text(
-                          '路線: ${_localizedBusText(
-                            bus['RouteName'],
-                            isEnglish: Localizations.localeOf(
-                                context)
-                                .languageCode ==
-                                'en',
-                          )}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 4.0),
-                        Text(
-                          '站點: ${_localizedBusText(
-                            bus['StopName'],
-                            isEnglish: Localizations.localeOf(
-                                context)
-                                .languageCode ==
-                                'en',
-                          )}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 4.0),
-                        Text(
-                          '時間: ${formatTime(bus['GPSTime'])}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
-                        const SizedBox(height: 4.0),
-                        Text(
-                          '方向: ${bus['Direction'] == 0 ? AppLocalizations.of(context)!.text_366 : AppLocalizations.of(context)!.text_367}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

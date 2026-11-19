@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:com.rsmn574.app/database/get_data.dart';
 
-import '../model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 
 /// 公車路線資料服務（MySQL / 後端）。
 ///

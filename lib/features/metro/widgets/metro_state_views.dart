@@ -2,22 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../data/metro_api_v2.dart';
 import '../l10n/metro_strings.dart';
+import '../../../widget/app_state_views.dart';
 
+// 狀態畫面統一委派給 lib/widget/app_state_views.dart，
+// 保留 Metro* 類別名稱與參數，呼叫端不需修改。
 class MetroLoadingView extends StatelessWidget {
   const MetroLoadingView({super.key});
   @override
   Widget build(BuildContext context) {
-    final s = MetroStrings.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(s.loading, style: Theme.of(context).textTheme.bodyMedium),
-        ],
-      ),
-    );
+    return AppLoadingView(message: MetroStrings.of(context).loading);
   }
 }
 
@@ -29,21 +22,10 @@ class MetroErrorView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = MetroStrings.of(context);
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: cs.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(s.errorMessage(kind), textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
-            const SizedBox(height: 16),
-            FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh_rounded), label: Text(s.retry)),
-          ],
-        ),
-      ),
+    return AppErrorView(
+      message: s.errorMessage(kind),
+      onRetry: onRetry,
+      retryLabel: s.retry,
     );
   }
 }
@@ -55,20 +37,7 @@ class MetroEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 44, color: cs.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-      ),
-    );
+    return AppEmptyView(message: message, icon: icon);
   }
 }
 

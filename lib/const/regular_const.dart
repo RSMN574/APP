@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
+import 'arrival_status_colors.dart';
+import 'app_design_tokens.dart';
+
 const Color primary = Color.fromRGBO(0, 125, 254, 1);
 const Color secondary = Color.fromRGBO(38, 38, 38, 1);
 const Color blue = Color.fromRGBO(36, 137, 243, 1);
@@ -10,8 +14,17 @@ const Color bgColor = Color.fromRGBO(245, 245, 245, 1);
 const Color bgColorWhite = Colors.white;
 
 class AppThemes {
-  static const Color _brandBlue = Color(0xFF1A73E8);
-  static const Color _darkSurface = Color(0xFF121212);
+  // 設計基準：淺色 Primary #1A73E8 / Background #F8FAFD / Surface #EEF3FB；
+  // 深色 Primary #64B5F6。顏色只在這裡與 AppColors 定義，各頁面請透過
+  // Theme.of(context).colorScheme 或 context.appColors 取用。
+  static const Color _brandBlue = AppColors.primaryBlue;
+  static const Color _brandBlueDark = Color(0xFF64B5F6);
+  static const Color _onBrandBlueDark = Color(0xFF00213D);
+  static const Color _lightBackground = AppColors.backgroundLight;
+  static const Color _lightSurface = AppColors.surfaceColor;
+  // OLED 友善的近黑背景；卡片 #1C1C1E、Dialog/BottomSheet #1E1E20、
+  // 最高層 #2C2C2E 逐層提亮，維持深色階層。
+  static const Color _darkSurface = Color(0xFF0B0B0D);
 
   static Color getPrimary(BuildContext context) {
     return Theme.of(context).colorScheme.primary;
@@ -68,21 +81,31 @@ class AppThemes {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _brandBlue,
       brightness: brightness,
-      primary: _brandBlue,
-      onPrimary: Colors.white,
-      surface: isDark ? _darkSurface : const Color(0xFFFAFAFC),
+      // 深色模式使用較亮的 #64B5F6，在深色底上才有足夠對比；
+      // 其上的文字/圖示改用深藍，避免白字在淺藍底上對比不足。
+      primary: isDark ? _brandBlueDark : _brandBlue,
+      onPrimary: isDark ? _onBrandBlueDark : Colors.white,
+      surface: isDark ? _darkSurface : _lightBackground,
       onSurface: isDark ? const Color(0xFFF2F2F7) : const Color(0xFF1C1C1E),
-      surfaceContainerHighest:
-          isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF0F1F4),
+      surfaceContainer: isDark ? const Color(0xFF1E1E20) : _lightSurface,
+      surfaceContainerHighest: isDark ? const Color(0xFF2C2C2E) : _lightSurface,
+      secondary: isDark ? const Color(0xFF9FB0CC) : const Color(0xFF5B6B85),
+      tertiary: isDark ? const Color(0xFF4DB6AC) : const Color(0xFF00796B),
     );
-    final cardColor =
-        isDark ? colorScheme.surfaceContainer : colorScheme.surface;
-    final borderRadius = BorderRadius.circular(12);
+    final appColors = isDark ? AppColors.dark : AppColors.light;
+    final cardColor = appColors.cardBackground;
+    // 按鈕、輸入框圓角 12；卡片、Dialog、BottomSheet 圓角 20。
+    final borderRadius = BorderRadius.circular(AppRadius.md);
+    final cardRadius = BorderRadius.circular(AppRadius.xl);
 
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
+      extensions: <ThemeExtension<dynamic>>[
+        appColors,
+        isDark ? ArrivalStatusColors.dark : ArrivalStatusColors.light,
+      ],
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
@@ -91,30 +114,26 @@ class AppThemes {
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
+          fontSize: AppTypography.titleLarge,
+          fontWeight: FontWeight.w700,
           color: colorScheme.onSurface,
         ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(fontSize: 18, color: colorScheme.onSurface),
-        bodyMedium: TextStyle(
-          fontSize: 16,
-          color: colorScheme.onSurfaceVariant,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: colorScheme.onSurface,
-        ),
+      // 由 AppTypography 產生，避免與 Token 矛盾（原 body 18/16、title 22）。
+      textTheme: AppTypography.textTheme(
+        onSurface: colorScheme.onSurface,
+        onSurfaceVariant: colorScheme.onSurfaceVariant,
       ),
       cardTheme: CardThemeData(
         color: cardColor,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: borderRadius),
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageMargin,
+          vertical: AppSpacing.sm,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: cardRadius),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -136,6 +155,41 @@ class AppThemes {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: borderRadius),
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          // 確保觸控範圍至少 48x48（Material / TalkBack 建議值）。
+          minimumSize: const Size(48, 48),
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: colorScheme.primary,
+        unselectedLabelColor: colorScheme.onSurfaceVariant,
+        indicatorColor: colorScheme.primary,
+        indicatorSize: TabBarIndicatorSize.label,
+        dividerColor: Colors.transparent,
+        labelStyle: const TextStyle(
+          fontSize: AppTypography.labelLarge,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: AppTypography.labelLarge,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: colorScheme.primary,
+        linearTrackColor: colorScheme.surfaceContainerHighest,
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(borderRadius: borderRadius),
+        side: BorderSide(color: colorScheme.outlineVariant),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -219,7 +273,7 @@ class AppThemes {
       dialogTheme: DialogThemeData(
         backgroundColor: colorScheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: cardRadius),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colorScheme.surfaceContainer,
@@ -227,7 +281,8 @@ class AppThemes {
         modalBackgroundColor: colorScheme.surfaceContainer,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -239,7 +294,7 @@ class AppThemes {
       popupMenuTheme: PopupMenuThemeData(
         color: colorScheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: borderRadius),
       ),
     );
   }

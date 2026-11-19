@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 
 import 'app_colors.dart';
+import 'app_design_tokens.dart';
 
 /// 全 App 統一的「外框」樣式。
 ///
@@ -11,7 +12,7 @@ class SurfaceDecoration {
   SurfaceDecoration._();
 // 在 surface_decoration.dart 新增
   /// 卡片：Surface 底 + 陰影（無邊框）。
-  static BoxDecoration cardShadow(BuildContext context, {double radius = 12}) {
+  static BoxDecoration cardShadow(BuildContext context, {double radius = AppRadius.xl}) {
     final c = context.appColors;
     return BoxDecoration(
       color: c.cardBackground,
@@ -26,7 +27,7 @@ class SurfaceDecoration {
     );
   }
   /// 一般卡片：Surface 底 + Border 邊框 + 輕陰影。
-  static BoxDecoration card(BuildContext context, {double radius = 12}) {
+  static BoxDecoration card(BuildContext context, {double radius = AppRadius.xl}) {
     final c = context.appColors;
     return BoxDecoration(
       color: c.cardBackground,
@@ -96,7 +97,7 @@ class SurfaceDecoration {
   }
 
   /// AppBar leading / actions 圓角容器底。
-  static BoxDecoration appBarSlot(BuildContext context, {double radius = 12}) {
+  static BoxDecoration appBarSlot(BuildContext context, {double radius = AppRadius.xl}) {
     final c = context.appColors;
     return BoxDecoration(
       color: c.mutedBackground,

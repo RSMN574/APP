@@ -32,10 +32,11 @@ class _TransitAlertCenterState extends State<TransitAlertCenter> {
     final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<TransitAlertProvider>();
     final colors = context.appColors;
-    final alerts = provider.alerts
+    final filteredAlerts = provider.alerts
         .where((alert) => _filter == null || alert.transportType == _filter)
-        .take(3)
         .toList();
+    // 首頁只預覽前 3 則，但標題的數量要顯示實際總數。
+    final alerts = filteredAlerts.take(3).toList();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -103,7 +104,7 @@ class _TransitAlertCenterState extends State<TransitAlertCenter> {
                       Text(
                         alerts.isEmpty
                             ? l10n.transitAlertNoNew
-                            : l10n.transitAlertCount(alerts.length),
+                            : l10n.transitAlertCount(filteredAlerts.length),
                         style: TextStyle(
                           color: colors.textSecondary,
                           fontSize: 12,

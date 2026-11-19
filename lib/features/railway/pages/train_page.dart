@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:com.rsmn574.app/features/railway/pages/train_schedule_page.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
-import 'package:com.rsmn574.app/widget/select_view.dart';
 import 'package:com.rsmn574.app/features/railway/widgets/train_station_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 import '../../../const/app_colors.dart';

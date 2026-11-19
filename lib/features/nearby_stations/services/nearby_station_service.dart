@@ -5,7 +5,7 @@ import '../../../database/mrt/get_mrt_info.dart';
 import '../../../models/mrt_station.dart';
 import '../../bus/data/get_bus_time.dart';
 import '../../bus/data/get_station_info.dart';
-import '../../bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import '../../bus/model/bus_station_model.dart';
 
 /// 附近站點資料來源：公車 / 捷運 / 臺鐵附近站點，以及公車站牌詳細資料。

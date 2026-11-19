@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:com.rsmn574.app/const/app_colors.dart';
-import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
 
 /// 捷運頁面的樣式入口。全部沿用 Bus 頁使用的 Token（AppThemes、context.appColors），

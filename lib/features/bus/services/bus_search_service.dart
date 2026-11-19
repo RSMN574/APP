@@ -1,4 +1,4 @@
-import '../model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'bus_route_service.dart';
 
 /// 純搜尋邏輯：合併、去重與排序。

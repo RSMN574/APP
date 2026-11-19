@@ -1,6 +1,7 @@
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/models/bike.dart';
 import 'package:flutter/material.dart';
+import 'package:com.rsmn574.app/const/app_colors.dart';
 
 class BikeDefaultContent extends StatefulWidget {
   const BikeDefaultContent({
@@ -77,23 +78,23 @@ class _BikeState extends State<BikeDefaultContent> {
                 Container(
                   width: 64,
                   height: 64,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEEF3FB),
+                  decoration: BoxDecoration(
+                    color: context.appColors.mutedBackground,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     icon,
                     size: 32,
-                    color: const Color(0xFF1A73E8),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   text,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A73E8),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -108,13 +109,13 @@ class _BikeState extends State<BikeDefaultContent> {
                   Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEEF3FB),
+                      color: context.appColors.mutedBackground,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.history_rounded,
                       size: 16,
-                      color: Color(0xFF1A73E8),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -209,7 +210,7 @@ class _BikeState extends State<BikeDefaultContent> {
   Widget build(BuildContext context) {
     return Container(
       height: 300,
-      color: const Color(0xFFF8FAFD),
+      color: Theme.of(context).colorScheme.surface,
       child: Column(
         children: [
           SizedBox(
@@ -311,14 +312,14 @@ class _BikeState extends State<BikeDefaultContent> {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: Color(0xFFEEF3FB),
+              decoration: BoxDecoration(
+                color: context.appColors.mutedBackground,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.search_off_rounded,
                 size: 32,
-                color: Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 16),
@@ -351,8 +352,8 @@ class _BikeState extends State<BikeDefaultContent> {
               _addToSearchHistory(_searchController.text);
               widget.onStationSelected(station);
             },
-            splashColor: const Color(0xFF1A73E8).withValues(alpha: 0.1),
-            highlightColor: const Color(0xFFEEF3FB),
+            splashColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+            highlightColor: context.appColors.mutedBackground,
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

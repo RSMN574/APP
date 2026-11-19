@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 // 請根據你的實際路徑引入 MarkerProvider
 // 這裡假設它與 BikeProvider 放在一起
 import '../../../const/regular_class.dart';
-import '../../youbike/state/bike_provider.dart';
 
 class HomeMap extends StatelessWidget {
   final ValueNotifier<double> sheetExtent;

@@ -32,6 +32,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.dangerContainer,
     required this.info,
     required this.infoContainer,
+    required this.primaryText,
+    required this.warningText,
   });
 
   final Color cardBackground;
@@ -52,12 +54,17 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color info;
   final Color infoContainer;
 
+  /// 小字用主色（< 18sp 也達 4.5:1）
+  final Color primaryText;
+  /// 警告文字色（warning 本身只用於圖示/色塊）
+  final Color warningText;
+
   static const AppColors light = AppColors(
     cardBackground: Color(0xFFFFFFFF),
     mutedBackground: Color(0xFFEEF3FB),
     textPrimary: Color(0xFF1C1C1E),
     textSecondary: Color(0xFF5F6368),
-    textHint: Color(0xFF80868B),
+    textHint: Color(0xFF6B7075), // 5.0:1（原 #80868B 僅 3.68:1）
     border: Color(0xFFDADCE0),
     divider: Color(0xFFE8EAED),
     shadow: Color(0x1A000000),
@@ -70,6 +77,8 @@ class AppColors extends ThemeExtension<AppColors> {
     dangerContainer: Color(0xFFFDECEA),
     info: Color(0xFF1A73E8),
     infoContainer: Color(0xFFE8F0FE),
+    primaryText: Color(0xFF1765CC),
+    warningText: Color(0xFFA84A00),
   );
 
   static const AppColors dark = AppColors(
@@ -90,6 +99,8 @@ class AppColors extends ThemeExtension<AppColors> {
     dangerContainer: Color(0xFF3F1D1D),
     info: Color(0xFF64B5F6),
     infoContainer: Color(0xFF14283F),
+    primaryText: Color(0xFF90CAF9),
+    warningText: Color(0xFFFFB74D),
   );
 
   @override
@@ -111,6 +122,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? dangerContainer,
     Color? info,
     Color? infoContainer,
+    Color? primaryText,
+    Color? warningText,
   }) {
     return AppColors(
       cardBackground: cardBackground ?? this.cardBackground,
@@ -130,6 +143,8 @@ class AppColors extends ThemeExtension<AppColors> {
       dangerContainer: dangerContainer ?? this.dangerContainer,
       info: info ?? this.info,
       infoContainer: infoContainer ?? this.infoContainer,
+      primaryText: primaryText ?? this.primaryText,
+      warningText: warningText ?? this.warningText,
     );
   }
 
@@ -156,6 +171,8 @@ class AppColors extends ThemeExtension<AppColors> {
       dangerContainer: Color.lerp(dangerContainer, other.dangerContainer, t)!,
       info: Color.lerp(info, other.info, t)!,
       infoContainer: Color.lerp(infoContainer, other.infoContainer, t)!,
+      primaryText: Color.lerp(primaryText, other.primaryText, t)!,
+      warningText: Color.lerp(warningText, other.warningText, t)!,
     );
   }
 }

@@ -1,14 +1,15 @@
 
+import 'bus_route_view_model.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 import '../../../firebase/analytics_service.dart';
 import '../data/bus_repository.dart';
-import '../model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import '../model/bus_stop_info_result.dart';
 
-class BusProvider extends ChangeNotifier {
+class BusProvider extends ChangeNotifier implements BusRouteDataSource {
   BusProvider({
     BusRepository? repository,
     Duration cacheTtl = const Duration(minutes: 5),

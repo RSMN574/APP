@@ -1,6 +1,7 @@
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
 import 'dart:convert'; // 用于 JSON 解码
 import 'dart:io'; // 用于文件读写
+import 'package:com.rsmn574.app/database/get_data.dart';
 
 Future<List<dynamic>> fetchConnectorLiveStatus(StationID) async {
   String filter = Uri.encodeComponent("StationID eq '$StationID'");
@@ -41,4 +42,15 @@ class EvStationRepository {
 
   Future<List<dynamic>> connectorLiveStatus(String stationId) =>
       fetchConnectorLiveStatus(stationId);
+
+  /// 所有充電站靜態資料（原本 SQL 直接寫在 EVStation 頁面中）。
+  Future<List<Map<String, dynamic>>> stations() =>
+      mysqlSelect('SELECT * FROM EV_Charging.EV_station;');
+
+  /// 指定充電站的充電槍資料。StationID 以 SQL 字串跳脫處理單引號。
+  Future<List<Map<String, dynamic>>> chargingPoints(String stationId) =>
+      mysqlSelect(
+        "SELECT * FROM EV_Charging.ChargingPoint_Taichung "
+        "WHERE StationID='${stationId.replaceAll("'", "''")}';",
+      );
 }

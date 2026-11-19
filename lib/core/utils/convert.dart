@@ -3,62 +3,22 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-String cityNameConverter(String inputCity) {
-  // 全台灣縣市對應表
-  Map<String, String> cityMapping = {
-    // 英文 → 中文
-    "Taipei": "臺北市",
-    "New Taipei": "新北市",
-    "NewTaipei": "新北市",
-    "Taoyuan": "桃園市",
-    "Taichung": "臺中市",
-    "Tainan": "臺南市",
-    "Kaohsiung": "高雄市",
-    "Keelung": "基隆市",
-    "Hsinchu": "新竹市",
-    "Hsinchu City": "新竹市",
-    "Hsinchu County": "新竹縣",
-    "Miaoli": "苗栗縣",
-    "Changhua": "彰化縣",
-    "Nantou": "南投縣",
-    "Yunlin": "雲林縣",
-    "Chiayi": "嘉義市",
-    "Chiayi City": "嘉義市",
-    "Chiayi County": "嘉義縣",
-    "Pingtung": "屏東縣",
-    "Yilan": "宜蘭縣",
-    "Hualien": "花蓮縣",
-    "Taitung": "臺東縣",
-    "Penghu": "澎湖縣",
-    "Kinmen": "金門縣",
-    "Lienchiang": "連江縣",
-    // 中文 → 英文
-    "臺北市": "Taipei",
-    "新北市": "New Taipei",
-    "桃園市": "Taoyuan",
-    "臺中市": "Taichung",
-    "臺南市": "Tainan",
-    "高雄市": "Kaohsiung",
-    "基隆市": "Keelung",
-    "新竹市": "Hsinchu City",
-    "新竹縣": "Hsinchu County",
-    "苗栗縣": "Miaoli",
-    "彰化縣": "Changhua",
-    "南投縣": "Nantou",
-    "雲林縣": "Yunlin",
-    "嘉義市": "Chiayi City",
-    "嘉義縣": "Chiayi County",
-    "屏東縣": "Pingtung",
-    "宜蘭縣": "Yilan",
-    "花蓮縣": "Hualien",
-    "臺東縣": "Taitung",
-    "澎湖縣": "Penghu",
-    "金門縣": "Kinmen",
-    "連江縣": "Lienchiang",
-  };
+import '../city/taiwan_city.dart';
 
-  // 查找并返回对应的城市名称
-  return cityMapping[inputCity] ?? "Unknown city";
+/// 中文縣市名稱 ↔ 英文名稱轉換（相容舊呼叫端）。
+///
+/// - 輸入中文（臺中市／台中市）→ 回傳 TDX City 代碼（`Taichung`、`HsinchuCounty`）
+/// - 輸入英文或 TDX 代碼（含 `HsinchuCounty`、`Hsinchu County`）→ 回傳中文名稱
+/// - 無法辨識時回傳 `Unknown city`（保留既有行為讓呼叫端判斷）
+///
+/// 統一使用 [TaiwanCity] 目錄，修正 QA B04/B05：先前縣（County）與含空白的
+/// 英文名稱無法互轉，導致 GPS 定位與 YouBike 查詢失敗。
+String cityNameConverter(String inputCity) {
+  final city = TaiwanCity.tryParse(inputCity);
+  if (city == null) return "Unknown city";
+  final trimmed = inputCity.trim();
+  final isChinese = RegExp(r'[一-鿿]').hasMatch(trimmed);
+  return isChinese ? city.tdxCode : city.zhName;
 }
 double calculateCornerRadius(BuildContext context,{double percentage = 0.02, double min = 4.0, double max = 16.0}) {
   // 獲取螢幕寬度
@@ -216,7 +176,10 @@ String convertCityCode(String city) {
   if (trimmed.isEmpty) return trimmed;
   final upper = trimmed.toUpperCase();
   if (kCityCodeToEnglishId.containsKey(upper)) return upper;
-  return kCityAuthorityCodes[trimmed.toLowerCase()] ?? upper;
+  final known = kCityAuthorityCodes[trimmed.toLowerCase()];
+  if (known != null) return known;
+  // 中文名、TDX 代碼（HsinchuCounty）、含空白英文名（New Taipei）。
+  return TaiwanCity.tryParse(trimmed)?.authorityCode ?? upper;
 }
 
 /// 依目前城市（City id 或 AuthorityID）顯示名稱。

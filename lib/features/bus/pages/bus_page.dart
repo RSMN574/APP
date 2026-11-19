@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:com.rsmn574.app/core/city/taiwan_city.dart';
 import 'dart:convert';
 
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
@@ -18,7 +19,7 @@ import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
-import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/features/bus/services/bus_search_service.dart';
 
@@ -52,16 +53,23 @@ class MenuItemData {
 }
 
 // 城市資料：`name` 為資料值（用於比對 / 顯示），不屬於 UI 靜態字串。
+/// 公車頁可選城市：「全部」「公路客運」為特殊項目，其餘縣市名稱與 TDX 代碼
+/// 一律由 [TaiwanCity] 產生，避免各頁自行維護清單（QA C4）。
+const _busCityCodes = [
+  'Taichung',
+  'Taipei',
+  'NewTaipei',
+  'Taoyuan',
+  'Tainan',
+  'Kaohsiung',
+  'Keelung',
+  'Hsinchu',
+];
+
 final List<CityItem> cities = [
   const CityItem(name: '全部', id: 'all'),
-  const CityItem(name: '臺中市', id: 'Taichung'),
-  const CityItem(name: '臺北市', id: 'Taipei'),
-  const CityItem(name: '新北市', id: 'NewTaipei'),
-  const CityItem(name: '桃園市', id: 'Taoyuan'),
-  const CityItem(name: '臺南市', id: 'Tainan'),
-  const CityItem(name: '高雄市', id: 'Kaohsiung'),
-  const CityItem(name: '基隆市', id: 'Keelung'),
-  const CityItem(name: '新竹市', id: 'Hsinchu'),
+  for (final code in _busCityCodes)
+    CityItem(name: TaiwanCity.tryParse(code)!.zhName, id: code),
   const CityItem(name: '公路客運', id: 'InterCity'),
 ];
 
@@ -286,6 +294,12 @@ class BusState extends State<Bus> {
       );
       if (!mounted || seq != _searchSeq) return;
       suggestions.value = result;
+      if (type == SearchType.route) {
+        unawaited(AppAnalytics.logBusRouteSearch(
+          city: correspondingIDNotifier.value,
+          resultCount: result.length,
+        ));
+      }
     });
   }
 
@@ -802,6 +816,16 @@ class BusState extends State<Bus> {
                   currentCityNotifier.value = value;
                   updatedCorrespondingID();
                   setState(() => busData = []);
+
+                  // QA B06：公車頁切換到實際縣市時同步全 App 城市狀態，
+                  // 避免公車頁與首頁、YouBike 各自保存城市而不一致。
+                  // 「全部」與「公路客運」不是縣市，不覆蓋全域城市。
+                  final city = TaiwanCity.tryParse(value);
+                  if (city != null) {
+                    unawaited(context.read<CityProvider>().setCity(city.zhName));
+                    unawaited(AppAnalytics.logCityChanged(
+                        city: city.tdxCode, source: 'bus_page'));
+                  }
 
                   unawaited(_loadForCurrentCity());
                   unawaited(_reloadFavorites(force: true));

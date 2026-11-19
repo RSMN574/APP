@@ -53,19 +53,29 @@ android {
         versionName = flutterVersionName
     }
 
+    // QA B12：只有 release 建置需要正式簽章；缺少 key.properties 時
+    // debug/profile（含 CI）仍可建置，release 任務則在執行前明確失敗，
+    // 不會產生未簽章或以 debug key 簽章的 release APK。
     def releaseKeyPropertiesFile = rootProject.file("key.properties")
-    if (!releaseKeyPropertiesFile.exists()) {
-        throw new GradleException("Missing android/key.properties for release signing")
-    }
+    def hasReleaseKey = releaseKeyPropertiesFile.exists()
     def releaseKeyProperties = new Properties()
-    releaseKeyProperties.load(new FileInputStream(releaseKeyPropertiesFile))
+    if (hasReleaseKey) {
+        releaseKeyProperties.load(new FileInputStream(releaseKeyPropertiesFile))
+    }
+    gradle.taskGraph.whenReady { graph ->
+        if (!hasReleaseKey && graph.allTasks.any { it.name.toLowerCase().contains("release") }) {
+            throw new GradleException("Missing android/key.properties for release signing")
+        }
+    }
 
     signingConfigs {
         release {
-            keyAlias releaseKeyProperties['keyAlias']
-            keyPassword releaseKeyProperties['keyPassword']
-            storeFile file(releaseKeyProperties['storeFile'])
-            storePassword releaseKeyProperties['storePassword']
+            if (hasReleaseKey) {
+                keyAlias releaseKeyProperties['keyAlias']
+                keyPassword releaseKeyProperties['keyPassword']
+                storeFile file(releaseKeyProperties['storeFile'])
+                storePassword releaseKeyProperties['storePassword']
+            }
         }
     }
 

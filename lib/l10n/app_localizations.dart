@@ -725,7 +725,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_105.
   ///
   /// In zh, this message translates to:
-  /// **'連接失敗: \$e'**
+  /// **'連接失敗'**
   String get text_105;
 
   /// No description provided for @text_106.
@@ -815,19 +815,19 @@ abstract class AppLocalizations {
   /// No description provided for @text_120.
   ///
   /// In zh, this message translates to:
-  /// **'儲存項目時發生錯誤: \$e'**
+  /// **'儲存項目時發生錯誤'**
   String get text_120;
 
   /// No description provided for @text_121.
   ///
   /// In zh, this message translates to:
-  /// **'載入項目時發生錯誤: \$e'**
+  /// **'載入項目時發生錯誤'**
   String get text_121;
 
   /// No description provided for @text_122.
   ///
   /// In zh, this message translates to:
-  /// **'移除項目時發生錯誤: \$e'**
+  /// **'移除項目時發生錯誤'**
   String get text_122;
 
   /// No description provided for @text_123.
@@ -851,7 +851,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_126.
   ///
   /// In zh, this message translates to:
-  /// **'發生錯誤: \$e'**
+  /// **'發生錯誤'**
   String get text_126;
 
   /// No description provided for @text_127.
@@ -869,7 +869,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_129.
   ///
   /// In zh, this message translates to:
-  /// **'无法获取当前位置: \$e'**
+  /// **'无法获取当前位置'**
   String get text_129;
 
   /// No description provided for @text_130.
@@ -941,7 +941,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_141.
   ///
   /// In zh, this message translates to:
-  /// **'加載站點失敗: \$e'**
+  /// **'加載站點失敗'**
   String get text_141;
 
   /// No description provided for @text_142.
@@ -1007,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_152.
   ///
   /// In zh, this message translates to:
-  /// **'查詢失敗: \$e'**
+  /// **'查詢失敗'**
   String get text_152;
 
   /// No description provided for @text_153.
@@ -1271,7 +1271,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_196.
   ///
   /// In zh, this message translates to:
-  /// **'開啟連結失敗: \$e'**
+  /// **'開啟連結失敗'**
   String get text_196;
 
   /// No description provided for @text_197.
@@ -1367,7 +1367,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_212.
   ///
   /// In zh, this message translates to:
-  /// **'獲取座位狀態失敗: \$e'**
+  /// **'獲取座位狀態失敗'**
   String get text_212;
 
   /// No description provided for @text_213.
@@ -1397,7 +1397,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_217.
   ///
   /// In zh, this message translates to:
-  /// **'獲取運輸資訊失敗: \$e'**
+  /// **'獲取運輸資訊失敗'**
   String get text_217;
 
   /// No description provided for @text_218.
@@ -2057,7 +2057,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_327.
   ///
   /// In zh, this message translates to:
-  /// **'處理資料失敗: \$e'**
+  /// **'處理資料失敗'**
   String get text_327;
 
   /// No description provided for @text_328.
@@ -2075,7 +2075,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_330.
   ///
   /// In zh, this message translates to:
-  /// **'測試失敗: \$e'**
+  /// **'測試失敗'**
   String get text_330;
 
   /// No description provided for @text_331.
@@ -2117,13 +2117,13 @@ abstract class AppLocalizations {
   /// No description provided for @text_337.
   ///
   /// In zh, this message translates to:
-  /// **'載入路線形狀失敗: \$e'**
+  /// **'載入路線形狀失敗'**
   String get text_337;
 
   /// No description provided for @text_338.
   ///
   /// In zh, this message translates to:
-  /// **'載入路線失敗: \$e'**
+  /// **'載入路線失敗'**
   String get text_338;
 
   /// No description provided for @text_339.
@@ -2579,7 +2579,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_414.
   ///
   /// In zh, this message translates to:
-  /// **'取得站點資料失敗: \$e'**
+  /// **'取得站點資料失敗'**
   String get text_414;
 
   /// No description provided for @text_415.
@@ -2639,7 +2639,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_424.
   ///
   /// In zh, this message translates to:
-  /// **'批次查詢失敗: \$e'**
+  /// **'批次查詢失敗'**
   String get text_424;
 
   /// No description provided for @text_425.
@@ -4913,7 +4913,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_803.
   ///
   /// In zh, this message translates to:
-  /// **'通知發送失敗: \$e'**
+  /// **'通知發送失敗'**
   String get text_803;
 
   /// No description provided for @text_804.
@@ -5441,7 +5441,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_891.
   ///
   /// In zh, this message translates to:
-  /// **'查詢車次詳情失敗: \$e'**
+  /// **'查詢車次詳情失敗'**
   String get text_891;
 
   /// No description provided for @text_892.
@@ -5633,7 +5633,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_923.
   ///
   /// In zh, this message translates to:
-  /// **'無法獲取位置: \$e'**
+  /// **'無法獲取位置'**
   String get text_923;
 
   /// No description provided for @text_924.
@@ -5801,7 +5801,7 @@ abstract class AppLocalizations {
   /// No description provided for @text_951.
   ///
   /// In zh, this message translates to:
-  /// **'地震時間解析錯誤: \$e'**
+  /// **'地震時間解析錯誤'**
   String get text_951;
 
   /// No description provided for @text_952.
@@ -6257,13 +6257,13 @@ abstract class AppLocalizations {
   /// No description provided for @nearStopSaved.
   ///
   /// In zh, this message translates to:
-  /// **'{stop}?????'**
+  /// **'{stop}已儲存'**
   String nearStopSaved(String stop);
 
   /// No description provided for @nearStopAlreadySaved.
   ///
   /// In zh, this message translates to:
-  /// **'{stop}??????????????'**
+  /// **'{stop}已經儲存'**
   String nearStopAlreadySaved(String stop);
 
   /// No description provided for @nearStopLabel.
@@ -6281,13 +6281,13 @@ abstract class AppLocalizations {
   /// No description provided for @nearStopSortAsc.
   ///
   /// In zh, this message translates to:
-  /// **'?? 1?10'**
+  /// **'從 1 到 10'**
   String get nearStopSortAsc;
 
   /// No description provided for @nearStopSortDesc.
   ///
   /// In zh, this message translates to:
-  /// **'?? 10?1'**
+  /// **'從 10 到 1'**
   String get nearStopSortDesc;
 
   /// No description provided for @nearStopTo.
@@ -7184,6 +7184,180 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'未知'**
   String get alertSeverityUnknown;
+
+  /// No description provided for @busScheduleMenuTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'班表'**
+  String get busScheduleMenuTitle;
+
+  /// No description provided for @busScheduleMenuSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日各站預定班次'**
+  String get busScheduleMenuSubtitle;
+
+  /// No description provided for @busScheduleTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{route} 班表'**
+  String busScheduleTitle(String route);
+
+  /// No description provided for @busScheduleRefresh.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新整理班表'**
+  String get busScheduleRefresh;
+
+  /// No description provided for @busScheduleLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在載入班表…'**
+  String get busScheduleLoading;
+
+  /// No description provided for @busScheduleNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'此為業者提供的每日預定班表，並非即時預估到站時間。'**
+  String get busScheduleNotice;
+
+  /// No description provided for @busScheduleEstimatedNotice.
+  ///
+  /// In zh, this message translates to:
+  /// **'各站時間為依發車時刻推算的估算值，實際到站請以即時資訊為準。'**
+  String get busScheduleEstimatedNotice;
+
+  /// No description provided for @busScheduleServiceDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'適用日期 {date}'**
+  String busScheduleServiceDate(String date);
+
+  /// No description provided for @busScheduleUpdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'資料更新 {time}'**
+  String busScheduleUpdated(String time);
+
+  /// No description provided for @busScheduleOutdated.
+  ///
+  /// In zh, this message translates to:
+  /// **'班表適用日期為 {date}，不是今天，僅供參考。'**
+  String busScheduleOutdated(String date);
+
+  /// No description provided for @busScheduleStale.
+  ///
+  /// In zh, this message translates to:
+  /// **'目前無法連線，顯示上次取得的班表（{time}）。'**
+  String busScheduleStale(String time);
+
+  /// No description provided for @busScheduleDirectionLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'方向'**
+  String get busScheduleDirectionLabel;
+
+  /// No description provided for @busScheduleTowards.
+  ///
+  /// In zh, this message translates to:
+  /// **'往 {destination}'**
+  String busScheduleTowards(String destination);
+
+  /// No description provided for @busScheduleStopLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'站牌'**
+  String get busScheduleStopLabel;
+
+  /// No description provided for @busScheduleNext.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一班 {time}'**
+  String busScheduleNext(String time);
+
+  /// No description provided for @busScheduleNoMore.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日已無班次'**
+  String get busScheduleNoMore;
+
+  /// No description provided for @busScheduleTrips.
+  ///
+  /// In zh, this message translates to:
+  /// **'共 {count} 班'**
+  String busScheduleTrips(int count);
+
+  /// No description provided for @busScheduleFirstLast.
+  ///
+  /// In zh, this message translates to:
+  /// **'首班 {first}・末班 {last}'**
+  String busScheduleFirstLast(String first, String last);
+
+  /// No description provided for @busScheduleNextDay.
+  ///
+  /// In zh, this message translates to:
+  /// **'隔日'**
+  String get busScheduleNextDay;
+
+  /// No description provided for @busScheduleLowFloor.
+  ///
+  /// In zh, this message translates to:
+  /// **'低地板'**
+  String get busScheduleLowFloor;
+
+  /// No description provided for @busScheduleEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'此路線目前沒有提供每日班表。'**
+  String get busScheduleEmpty;
+
+  /// No description provided for @busScheduleError.
+  ///
+  /// In zh, this message translates to:
+  /// **'無法載入班表，請檢查網路後重試。'**
+  String get busScheduleError;
+
+  /// No description provided for @busScheduleUnsupportedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'此縣市尚未提供班表'**
+  String get busScheduleUnsupportedTitle;
+
+  /// No description provided for @busScheduleUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'TDX 目前只提供臺中市、桃園市、高雄市的市區公車每日班表，{city} 尚未支援。'**
+  String busScheduleUnsupported(String city);
+
+  /// No description provided for @busHistoryPlate.
+  ///
+  /// In zh, this message translates to:
+  /// **'公車號碼'**
+  String get busHistoryPlate;
+
+  /// No description provided for @busHistoryRoute.
+  ///
+  /// In zh, this message translates to:
+  /// **'路線'**
+  String get busHistoryRoute;
+
+  /// No description provided for @busHistoryStop.
+  ///
+  /// In zh, this message translates to:
+  /// **'站點'**
+  String get busHistoryStop;
+
+  /// No description provided for @busHistoryTime.
+  ///
+  /// In zh, this message translates to:
+  /// **'時間'**
+  String get busHistoryTime;
+
+  /// No description provided for @busHistoryDirection.
+  ///
+  /// In zh, this message translates to:
+  /// **'方向'**
+  String get busHistoryDirection;
 }
 
 class _AppLocalizationsDelegate

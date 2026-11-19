@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.0+22
+version: 1.2.0+24
 
 environment:
   sdk: '>=3.4.3 <4.0.0'
@@ -39,14 +39,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   path_provider: ^2.1.4
-  file_picker: ^8.0.6
-  grouped_list: ^6.0.0
   mysql_client: ^0.0.27
   fluttertoast: ^8.2.8
 
   http: ^1.2.2
   flutter_svg: ^2.0.10+1
-  string_similarity: ^2.1.1
   shared_preferences: ^2.3.2
   mobile_scanner: ^5.2.3
   quickalert: ^1.1.0
@@ -64,20 +61,15 @@ dependencies:
   sqflite: ^2.4.0
   intl: ^0.20.2
   package_info_plus: ^8.1.1
-  flutter_swiper_view: ^1.1.8
-  event_bus: ^2.0.1
   #---Google maps
   google_maps_flutter: ^2.10.1
   google_maps_flutter_web:  ^0.5.11
   google_maps_flutter_platform_interface: ^2.11.1
-  flutter_cache_manager: ^3.4.1
   flutter_secure_storage: ^9.2.4
   mysql1: ^0.20.0
-  font_awesome_flutter: ^10.8.0
   synchronized: ^3.3.1
   android_alarm_manager_plus: ^4.0.7
   animated_list_plus: ^0.5.2
-  flutter_riverpod: ^2.6.1
 
   scrollable_positioned_list: ^0.3.8
   share_plus: ^12.0.1
@@ -89,8 +81,10 @@ dependencies:
   image_picker: ^1.2.3
   firebase_crashlytics: ^4.3.10
   firebase_performance: ^0.10.1+10
-  firebase_app_check: ^0.3.2+10
-  dio: ^5.11.1
+  # QA B16：程式直接 import 的套件需列為直接相依，避免上游移除後建置失敗。
+  logging: ^1.2.0
+  path: ^1.9.0
+  collection: ^1.19.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -101,6 +95,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

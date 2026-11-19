@@ -324,7 +324,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_104 => 'Pingtung County';
 
   @override
-  String get text_105 => 'Connection failed: \$e';
+  String get text_105 => 'Connection failed';
 
   @override
   String get text_106 => 'Query failed. Please try again later.';
@@ -371,13 +371,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_119 => 'Already exists in the list. Will not be added again.';
 
   @override
-  String get text_120 => 'An error occurred while saving the item: \$e';
+  String get text_120 => 'An error occurred while saving the item';
 
   @override
-  String get text_121 => 'An error occurred while loading the project: \$e';
+  String get text_121 => 'An error occurred while loading the project';
 
   @override
-  String get text_122 => 'An error occurred while removing the item: \$e';
+  String get text_122 => 'An error occurred while removing the item';
 
   @override
   String get text_123 =>
@@ -391,7 +391,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_125 => 'Using cached data';
 
   @override
-  String get text_126 => 'An error occurred: \$e';
+  String get text_126 => 'An error occurred';
 
   @override
   String get text_127 => 'Front-end message processing has been initiated.';
@@ -400,7 +400,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_128 => 'No content';
 
   @override
-  String get text_129 => 'Unable to obtain current location: \$e';
+  String get text_129 => 'Unable to obtain current location';
 
   @override
   String get text_130 => 'Please select a site.';
@@ -436,7 +436,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_140 => 'Available for borrowing';
 
   @override
-  String get text_141 => 'Failed to load the site: \$e';
+  String get text_141 => 'Failed to load the site';
 
   @override
   String get text_142 => 'Recent searches';
@@ -470,7 +470,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_151 => 'This train route does not exist.';
 
   @override
-  String get text_152 => 'Query failed: \$e';
+  String get text_152 => 'Query failed';
 
   @override
   String get text_153 => 'Search now';
@@ -605,7 +605,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_195 => 'The link cannot be opened.';
 
   @override
-  String get text_196 => 'Failed to open the link: \$e';
+  String get text_196 => 'Failed to open the link';
 
   @override
   String get text_197 => 'High-speed train station inquiries';
@@ -655,7 +655,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_211 => 'Business';
 
   @override
-  String get text_212 => 'Failed to retrieve seat status: \$e';
+  String get text_212 => 'Failed to retrieve seat status';
 
   @override
   String get text_213 => 'Standard seating';
@@ -670,7 +670,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_216 => 'Business Class Seats';
 
   @override
-  String get text_217 => 'Failed to retrieve transportation information: \$e';
+  String get text_217 => 'Failed to retrieve transportation information';
 
   @override
   String get text_218 => 'Taiwan Good Travel Information';
@@ -1004,7 +1004,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_326 => 'Unknown destination station';
 
   @override
-  String get text_327 => 'Failed to process data: \$e';
+  String get text_327 => 'Failed to process data';
 
   @override
   String get text_328 => 'Testing database query...';
@@ -1013,7 +1013,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_329 => 'First result:';
 
   @override
-  String get text_330 => 'Test failed: \$e';
+  String get text_330 => 'Test failed';
 
   @override
   String get text_331 => 'X minutes';
@@ -1034,10 +1034,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_336 => 'An error occurred while saving the item.';
 
   @override
-  String get text_337 => 'Failed to load route shape: \$e';
+  String get text_337 => 'Failed to load route shape';
 
   @override
-  String get text_338 => 'Failed to load route: \$e';
+  String get text_338 => 'Failed to load route';
 
   @override
   String get text_339 => 'No data available.';
@@ -1267,7 +1267,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_413 => 'Number of seats';
 
   @override
-  String get text_414 => 'Failed to retrieve site information: \$e';
+  String get text_414 => 'Failed to retrieve site information';
 
   @override
   String get text_415 => 'Bus stop';
@@ -1298,7 +1298,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_423 => 'No data available. Returns an empty list.';
 
   @override
-  String get text_424 => 'Batch query failed: \$e';
+  String get text_424 => 'Batch query failed';
 
   @override
   String get text_425 => 'Starting to query each one individually...';
@@ -2455,7 +2455,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'The current minute is odd, so no notification has been triggered.';
 
   @override
-  String get text_803 => 'Notification delivery failed: \$e';
+  String get text_803 => 'Notification delivery failed';
 
   @override
   String get text_804 => 'Old Society Station';
@@ -2724,7 +2724,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_890 => 'Status';
 
   @override
-  String get text_891 => 'Failed to retrieve train details: \$e';
+  String get text_891 => 'Failed to retrieve train details';
 
   @override
   String get text_892 => 'Direct';
@@ -2822,7 +2822,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_922 => 'List of high-speed train stations';
 
   @override
-  String get text_923 => 'Unable to obtain location: \$e';
+  String get text_923 => 'Unable to obtain location';
 
   @override
   String get text_924 => 'Hsinchu';
@@ -2906,7 +2906,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get text_950 => 'Weather Alert';
 
   @override
-  String get text_951 => 'Error in analyzing earthquake time: \$e';
+  String get text_951 => 'Error in analyzing earthquake time';
 
   @override
   String get text_952 => 'No detailed information available at this time.';
@@ -3180,10 +3180,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get nearStopSortAsc => 'Stop order 1?10';
+  String get nearStopSortAsc => 'Stop order 1 to 10';
 
   @override
-  String get nearStopSortDesc => 'Stop order 10?1';
+  String get nearStopSortDesc => 'Stop order 10 to 1';
 
   @override
   String nearStopTo(String destination) {
@@ -3681,4 +3681,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertSeverityUnknown => 'Unknown';
+
+  @override
+  String get busScheduleMenuTitle => 'Timetable';
+
+  @override
+  String get busScheduleMenuSubtitle => 'Today\'s scheduled departures';
+
+  @override
+  String busScheduleTitle(String route) {
+    return '$route Timetable';
+  }
+
+  @override
+  String get busScheduleRefresh => 'Refresh timetable';
+
+  @override
+  String get busScheduleLoading => 'Loading timetable…';
+
+  @override
+  String get busScheduleNotice =>
+      'This is the operator\'s planned daily timetable, not real-time arrival estimates.';
+
+  @override
+  String get busScheduleEstimatedNotice =>
+      'Stop times are estimated from departure times; check live arrivals for actual times.';
+
+  @override
+  String busScheduleServiceDate(String date) {
+    return 'Service date $date';
+  }
+
+  @override
+  String busScheduleUpdated(String time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String busScheduleOutdated(String date) {
+    return 'This timetable is for $date, not today. For reference only.';
+  }
+
+  @override
+  String busScheduleStale(String time) {
+    return 'Offline. Showing the last downloaded timetable ($time).';
+  }
+
+  @override
+  String get busScheduleDirectionLabel => 'Direction';
+
+  @override
+  String busScheduleTowards(String destination) {
+    return 'To $destination';
+  }
+
+  @override
+  String get busScheduleStopLabel => 'Stop';
+
+  @override
+  String busScheduleNext(String time) {
+    return 'Next $time';
+  }
+
+  @override
+  String get busScheduleNoMore => 'No more departures today';
+
+  @override
+  String busScheduleTrips(int count) {
+    return '$count trips';
+  }
+
+  @override
+  String busScheduleFirstLast(String first, String last) {
+    return 'First $first · Last $last';
+  }
+
+  @override
+  String get busScheduleNextDay => '+1 day';
+
+  @override
+  String get busScheduleLowFloor => 'Low-floor';
+
+  @override
+  String get busScheduleEmpty =>
+      'No daily timetable is available for this route.';
+
+  @override
+  String get busScheduleError =>
+      'Couldn\'t load the timetable. Check your connection and try again.';
+
+  @override
+  String get busScheduleUnsupportedTitle => 'Timetable not available';
+
+  @override
+  String busScheduleUnsupported(String city) {
+    return 'TDX only provides daily city-bus timetables for Taichung, Taoyuan and Kaohsiung. $city is not supported yet.';
+  }
+
+  @override
+  String get busHistoryPlate => 'Plate';
+
+  @override
+  String get busHistoryRoute => 'Route';
+
+  @override
+  String get busHistoryStop => 'Stop';
+
+  @override
+  String get busHistoryTime => 'Time';
+
+  @override
+  String get busHistoryDirection => 'Direction';
 }

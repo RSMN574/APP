@@ -1,11 +1,13 @@
 
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:com.rsmn574.app/firebase/analytics_service.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
 
@@ -208,6 +210,10 @@ final transportModes = rawModes is List
     : <String>[];
 
 final travelMode = option['TravelMode']?.toString() ?? '';
+// 只記錄交通方式代碼，不記錄起訖點座標（避免精確位置進入 Analytics）。
+unawaited(AppAnalytics.logTransitRouteSearch(
+  mode: transportModes.isEmpty ? 'all' : transportModes.join('_'),
+));
 
 final uri = Uri.https(
 _tdxHost,
@@ -406,10 +412,9 @@ String stopID,
 String direction,
 ) async {
 try {
-await connMysql();
-final uri;
-
-  uri = Uri.https(
+  // 這裡只呼叫 TDX，不需要 MySQL；先前的 connMysql() 會在資料庫無法連線時
+  // 讓預估到站查詢整個失敗並跳出「連接失敗」Toast。
+  final uri = Uri.https(
     _tdxHost,
     '/api/basic/v2/Bus/EstimatedTimeOfArrival/'
         '${_busScope(city)}/${routeName.trim()}',

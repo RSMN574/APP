@@ -1,20 +1,15 @@
+import 'package:com.rsmn574.app/core/city/taiwan_city.dart';
 import 'package:com.rsmn574.app/features/parking/state/parking_provider.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:provider/provider.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
-import 'package:com.rsmn574.app/features/ev_charging/data/ev_station_repository.dart';
-import 'package:com.rsmn574.app/features/parking/data/get_park.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -206,9 +201,12 @@ class ParkingLot {
   String get capacityText => capacityTextFor('zh');
 }
 
+/// 停車資料目前提供的縣市（TDX 代碼）；名稱一律由 [TaiwanCity] 產生（QA C4）。
+const _parkingCityCodes = ['Taichung', 'Taoyuan'];
+
 final List<CityItem> cities = [
-  CityItem(name: '臺中市', id: 'Taichung'),
-  CityItem(name: '桃園市', id: 'Taoyuan'),
+  for (final code in _parkingCityCodes)
+    CityItem(name: TaiwanCity.tryParse(code)!.zhName, id: code),
 ];
 
 class Parking extends StatefulWidget {
@@ -243,12 +241,8 @@ class _ParkingState extends State<Parking> {
 
   String _cityName(CityItem city) {
     if (!_isEnglish) return city.name;
-    return switch (city.id) {
-      'Taichung' => 'Taichung',
-      'Taoyuan' => 'Taoyuan',
-      'all' => 'All',
-      _ => city.name,
-    };
+    if (city.id == 'all') return 'All';
+    return TaiwanCity.tryParse(city.id)?.enName ?? city.name;
   }
 
   String _localizedParkingValue(String value) {
@@ -268,8 +262,15 @@ class _ParkingState extends State<Parking> {
     unawaited(
       AppAnalytics.logFeatureOpened('parking'),
     );
-    _currentCityNotifier = ValueNotifier<String>("臺中市");
-    _correspondingIDNotifier = ValueNotifier<String>("Taichung");
+    // 預設使用全 App 目前城市；停車資料不支援時回退到第一個支援的縣市。
+    final current = TaiwanCity.tryParse(context.read<CityProvider>().city);
+    final initial = cities.firstWhere(
+      (c) => c.id == current?.tdxCode,
+      orElse: () => cities.first,
+    );
+    _selectedCity = initial.name;
+    _currentCityNotifier = ValueNotifier<String>(initial.name);
+    _correspondingIDNotifier = ValueNotifier<String>(initial.id);
 
     // 設定搜尋輸入監聽
     _searchController.addListener(_onSearchInputChanged);
@@ -310,35 +311,17 @@ class _ParkingState extends State<Parking> {
     try {
       final cityCode = _correspondingIDNotifier.value;
 
-      /// 1. 併發讀取 MySQL 靜態資料庫 (提升載入效率)
-      final results = await Future.wait([
-        mysqlSelect('SELECT * FROM CarPark.OffStreetCarPark_$cityCode;'),
-        mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_Freeway WHERE CityCode="${convertCityCode(cityCode)}";',
-        ),
-        mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_TRA WHERE CityCode="${convertCityCode(cityCode)}";',
-        ),
-        mysqlSelect(
-          'SELECT * FROM CarPark.OffStreetCarPark_THSR WHERE CityCode="${convertCityCode(cityCode)}";',
-        ),
-      ]);
-
-      final rawOffStreet = results[0] ?? [];
-      final rawFreeway = results[1] ?? [];
-      final rawTra = results[2] ?? [];
-      final rawThsr = results[3] ?? [];
-
+      /// 1. 靜態停車場資料（由 ParkingRepository 合併 4 個資料來源）
+      final parkingProvider = context.read<ParkingProvider>();
       final List<Map<String, dynamic>> combinedRaw = [
-        ...rawOffStreet.map((e) => Map<String, dynamic>.from(e)),
-        ...rawFreeway.map((e) => Map<String, dynamic>.from(e)),
-        ...rawTra.map((e) => Map<String, dynamic>.from(e)),
-        ...rawThsr.map((e) => Map<String, dynamic>.from(e)),
+        for (final row in await parkingProvider.offStreetCarParks(cityCode))
+          Map<String, dynamic>.from(row as Map),
       ];
+      if (!mounted) return;
 
       /// 2. 取得 TDX 即時剩餘車位資料
       List liveRaw =
-          await context.read<ParkingProvider>().liveStatus(cityCode);
+          await parkingProvider.liveStatus(cityCode);
       Map<String, Map<String, dynamic>> liveMap = {
         for (var item in liveRaw)
           item["CarParkID"].toString(): Map<String, dynamic>.from(item),
@@ -497,12 +480,12 @@ class _ParkingState extends State<Parking> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1A73E8),
+              color: Theme.of(context).colorScheme.primary,
               letterSpacing: -0.5,
             ),
           ),
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+          iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
           actions: [_buildCityDropdown(context)],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
@@ -512,7 +495,7 @@ class _ParkingState extends State<Parking> {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    const Color(0xFF1A73E8).withOpacity(0.2),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.2),
                     Colors.transparent,
                   ],
                 ),
@@ -761,7 +744,7 @@ class _ParkingState extends State<Parking> {
             );
           },
           borderRadius: BorderRadius.circular(16),
-          splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+          splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -785,13 +768,13 @@ class _ParkingState extends State<Parking> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A73E8).withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.local_parking_rounded,
                         size: 18,
-                        color: Color(0xFF1A73E8),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -903,7 +886,7 @@ class _ParkingState extends State<Parking> {
                       child: _buildSmallActionButton(
                         icon: Icons.directions_rounded,
                         label: AppLocalizations.of(context)!.text_964,
-                        color: const Color(0xFF1A73E8),
+                        color: Theme.of(context).colorScheme.primary,
                         onTap: () {
                           // 🚀 使用預先解析好的經緯度，完全解決原本 0.0 無法導航的瑕疵
                           StationActions.openNavigation(
@@ -1065,23 +1048,23 @@ class _ParkingState extends State<Parking> {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A73E8).withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.local_parking_rounded,
                 size: 32,
-                color: Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               _hasLoadError ? l10n.text_966 : l10n.text_498,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             if (_hasLoadError) ...[
@@ -1123,32 +1106,32 @@ class StationDetailPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor:
-          isDark ? const Color(0xFF121212) : const Color(0xFFF8FAFD),
+          isDark ? const Color(0xFF121212) : Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: AppThemes.getCardColor(context),
         elevation: 0,
         title: Text(
           stationName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A73E8),
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+        iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
         actions: [
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFEEF3FB),
+                color: context.appColors.mutedBackground,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.share_rounded,
                 size: 18,
-                color: Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             onPressed: () => StationActions.shareStation(station.toMap()),
@@ -1161,19 +1144,19 @@ class StationDetailPage extends StatelessWidget {
           children: [
             _buildOverviewCard(context, stationName),
             _buildInfoSection(context, l10n.text_511, [
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.qr_code_rounded,
                 l10n.text_512,
                 station.id,
               ),
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.location_on_rounded,
                 l10n.text_513,
                 station.address == '無地址資訊' ? l10n.text_501 : station.address,
               ),
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.phone_rounded,
                 l10n.text_514,
@@ -1181,7 +1164,7 @@ class StationDetailPage extends StatelessWidget {
               ),
             ]),
             _buildInfoSection(context, l10n.text_515, [
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.monetization_on_rounded,
                 l10n.text_516,
@@ -1190,7 +1173,7 @@ class StationDetailPage extends StatelessWidget {
                     ? l10n.text_508
                     : station.fareDescription,
               ),
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.credit_card_rounded,
                 l10n.text_517,
@@ -1201,7 +1184,7 @@ class StationDetailPage extends StatelessWidget {
               ),
             ]),
             _buildInfoSection(context, l10n.text_518, [
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.local_parking_rounded,
                 l10n.text_519,
@@ -1210,7 +1193,7 @@ class StationDetailPage extends StatelessWidget {
                   english: isEnglish,
                 ),
               ),
-              _buildInfoItem(
+              _buildInfoItem(context, 
                 l10n,
                 Icons.description_rounded,
                 l10n.text_520,
@@ -1220,31 +1203,31 @@ class StationDetailPage extends StatelessWidget {
               ),
             ]),
             _buildInfoSection(context, l10n.text_521, [
-              _buildBooleanItem(
+              _buildBooleanItem(context, 
                 l10n,
                 Icons.access_time_rounded,
                 l10n.text_522,
                 station.isFreeOutOfHours,
               ),
-              _buildBooleanItem(
+              _buildBooleanItem(context, 
                 l10n,
                 Icons.ev_station,
                 l10n.text_523,
                 station.hasEV,
               ),
-              _buildBooleanItem(
+              _buildBooleanItem(context, 
                 l10n,
                 Icons.nightlight_rounded,
                 l10n.text_524,
                 station.overnightPermitted,
               ),
-              _buildBooleanItem(
+              _buildBooleanItem(context, 
                 l10n,
                 Icons.sensors_rounded,
                 l10n.text_525,
                 station.vehicleDetection,
               ),
-              _buildBooleanItem(
+              _buildBooleanItem(context, 
                 l10n,
                 Icons.wheelchair_pickup,
                 l10n.text_526,
@@ -1256,7 +1239,7 @@ class StationDetailPage extends StatelessWidget {
               l10n.text_527,
               [_buildLocationItem(context, stationName)],
             ),
-            _buildActionButtons(stationName, l10n),
+            _buildActionButtons(context, stationName, l10n),
             const SizedBox(height: 32),
           ],
         ),
@@ -1286,7 +1269,7 @@ class StationDetailPage extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A73E8),
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
@@ -1391,10 +1374,10 @@ class StationDetailPage extends StatelessWidget {
             padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF1A73E8),
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -1411,6 +1394,7 @@ class StationDetailPage extends StatelessWidget {
   }
 
   Widget _buildInfoItem(
+    BuildContext context,
     AppLocalizations l10n,
     IconData icon,
     String title,
@@ -1421,7 +1405,7 @@ class StationDetailPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1450,6 +1434,7 @@ class StationDetailPage extends StatelessWidget {
   }
 
   Widget _buildBooleanItem(
+    BuildContext context,
     AppLocalizations l10n,
     IconData icon,
     String title,
@@ -1459,7 +1444,7 @@ class StationDetailPage extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -1497,7 +1482,7 @@ class StationDetailPage extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          const Icon(Icons.map_rounded, size: 18, color: Color(0xFF1A73E8)),
+          Icon(Icons.map_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1519,7 +1504,7 @@ class StationDetailPage extends StatelessWidget {
           ),
           IconButton(
             icon:
-                const Icon(Icons.navigation_rounded, color: Color(0xFF1A73E8)),
+                Icon(Icons.navigation_rounded, color: Theme.of(context).colorScheme.primary),
             onPressed: () => StationActions.openNavigation(
               station.lat,
               station.lng,
@@ -1531,7 +1516,7 @@ class StationDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(String stationName, AppLocalizations l10n) {
+  Widget _buildActionButtons(BuildContext context, String stationName, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.all(16),
       child: Row(
@@ -1557,7 +1542,7 @@ class StationDetailPage extends StatelessWidget {
               icon: const Icon(Icons.directions_rounded),
               label: Text(l10n.text_535),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A73E8),
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

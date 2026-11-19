@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:com.rsmn574.app/features/diagnostics/pages/diagnostics_page.dart';
+import 'package:com.rsmn574.app/firebase/analytics_service.dart';
 import 'package:provider/provider.dart';
 
 import 'package:com.rsmn574.app/const/regular_class.dart';
@@ -110,6 +114,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     if (selected != null && mounted) {
       await appProvider.setThemeMode(selected);
+      unawaited(AppAnalytics.logThemeChanged(mode: selected.name));
     }
   }
 
@@ -290,6 +295,21 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           ]),
+
+          // QA 診斷入口：只在 Debug 或 QA_DIAGNOSTICS 內部測試版出現。
+          if (AppDiagnostics.enabled) ...[
+            _buildSectionTitle('QA'),
+            _buildSettingCard([
+              ListTile(
+                leading: Icon(Icons.bug_report_outlined,
+                    color: colorScheme.error),
+                title: const Text('QA 診斷（Crashlytics / 效能）'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => const DiagnosticsPage())),
+              ),
+            ]),
+          ],
 
           const SizedBox(height: 30),
 

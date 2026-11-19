@@ -3,9 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:com.rsmn574.app/const/app_colors.dart';
-import 'package:com.rsmn574.app/const/regular_class.dart';
-import 'package:com.rsmn574.app/const/regular_const.dart';
 
 import '../../../firebase/analytics_service.dart';
 import '../../../widget/app_custom_bar.dart';

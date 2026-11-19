@@ -33,11 +33,13 @@ abstract class TdxTransitAlertAdapter implements TransitAlertAdapter {
       path,
       queryParams: const {'\$top': '30', '\$format': 'JSON'},
     );
-    if (response is! List) {
-      throw const FormatException('TDX alert response must be a JSON array');
+    // Bus / THSR 回傳陣列；Metro Alert 回傳 { ..., "Alerts": [...] } 物件。
+    final items = response is Map ? response['Alerts'] : response;
+    if (items is! List) {
+      throw const FormatException('TDX alert response must contain a list');
     }
     final alerts = <TransitAlert>[];
-    for (final item in response) {
+    for (final item in items) {
       if (item is! Map<String, dynamic>) {
         throw const FormatException('TDX alert item must be a JSON object');
       }
@@ -72,7 +74,49 @@ abstract class TdxTransitAlertAdapter implements TransitAlertAdapter {
     return valueText == null ? const [] : [valueText];
   }
 
-  DateTime? date(Object? value) => DateTime.tryParse(text(value) ?? '');
+  DateTime? date(Object? value) {
+    final parsed = DateTime.tryParse(text(value) ?? '');
+    // TDX 以 0001-01-01 表示「未指定」，不可當成真實時間。
+    if (parsed == null || parsed.year < 1900) return null;
+    return parsed;
+  }
+
+  /// 讀取 TDX `Scope` 內的影響範圍，例如 Scope.Routes[].RouteName。
+  List<String> scopeValues(
+    Map<String, dynamic> json,
+    List<String> scopeKeys,
+    List<String> itemKeys,
+  ) {
+    final scope = json['Scope'];
+    if (scope is! Map) return const [];
+    final result = <String>[];
+    for (final scopeKey in scopeKeys) {
+      final entries = scope[scopeKey];
+      if (entries is! List) continue;
+      for (final entry in entries) {
+        if (entry is! Map) continue;
+        for (final itemKey in itemKeys) {
+          final itemText = text(entry[itemKey]);
+          if (itemText != null) {
+            if (!result.contains(itemText)) result.add(itemText);
+            break;
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  List<String> affected(
+    Map<String, dynamic> json, {
+    required List<String> topLevelKeys,
+    required List<String> scopeKeys,
+    required List<String> itemKeys,
+  }) {
+    final topLevel = values(json, topLevelKeys);
+    if (topLevel.isNotEmpty) return topLevel;
+    return scopeValues(json, scopeKeys, itemKeys);
+  }
 
   String value(Map<String, dynamic> json, List<String> keys) {
     for (final key in keys) {
@@ -207,7 +251,12 @@ class BusTransitAlertAdapter extends TdxTransitAlertAdapter {
 
   @override
   TransitAlert mapAlert(Map<String, dynamic> json) {
-    final routes = values(json, ['RouteID', 'RouteName']);
+    final routes = affected(
+      json,
+      topLevelKeys: ['RouteID', 'RouteName'],
+      scopeKeys: ['Routes', 'SubRoutes'],
+      itemKeys: ['RouteName', 'SubRouteName', 'RouteID', 'SubRouteID'],
+    );
     return buildAlert(
       json,
       id: value(json, ['AlertID', 'ID']),
@@ -216,11 +265,16 @@ class BusTransitAlertAdapter extends TdxTransitAlertAdapter {
       alertType: alertType(json),
       severity: severity(json),
       routes: routes,
-      stops: values(json, ['StopID', 'StopName']),
+      stops: affected(
+        json,
+        topLevelKeys: ['StopID', 'StopName'],
+        scopeKeys: ['Stops', 'Stations'],
+        itemKeys: ['StopName', 'StationName', 'StopID', 'StationID'],
+      ),
       location: optional(json, ['Road', 'Location']),
       startTime: date(json['StartTime']),
       endTime: date(json['EndTime']),
-      publishedAt: date(json['SrcUpdateTime']),
+      publishedAt: date(json['PublishTime'] ?? json['SrcUpdateTime']),
       updatedAt: date(json['UpdateTime']),
     );
   }
@@ -243,12 +297,22 @@ class MetroTransitAlertAdapter extends TdxTransitAlertAdapter {
       description: value(json, ['Description', 'Reason', 'Effect']),
       alertType: alertType(json),
       severity: severity(json),
-      routes: values(json, ['LineID', 'LineName']),
-      stops: values(json, ['StationID', 'StationName']),
+      routes: affected(
+        json,
+        topLevelKeys: ['LineID', 'LineName'],
+        scopeKeys: ['Lines', 'Routes'],
+        itemKeys: ['LineName', 'RouteName', 'LineID', 'RouteID'],
+      ),
+      stops: affected(
+        json,
+        topLevelKeys: ['StationID', 'StationName'],
+        scopeKeys: ['Stations'],
+        itemKeys: ['StationName', 'StationID'],
+      ),
       location: optional(json, ['Location']),
       startTime: date(json['StartTime']),
       endTime: date(json['EndTime']),
-      publishedAt: date(json['SrcUpdateTime']),
+      publishedAt: date(json['PublishTime'] ?? json['SrcUpdateTime']),
       updatedAt: date(json['UpdateTime']),
     );
   }
@@ -278,7 +342,7 @@ class ThsrTransitAlertAdapter extends TdxTransitAlertAdapter {
       location: optional(json, ['Location']),
       startTime: start,
       endTime: end,
-      publishedAt: date(json['UpdateTime']),
+      publishedAt: date(json['PublishTime'] ?? json['UpdateTime']),
       updatedAt: date(json['UpdateTime']),
     );
   }

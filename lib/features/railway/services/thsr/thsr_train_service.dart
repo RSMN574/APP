@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
 
 import '../common/railway_date_utils.dart';
@@ -19,7 +18,6 @@ class ThsrTrainService {
         "https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/DailyTimetable/TrainNo/$trainNo/TrainDate/$dateStr?%24format=JSON";
 
     try {
-      await connMysql();
       final response = await TdxApiClient().getRaw(
         Uri.parse(url),
         headers: {'accept': 'application/json'},
@@ -48,7 +46,6 @@ class ThsrTrainService {
         "https://tdx.transportdata.tw/api/basic/v2/Rail/THSR/AvailableSeatStatus/Train/OD/$departureID/to/$arrivalID/TrainDate/$date/TrainNo/$trainNo?%24&%24format=JSON";
 
     try {
-      await connMysql();
       final response = await TdxApiClient().getRaw(
         Uri.parse(url),
         headers: {'accept': 'application/json'},

@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
-import '../features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'meta_db.dart';
 
 class BootstrapService {
@@ -59,6 +59,13 @@ class BootstrapService {
         }
       }
       print('[bootstrap] parsed=${busList.length}');
+
+      // replaceCity('all') 會先清空整張 bus_route；伺服器回傳空清單或
+      // 全部解析失敗時不可覆蓋，否則本地路線快取會被清光。
+      if (busList.isEmpty) {
+        print('[bootstrap] 無有效路線資料，保留本地快取');
+        return;
+      }
 
       await BusRouteDb.instance.replaceCity(city, busList);
       print('[bootstrap] replaceCity done');

@@ -6,7 +6,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'package:com.rsmn574.app/features/traffic/data/get_traffic.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 class Traffic extends StatefulWidget {

@@ -1,10 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:com.rsmn574.app/const/regular_const.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
-import 'package:com.rsmn574.app/database/shared_perferences.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 
@@ -177,10 +173,10 @@ class _BuslistState extends State<Buslist> with AutomaticKeepAliveClientMixin {
         // 路線名稱
         Text(
           routeName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A73E8),
+            color: Theme.of(context).colorScheme.primary,
             letterSpacing: -0.3,
           ),
           maxLines: 1,

@@ -1,13 +1,14 @@
+import 'dart:async';
+
+import 'package:com.rsmn574.app/core/error/app_error_handler.dart';
 import 'package:com.rsmn574.app/database/tdx_api_client.dart';
 import 'dart:convert'; // For JSON decoding
 import 'dart:io'; // For file reading and writing
-import 'package:com.rsmn574.app/database/get_data.dart'; // For network requests
 
 Future<List<Map<String, dynamic>>> fetchStationInfo(
     List<String> stationIds, String city) async {
   try {
-    // Connect to MySQL if necessary (assuming connMysql is defined elsewhere)
-    await connMysql();
+    // 只呼叫 TDX；不需要 MySQL 連線（連線失敗會讓整個查詢失敗）。
 
     // Fetch the token
     // Generate all requests for each station ID
@@ -16,14 +17,15 @@ Future<List<Map<String, dynamic>>> fetchStationInfo(
           final String url;
           if (city == 'InterCity') {
             // InterCity
-            url= 'https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/InterCity/PassThrough/Station/$stationId\$t&\$format=JSON'
-                '?\$&\$format=JSON';
+            // 先前查詢字串被接在路徑上（Station/{id}$t&$format=JSON?...），
+            // TDX 會把它當成不存在的站位 ID，公路客運永遠回傳 0 筆。
+            url =
+                'https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/InterCity/PassThrough/Station/$stationId?\$format=JSON';
           }else{
             url =
-            "https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/City/$city/PassThrough/Station/$stationId?\$t&\$format=JSON";
+            "https://tdx.transportdata.tw/api/advanced/v2/Bus/EstimatedTimeOfArrival/City/$city/PassThrough/Station/$stationId?\$format=JSON";
 
           }
-          print(stationId);
 
       // Fetch data for the specific station ID
       final response = await TdxApiClient().getRaw(
@@ -54,13 +56,36 @@ Future<List<Map<String, dynamic>>> fetchStationInfo(
       return modifiedData.map((item) => item).toList();
     }).toList();
 
-    // Wait for all requests to complete
-    List<List<Map<String, dynamic>>> results = await Future.wait(requests);
+    // QA B09：先前任何一個站位失敗就整批回傳 []，UI 顯示「無資料」而非錯誤。
+    // 現在保留成功站位的資料；全部失敗時丟出錯誤讓上層顯示錯誤與重試。
+    final settled = await Future.wait(requests.map((request) => request
+        .then<Object>((value) => value)
+        .catchError((Object error, StackTrace stack) =>
+            _StationFailure(error, stack))));
 
-    // Flatten the list of lists into a single list
+    final failures = settled.whereType<_StationFailure>().toList();
+    final results = settled.whereType<List<Map<String, dynamic>>>().toList();
+    if (failures.isNotEmpty) {
+      unawaited(AppErrorHandler.recordNonFatal(
+        failures.first.error,
+        failures.first.stack,
+        feature: 'bus_station_eta',
+        reason: '${failures.length}/${settled.length} stations failed',
+      ));
+      if (results.isEmpty) {
+        Error.throwWithStackTrace(failures.first.error, failures.first.stack);
+      }
+    }
+
     return results.expand((element) => element).toList();
-  } catch (e) {
-    print('Error occurred: $e');
-    return []; // Return an empty list in case of error
+  } on ArgumentError {
+    rethrow;
   }
+}
+
+class _StationFailure {
+  const _StationFailure(this.error, this.stack);
+
+  final Object error;
+  final StackTrace stack;
 }

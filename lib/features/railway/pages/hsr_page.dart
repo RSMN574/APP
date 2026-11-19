@@ -10,7 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 

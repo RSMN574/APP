@@ -1,3 +1,4 @@
+import 'package:com.rsmn574.app/core/city/taiwan_city.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import 'package:com.rsmn574.app/const/regular_class.dart';
 
-import 'package:com.rsmn574.app/database/get_data.dart';
 
 import 'package:com.rsmn574.app/features/ev_charging/state/ev_station_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
@@ -27,8 +27,14 @@ class EVStation extends StatefulWidget {
 }
 
 class _EVStationState extends State<EVStation> {
-  late final List<String> regions = [AppLocalizations.of(context)!.text_6];
-  late String selectedCity = AppLocalizations.of(context)!.text_6;
+  // 充電站資料目前只提供臺中市；顯示名稱由 TaiwanCity 依語系產生（QA C4）。
+  late final List<String> regions = [
+    for (final code in const ['Taichung'])
+      Localizations.localeOf(context).languageCode == 'en'
+          ? TaiwanCity.tryParse(code)!.enName
+          : TaiwanCity.tryParse(code)!.zhName,
+  ];
+  late String selectedCity = regions.first;
   GoogleMapController? _mapController;
   TextEditingController _searchController = TextEditingController();
   List<dynamic> _filteredStations = [];
@@ -65,7 +71,7 @@ class _EVStationState extends State<EVStation> {
     Provider.of<LocationProvider>(context, listen: false);
     try {
       List<Map<String, dynamic>> data =
-          await mysqlSelect("SELECT * FROM EV_Charging.EV_station;") ?? [];
+          await context.read<EvStationProvider>().stations();
 
       List<Map<String, dynamic>> findNearestStations(
           List<dynamic> stations,
@@ -806,11 +812,9 @@ class _StationDetailPageState extends State<StationDetailPage> {
 
   Future<List<Map<String, dynamic>>> _fetchChargingPoints() async {
     try {
-      List<Map<String, dynamic>> chargingPoint = await mysqlSelect(
-        "SELECT * FROM EV_Charging.ChargingPoint_Taichung WHERE StationID='${widget.station["StationID"]}';",
-      ) ??
-          [];
-      return chargingPoint;
+      return await context
+          .read<EvStationProvider>()
+          .chargingPoints(widget.station["StationID"].toString());
     } catch (e) {
       return [];
     }

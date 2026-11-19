@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
 
 import '../../../database/sql/app_database.dart';
-import '../model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import '../model/bus_stop_info_result.dart';
 import '../services/bus_arrival_service.dart';
 import '../services/bus_realtime_service.dart';

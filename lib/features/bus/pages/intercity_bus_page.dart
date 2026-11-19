@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:com.rsmn574.app/features/bus/pages/bus_stop_info_page.dart';
-import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
-import 'package:com.rsmn574.app/features/bus/pages/route_planning_page.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/features/bus/widgets/bus_list.dart';
@@ -9,12 +7,12 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:com.rsmn574.app/const/regular_class.dart';
-import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
+import 'package:com.rsmn574.app/const/app_colors.dart';
 
 class IntercityBus extends StatefulWidget {
   const IntercityBus({Key? key}) : super(key: key);
@@ -54,11 +52,12 @@ class IntercityBusState extends State<IntercityBus> {
   final ValueNotifier<List> suggestions = ValueNotifier<List>([]);
 
   // 顏色定義 - 使用航班主題
-  final Color _primaryColor = const Color(0xFF1A73E8);
-  final Color _secondaryColor = const Color(0xFFEEF3FB);
-  final Color _backgroundColor = Colors.white;
-  final Color _textColor = Colors.black87;
-  final Color _greyColor = Colors.grey;
+  // 改為 getter 依主題取色：原本固定白底黑字，深色模式下整頁仍是亮色。
+  Color get _primaryColor => Theme.of(context).colorScheme.primary;
+  Color get _secondaryColor => context.appColors.mutedBackground;
+  Color get _backgroundColor => context.appColors.cardBackground;
+  Color get _textColor => context.appColors.textPrimary;
+  Color get _greyColor => context.appColors.textSecondary;
 
   // Future<int> updateCurrent() async {
   //   favoriteRoutes.value = await _loadFavorites("FavoritesRoute", city: correspondingIDNotifier.value);
@@ -146,9 +145,9 @@ class IntercityBusState extends State<IntercityBus> {
               color: _secondaryColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.directions_bus,
-              color: Color(0xFF1A73E8),
+              color: Theme.of(context).colorScheme.primary,
               size: 20,
             ),
           ),
@@ -164,7 +163,7 @@ class IntercityBusState extends State<IntercityBus> {
         ],
       ),
       centerTitle: true,
-      iconTheme: const IconThemeData(color: Color(0xFF1A73E8)),
+      iconTheme: IconThemeData(color: Theme.of(context).colorScheme.primary),
       actions: [
         IconButton(
           icon: const Icon(Icons.info_outline_rounded, size: 24),
@@ -247,8 +246,8 @@ class IntercityBusState extends State<IntercityBus> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      const Color(0xFF1A73E8),
-                      const Color(0xFF1A73E8).withOpacity(0.8),
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -332,10 +331,10 @@ class IntercityBusState extends State<IntercityBus> {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
                     AppLocalizations.of(context)!.text_21,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A73E8),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
@@ -452,7 +451,7 @@ class IntercityBusState extends State<IntercityBus> {
             color: _secondaryColor,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.warning, color: Color(0xFF1A73E8), size: 20),
+          child: Icon(Icons.warning, color: Theme.of(context).colorScheme.primary, size: 20),
         ),
         title: Text(
           alert['Title'] ?? AppLocalizations.of(context)!.text_25,
@@ -696,8 +695,8 @@ class IntercityBusState extends State<IntercityBus> {
             gradient: isSelected
                 ? LinearGradient(
                     colors: [
-                      const Color(0xFF1A73E8),
-                      const Color(0xFF1A73E8).withOpacity(0.9),
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.9),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -714,7 +713,7 @@ class IntercityBusState extends State<IntercityBus> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: const Color(0xFF1A73E8).withOpacity(0.3),
+                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -728,7 +727,7 @@ class IntercityBusState extends State<IntercityBus> {
                   ],
             border: isSelected
                 ? Border.all(
-                    color: const Color(0xFF1A73E8).withOpacity(0.2), width: 1.5)
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2), width: 1.5)
                 : Border.all(color: Colors.grey[200]!, width: 1),
           ),
           child: Column(
@@ -740,13 +739,13 @@ class IntercityBusState extends State<IntercityBus> {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Colors.white.withOpacity(0.2)
-                      : const Color(0xFFEEF3FB),
+                      : context.appColors.mutedBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icons[index],
                   size: 18,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -755,7 +754,7 @@ class IntercityBusState extends State<IntercityBus> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF1A73E8),
+                  color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1098,7 +1097,7 @@ class IntercityBusState extends State<IntercityBus> {
                 borderRadius: BorderRadius.circular(6),
               ),
               child:
-                  const Icon(Icons.place, size: 16, color: Color(0xFF1A73E8)),
+                  Icon(Icons.place, size: 16, color: Theme.of(context).colorScheme.primary),
             ),
             title: Text(
               suggestions[index].toString(),

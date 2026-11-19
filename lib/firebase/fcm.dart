@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -113,7 +114,8 @@ Future<void> setupFirebaseMessaging() async {
 
   // 获取设备令牌
   FCMtoken = await messaging.getToken();
-  print("FCM Token: $FCMtoken");
+  // QA B23：FCM Token 是裝置識別碼，release/profile 不可寫入 logcat。
+  if (kDebugMode) debugPrint("FCM Token: $FCMtoken");
 
   // 处理点击通知
   _onMessageOpenedAppSubscription?.cancel();

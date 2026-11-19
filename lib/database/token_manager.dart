@@ -107,7 +107,13 @@ class TokenManager {
   void startAutoRefresh() {
     _autoRefreshTimer?.cancel();
     _autoRefreshTimer = Timer.periodic(const Duration(minutes: 55), (_) {
-      unawaited(refreshToken());
+      // 背景更新失敗（例如離線）時不可變成未處理的非同步錯誤，
+      // 否則會被全域 handler 以 fatal 回報到 Crashlytics；下次 getToken() 會再重試。
+      unawaited(refreshToken().then<void>(
+        (_) {},
+        onError: (Object error) =>
+            print('[TokenManager] auto refresh failed: $error'),
+      ));
     });
   }
 

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mysql_client/mysql_client.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'package:mysql1/mysql1.dart';
 
 import '../core/utils/convert.dart';
@@ -322,6 +322,9 @@ Future<List<Map<String, dynamic>>> getBusStopOfRoute({
 
     // 清空舊數據
     jsonData = [];
+    // QA B08：sum 是歷史動態 API 的 $top，必須每條路線重新計算；
+    // 先前從不歸零，查看越多路線請求筆數越大。
+    sum = 0;
 
     // 處理查詢結果
     for (final row in result.rows) {

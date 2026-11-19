@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../core/city/taiwan_city.dart';
+
 class LocationProvider with ChangeNotifier {
   double _latitude = 0.0;
   double _longitude = 0.0;
@@ -17,13 +19,77 @@ class LocationProvider with ChangeNotifier {
   }
 }
 
+/// App 唯一的「目前城市」狀態來源。
+///
+/// - 使用者切換城市時保存到 SharedPreferences（`last_city`）
+/// - 啟動時讀取上次城市；第一次使用或保存值無效時回退到預設城市
+/// - GPS 偵測只在使用者從未手動選擇城市時套用（[applyDetectedCity]）
+/// - 一律保存中文名稱（與既有頁面相容），TDX 代碼請用 [tdxCode]
 class CityProvider with ChangeNotifier {
-  String _city = '臺北市'; // 默认城市
+  CityProvider({String? initialCity, bool hasUserSelection = false})
+      : _city = TaiwanCity.tryParse(initialCity)?.zhName ??
+            TaiwanCity.defaultCity.zhName,
+        _hasUserSelection = hasUserSelection;
+
+  static const String prefsKey = 'last_city';
+
+  String _city;
+  bool _hasUserSelection;
+
   String get city => _city;
 
-  void setCity(String newCity) {
-    _city = newCity;
-    notifyListeners(); // 通知监听者状态已更新
+  /// TDX API 使用的城市代碼（例如 `Taichung`、`HsinchuCounty`）。
+  String get tdxCode =>
+      (TaiwanCity.tryParse(_city) ?? TaiwanCity.defaultCity).tdxCode;
+
+  /// 使用者是否曾手動選擇過城市。
+  bool get hasUserSelection => _hasUserSelection;
+
+  /// 讀取上次城市。保存資料損壞（型別錯誤、未知城市）時安全回退到預設城市，
+  /// 並清除損壞值，避免每次啟動都讀到同一筆錯誤資料。
+  static Future<CityProvider> load({SharedPreferences? prefs}) async {
+    try {
+      final store = prefs ?? await SharedPreferences.getInstance();
+      final Object? raw = store.get(prefsKey);
+      final parsed = raw is String ? TaiwanCity.tryParse(raw) : null;
+      if (raw != null && parsed == null) {
+        await store.remove(prefsKey);
+      }
+      return CityProvider(
+        initialCity: parsed?.zhName,
+        hasUserSelection: parsed != null,
+      );
+    } catch (_) {
+      return CityProvider();
+    }
+  }
+
+  /// 使用者手動選擇城市：更新狀態並保存。無效城市會被忽略並回傳 false。
+  Future<bool> setCity(String newCity) async {
+    final parsed = TaiwanCity.tryParse(newCity);
+    if (parsed == null) return false;
+    final changed = parsed.zhName != _city;
+    _city = parsed.zhName;
+    _hasUserSelection = true;
+    if (changed) notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(prefsKey, parsed.zhName);
+    } catch (_) {
+      // 保存失敗不影響目前畫面；下次啟動回退到預設城市。
+    }
+    return true;
+  }
+
+  /// GPS 偵測到的城市：只在使用者從未手動選擇過城市時套用，且不保存，
+  /// 讓「上次選擇的城市」永遠優先。
+  bool applyDetectedCity(String detected) {
+    if (_hasUserSelection) return false;
+    final parsed = TaiwanCity.tryParse(detected);
+    if (parsed == null || parsed.zhName == _city) return false;
+    _city = parsed.zhName;
+    notifyListeners();
+    return true;
   }
 }
 

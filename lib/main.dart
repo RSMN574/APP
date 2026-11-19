@@ -11,14 +11,12 @@ import 'package:com.rsmn574.app/features/settings/state/settings_provider.dart';
 import 'dart:ui';
 
 import 'package:com.rsmn574.app/features/ev_charging/pages/ev_station_page.dart';
-import 'package:com.rsmn574.app/pages/other/speedometer.dart';
+import 'package:com.rsmn574.app/features/tools/pages/speedometer_page.dart';
 import 'package:com.rsmn574.app/features/parking/pages/parking_page.dart';
 import 'package:com.rsmn574.app/features/traffic/pages/traffic_page.dart';
 import 'package:com.rsmn574.app/secure_storage/secure_storage.dart';
-import 'package:com.rsmn574.app/task/task.dart';
-import 'package:com.rsmn574.app/test.dart';
-import 'package:com.rsmn574.app/core/utils/convert.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:com.rsmn574.app/features/notification/services/arrival_reminder_task.dart';
+import 'package:com.rsmn574.app/features/diagnostics/pages/metro_map_test_page.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -26,9 +24,17 @@ import 'package:flutter_svg/svg.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/single_child_widget.dart';
 
 import 'const/regular_class.dart';
+import 'core/city/taiwan_city.dart';
+import 'core/error/app_error_handler.dart';
+import 'package:com.rsmn574.app/features/diagnostics/pages/diagnostics_page.dart';
+import 'core/startup/startup_metrics.dart';
+import 'firebase/analytics_service.dart';
+import 'firebase/crashlytics_reporter.dart';
 import 'const/regular_const.dart';
 import 'database/bootstrap_service.dart';
 import 'features/airport/pages/airport_page.dart';
@@ -48,15 +54,14 @@ import 'features/railway/pages/hsr_page.dart';
 import 'features/railway/pages/train_page.dart';
 import 'features/taxi/pages/taxi_page.dart';
 import 'features/taxi/state/taxi_provider.dart';
-import 'features/youbike/pages/bike_page.dart';
 import 'database/sql/schedule.dart';
 import 'database/get_data.dart';
 import 'database/token_manager.dart';
 import 'firebase/fcm.dart';
-import 'firebase/firebase_options.dart';
+import 'firebase_options.dart';
 import 'l10n/app_localizations.dart';
 import 'widget/geolocator.dart';
-import 'pages.dart';
+import 'package:com.rsmn574.app/features/profile/pages/info_pages.dart';
 import 'features/home/pages/home.dart';
 import 'features/bus/state/bus_provider.dart';
 import 'package:logging/logging.dart';
@@ -69,104 +74,109 @@ final ValueNotifier<Locale> localeNotifier = ValueNotifier(const Locale('zh'));
 class AppInitializer {
   static bool firebaseInitialized = false;
   static bool bootstrapReady = false;
+  static bool _deferredStarted = false;
+  static final Logger _log = Logger('AppInitializer');
 
-  static Future<void> initialize() async {
-    Logger.root.level = Level.ALL;
+  static void _setupLogging() {
+    Logger.root.level = kReleaseMode ? Level.INFO : Level.ALL;
     Logger.root.onRecord.listen((record) {
-      print(
-        '${record.level.name}: ${record.time}: ${record.message}',
+      debugPrint(
+        '${record.level.name}: ${record.time}: ${record.message}'
+        '${record.error != null ? '\n  error: ${record.error}' : ''}'
+        '${record.stackTrace != null ? '\n${record.stackTrace}' : ''}',
       );
     });
+  }
 
-    final log = Logger('MyApp');
-    log.info('app start');
+  /// 啟動關鍵路徑：只做「首頁顯示前一定要完成」且不需要網路的工作。
+  ///
+  /// QA B03：先前在 runApp 前依序等待 FCM 權限對話框、FCM getToken、
+  /// TDX Token 與 bootstrap（HTTP timeout 20s），弱網路時白畫面 20 秒以上。
+  static Future<void> initializeCritical() async {
+    _setupLogging();
+    AppErrorHandler.installGlobalHandlers();
+    _log.info('app start');
 
-    await SecureStorage.initializeApiKey();
-
-    // ── 1. Firebase / 通知 / Token ──
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-
+      // Android 的 google-services 外掛會在原生端先建立 [DEFAULT] app，
+      // 重複呼叫 initializeApp 會丟 core/duplicate-app，導致登入不可用。
+      if (Firebase.apps.isEmpty) {
+        try {
+          await StartupMetrics.measure(
+            'firebase_init',
+            () => Firebase.initializeApp(
+              options: DefaultFirebaseOptions.currentPlatform,
+            ),
+          );
+        } on FirebaseException catch (e) {
+          if (e.code != 'duplicate-app') rethrow;
+        }
+      }
       firebaseInitialized = true;
-
-      await requestPermission();
-      await initializeNotifications();
-      setupForegroundMessageHandler();
-      await setupFirebaseMessaging();
-
-      FirebaseMessaging.onBackgroundMessage(
-        firebaseMessagingBackgroundHandler,
-      );
-
-      initializeArrivalReminderService();
-
-      final tokenManager = TokenManager();
-      await tokenManager.getToken();
-      tokenManager.startAutoRefresh();
-
-      log.info('Firebase 初始化完成');
+      AppErrorHandler.attachReporter(CrashlyticsErrorReporter());
+      // 背景執行時 FCM 需要在啟動時註冊 handler（同步、不需網路）。
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     } catch (e, stack) {
-      log.severe('Firebase 初始化失敗', e, stack);
+      _log.severe('Firebase 初始化失敗', e, stack);
+    }
+  }
+
+  /// 首幀之後才執行的非必要初始化；各項彼此獨立，單一失敗不影響其他項目。
+  static Future<void> initializeDeferred() async {
+    if (_deferredStarted) return;
+    _deferredStarted = true;
+
+    if (firebaseInitialized) {
+      unawaited(_runGuarded('crashlytics_config', () async {
+        final info = await PackageInfo.fromPlatform();
+        final reporter = AppErrorHandler.reporter;
+        if (reporter is CrashlyticsErrorReporter) {
+          await reporter.configure(
+            appVersion: info.version,
+            buildNumber: info.buildNumber,
+          );
+        }
+      }));
+      // 推播設定獨立處理：離線時 FCM getToken() 會丟例外，
+      // 不可因此讓到站提醒與 TDX Token 自動更新一起被略過。
+      unawaited(_runGuarded('fcm', () async {
+        await requestPermission();
+        await initializeNotifications();
+        setupForegroundMessageHandler();
+        await setupFirebaseMessaging();
+      }));
     }
 
-    // ── 2. 全域錯誤處理 ──
-    FlutterError.onError = (FlutterErrorDetails details) {
-      FlutterError.presentError(details);
+    unawaited(_runGuarded('secure_storage', SecureStorage.purgeLegacyApiKey));
+    unawaited(
+        _runGuarded('arrival_reminder', initializeArrivalReminderService));
 
-      log.severe(
-        'Flutter Error: ${details.exception}',
-        details.exception,
-        details.stack,
+    // TDX Token：背景預先取得即可，TdxApiClient 需要時會自行取得/更新。
+    final tokenManager = TokenManager();
+    tokenManager.startAutoRefresh();
+    unawaited(_runGuarded('tdx_token_prefetch', () => tokenManager.getToken()));
+
+    // 首次預載資料（bus list → SQLite）：失敗不影響 App，保留本地快取。
+    unawaited(_runGuarded('bootstrap', () async {
+      await StartupMetrics.measure(
+        'bootstrap',
+        BootstrapService.instance.ensureLoaded,
       );
-
-      if (firebaseInitialized) {
-        unawaited(
-          FirebaseCrashlytics.instance.recordFlutterFatalError(
-            details,
-          ),
-        );
-      }
-    };
-
-    // 處理未被其他機制捕捉的非同步錯誤
-    PlatformDispatcher.instance.onError = (error, stack) {
-      log.severe(
-        'Uncaught asynchronous error',
-        error,
-        stack,
-      );
-
-      if (!firebaseInitialized) {
-        // Firebase 尚未初始化，交由 Flutter 預設機制處理
-        return false;
-      }
-
-      unawaited(
-        FirebaseCrashlytics.instance.recordError(
-          error,
-          stack,
-          fatal: true,
-        ),
-      );
-
-      return true;
-    };
-
-    // ── 3. 首次預載資料（bus list → SQLite）──
-    // 失敗不影響 App 啟動，保留本地快取
-    try {
-      await BootstrapService.instance.ensureLoaded();
-
       bootstrapReady = true;
-      log.info('bootstrap 完成');
+    }));
+  }
+
+  static Future<void> _runGuarded(
+    String name,
+    Future<void> Function() action,
+  ) async {
+    try {
+      AppErrorHandler.breadcrumb('init $name');
+      await action();
     } catch (e, stack) {
-      log.warning(
-        'bootstrap 失敗，使用本地快取',
-        e,
-        stack,
-      );
+      _log.warning('$name 初始化失敗', e, stack);
+      unawaited(AppErrorHandler.recordNonFatal(e, stack,
+          feature: 'startup', reason: name));
     }
   }
 }
@@ -174,10 +184,14 @@ class AppInitializer {
 class ProviderSetup {
   static List<SingleChildWidget> getProviders(
     AppProvider appProvider, {
+    CityProvider? cityProvider,
     required bool firebaseInitialized,
   }) {
     return [
-      ChangeNotifierProvider(create: (_) => CityProvider()),
+      if (cityProvider != null)
+        ChangeNotifierProvider.value(value: cityProvider)
+      else
+        ChangeNotifierProvider(create: (_) => CityProvider()),
       ChangeNotifierProvider(create: (_) => LocationProvider()),
       ChangeNotifierProvider(create: (_) => MarkerProvider()),
       ChangeNotifierProvider(create: (_) => PolylineProvider()),
@@ -201,7 +215,7 @@ class ProviderSetup {
       ),
       ChangeNotifierProxyProvider<AuthProvider, CloudSyncProvider>(
         create: (_) => CloudSyncProvider(),
-        update: (_, auth, sync) => (sync ?? CloudSyncProvider())..attach(auth),
+        update: (_, auth, sync) => (sync ?? CloudSyncProvider())..attachUser(auth.currentUser?.uid),
       ),
     ];
   }
@@ -219,6 +233,7 @@ class AppRoutes {
   static const String EVStation = "EVStation";
   static const String IntercityBus = "IntercityBus";
   static const String test = "test";
+  static const String diagnostics = "/debug/diagnostics";
   static const String parking = "parking";
   static const String traffic = "traffic";
   static const String speedometer = "speedometer";
@@ -227,18 +242,31 @@ class AppRoutes {
   static const String authProfile = "/auth/profile";
 }
 
-void main() async {
+Future<void> main() async {
+  StartupMetrics.markMainStart();
   WidgetsFlutterBinding.ensureInitialized();
-  final appProvider = await AppProvider.load();
-  await AppInitializer.initialize();
+  // 偏好設定讀取與 Firebase 初始化並行，縮短首幀前的等待。
+  final appProviderFuture = AppProvider.load();
+  final cityProviderFuture = CityProvider.load();
+  await AppInitializer.initializeCritical();
+  StartupMetrics.attachPerformanceTrace();
+  final appProvider = await appProviderFuture;
+  final cityProvider = await cityProviderFuture;
 
   runApp(MultiProvider(
     providers: ProviderSetup.getProviders(
       appProvider,
+      cityProvider: cityProvider,
       firebaseInitialized: AppInitializer.firebaseInitialized,
     ),
     child: const NavigationBarApp(),
   ));
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    StartupMetrics.markFirstFrame();
+    unawaited(AppInitializer.initializeDeferred());
+    unawaited(AppAnalytics.logAppOpen());
+  });
 }
 
 // 定义 SVG 资源路径的常量类
@@ -285,8 +313,10 @@ class _NavigationBarAppState extends State<NavigationBarApp>
   @override
   Widget build(BuildContext context) {
 // 監聽 Provider 中的狀態
-    final appProvider = Provider.of<AppProvider>(context);
-    print("目前語言: ${appProvider.locale}");
+    // QA B4：只監聽主題與語系，且不在 build 內輸出 log。
+    final themeMode =
+        context.select<AppProvider, ThemeMode>((p) => p.themeMode);
+    final locale = context.select<AppProvider, Locale>((p) => p.locale);
 
     return GestureDetector(
         behavior: HitTestBehavior.translucent,
@@ -319,7 +349,12 @@ class _NavigationBarAppState extends State<NavigationBarApp>
             AppRoutes.HSR: (BuildContext context) => (HSR()),
             AppRoutes.EVStation: (BuildContext context) => (EVStation()),
             AppRoutes.IntercityBus: (BuildContext context) => (IntercityBus()),
-            AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
+            // QA B17：測試頁只在 Debug build 註冊。
+            if (kDebugMode)
+              AppRoutes.test: (BuildContext context) => (MetroMapScreen()),
+            if (AppDiagnostics.enabled)
+              AppRoutes.diagnostics: (BuildContext context) =>
+                  const DiagnosticsPage(),
             AppRoutes.parking: (BuildContext context) => (Parking()),
             AppRoutes.traffic: (BuildContext context) => (Traffic()),
             AppRoutes.speedometer: (BuildContext context) => (Speedometer()),
@@ -333,9 +368,9 @@ class _NavigationBarAppState extends State<NavigationBarApp>
           },
           theme: AppThemes.lightTheme,
           darkTheme: AppThemes.darkTheme,
-          themeMode: appProvider.themeMode,
+          themeMode: themeMode,
           // --- 重點：套用語言 ---
-          locale: appProvider.locale,
+          locale: locale,
 
           // themeMode: ThemeMode.system,
           home: const StartupGate(home: TaiwanPass()),
@@ -359,31 +394,12 @@ class _TaiwanPassState extends State<TaiwanPass>
   final double _activeIconSize = 24;
   final double _inactiveIconSize = 22;
   final PageController _pageController = PageController(); // 控制 PageView
+  // QA C4：縣市清單由 TaiwanCity 產生（id 為中文名稱，與 CityProvider 一致）。
   List<CityItem> get regions {
-    final l10n = AppLocalizations.of(context)!;
+    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     return [
-      CityItem(name: l10n.text_74, id: '宜蘭縣'),
-      CityItem(name: l10n.text_76, id: '花蓮縣'),
-      CityItem(name: l10n.text_78, id: '臺東縣'),
-      CityItem(name: l10n.text_80, id: '澎湖縣'),
-      CityItem(name: l10n.text_82, id: '金門縣'),
-      CityItem(name: l10n.text_84, id: '連江縣'),
-      CityItem(name: l10n.text_7, id: '臺北市'),
-      CityItem(name: l10n.text_8, id: '新北市'),
-      CityItem(name: l10n.text_9, id: '桃園市'),
-      CityItem(name: l10n.text_6, id: '臺中市'),
-      CityItem(name: l10n.text_10, id: '臺南市'),
-      CityItem(name: l10n.text_11, id: '高雄市'),
-      CityItem(name: l10n.text_12, id: '基隆市'),
-      CityItem(name: l10n.text_92, id: '新竹縣'),
-      CityItem(name: l10n.text_13, id: '新竹市'),
-      CityItem(name: l10n.text_94, id: '苗栗縣'),
-      CityItem(name: l10n.text_96, id: '彰化縣'),
-      CityItem(name: l10n.text_98, id: '南投縣'),
-      CityItem(name: l10n.text_100, id: '雲林縣'),
-      CityItem(name: l10n.text_101, id: '嘉義縣'),
-      CityItem(name: l10n.text_102, id: '嘉義市'),
-      CityItem(name: l10n.text_104, id: '屏東縣'),
+      for (final city in TaiwanCity.all)
+        CityItem(name: isEnglish ? city.enName : city.zhName, id: city.zhName),
     ];
   }
 
@@ -410,41 +426,57 @@ class _TaiwanPassState extends State<TaiwanPass>
       return AppLocalizations.of(context)!.text_919;
     }
 
-    String city = cityNameConverter(districtInfo["city"] ?? "");
+    // QA B04：TDX 回傳 `HsinchuCounty` 等代碼，統一由 TaiwanCity 解析。
+    final detected = TaiwanCity.tryParse(districtInfo["city"]);
+    if (detected == null) {
+      if (!context.mounted) return null;
+      return AppLocalizations.of(context)!.text_919;
+    }
 
     if (!context.mounted) return null;
-    Provider.of<CityProvider>(context, listen: false).setCity(city);
+    // QA B06：GPS 只在使用者從未手動選擇城市時套用，不覆蓋上次選擇。
+    final applied = Provider.of<CityProvider>(context, listen: false)
+        .applyDetectedCity(detected.zhName);
+    if (applied) {
+      unawaited(AppAnalytics.logCityChanged(
+          city: detected.tdxCode, source: 'gps'));
+    }
 
-    return city;
+    return detected.zhName;
   }
-
-  // 初始化页面列表
-  final List<Widget> _pages = [];
 
   @override
   void initState() {
-    // 在应用启动时获取定位信息
-
-    // 延迟获取定位信息
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      fetchAndUpdateLocation(context);
-    });
+    super.initState();
     _navIconController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    super.initState();
-    _pages.addAll([
-      Home(),
-      Commute(),
-      NearbyStationsPage(),
-      InfoPages(),
-    ]);
 
-    ScheduleService.instance.initDatabase();
+    final city = Provider.of<CityProvider>(context, listen: false).city;
+    unawaited(AppErrorHandler.setContext(city: city, feature: 'home'));
 
-    // 获取天气信息
-    // getWeatherInfo(context);
+    // 首頁先顯示，再背景取得定位（不阻塞首頁互動）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      StartupMetrics.markHomeVisible();
+      unawaited(fetchAndUpdateLocation(context)
+          .catchError((Object e, StackTrace st) {
+        unawaited(AppErrorHandler.recordNonFatal(e, st, feature: 'location'));
+        return null;
+      }).whenComplete(StartupMetrics.markHomeInteractive));
+    });
+
+    unawaited(Future<void>(ScheduleService.instance.initDatabase)
+        .catchError((Object e, StackTrace st) => AppErrorHandler.recordNonFatal(
+            e, st,
+            feature: 'schedule_db')));
+  }
+
+  @override
+  void dispose() {
+    _navIconController.dispose();
+    _pageController.dispose();
+    super.dispose();
   }
 
   Widget _buildPage(int index) {
@@ -464,14 +496,10 @@ class _TaiwanPassState extends State<TaiwanPass>
 
   @override
   Widget build(BuildContext context) {
-    final cityProvider =
-        Provider.of<CityProvider>(context); // 获取 CityProvider 实例
+    // QA B4：城市變更只重建城市選擇器，不重建整個首頁殼（PageView 與地圖）。
+    final cityProvider = Provider.of<CityProvider>(context, listen: false);
     final colorScheme = Theme.of(context).colorScheme;
     final regionItems = regions;
-    final selectedCity =
-        regionItems.any((region) => region.id == cityProvider.city)
-            ? cityProvider.city
-            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -487,7 +515,14 @@ class _TaiwanPassState extends State<TaiwanPass>
         ),
         actions: [
           // 豪華版地區選擇下拉選單
-          Container(
+          Selector<CityProvider, String>(
+            selector: (_, p) => p.city,
+            builder: (context, currentCity, _) {
+              final selectedCity =
+                  regionItems.any((region) => region.id == currentCity)
+                      ? currentCity
+                      : null;
+              return Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest,
@@ -510,8 +545,9 @@ class _TaiwanPassState extends State<TaiwanPass>
                     value: selectedCity,
                     hint: Row(
                       children: [
-                        const Icon(Icons.location_on_rounded,
-                            size: 18, color: Color(0xFF1A73E8)),
+                        Icon(Icons.location_on_rounded,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.primary),
                         const SizedBox(width: 8),
                         Text(
                           AppLocalizations.of(context)!.text_221,
@@ -523,8 +559,8 @@ class _TaiwanPassState extends State<TaiwanPass>
                         ),
                       ],
                     ),
-                    icon: const Icon(Icons.arrow_drop_down_rounded,
-                        size: 22, color: Color(0xFF1A73E8)),
+                    icon: Icon(Icons.arrow_drop_down_rounded,
+                        size: 22, color: Theme.of(context).colorScheme.primary),
                     dropdownColor: colorScheme.surfaceContainer,
                     elevation: 8,
                     style: TextStyle(
@@ -535,8 +571,13 @@ class _TaiwanPassState extends State<TaiwanPass>
                     borderRadius: BorderRadius.circular(16),
                     menuMaxHeight: 300,
                     onChanged: (String? newValue) {
-                      if (newValue != null) {
-                        cityProvider.setCity(newValue);
+                      if (newValue == null) return;
+                      unawaited(cityProvider.setCity(newValue));
+                      final code = TaiwanCity.tryParse(newValue)?.tdxCode;
+                      if (code != null) {
+                        unawaited(AppAnalytics.logCityChanged(
+                            city: code, source: 'home_selector'));
+                        unawaited(AppErrorHandler.setContext(city: code));
                       }
                     },
                     selectedItemBuilder: (BuildContext context) {
@@ -545,8 +586,9 @@ class _TaiwanPassState extends State<TaiwanPass>
                           alignment: Alignment.centerLeft,
                           child: Row(
                             children: [
-                              const Icon(Icons.location_on_rounded,
-                                  size: 16, color: Color(0xFF1A73E8)),
+                              Icon(Icons.location_on_rounded,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary),
                               const SizedBox(width: 6),
                               Text(
                                 region.name,
@@ -583,7 +625,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                                 height: 8,
                                 decoration: BoxDecoration(
                                   color: isSelected
-                                      ? const Color(0xFF1A73E8)
+                                      ? Theme.of(context).colorScheme.primary
                                       : colorScheme.outline,
                                   shape: BoxShape.circle,
                                 ),
@@ -598,7 +640,7 @@ class _TaiwanPassState extends State<TaiwanPass>
                                         ? FontWeight.w600
                                         : FontWeight.w500,
                                     color: isSelected
-                                        ? const Color(0xFF1A73E8)
+                                        ? Theme.of(context).colorScheme.primary
                                         : colorScheme.onSurface,
                                   ),
                                 ),
@@ -618,6 +660,8 @@ class _TaiwanPassState extends State<TaiwanPass>
                 ),
               ),
             ),
+          );
+            },
           ),
           // 通知按鈕
           Container(

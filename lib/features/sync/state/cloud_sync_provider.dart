@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../../auth/state/auth_provider.dart';
 import '../data/schedule_sync_repository.dart';
 
 class CloudSyncProvider extends ChangeNotifier {
@@ -22,9 +21,9 @@ class CloudSyncProvider extends ChangeNotifier {
   bool get hasError => _hasError;
   ScheduleSyncResult? get lastResult => _lastResult;
 
-  /// Called by the provider proxy whenever the auth state changes.
-  void attach(AuthProvider auth) {
-    final uid = auth.currentUser?.uid;
+  /// 由 ProviderSetup 在登入狀態改變時呼叫；只接收 uid，
+  /// 不依賴 AuthProvider（避免 auth ↔ sync 循環依賴）。
+  void attachUser(String? uid) {
     if (uid == _uid) return;
     _uid = uid;
     _lastSyncedAt = null;

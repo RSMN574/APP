@@ -1,11 +1,15 @@
 import 'dart:convert';
 
+import 'package:com.rsmn574.app/core/transit/arrival_status.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
+
+export 'package:com.rsmn574.app/core/transit/arrival_status.dart';
 
 /// 站牌到站時間的顯示結果（純資料，不依賴 BuildContext）。
 class StopArrival {
   final String displayTime; // 「即將進站」、「3 分鐘」、時間字串
-  final String colorKey; // '0' / '2' / 'min' / '' / l10n.text_317
+  /// 到站狀態（取代舊的字串 colorKey，不再依賴本地化文案判斷）。
+  final ArrivalStatus status;
   final String plateNumb;
   final String estimatesJson;
   final String stopPosition;
@@ -16,7 +20,7 @@ class StopArrival {
 
   const StopArrival({
     required this.displayTime,
-    required this.colorKey,
+    required this.status,
     required this.plateNumb,
     required this.estimatesJson,
     required this.stopPosition,
@@ -36,7 +40,7 @@ class BusStopTimeFormatter {
     if (stopTime == null) {
       return StopArrival(
         displayTime: l10n.text_339,
-        colorKey: l10n.text_317,
+        status: ArrivalStatus.ended,
         plateNumb: '',
         estimatesJson: '',
         stopPosition: '',
@@ -62,7 +66,7 @@ class BusStopTimeFormatter {
       if (estimateRaw == 0 || minutes < 1) {
         return StopArrival(
           displayTime: l10n.text_316,
-          colorKey: '0',
+          status: ArrivalStatus.arriving,
           plateNumb: plate,
           estimatesJson: estimates,
           stopPosition: stopPosition,
@@ -73,7 +77,7 @@ class BusStopTimeFormatter {
       if (minutes < 3) {
         return StopArrival(
           displayTime: l10n.nearStopMinutes(minutes.toString()),
-          colorKey: '2',
+          status: ArrivalStatus.approaching,
           plateNumb: plate,
           estimatesJson: estimates,
           stopPosition: stopPosition,
@@ -83,7 +87,7 @@ class BusStopTimeFormatter {
       }
       return StopArrival(
         displayTime: l10n.nearStopMinutes(minutes.toString()),
-        colorKey: 'min',
+        status: ArrivalStatus.minutes,
         plateNumb: '',
         estimatesJson: estimates,
         stopPosition: stopPosition,
@@ -101,7 +105,7 @@ class BusStopTimeFormatter {
         if (totalMinutes < 0) {
           return StopArrival(
             displayTime: totalMinutes > -5 ? l10n.text_340 : l10n.text_317,
-            colorKey: l10n.text_317,
+            status: ArrivalStatus.ended,
             plateNumb: '',
             estimatesJson: estimates,
             stopPosition: stopPosition,
@@ -113,7 +117,7 @@ class BusStopTimeFormatter {
           if (totalMinutes < 1) {
             return StopArrival(
               displayTime: l10n.text_316,
-              colorKey: '0',
+              status: ArrivalStatus.arriving,
               plateNumb: plate,
               estimatesJson: estimates,
               stopPosition: stopPosition,
@@ -123,8 +127,8 @@ class BusStopTimeFormatter {
           }
           if (totalMinutes < 3) {
             return StopArrival(
-              displayTime: '$totalMinutes 分鐘',
-              colorKey: '2',
+              displayTime: l10n.nearStopMinutes(totalMinutes.toString()),
+              status: ArrivalStatus.approaching,
               plateNumb: plate,
               estimatesJson: estimates,
               stopPosition: stopPosition,
@@ -134,7 +138,7 @@ class BusStopTimeFormatter {
           }
           return StopArrival(
             displayTime: l10n.nearStopMinutes(totalMinutes.toString()),
-            colorKey: 'min',
+            status: ArrivalStatus.minutes,
             plateNumb: '',
             estimatesJson: estimates,
             stopPosition: stopPosition,
@@ -146,8 +150,8 @@ class BusStopTimeFormatter {
         final mm = parsed.minute.toString().padLeft(2, '0');
         return StopArrival(
           displayTime: '$hh:$mm',
-          // ✅ P3：原本是 ''，改為 l10n.text_317，與 bus_stop_info 一致。
-          colorKey: l10n.text_317,
+          // 尚未發車：NextBusTime 為即時 API 的預計發車時間，不是固定班表。
+          status: ArrivalStatus.notDeparted,
           plateNumb: '',
           estimatesJson: estimates,
           stopPosition: stopPosition,
@@ -160,7 +164,7 @@ class BusStopTimeFormatter {
     // 3) 無資料
     return StopArrival(
       displayTime: l10n.text_317,
-      colorKey: l10n.text_317,
+      status: ArrivalStatus.ended,
       plateNumb: '',
       estimatesJson: estimates,
       stopPosition: stopPosition,

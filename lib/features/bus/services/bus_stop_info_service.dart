@@ -190,7 +190,7 @@ class BusStopInfoService {
       );
       final result = Map<String, dynamic>.from(stop);
       result["time"] = arrival.displayTime;
-      result["color"] = arrival.colorKey;
+      result["arrivalStatus"] = arrival.status;
       result["PlateNumb"] =
       arrival.plateNumb.isEmpty ? null : arrival.plateNumb;
       result["hasLiveData"] = arrival.hasLiveData;

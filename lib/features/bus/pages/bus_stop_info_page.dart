@@ -1,3 +1,7 @@
+import 'package:com.rsmn574.app/core/transit/arrival_status.dart';
+import 'package:com.rsmn574.app/widget/arrival_chip.dart';
+import 'package:com.rsmn574.app/firebase/analytics_service.dart';
+import 'package:com.rsmn574.app/const/regular_class.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
@@ -10,19 +14,18 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 import 'package:com.rsmn574.app/const/app_colors.dart';
-import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:com.rsmn574.app/database/sql/favorite_feature.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
-import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:com.rsmn574.app/features/bus/widgets/bubble.dart';
-import 'package:com.rsmn574.app/widget/error.dart';
 
 import '../../../database/get_data.dart';
 import '../../../widget/AppLoading.dart';
 import '../../../widget/app_custom_bar.dart';
+import 'package:com.rsmn574.app/widget/app_state_views.dart';
 
 enum SortType { nameAsc, nameDesc, timeAsc, timeDesc }
 
@@ -75,6 +78,9 @@ class _BusStopInfoState extends State<BusStopInfo>
   @override
   void initState() {
     super.initState();
+    unawaited(AppAnalytics.logBusStopView(
+      city: context.read<CityProvider>().tdxCode,
+    ));
 
     _tabController = TabController(length: 1, vsync: this);
     _tabController.index = 0;
@@ -485,16 +491,9 @@ class _BusStopInfoState extends State<BusStopInfo>
         itemBuilder: (context, animation, stop, index) {
           final PlateNumb = stop["PlateNumb"];
 
-          // 站牌語義色：保留原設計（'0' / '2' / 'min' / text_317 各自對應業務語義）
-          final Color color = stop["color"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["color"] == '2'
-              ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == l10n.text_317
-              ? const Color.fromRGBO(69, 69, 69, 0.1)
-              : (stop["color"] == "min"
-              ? const Color.fromRGBO(13, 168, 255, 0.1)
-              : const Color.fromRGBO(68, 68, 68, 0.1))));
+          final ArrivalStatus status =
+
+              stop['arrivalStatus'] as ArrivalStatus? ?? ArrivalStatus.ended;
 
           return SizeFadeTransition(
             animation: animation,
@@ -543,31 +542,9 @@ class _BusStopInfoState extends State<BusStopInfo>
                         ),
                       );
                     },
-                    leading: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        stop["time"] ?? l10n.text_321,
-                        style: TextStyle(
-                          fontSize: 17,
-                          color: stop["color"] == '0'
-                              ? colorScheme.onPrimary
-                              : (stop["color"] == '2'
-                              ? const Color.fromRGBO(255, 85, 104, 1)
-                              : (stop["color"] == l10n.text_317
-                              ? const Color.fromRGBO(
-                              149, 149, 149, 1.0)
-                              : (stop["color"] == "min"
-                              ? const Color.fromRGBO(
-                              13, 168, 255, 1)
-                              : const Color.fromRGBO(
-                              68, 68, 68, 1)))),
-                        ),
-                      ),
+                    leading: ArrivalChip(
+                      status: status,
+                      label: stop["time"] ?? l10n.text_321,
                     ),
                     title: Row(
                       children: [
@@ -584,7 +561,7 @@ class _BusStopInfoState extends State<BusStopInfo>
                           style: TextStyle(
 
                             fontSize: 17,
-                            color: stop["color"] == l10n.text_317
+                            color: status.isInactive
                                 ? colorScheme.onSurfaceVariant
                                 : colorScheme.onSurface,
                           ),
@@ -809,9 +786,9 @@ class _BusStopInfoState extends State<BusStopInfo>
 
           return Scaffold(
             backgroundColor: colorScheme.surface,
-            body: ColoredBox(
-              color: colorScheme.surface,
-              child: ErrorPage(),
+            body: AppErrorView(
+              message: AppLocalizations.of(context)!.text_205,
+              onRetry: _loadData,
             ),
           );
         }
@@ -821,9 +798,9 @@ class _BusStopInfoState extends State<BusStopInfo>
         if (data == null || data.isEmpty) {
           return Scaffold(
             backgroundColor: colorScheme.surface,
-            body: ColoredBox(
-              color: colorScheme.surface,
-              child: ErrorPage(),
+            body: AppEmptyView(
+              icon: Icons.departure_board_rounded,
+              message: AppLocalizations.of(context)!.text_430,
             ),
           );
         }

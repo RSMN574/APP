@@ -324,7 +324,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_104 => '屏東縣';
 
   @override
-  String get text_105 => '連接失敗: \$e';
+  String get text_105 => '連接失敗';
 
   @override
   String get text_106 => '查詢失敗，請稍後再試';
@@ -369,13 +369,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_119 => '已存在於列表中，不會重複添加。';
 
   @override
-  String get text_120 => '儲存項目時發生錯誤: \$e';
+  String get text_120 => '儲存項目時發生錯誤';
 
   @override
-  String get text_121 => '載入項目時發生錯誤: \$e';
+  String get text_121 => '載入項目時發生錯誤';
 
   @override
-  String get text_122 => '移除項目時發生錯誤: \$e';
+  String get text_122 => '移除項目時發生錯誤';
 
   @override
   String get text_123 => '時間在前後 30 分鐘內，載入即時列車資訊';
@@ -387,7 +387,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_125 => '使用快取資料';
 
   @override
-  String get text_126 => '發生錯誤: \$e';
+  String get text_126 => '發生錯誤';
 
   @override
   String get text_127 => '前台消息处理已启动';
@@ -396,7 +396,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_128 => '無内容';
 
   @override
-  String get text_129 => '无法获取当前位置: \$e';
+  String get text_129 => '无法获取当前位置';
 
   @override
   String get text_130 => '請選擇站點';
@@ -432,7 +432,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_140 => '可借';
 
   @override
-  String get text_141 => '加載站點失敗: \$e';
+  String get text_141 => '加載站點失敗';
 
   @override
   String get text_142 => '最近搜尋';
@@ -465,7 +465,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_151 => '查無此車次';
 
   @override
-  String get text_152 => '查詢失敗: \$e';
+  String get text_152 => '查詢失敗';
 
   @override
   String get text_153 => '立即查詢';
@@ -597,7 +597,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_195 => '無法打開連結';
 
   @override
-  String get text_196 => '開啟連結失敗: \$e';
+  String get text_196 => '開啟連結失敗';
 
   @override
   String get text_197 => '高鐵車站查詢';
@@ -645,7 +645,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_211 => '商務';
 
   @override
-  String get text_212 => '獲取座位狀態失敗: \$e';
+  String get text_212 => '獲取座位狀態失敗';
 
   @override
   String get text_213 => '標準座艙';
@@ -660,7 +660,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_216 => '商務座艙';
 
   @override
-  String get text_217 => '獲取運輸資訊失敗: \$e';
+  String get text_217 => '獲取運輸資訊失敗';
 
   @override
   String get text_218 => '台灣好行資訊';
@@ -990,7 +990,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_326 => '未知目的站';
 
   @override
-  String get text_327 => '處理資料失敗: \$e';
+  String get text_327 => '處理資料失敗';
 
   @override
   String get text_328 => '測試資料庫查詢...';
@@ -999,7 +999,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_329 => '第一筆結果:';
 
   @override
-  String get text_330 => '測試失敗: \$e';
+  String get text_330 => '測試失敗';
 
   @override
   String get text_331 => 'X 分鐘';
@@ -1020,10 +1020,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_336 => '儲存項目時發生錯誤';
 
   @override
-  String get text_337 => '載入路線形狀失敗: \$e';
+  String get text_337 => '載入路線形狀失敗';
 
   @override
-  String get text_338 => '載入路線失敗: \$e';
+  String get text_338 => '載入路線失敗';
 
   @override
   String get text_339 => '無資料';
@@ -1251,7 +1251,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_413 => '座位數';
 
   @override
-  String get text_414 => '取得站點資料失敗: \$e';
+  String get text_414 => '取得站點資料失敗';
 
   @override
   String get text_415 => '公車站';
@@ -1281,7 +1281,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_423 => '無數據，返回空列表';
 
   @override
-  String get text_424 => '批次查詢失敗: \$e';
+  String get text_424 => '批次查詢失敗';
 
   @override
   String get text_425 => '開始逐個查詢...';
@@ -2418,7 +2418,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_802 => '當前分鐘數為奇數，未觸發通知';
 
   @override
-  String get text_803 => '通知發送失敗: \$e';
+  String get text_803 => '通知發送失敗';
 
   @override
   String get text_804 => '舊社站';
@@ -2682,7 +2682,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_890 => '狀態';
 
   @override
-  String get text_891 => '查詢車次詳情失敗: \$e';
+  String get text_891 => '查詢車次詳情失敗';
 
   @override
   String get text_892 => '直達';
@@ -2778,7 +2778,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_922 => '高鐵車站列表';
 
   @override
-  String get text_923 => '無法獲取位置: \$e';
+  String get text_923 => '無法獲取位置';
 
   @override
   String get text_924 => '新竹';
@@ -2862,7 +2862,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get text_950 => '天氣警報';
 
   @override
-  String get text_951 => '地震時間解析錯誤: \$e';
+  String get text_951 => '地震時間解析錯誤';
 
   @override
   String get text_952 => '目前無詳細說明。';
@@ -3096,12 +3096,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String nearStopSaved(String stop) {
-    return '$stop?????';
+    return '$stop已儲存';
   }
 
   @override
   String nearStopAlreadySaved(String stop) {
-    return '$stop??????????????';
+    return '$stop已經儲存';
   }
 
   @override
@@ -3115,10 +3115,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get nearStopSortAsc => '?? 1?10';
+  String get nearStopSortAsc => '從 1 到 10';
 
   @override
-  String get nearStopSortDesc => '?? 10?1';
+  String get nearStopSortDesc => '從 10 到 1';
 
   @override
   String nearStopTo(String destination) {
@@ -3601,4 +3601,111 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get alertSeverityUnknown => '未知';
+
+  @override
+  String get busScheduleMenuTitle => '班表';
+
+  @override
+  String get busScheduleMenuSubtitle => '今日各站預定班次';
+
+  @override
+  String busScheduleTitle(String route) {
+    return '$route 班表';
+  }
+
+  @override
+  String get busScheduleRefresh => '重新整理班表';
+
+  @override
+  String get busScheduleLoading => '正在載入班表…';
+
+  @override
+  String get busScheduleNotice => '此為業者提供的每日預定班表，並非即時預估到站時間。';
+
+  @override
+  String get busScheduleEstimatedNotice => '各站時間為依發車時刻推算的估算值，實際到站請以即時資訊為準。';
+
+  @override
+  String busScheduleServiceDate(String date) {
+    return '適用日期 $date';
+  }
+
+  @override
+  String busScheduleUpdated(String time) {
+    return '資料更新 $time';
+  }
+
+  @override
+  String busScheduleOutdated(String date) {
+    return '班表適用日期為 $date，不是今天，僅供參考。';
+  }
+
+  @override
+  String busScheduleStale(String time) {
+    return '目前無法連線，顯示上次取得的班表（$time）。';
+  }
+
+  @override
+  String get busScheduleDirectionLabel => '方向';
+
+  @override
+  String busScheduleTowards(String destination) {
+    return '往 $destination';
+  }
+
+  @override
+  String get busScheduleStopLabel => '站牌';
+
+  @override
+  String busScheduleNext(String time) {
+    return '下一班 $time';
+  }
+
+  @override
+  String get busScheduleNoMore => '今日已無班次';
+
+  @override
+  String busScheduleTrips(int count) {
+    return '共 $count 班';
+  }
+
+  @override
+  String busScheduleFirstLast(String first, String last) {
+    return '首班 $first・末班 $last';
+  }
+
+  @override
+  String get busScheduleNextDay => '隔日';
+
+  @override
+  String get busScheduleLowFloor => '低地板';
+
+  @override
+  String get busScheduleEmpty => '此路線目前沒有提供每日班表。';
+
+  @override
+  String get busScheduleError => '無法載入班表，請檢查網路後重試。';
+
+  @override
+  String get busScheduleUnsupportedTitle => '此縣市尚未提供班表';
+
+  @override
+  String busScheduleUnsupported(String city) {
+    return 'TDX 目前只提供臺中市、桃園市、高雄市的市區公車每日班表，$city 尚未支援。';
+  }
+
+  @override
+  String get busHistoryPlate => '公車號碼';
+
+  @override
+  String get busHistoryRoute => '路線';
+
+  @override
+  String get busHistoryStop => '站點';
+
+  @override
+  String get busHistoryTime => '時間';
+
+  @override
+  String get busHistoryDirection => '方向';
 }

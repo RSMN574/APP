@@ -1,3 +1,5 @@
+import 'package:com.rsmn574.app/features/bus/services/bus_stop_time_formatter.dart';
+import 'package:com.rsmn574.app/widget/arrival_chip.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:animated_list_plus/animated_list_plus.dart';
@@ -11,13 +13,12 @@ import 'package:quickalert/models/quickalert_type.dart';
 import 'package:quickalert/widgets/quickalert_dialog.dart';
 
 import '../../../const/regular_class.dart';
-import '../../../database/get_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/mrt_station.dart';
 import '../../../core/utils/convert.dart';
 import '../../../widget/map.dart';
 import '../../../widget/tab.dart';
-import '../../bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import '../../bus/model/bus_station_model.dart';
 import '../../bus/pages/bus_stop_info_page.dart';
 import '../../bus/pages/bus_time_page.dart';
@@ -58,6 +59,9 @@ class NearbyStationsPage extends StatefulWidget {
 }
 
 class _NearbyStationsPageState extends State<NearbyStationsPage> {
+  /// QA B22：先前固定查詢臺中市，其他縣市的附近站牌無法顯示到站資訊。
+  String get _currentTdxCity => context.read<CityProvider>().tdxCode;
+
   GoogleMapController? _mapController;
   Future<List<BusStationInfo>>? _futureNearStations;
   final DraggableScrollableController _scrollController =
@@ -182,7 +186,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           final tapSeq = ++_markerTapSeq;
 
           try {
-            final data = await _nearby.busStopGroup(stopName, 'Taichung');
+            final data = await _nearby.busStopGroup(stopName, _currentTdxCity);
             if (tapSeq != _markerTapSeq) return;
             final stationIDs = data
                 .map((item) => item['StationID']?.toString())
@@ -1000,7 +1004,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     _handleTabSelectChange(force: true);
                   },
                   borderRadius: BorderRadius.circular(50),
-                  splashColor: const Color(0xFF1A73E8).withOpacity(0.2),
+                  splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
                   highlightColor:
                   Theme.of(context).colorScheme.primaryContainer,
                   child: Container(
@@ -1022,9 +1026,9 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                         width: 1,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.refresh_rounded,
-                      color: Color(0xFF1A73E8),
+                      color: Theme.of(context).colorScheme.primary,
                       size: 24,
                     ),
                   ),
@@ -1081,7 +1085,7 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
           child: InkWell(
             onTap: onCardTap,
             borderRadius: BorderRadius.circular(16),
-            splashColor: const Color(0xFF1A73E8).withOpacity(0.1),
+            splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
             highlightColor:
             Theme.of(context).colorScheme.primaryContainer.withOpacity(0.5),
             child: Container(
@@ -1104,8 +1108,8 @@ class _NearbyStationsPageState extends State<NearbyStationsPage> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF1A73E8), Color(0xFF1A73E8)],
+                      gradient: LinearGradient(
+                        colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.primary],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -1319,6 +1323,9 @@ class BusStopList extends StatefulWidget {
 
 class _BusStopListState extends State<BusStopList>
     with TickerProviderStateMixin, AutomaticKeepAliveClientMixin<BusStopList> {
+  /// QA B22：先前固定查詢臺中市，其他縣市的附近站牌無法顯示到站資訊。
+  String get _currentTdxCity => context.read<CityProvider>().tdxCode;
+
   final StreamController<List<Map<String, dynamic>>> _streamController =
   StreamController.broadcast();
   late final TabController _tabController;
@@ -1649,7 +1656,7 @@ class _BusStopListState extends State<BusStopList>
                             icon: Icons.info_outline_rounded,
                             title: AppLocalizations.of(context)!.text_333,
                             value: 'info',
-                            color: const Color(0xFF1A73E8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           _buildPopupMenuItem(
                             icon: Icons.favorite_border_rounded,
@@ -1668,7 +1675,7 @@ class _BusStopListState extends State<BusStopList>
                           if (action == 'favorite') {
                             final output = await _nearby.addFavoriteStop(
                               stopName: widget.stop,
-                              city: "Taichung",
+                              city: _currentTdxCity,
                             );
 
                             if (!mounted) return;
@@ -1813,14 +1820,14 @@ class _BusStopListState extends State<BusStopList>
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF1A73E8).withOpacity(0.08)
+                              ? Theme.of(context).colorScheme.primary.withOpacity(0.08)
                               : Theme.of(context)
                               .colorScheme
                               .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF1A73E8)
+                                ? Theme.of(context).colorScheme.primary
                                 : Theme.of(context).colorScheme.outlineVariant,
                             width: 1.2,
                           ),
@@ -1835,7 +1842,7 @@ class _BusStopListState extends State<BusStopList>
                                   Icons.directions_bus,
                                   size: 14,
                                   color: isSelected
-                                      ? const Color(0xFF1A73E8)
+                                      ? Theme.of(context).colorScheme.primary
                                       : Theme.of(context)
                                       .colorScheme
                                       .onSurfaceVariant,
@@ -1851,7 +1858,7 @@ class _BusStopListState extends State<BusStopList>
                                             ? FontWeight.bold
                                             : FontWeight.w500,
                                         color: isSelected
-                                            ? const Color(0xFF1A73E8)
+                                            ? Theme.of(context).colorScheme.primary
                                             : Theme.of(context)
                                             .colorScheme
                                             .onSurfaceVariant,
@@ -1872,7 +1879,7 @@ class _BusStopListState extends State<BusStopList>
                                     ? FontWeight.w500
                                     : FontWeight.normal,
                                 color: isSelected
-                                    ? const Color(0xFF1A73E8).withOpacity(0.8)
+                                    ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
                                     : Theme.of(context)
                                     .colorScheme
                                     .onSurfaceVariant,
@@ -1930,18 +1937,9 @@ class _BusStopListState extends State<BusStopList>
           final plateNumb = stop["PlateNumb"];
           final localizations = AppLocalizations.of(context)!;
 
-          final color = stop["color"] == '0'
-              ? const Color.fromRGBO(235, 15, 41, 0.85)
-              : (stop["color"] == '2'
-              ? const Color.fromRGBO(225, 85, 104, 0.1)
-              : (stop["color"] == localizations.text_317
-              ? Theme.of(context).colorScheme.onSurface.withOpacity(0.1)
-              : (stop["color"] == "min"
-              ? const Color.fromRGBO(13, 168, 255, 0.1)
-              : Theme.of(context)
-              .colorScheme
-              .onSurface
-              .withOpacity(0.1))));
+          final ArrivalStatus status =
+
+              stop['arrivalStatus'] as ArrivalStatus? ?? ArrivalStatus.ended;
 
           return SizeFadeTransition(
             animation: animation,
@@ -1957,7 +1955,7 @@ class _BusStopListState extends State<BusStopList>
                           ? stop["Direction"] as int
                           : int.tryParse("${stop["Direction"]}");
                       final BusRoute route = await _nearby.routeById(
-                        city: "Taichung",
+                        city: _currentTdxCity,
                         routeId: stop["RouteID"],
                       );
                       if (!context.mounted) return;
@@ -1981,31 +1979,9 @@ class _BusStopListState extends State<BusStopList>
                         ),
                       );
                     },
-                    leading: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Text(
-                        stop["time"] ?? localizations.text_321,
-                        style: TextStyle(
-                          fontSize: 17,
-                          color: stop["color"] == '0'
-                              ? Colors.white
-                              : (stop["color"] == '2'
-                              ? const Color.fromRGBO(255, 85, 104, 1)
-                              : (stop["color"] == localizations.text_317
-                              ? Theme.of(context).colorScheme.outline
-                              : (stop["color"] == "min"
-                              ? const Color.fromRGBO(
-                              13, 168, 255, 1)
-                              : Theme.of(context)
-                              .colorScheme
-                              .onSurface))),
-                        ),
-                      ),
+                    leading: ArrivalChip(
+                      status: status,
+                      label: stop["time"] ?? localizations.text_321,
                     ),
                     title: Row(
                       children: [
@@ -2013,11 +1989,11 @@ class _BusStopListState extends State<BusStopList>
                           _localizedName(context, stop["RouteName"],
                               fallback: localizations.text_322),
                           style: TextStyle(
-                            fontFamily: stop["color"] == "0"
+                            fontFamily: status == ArrivalStatus.arriving
                                 ? 'MiSans-Semibold'
                                 : 'MiSans-normal',
                             fontSize: 17,
-                            color: stop["color"] == localizations.text_317
+                            color: status.isInactive
                                 ? Theme.of(context).colorScheme.onSurfaceVariant
                                 : Theme.of(context).colorScheme.onSurface,
                           ),
@@ -2088,96 +2064,26 @@ class _BusStopListState extends State<BusStopList>
   }
 
   Future<List<Map<String, dynamic>>> fetchBusStopInfo() async {
-    final info = await _nearby.busStopGroup(widget.stop, "Taichung");
+    final info = await _nearby.busStopGroup(widget.stop, _currentTdxCity);
     if (info.isEmpty) return [];
 
     // 原本對每個站位各抓一次相同的到站資料（結果相同，後續依路線去重），改為只抓一次。
     final stationInfo =
-    await _nearby.stationArrivals(_stationIDs.value, "Taichung");
-    for (var stop in stationInfo) {
-      var timeData = await getTimeList(stop);
-      stop["time"] = timeData["time"];
-      stop["isRed"] = timeData["isRed"];
-      stop["color"] = timeData["color"];
+    await _nearby.stationArrivals(_stationIDs.value, _currentTdxCity);
+    // QA B2：與公車頁共用 BusStopTimeFormatter，不再各自維護一份到站文字/顏色邏輯。
+    if (!mounted) return stationInfo;
+    final l10n = AppLocalizations.of(context)!;
+    final now = DateTime.now();
+    for (final stop in stationInfo) {
+      final arrival =
+          BusStopTimeFormatter.format(stopTime: stop, l10n: l10n, now: now);
+      stop["time"] = arrival.displayTime;
+      stop["arrivalStatus"] = arrival.status;
     }
 
     return stationInfo;
   }
 
-  Future<Map<String, dynamic>> getTimeList(
-      Map<String, dynamic> stopData) async {
-    final localizations = AppLocalizations.of(context)!;
-
-    if (stopData["EstimateTime"] != null) {
-      if (stopData["EstimateTime"] == 0) {
-        List plateNumb = [];
-        if (stopData['Estimates'] != null) {
-          for (var estimate in stopData['Estimates']) {
-            plateNumb.add(estimate["PlateNumb"]);
-          }
-        }
-        return {
-          "color": '0',
-          "time": localizations.text_316,
-          "isRed": '0',
-          "PlateNumb": plateNumb.toString()
-        };
-      } else {
-        int result = (stopData["EstimateTime"] / 60).floor();
-        List plateNumb = [];
-        if (stopData['Estimates'] != null) {
-          for (var estimate in stopData['Estimates']) {
-            plateNumb.add(estimate["PlateNumb"]);
-          }
-        }
-
-        return {
-          "color": result < 3 ? "2" : "min",
-          "time": result < 1
-              ? localizations.text_316
-              : localizations.nearStopMinutes(result.toString()),
-          "isRed": result < 3 ? "2" : "",
-          "PlateNumb": result < 20 ? plateNumb.toString() : ""
-        };
-      }
-    } else if (stopData["NextBusTime"] != null) {
-      Duration difference =
-      DateTime.parse(stopData["NextBusTime"]).difference(DateTime.now());
-      if (difference.inHours == 0) {
-        return {
-          "time": difference.inMinutes.remainder(60) <= 0
-              ? localizations.text_317
-              : localizations.nearStopMinutes(
-              difference.inMinutes.remainder(60).toString()),
-          "isRed": '',
-          "PlateNumb": "",
-          "color": difference.inMinutes.remainder(60) <= 0
-              ? localizations.text_317
-              : "min",
-        };
-      } else {
-        DateTime nextBusTime = DateTime.now().add(
-          Duration(
-              hours: difference.inHours,
-              minutes: difference.inMinutes.remainder(60)),
-        );
-        return {
-          'time':
-          "${nextBusTime.hour.toString().padLeft(2, '0')}:${nextBusTime.minute.toString().padLeft(2, '0')}",
-          "isRed": '',
-          "PlateNumb": "",
-          "color": localizations.text_317
-        };
-      }
-    } else {
-      return {
-        "time": localizations.text_317,
-        "isRed": '',
-        "PlateNumb": "",
-        "color": localizations.text_317
-      };
-    }
-  }
 
   void _showSortDialog(BuildContext context) {
     showDialog(
@@ -2202,23 +2108,23 @@ class _BusStopListState extends State<BusStopList>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A73E8).withOpacity(0.1),
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.sort_rounded,
                         size: 24,
-                        color: Color(0xFF1A73E8),
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Flexible(
                         child: Text(
                           AppLocalizations.of(context)!.text_318,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A73E8),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2230,13 +2136,13 @@ class _BusStopListState extends State<BusStopList>
                   AppLocalizations.of(context)!.nearStopSortAsc,
                   SortType.nameAsc,
                   Icons.numbers_rounded,
-                  const Color(0xFF1A73E8),
+                  Theme.of(context).colorScheme.primary,
                 ),
                 _buildSortOption(
                   AppLocalizations.of(context)!.nearStopSortDesc,
                   SortType.nameDesc,
                   Icons.numbers_rounded,
-                  const Color(0xFF1A73E8),
+                  Theme.of(context).colorScheme.primary,
                 ),
                 _buildSortOption(
                   AppLocalizations.of(context)!.text_319,

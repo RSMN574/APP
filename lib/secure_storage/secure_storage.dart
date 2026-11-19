@@ -19,14 +19,16 @@ class SecureStorage {
     await _storage.delete(key: 'api_key');
   }
 
-  /// 檢查是否為首次啟動，若是則儲存 API 金鑰
-  static Future<void> initializeApiKey() async {
+  /// 清除舊版寫入的 API 金鑰（QA A2）。
+  ///
+  /// 舊版在首次啟動時把一組寫死在原始碼中的金鑰存入 SecureStorage，
+  /// 但程式從未讀取。新版移除該金鑰，並在已安裝的裝置上清掉殘留值。
+  static Future<void> purgeLegacyApiKey() async {
     final prefs = await SharedPreferences.getInstance();
-    bool isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
-
-    if (isFirstLaunch) {
-      await saveApiKey('PgRQhSulFPbmnccET+l8ykLC1s2k8IAvpAb3NFFwIXA=');
-      await prefs.setBool('isFirstLaunch', false); // 記錄已初始化
-    }
+    if (!prefs.containsKey(_legacyFirstLaunchKey)) return;
+    await deleteApiKey();
+    await prefs.remove(_legacyFirstLaunchKey);
   }
+
+  static const _legacyFirstLaunchKey = 'isFirstLaunch';
 }

@@ -1,5 +1,6 @@
 import 'package:com.rsmn574.app/features/home/widgets/transport_grid.dart';
 import 'package:flutter/material.dart';
+import '../../../const/app_design_tokens.dart';
 
 // 請替換為你專案的實際路徑
 import '../../weather/widgets/weather_card.dart';
@@ -54,7 +55,7 @@ class _HomeBottomSheetState extends State<HomeBottomSheet> {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
+              top: Radius.circular(AppRadius.xl),
             ),
             boxShadow: const [
               BoxShadow(

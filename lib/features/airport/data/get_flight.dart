@@ -9,8 +9,9 @@ import '../model/airport_model.dart';
 
 //取得指定[國內機場]氣象資訊觀測資料
 Future<List<dynamic>> getAirportMETAR(String location) async {
-  const String url =
-      'https://tdx.transportdata.tw/api/basic/v2/Air/METAR/Airport/rmq?%24format=JSON';
+  // 先前固定查詢 RMQ（台中），忽略 location 參數。
+  final String url =
+      'https://tdx.transportdata.tw/api/basic/v2/Air/METAR/Airport/${Uri.encodeComponent(location)}?%24format=JSON';
   // 发起 GET 请求
   final response = await TdxApiClient().getRaw(
     Uri.parse(url),
@@ -30,8 +31,9 @@ Future<List<dynamic>> getAirportMETAR(String location) async {
 
 //取得指定[機場的即時航班]資料
 Future<List<dynamic>> getAirportFIDS(String location) async {
-  const String url =
-      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/tpe?%24top=30&%24format=JSON';
+  // 先前固定查詢 TPE，忽略 location 參數。
+  final String url =
+      'https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Airport/${Uri.encodeComponent(location)}?%24top=30&%24format=JSON';
   // 发起 GET 请求
   final response = await TdxApiClient().getRaw(
     Uri.parse(url),

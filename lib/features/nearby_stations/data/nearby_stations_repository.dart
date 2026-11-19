@@ -1,6 +1,6 @@
 import '../../../database/sql/favorite_feature.dart';
 import '../../../models/mrt_station.dart';
-import '../../bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 import '../../bus/model/bus_station_model.dart';
 import '../models/nearby_station_result.dart';
 import '../services/nearby_station_filter_service.dart';

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../database/sql/schedule.dart';
-import '../../auth/data/datasources/user_cloud_data_source.dart';
+import 'schedule_cloud_store.dart';
 
 class ScheduleSyncResult {
   const ScheduleSyncResult({required this.uploaded, required this.downloaded});
@@ -12,12 +12,12 @@ class ScheduleSyncResult {
 
 class ScheduleSyncRepository {
   ScheduleSyncRepository({
-    UserCloudDataSource? cloud,
+    ScheduleCloudStore? cloud,
     ScheduleService? scheduleService,
-  })  : _cloud = cloud ?? UserCloudDataSource(),
+  })  : _cloud = cloud ?? ScheduleCloudStore(),
         _schedules = scheduleService ?? ScheduleService.instance;
 
-  final UserCloudDataSource _cloud;
+  final ScheduleCloudStore _cloud;
   final ScheduleService _schedules;
 
   static String _key(Map<String, dynamic> m) => [
@@ -58,7 +58,7 @@ class ScheduleSyncRepository {
       final key = _key(item);
       if (remoteKeys.contains(key)) continue;
       final data = Map<String, dynamic>.of(item)..remove('id');
-      batch.set(collection.doc(UserCloudDataSource.documentId(key)), {
+      batch.set(collection.doc(ScheduleCloudStore.documentId(key)), {
         ...data,
         'syncedAt': FieldValue.serverTimestamp(),
       });

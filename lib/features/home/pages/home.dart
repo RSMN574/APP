@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:com.rsmn574.app/firebase/analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -211,8 +213,6 @@ class _HomeState extends State<_HomeContent> with AutomaticKeepAliveClientMixin 
   Widget build(BuildContext context) {
     super.build(context);
 
-    final cityName = Provider.of<CityProvider>(context).city;
-
     return PopScope(
       canPop: true,
       child: Scaffold(
@@ -228,13 +228,17 @@ class _HomeState extends State<_HomeContent> with AutomaticKeepAliveClientMixin 
             ),
             if (_showMainContent)
               Positioned.fill(
-                child: HomeBottomSheet(
+                // QA B4：城市變更只重建 BottomSheet，不重建 Google Map。
+                child: Selector<CityProvider, String>(
+                  selector: (_, p) => p.city,
+                  builder: (context, cityName, _) => HomeBottomSheet(
                   sheetExtent: _sheetExtent,
                   cityName: cityName,
                   onTransportClick: _handleTransportClick,
                   onExtentChanged: (newExtent) {
                     _sheetExtent.value = newExtent;
                   },
+                  ),
                 ),
               ),
           ],
@@ -254,7 +258,7 @@ class _HomeState extends State<_HomeContent> with AutomaticKeepAliveClientMixin 
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(24),
+          top: Radius.circular(AppRadius.xl),
         ),
       ),
       child: Column(
@@ -522,6 +526,7 @@ class _HomeState extends State<_HomeContent> with AutomaticKeepAliveClientMixin 
               onPressed: () async {
                 final url = 'https://www.google.com/maps/dir/?api=1&destination=${station.stationPosition.positionLat},${station.stationPosition.positionLon}';
                 if (await canLaunchUrl(Uri.parse(url))) {
+                  unawaited(AppAnalytics.logNavigationStart(mode: 'google_maps'));
                   await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                 }
               },

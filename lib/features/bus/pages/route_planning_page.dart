@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:com.rsmn574.app/const/regular_const.dart';
-import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/features/bus/state/bus_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
@@ -564,16 +563,19 @@ class _RoutePlannerState extends State<RoutePlanner>
     final stops = data['stops'];
 
     List<dynamic> targetStops = [];
+    // 記錄實際使用的是哪一組站序，直接決定 Direction。
+    var usesReturnStops = false;
 
     // 根據當前選擇的出發站 terminal 決定使用哪一組 Stops 資料
     if (routeDepartureStation == route["DepartureStopNameZh"]) {
       // 如果出發總站是去程起點
       targetStops = json.decode(stops[0]["Stops"]);
-    } else {
+    } else if (stops.length > 1) {
       // 否則使用回程資料 (index 1)
-      targetStops = (stops.length > 1)
-          ? json.decode(stops[1]["Stops"])
-          : json.decode(stops[0]["Stops"]);
+      targetStops = json.decode(stops[1]["Stops"]);
+      usesReturnStops = true;
+    } else {
+      targetStops = json.decode(stops[0]["Stops"]);
     }
 
     // 呼叫封裝好的 Dialog
@@ -589,13 +591,10 @@ class _RoutePlannerState extends State<RoutePlanner>
       setState(() {
         selectedArrivalStation = result["StopName"]["Zh_tw"];
 
-        // 自動計算 API 需要的 Direction
-        // 邏輯：比對選中的 List 是否與 stops[1] 內容一致
-        if (stops.length > 1 && json.encode(targetStops) == stops[1]["Stops"]) {
-          selectDirection = 1;
-        } else {
-          selectDirection = 0;
-        }
+        // 先前以 json.encode(targetStops) 與資料庫原始字串比對，
+        // 只要 JSON 空白或跳脫格式不同就永遠判定為 0（去程），
+        // 會覆蓋掉使用者選的回程方向。改用實際選用的站序決定。
+        selectDirection = usesReturnStops ? 1 : 0;
       });
     }
   }

@@ -3,17 +3,16 @@ import 'dart:convert';
 import 'package:com.rsmn574.app/features/railway/pages/hsr_schedule_page.dart';
 import 'package:com.rsmn574.app/features/bus/pages/bus_time_page.dart';
 import 'package:com.rsmn574.app/features/railway/pages/train_schedule_page.dart';
-import 'package:com.rsmn574.app/task/task.dart';
+import 'package:com.rsmn574.app/features/notification/services/arrival_reminder_task.dart';
 import 'package:com.rsmn574.app/core/utils/convert.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:com.rsmn574.app/const/regular_const.dart';
 import 'package:provider/provider.dart';
 import 'package:com.rsmn574.app/features/railway/provider/railway_provider.dart';
 import 'package:com.rsmn574.app/database/get_data.dart';
 import 'package:com.rsmn574.app/database/sql/schedule.dart';
 import 'package:com.rsmn574.app/l10n/app_localizations.dart';
-import 'package:com.rsmn574.app/features/bus/model/bus_route_model.dart';
+import 'package:com.rsmn574.app/models/bus_route.dart';
 
 // 定義品牌色
 const Color hsrOrange = Color(0xFFF15A24);
